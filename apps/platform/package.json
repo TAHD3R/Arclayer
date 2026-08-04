@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@arclayer/platform-openapi": "workspace:*",
+    "@arclayer/ui": "workspace:*",
     "@bprogress/react": "^1.2.7",
     "@radix-ui/react-alert-dialog": "^1.1.17",
     "@radix-ui/react-avatar": "^1.2.0",
@@ -30,6 +31,7 @@
     "@radix-ui/react-tabs": "catalog:",
     "@radix-ui/react-tooltip": "^1.2.10",
     "@tanstack/react-router": "catalog:",
+    "@tanstack/react-table": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",

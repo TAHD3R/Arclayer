@@ -6,9 +6,9 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 
+from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
-from src.common.utils.public_ids import encode_uuid
 from src.models.hosting.commercial_access import (
     HostingDeliveryOperationAction,
     HostingDeliveryOperationState,
@@ -21,6 +21,8 @@ from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.platform_site_delivery.router import (
     get_platform_site_delivery_dossier_service,
+)
+from src.modules.platform_site_delivery.router import (
     router as platform_site_delivery_router,
 )
 from src.modules.platform_site_delivery.schema import PlatformDeliveryOperationOut
@@ -28,6 +30,7 @@ from src.modules.system.admin.notifications.campaign_router import router as cam
 from src.modules.system.directory.router import router as directory_router
 from src.modules.system.plugins.router import operations_router as plugin_operations_router
 from src.modules.system.plugins.router import router as plugins_router
+from src.modules.system.skills.router import router as skills_router
 from tests.utils.asgi_client import asgi_client
 
 
@@ -98,6 +101,22 @@ def _app_with_denied_platform_permission(router, *, prefix: str = "") -> tuple[F
             "get",
             "/providers/readiness",
             PlatformPermissionCode.AI_PROVIDERS_READ,
+        ),
+        (skills_router, "/skills", "get", "", PlatformPermissionCode.AI_SKILLS_READ),
+        (skills_router, "/skills", "post", "", PlatformPermissionCode.AI_SKILLS_MANAGE),
+        (
+            skills_router,
+            "/skills",
+            "get",
+            "/capabilities",
+            PlatformPermissionCode.AI_SKILLS_READ,
+        ),
+        (
+            skills_router,
+            "/skills",
+            "post",
+            "/imports",
+            PlatformPermissionCode.AI_SKILLS_MANAGE,
         ),
         (
             platform_site_delivery_router,

@@ -41,6 +41,8 @@ class PlatformPermissionCode(StrEnum):
     AI_PROVIDERS_MANAGE = "platform:ai-providers:manage"
     AI_AGENTS_READ = "platform:ai-agents:read"
     AI_AGENTS_MANAGE = "platform:ai-agents:manage"
+    AI_SKILLS_READ = "platform:ai-skills:read"
+    AI_SKILLS_MANAGE = "platform:ai-skills:manage"
     AI_ASSIGNMENTS_READ = "platform:ai-assignments:read"
     AI_ASSIGNMENTS_MANAGE = "platform:ai-assignments:manage"
     AI_RUNTIME_SETTINGS_READ = "platform:ai-runtime-settings:read"
@@ -75,8 +77,6 @@ class PlatformPermissionCode(StrEnum):
 
     ACCESS_SIGN_IN_SETTINGS_READ = "platform:access-sign-in-settings:read"
     ACCESS_SIGN_IN_SETTINGS_MANAGE = "platform:access-sign-in-settings:manage"
-    COMMERCE_SETTINGS_READ = "platform:commerce-settings:read"
-    COMMERCE_SETTINGS_MANAGE = "platform:commerce-settings:manage"
     WORKSPACE_CAPABILITY_ROLLOUT_APPLY = "platform:workspace-capability-rollout:apply"
 
 

@@ -33,6 +33,7 @@ from src.modules.system.schema import (
 )
 from src.modules.system.setup.bootstrap_service import InstanceBootstrapService
 from src.modules.system.setup.service import InstanceSetupService
+from src.modules.system.skills.router import router as system_skills_router
 from src.modules.system.storage_profiles.router import router as system_storage_profiles_router
 
 platform_router = APIRouter(tags=["platform"])
@@ -93,6 +94,7 @@ platform_router.include_router(platform_identity_management_router)
 platform_router.include_router(platform_saved_views_router)
 platform_router.include_router(system_ai_providers_router, prefix="/ai")
 platform_router.include_router(system_agents_router, prefix="/agents")
+platform_router.include_router(system_skills_router, prefix="/skills")
 platform_router.include_router(system_agent_assignments_router, prefix="/agent-assignments")
 platform_router.include_router(system_storage_profiles_router, prefix="/storage-profiles")
 platform_router.include_router(system_directory_router, prefix="/directory")

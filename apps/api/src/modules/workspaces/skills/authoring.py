@@ -55,17 +55,42 @@ def build_inline_skill_version(
     description: str,
     payload: SkillInlineVersionInput,
 ) -> InlineSkillVersion:
+    publisher_id = f"workspace:{workspace_id}"
+    return build_skill_version(
+        skill_id=f"{publisher_id}:{slug}",
+        publisher_id=publisher_id,
+        publisher_name="Workspace",
+        publisher_verified=False,
+        display_name=display_name,
+        description=description,
+        payload=payload,
+    )
+
+
+def build_skill_version(
+    *,
+    skill_id: str,
+    publisher_id: str,
+    publisher_name: str,
+    publisher_verified: bool,
+    display_name: str,
+    description: str,
+    payload: SkillInlineVersionInput,
+) -> InlineSkillVersion:
     resources = _build_resources(payload)
     total_bytes = sum(resource.byte_size for resource in resources)
     if total_bytes > MAX_INLINE_PACKAGE_BYTES:
         raise ValueError("Inline Skill package exceeds the one MiB storage boundary")
 
-    publisher_id = f"workspace:{workspace_id}"
     manifest = SkillManifestV1(
-        skill_id=f"{publisher_id}:{slug}",
+        skill_id=skill_id,
         name=display_name,
         description=description,
-        publisher=SkillPublisherV1(id=publisher_id, name="Workspace", verified=False),
+        publisher=SkillPublisherV1(
+            id=publisher_id,
+            name=publisher_name,
+            verified=publisher_verified,
+        ),
         compatibility=SkillCompatibilityV1(),
         instructions_entrypoint=INSTRUCTIONS_PATH,
         resources=tuple(

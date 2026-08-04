@@ -9,6 +9,14 @@ import type {
 const stableIdentifier = /^[a-z0-9]+(?:[._:-][a-z0-9]+)*$/;
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+export function deriveSkillSlug(value: string): string {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export const skillAuthoringSchema = z.object({
   displayName: z.string().trim().min(1),
   slug: z.string().trim().regex(slugPattern),

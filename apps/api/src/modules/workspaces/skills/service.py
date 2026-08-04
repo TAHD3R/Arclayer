@@ -48,6 +48,7 @@ from src.modules.workspaces.skills.schema import (
     SkillVersionSummaryOut,
     WorkspaceSkillsCapabilitiesOut,
 )
+from src.modules.workspaces.skills.zip_import import SkillZipImportError, parse_workspace_skill_zip
 
 ActivityWriter = Callable[..., Awaitable[object]]
 
@@ -128,10 +129,26 @@ class WorkspaceSkillsService(BaseService):
         actor_user_id: UUID,
         idempotency_key: str,
         payload: SkillPackageCreateRequest,
+        source_kind: SkillSourceKind = SkillSourceKind.INLINE,
+        source_descriptor: dict[str, object] | None = None,
+        source_provenance: dict[str, object] | None = None,
     ) -> SkillPackageCreateOut:
         key = _require_idempotency_key(idempotency_key)
         slug = _normalize_slug(payload.slug)
-        fingerprint = _fingerprint({"workspaceId": str(workspace_id), **payload.model_dump(mode="json")})
+        resolved_descriptor: dict[str, object] = (
+            source_descriptor if source_descriptor is not None else {"kind": source_kind.value}
+        )
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "sourceKind": source_kind.value,
+            "sourceDescriptor": resolved_descriptor,
+            **payload.model_dump(mode="json"),
+        })
+        resolved_provenance: dict[str, object] = (
+            source_provenance
+            if source_provenance is not None
+            else {"kind": source_kind.value, "actorUserId": str(actor_user_id)}
+        )
         authored = _build_authored(
             workspace_id=workspace_id,
             slug=slug,
@@ -149,6 +166,9 @@ class WorkspaceSkillsService(BaseService):
                 slug=slug,
                 payload=payload,
                 authored=authored,
+                source_kind=source_kind,
+                source_descriptor=resolved_descriptor,
+                source_provenance=resolved_provenance,
             )
         except IntegrityError as exc:
             package, version = await self._resolve_package_create_race(
@@ -159,6 +179,40 @@ class WorkspaceSkillsService(BaseService):
                 error=exc,
             )
         return await self._project_create_out(package=package, version=version)
+
+    async def create_zip_package(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        filename: str,
+        archive: bytes,
+    ) -> SkillPackageCreateOut:
+        try:
+            parsed = parse_workspace_skill_zip(archive)
+        except SkillZipImportError as exc:
+            raise BadRequest(message=t("errors", exc.code), error=exc.code) from exc
+        return await self.create_package(
+            workspace_id=workspace_id,
+            organization_id=organization_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            payload=parsed.payload,
+            source_kind=SkillSourceKind.ARCHIVE,
+            source_descriptor={
+                "kind": "archive",
+                "filename": filename,
+                "archiveChecksum": parsed.archive_checksum,
+            },
+            source_provenance={
+                "kind": "archive",
+                "filename": filename,
+                "archiveChecksum": parsed.archive_checksum,
+                "actorUserId": str(actor_user_id),
+            },
+        )
 
     async def list_versions(
         self,
@@ -250,6 +304,7 @@ class WorkspaceSkillsService(BaseService):
                     fingerprint=fingerprint,
                     authored=authored,
                     semantic_version=payload.semantic_version,
+                    source_provenance={"kind": "inline", "actorUserId": str(actor_user_id)},
                     conn=conn,
                 )
                 await self._write_activity(
@@ -279,6 +334,9 @@ class WorkspaceSkillsService(BaseService):
         slug: str,
         payload: SkillPackageCreateRequest,
         authored: InlineSkillVersion,
+        source_kind: SkillSourceKind,
+        source_descriptor: dict[str, object],
+        source_provenance: dict[str, object],
     ) -> tuple[SkillPackageRecord, SkillVersionRecord]:
         async with self.tx() as conn:
             existing = await self._repository.get_package_by_idempotency_key(
@@ -295,18 +353,22 @@ class WorkspaceSkillsService(BaseService):
                     "workspace_id": workspace_id,
                     "stable_key": f"workspace:{workspace_id}:{slug}",
                     "scope": SkillPackageScope.WORKSPACE,
-                    "source_kind": SkillSourceKind.INLINE,
+                    "source_kind": source_kind,
                     "slug": slug,
                     "normalized_slug": slug,
                     "display_name": payload.display_name,
                     "description": payload.description,
                     "publisher_id": f"workspace:{workspace_id}",
                     "publisher_name": "Workspace",
-                    "trust_level": SkillTrustLevel.WORKSPACE_AUTHORED,
+                    "trust_level": (
+                        SkillTrustLevel.WORKSPACE_AUTHORED
+                        if source_kind == SkillSourceKind.INLINE
+                        else SkillTrustLevel.IMPORTED_UNVERIFIED
+                    ),
                     "publisher_verification": {"verified": False, "source": "workspace"},
                     "status": SkillPackageStatus.ACTIVE,
                     "metadata_revision": 1,
-                    "source_descriptor": {"kind": "inline"},
+                    "source_descriptor": source_descriptor,
                     "created_by_user_id": actor_user_id,
                     "updated_by_user_id": actor_user_id,
                     "request_idempotency_key": key,
@@ -322,6 +384,7 @@ class WorkspaceSkillsService(BaseService):
                 fingerprint=fingerprint,
                 authored=authored,
                 semantic_version=payload.semantic_version,
+                source_provenance=source_provenance,
                 conn=conn,
             )
             await self._write_activity(
@@ -331,7 +394,7 @@ class WorkspaceSkillsService(BaseService):
                 actor_user_id=actor_user_id,
                 entity_type="skill_package",
                 entity_id=package.id,
-                properties={"sourceKind": "inline", "versionId": str(version.id)},
+                properties={"sourceKind": source_kind.value, "versionId": str(version.id)},
                 conn=conn,
             )
             return package, version
@@ -346,6 +409,7 @@ class WorkspaceSkillsService(BaseService):
         fingerprint: str,
         authored: InlineSkillVersion,
         semantic_version: str | None,
+        source_provenance: dict[str, object],
         conn: BaseDBAsyncClient,
     ) -> SkillVersionRecord:
         version_number = await self._repository.next_version_number(package_id=package.id, conn=conn)
@@ -359,7 +423,7 @@ class WorkspaceSkillsService(BaseService):
                 "manifest_version": manifest.manifest_version,
                 "manifest": manifest.model_dump(mode="json", by_alias=True),
                 "package_checksum": manifest.checksum,
-                "source_provenance": {"kind": "inline", "actorUserId": str(actor_user_id)},
+                "source_provenance": source_provenance,
                 "compatibility": manifest.compatibility.model_dump(mode="json", by_alias=True),
                 "required_tools": [item.model_dump(mode="json", by_alias=True) for item in manifest.required_tools],
                 "permissions": [item.model_dump(mode="json", by_alias=True) for item in manifest.permissions],

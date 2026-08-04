@@ -6,6 +6,7 @@ from enum import StrEnum
 class SkillSourceKind(StrEnum):
     BUILTIN = "builtin"
     INLINE = "inline"
+    ARCHIVE = "archive"
     GITHUB = "github"
 
 

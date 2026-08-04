@@ -1,13 +1,15 @@
 import {
+  ExternalLink,
   Languages,
   Monitor,
   MonitorSmartphone,
   Moon,
   ShieldCheck,
   Sun,
+  Trash2,
   UserRound,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -16,6 +18,7 @@ import {
   getCurrentPlatformActorProfile,
   getCurrentPlatformTeamIdentity,
   getCurrentSessions,
+  updateCurrentPlatformActorProfile,
 } from "@/access/access-api";
 import { AccessQueryState, useAccessQuery } from "@/access/access-ui";
 import { PlatformMfaSettings } from "@/access/platform-mfa-settings";
@@ -31,6 +34,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getProductApplicationUrl } from "@/lib/origins";
 import { usePlatformPreferences, type ThemePreference } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
@@ -51,10 +57,12 @@ const THEMES: ReadonlyArray<{ value: ThemePreference; icon: typeof Sun }> = [
 
 export function PlatformAccountSettings({
   onOpenChange,
+  onProfileUpdated,
   onSessionEnded,
   open,
 }: Readonly<{
   onOpenChange: (open: boolean) => void;
+  onProfileUpdated: () => void | Promise<void>;
   onSessionEnded: () => void;
   open: boolean;
 }>) {
@@ -73,12 +81,12 @@ export function PlatformAccountSettings({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="h-[min(46rem,calc(100vh-2rem))] max-w-5xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
-        <DialogHeader className="border-b px-6 py-5 pr-14">
+      <DialogContent className="flex h-[min(46rem,calc(100vh-2rem))] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
+        <DialogHeader className="shrink-0 border-b px-6 py-5 pr-14">
           <DialogTitle>{t("access:ACCOUNT_SETTINGS_TITLE")}</DialogTitle>
           <DialogDescription>{t("access:ACCOUNT_SETTINGS_DESCRIPTION")}</DialogDescription>
         </DialogHeader>
-        <div className="grid min-h-0 flex-1 md:grid-cols-[13rem_minmax(0,1fr)]">
+        <div className="grid min-h-0 min-w-0 flex-1 md:grid-cols-[13rem_minmax(0,1fr)]">
           <nav
             aria-label={t("access:ACCOUNT_SETTINGS_NAVIGATION")}
             className="flex gap-2 overflow-x-auto border-b bg-muted/40 p-3 md:flex-col md:border-b-0 md:border-r"
@@ -98,7 +106,7 @@ export function PlatformAccountSettings({
               );
             })}
           </nav>
-          <main className="min-h-0 overflow-y-auto p-5 sm:p-6">
+          <main className="min-h-0 min-w-0 overflow-y-auto p-5 sm:p-6">
             <AccessQueryState isEmpty={() => false} retry={retry} state={state}>
               {(data) => (
                 <SettingsSectionContent
@@ -109,6 +117,7 @@ export function PlatformAccountSettings({
                     onSessionEnded();
                   }}
                   onRefresh={retry}
+                  onProfileUpdated={onProfileUpdated}
                   section={section}
                 />
               )}
@@ -124,6 +133,7 @@ function SettingsSectionContent({
   data,
   onCurrentSessionRevoked,
   onRefresh,
+  onProfileUpdated,
   section,
 }: Readonly<{
   data: Awaited<
@@ -138,6 +148,7 @@ function SettingsSectionContent({
   >;
   onCurrentSessionRevoked: () => void;
   onRefresh: () => void;
+  onProfileUpdated: () => void | Promise<void>;
   section: SettingsSection;
 }>) {
   const { t } = useTranslation("access");
@@ -157,57 +168,133 @@ function SettingsSectionContent({
     );
   }
   if (section === "preferences") return <PreferencesSettings />;
-  return <ProfileSettings data={data} />;
+  return <ProfileSettings data={data} onProfileUpdated={onProfileUpdated} onRefresh={onRefresh} />;
 }
 
 function ProfileSettings({
   data,
+  onProfileUpdated,
+  onRefresh,
 }: Readonly<{
   data: {
     identity: Awaited<ReturnType<typeof getCurrentPlatformTeamIdentity>>;
     profile: Awaited<ReturnType<typeof getCurrentPlatformActorProfile>>;
   };
+  onProfileUpdated: () => void | Promise<void>;
+  onRefresh: () => void;
 }>) {
   const { t } = useTranslation("access");
+  const [displayName, setDisplayName] = useState(data.profile.displayName ?? "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setDisplayName(data.profile.displayName ?? "");
+  }, [data.profile.displayName]);
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setPending(true);
+    setError(false);
+    try {
+      await updateCurrentPlatformActorProfile({ displayName: displayName.trim() || null });
+      toast.success(t("ACCOUNT_PROFILE_UPDATED"));
+      onRefresh();
+      await onProfileUpdated();
+    } catch {
+      setError(true);
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("ACCOUNT_PROFILE_TITLE")}</CardTitle>
-        <CardDescription>{t("ACCOUNT_PROFILE_DESCRIPTION")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <dl className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("ACCOUNT_PROFILE_TITLE")}</CardTitle>
+          <CardDescription>{t("ACCOUNT_PROFILE_DESCRIPTION")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-5" onSubmit={save}>
+            <div className="space-y-2">
+              <Label htmlFor="platform-display-name">{t("ACCOUNT_PROFILE_DISPLAY_NAME")}</Label>
+              <Input
+                id="platform-display-name"
+                maxLength={64}
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder={t("ACCOUNT_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
+                value={displayName}
+              />
+              <p className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_NAME_HELP")}</p>
+            </div>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_NAME")}</dt>
+                <dd className="mt-1 font-medium">{data.profile.username}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_EMAIL")}</dt>
+                <dd className="mt-1 font-medium">
+                  {data.profile.email ?? t("ACCOUNT_PROFILE_EMAIL_EMPTY")}
+                </dd>
+              </div>
+            </dl>
+            {error ? (
+              <p className="text-sm text-destructive">{t("ACCOUNT_PROFILE_UPDATE_ERROR")}</p>
+            ) : null}
+            <Button
+              disabled={(data.profile.displayName ?? "") === displayName.trim()}
+              loading={pending}
+              type="submit"
+            >
+              {t("ACCOUNT_PROFILE_SAVE")}
+            </Button>
+          </form>
+          <Separator className="my-5" />
           <div>
-            <dt className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_NAME")}</dt>
-            <dd className="mt-1 font-medium">{data.profile.username}</dd>
+            <p className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_AUTHORITY")}</p>
+            <p className="mt-1 font-medium">
+              {t(
+                data.identity.isInstanceOwner
+                  ? "ACCOUNT_AUTHORITY_OWNER"
+                  : "ACCOUNT_AUTHORITY_TEAM_MEMBER",
+              )}
+            </p>
+            {!data.identity.isInstanceOwner ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("ACCOUNT_PERMISSION_SUMMARY", {
+                  count: data.identity.effectivePermissions.length,
+                })}
+              </p>
+            ) : null}
           </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_EMAIL")}</dt>
-            <dd className="mt-1 font-medium">
-              {data.profile.email ?? t("ACCOUNT_PROFILE_EMAIL_EMPTY")}
-            </dd>
-          </div>
-        </dl>
-        <Separator />
-        <div>
-          <p className="text-sm text-muted-foreground">{t("ACCOUNT_PROFILE_AUTHORITY")}</p>
-          <p className="mt-1 font-medium">
+        </CardContent>
+      </Card>
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 aria-hidden="true" className="size-5" />
+            {t("ACCOUNT_DELETE_TITLE")}
+          </CardTitle>
+          <CardDescription>
             {t(
               data.identity.isInstanceOwner
-                ? "ACCOUNT_AUTHORITY_OWNER"
-                : "ACCOUNT_AUTHORITY_OPERATOR",
+                ? "ACCOUNT_DELETE_OWNER_DESCRIPTION"
+                : "ACCOUNT_DELETE_MEMBER_DESCRIPTION",
             )}
-          </p>
-          {!data.identity.isInstanceOwner ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("ACCOUNT_PERMISSION_SUMMARY", {
-                count: data.identity.effectivePermissions.length,
-              })}
-            </p>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="destructive">
+            <a href={getProductApplicationUrl("account-danger")}>
+              {t("ACCOUNT_DELETE_MANAGE")}
+              <ExternalLink aria-hidden="true" />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

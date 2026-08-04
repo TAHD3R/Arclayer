@@ -8,12 +8,18 @@ import {
   revokeCurrentPlatformSession,
   revokeOtherCurrentPlatformSessions,
 } from "@/access/access-api";
+import {
+  isPlatformSessionExpired,
+  platformSessionExpiresAt,
+  sortPlatformSessionsNewestFirst,
+} from "@/access/platform-session-status";
 import { formatDateTime } from "@/monitoring/format";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingDialog } from "@/components/setting-dialog";
+import { cn } from "@/lib/utils";
 
 type SessionRevokeTarget = PlatformSessionInventoryItemOut | "others";
 
@@ -28,7 +34,10 @@ export function PlatformAccountSessions({
 }>) {
   const { t } = useTranslation("access");
   const [target, setTarget] = useState<SessionRevokeTarget | null>(null);
-  const otherCount = sessions.filter((session) => !session.isCurrent).length;
+  const orderedSessions = sortPlatformSessionsNewestFirst(sessions);
+  const otherCount = orderedSessions.filter(
+    (session) => !session.isCurrent && !isPlatformSessionExpired(session),
+  ).length;
 
   return (
     <Card>
@@ -50,8 +59,8 @@ export function PlatformAccountSessions({
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
-        {sessions.length ? (
-          sessions.map((session) => (
+        {orderedSessions.length ? (
+          orderedSessions.map((session) => (
             <SessionRow
               key={session.sessionId}
               onRevoke={() => setTarget(session)}
@@ -78,22 +87,34 @@ function SessionRow({
   session,
 }: Readonly<{ onRevoke: () => void; session: PlatformSessionInventoryItemOut }>) {
   const { t } = useTranslation("access");
+  const expired = isPlatformSessionExpired(session);
   return (
-    <article className="flex flex-wrap items-start justify-between gap-3 border-t pt-3">
+    <article
+      className={cn(
+        "flex flex-wrap items-start justify-between gap-3 border-t pt-3",
+        expired && "opacity-55 grayscale",
+      )}
+    >
       <div>
         <p className="font-medium">{session.deviceLabel ?? t("UNRECOGNIZED_DEVICE")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("SESSION_CREATED", { date: formatDateTime(session.createdAt) })}
+        </p>
         <p className="text-sm text-muted-foreground">
           {t("LAST_ACTIVE", { date: formatDateTime(session.recentActivityAt) })}
         </p>
         <p className="text-sm text-muted-foreground">
-          {t("EXPIRES", { date: formatDateTime(session.absoluteExpiresAt) })}
+          {t("EXPIRES", { date: formatDateTime(platformSessionExpiresAt(session)) })}
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {expired ? <Badge variant="outline">{t("SESSION_EXPIRED")}</Badge> : null}
         {session.isCurrent ? <Badge variant="secondary">{t("CURRENT_DEVICE")}</Badge> : null}
-        <Button onClick={onRevoke} size="sm" variant="outline">
-          {t(session.isCurrent ? "SIGN_OUT_THIS_DEVICE" : "REVOKE_SESSION")}
-        </Button>
+        {!expired ? (
+          <Button onClick={onRevoke} size="sm" variant="outline">
+            {t(session.isCurrent ? "SIGN_OUT_THIS_DEVICE" : "REVOKE_SESSION")}
+          </Button>
+        ) : null}
       </div>
     </article>
   );

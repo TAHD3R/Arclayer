@@ -6,7 +6,11 @@ from uuid import UUID
 from tortoise import connections
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
+from tortoise.functions import Count
+from tortoise.models import Model
+from tortoise.queryset import QuerySet
 
+from src.core.http.pagination import PageParams
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.skills.skill_package import SkillPackageRecord
 from src.models.skills.skill_version import (
@@ -26,7 +30,11 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
     def public_connection() -> BaseDBAsyncClient:
         return connections.get("default")
 
-    def public_query(self, query, conn: BaseDBAsyncClient | None = None):
+    def public_query[ModelT: Model](
+        self,
+        query: QuerySet[ModelT],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> QuerySet[ModelT]:
         return query.using_db(conn or self.public_connection())
 
     async def lock_catalog_sync(self, *, conn: BaseDBAsyncClient) -> None:
@@ -43,7 +51,13 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
         query: str | None,
     ) -> tuple[tuple[SkillPackageRecord, ...], UUID | None]:
         conn = self.public_connection()
-        queryset = self.public_query(_official_packages().filter(status="active"), conn)
+        queryset = self.public_query(
+            _official_packages().filter(
+                status="active",
+                latest_valid_version_id__not_isnull=True,
+            ),
+            conn,
+        )
         if query:
             queryset = queryset.filter(
                 Q(display_name__icontains=query) | Q(description__icontains=query) | Q(slug__icontains=query)
@@ -67,10 +81,68 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
         conn: BaseDBAsyncClient | None = None,
         for_update: bool = False,
     ) -> SkillPackageRecord | None:
-        queryset = _official_packages().filter(id=package_id, status="active")
+        queryset = _official_packages().filter(
+            id=package_id,
+            status="active",
+            latest_valid_version_id__not_isnull=True,
+        )
         if for_update:
             queryset = queryset.select_for_update()
         return await self.public_query(queryset, conn).first()
+
+    async def list_platform_packages(
+        self,
+        *,
+        params: PageParams,
+        query: str | None,
+        status: str | None,
+    ) -> tuple[tuple[SkillPackageRecord, ...], int]:
+        queryset = _official_packages()
+        if query:
+            queryset = queryset.filter(
+                Q(display_name__icontains=query) | Q(description__icontains=query) | Q(slug__icontains=query)
+            )
+        if status:
+            queryset = queryset.filter(status=status)
+        total = await self.public_query(queryset).count()
+        rows = tuple(
+            await self.public_query(queryset).order_by("-updated_at", "-id").limit(params.limit).offset(params.offset)
+        )
+        return rows, total
+
+    async def get_platform_package(
+        self,
+        *,
+        package_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+        for_update: bool = False,
+    ) -> SkillPackageRecord | None:
+        queryset = _official_packages().filter(id=package_id)
+        if for_update:
+            queryset = queryset.select_for_update()
+        return await self.public_query(queryset, conn).first()
+
+    async def get_platform_package_by_slug(
+        self,
+        *,
+        normalized_slug: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> SkillPackageRecord | None:
+        return await self.public_query(
+            _official_packages().filter(normalized_slug=normalized_slug),
+            conn,
+        ).first()
+
+    async def get_platform_package_by_idempotency_key(
+        self,
+        *,
+        idempotency_key: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> SkillPackageRecord | None:
+        return await self.public_query(
+            _official_packages().filter(request_idempotency_key=idempotency_key),
+            conn,
+        ).first()
 
     async def get_package_by_stable_key(
         self,
@@ -149,6 +221,35 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
             conn,
         ).first()
 
+    async def get_version_by_idempotency_key(
+        self,
+        *,
+        package_id: UUID,
+        idempotency_key: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> SkillVersionRecord | None:
+        return await self.public_query(
+            SkillVersionRecord.filter(
+                workspace_id=None,
+                package_id=package_id,
+                request_idempotency_key=idempotency_key,
+            ),
+            conn,
+        ).first()
+
+    async def list_versions(
+        self,
+        *,
+        package_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> tuple[SkillVersionRecord, ...]:
+        return tuple(
+            await self.public_query(
+                SkillVersionRecord.filter(workspace_id=None, package_id=package_id),
+                conn,
+            ).order_by("-version_number", "-id")
+        )
+
     async def next_version_number(self, *, package_id: UUID, conn: BaseDBAsyncClient) -> int:
         latest = (
             await self
@@ -168,6 +269,15 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
         conn: BaseDBAsyncClient,
     ) -> SkillVersionRecord:
         return await SkillVersionRecord.create(using_db=conn, **values)
+
+    async def save_version(
+        self,
+        *,
+        version: SkillVersionRecord,
+        update_fields: Sequence[str],
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await version.save(using_db=conn, update_fields=(*update_fields, "updated_at"))
 
     async def create_resources(
         self,
@@ -233,6 +343,22 @@ class OfficialSkillCatalogRepository(TortoiseORMRepository[SkillPackageRecord]):
         for record in records:
             latest.setdefault(record.skill_version_id, record)
         return latest
+
+    async def package_version_counts(
+        self,
+        *,
+        package_ids: Sequence[UUID],
+    ) -> dict[UUID, int]:
+        if not package_ids:
+            return {}
+        queryset = self.public_query(
+            SkillVersionRecord.filter(
+                workspace_id=None,
+                package_id__in=package_ids,
+            )
+        )
+        rows = await queryset.group_by("package_id").annotate(total=Count("id")).values("package_id", "total")
+        return {UUID(str(row["package_id"])): int(row["total"]) for row in rows}
 
 
 def _official_packages():

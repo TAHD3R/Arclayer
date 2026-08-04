@@ -30,11 +30,23 @@ class _Session:
 
 
 class _Repository:
-    def __init__(self, session: _Session, *, owner: bool, permission: bool) -> None:
+    def __init__(
+        self,
+        session: _Session,
+        *,
+        owner: bool,
+        permission: bool,
+        user_status: str = "active",
+    ) -> None:
         self.session = session
         self.owner = owner
         self.permission = permission
+        self.user_status = user_status
         self.operator = SimpleNamespace(id=uuid4())
+
+    async def get_user_by_id(self, *, user_id: UUID):
+        assert user_id == self.session.actor_user_id
+        return SimpleNamespace(status=self.user_status)
 
     async def get_platform_session_by_identifier_hash(self, *, session_identifier_hash: str):
         if session_identifier_hash != self.session.session_identifier_hash:
@@ -173,3 +185,24 @@ async def test_operator_requires_the_exact_current_role_permission() -> None:
             repository=repository,
             now=now,
         )
+
+
+@pytest.mark.asyncio
+async def test_disabled_actor_cannot_reuse_an_existing_platform_session() -> None:
+    from src.modules.platform_identity.sessions import platform_session_identifier_hash, resolve_platform_session
+
+    now = datetime.now(UTC)
+    actor_id = uuid4()
+    session = _Session(actor_id=actor_id, now=now)
+    session.session_identifier_hash = platform_session_identifier_hash(session.id)
+    repository = _Repository(session, owner=True, permission=False, user_status="disabled")
+    settings = _settings()
+    token, _ = build_platform_access_token(
+        actor_id=actor_id,
+        session_id=session.id,
+        token_version=session.token_version,
+        settings=settings,
+    )
+
+    with pytest.raises(Unauthorized, match="PLATFORM_SESSION_ACCESS_REVOKED"):
+        await resolve_platform_session(token=token, settings=settings, repository=repository, now=now)

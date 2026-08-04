@@ -77,6 +77,7 @@ class PlatformCapabilityRouteTarget(StrEnum):
     AI_TASKS = "ai.tasks"
     AI_PROVIDERS = "ai.providers"
     AI_ASSISTANTS = "ai.assistants"
+    AI_SKILLS = "ai.skills"
     AI_POLICIES = "ai.policies"
     SITE_DELIVERY_ISSUES = "site-delivery.issues"
     SITE_DELIVERY_DOMAINS = "site-delivery.domains"

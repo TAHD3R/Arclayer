@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspaceSkillsView } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
@@ -38,6 +39,10 @@ vi.mock("react-i18next", () => ({
     },
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
 }));
 
 vi.mock("@/api/workspace-skills", () => ({
@@ -79,6 +84,9 @@ vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-authoring-
 }));
 vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-install-dialog", () => ({
   WorkspaceSkillInstallDialog: () => null,
+}));
+vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-official-skills-catalog", () => ({
+  WorkspaceOfficialSkillsCatalog: () => <div data-testid="official-skills-table" />,
 }));
 
 const packageSummary = {
@@ -256,6 +264,33 @@ describe("WorkspaceSkillsView", () => {
         expect.objectContaining({ q: "editorial", limit: 100 }),
       );
     });
+  });
+
+  it("shows workspace and Arclayer Skills together with a compact add menu", async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_TAB_WORKSPACE",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_TAB_OFFICIAL",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("official-skills-table")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_ADD_ACTION" }));
+    expect(
+      await screen.findByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER_DESC"),
+    ).not.toBeInTheDocument();
   });
 
   it("runs a real validation command and refreshes the governed projection", async () => {

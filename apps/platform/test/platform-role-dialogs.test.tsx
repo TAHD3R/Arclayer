@@ -43,8 +43,10 @@ const permission: PlatformPermissionCatalogItemOut = {
 const role: PlatformRoleCatalogItemOut = {
   code: "workspace-support",
   description: "Review tenant workspace health.",
+  descriptionI18N: null,
   kind: "custom",
   name: "Workspace support",
+  nameI18N: null,
   permissionCodes: [permission.code],
   revisionId: "role-revision-1",
   revisionSequence: 1,
@@ -72,6 +74,32 @@ beforeEach(async () => {
 });
 
 describe("Platform role dialogs", () => {
+  it("searches delegable responsibilities and supports select-all and invert for visible results", async () => {
+    const projectPermission: PlatformPermissionCatalogItemOut = {
+      ...permission,
+      code: "platform:tenant-projects:read",
+      descriptionI18N: "Review tenant projects.",
+      nameI18N: "Review tenant projects",
+    };
+    const user = userEvent.setup();
+    render(
+      <CreateRoleDialog
+        open
+        onCompleted={vi.fn()}
+        onOpenChange={vi.fn()}
+        permissions={[permission, projectPermission]}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText(/Search responsibilities/), "projects");
+    expect(screen.getByText("0 selected · 1 in current results")).toBeVisible();
+    expect(screen.queryByText("View tenant workspaces")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Select all results" }));
+    expect(screen.getByText("1 selected · 1 in current results")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Invert results" }));
+    expect(screen.getByText("0 selected · 1 in current results")).toBeVisible();
+  });
+
   it("reuses the create-role identity and step-up proof after an unknown result", async () => {
     vi.mocked(verifyPlatformAction).mockResolvedValue("step-up-proof");
     vi.mocked(createPlatformCustomRole)

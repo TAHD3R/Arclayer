@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, File, Header, Query, UploadFile, status
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.models.skills._enums import SkillInstallationStatus, SkillPackageStatus
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
@@ -65,6 +67,7 @@ from src.modules.workspaces.skills.update_schema import (
     SkillUpdatePreviewOut,
 )
 from src.modules.workspaces.skills.update_service import WorkspaceSkillUpdateService
+from src.modules.workspaces.skills.zip_import import MAX_SKILL_ZIP_ARCHIVE_BYTES
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/skills",
@@ -200,6 +203,44 @@ async def get_workspace_skills_capabilities(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ResponseModel[WorkspaceSkillsCapabilitiesOut]:
     return ApiResponse.success(data=workspace_skills_capabilities(settings))
+
+
+@router.post(
+    "/imports/zip",
+    response_model=ResponseModel[SkillPackageCreateOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Import an immutable Workspace Skill ZIP package",
+)
+async def create_workspace_skill_zip_import(
+    package: Annotated[UploadFile, File(json_schema_extra={"format": "binary"})],
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: SkillsService,
+) -> ResponseModel[SkillPackageCreateOut]:
+    filename = (package.filename or "").strip()
+    if not filename.lower().endswith(".zip"):
+        raise BadRequest(
+            error="SKILL_ZIP_FORMAT_UNSUPPORTED",
+            message=t("errors", "SKILL_ZIP_FORMAT_UNSUPPORTED"),
+        )
+    try:
+        archive = await package.read(MAX_SKILL_ZIP_ARCHIVE_BYTES + 1)
+    finally:
+        await package.close()
+    data = await service.create_zip_package(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        filename=filename,
+        archive=archive,
+    )
+    return ApiResponse.success(data=data)
 
 
 @router.post(

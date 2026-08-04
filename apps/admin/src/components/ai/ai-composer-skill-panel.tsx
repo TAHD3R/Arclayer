@@ -2,9 +2,11 @@ import { ComposerPrimitive, type Unstable_TriggerItem } from "@assistant-ui/reac
 import {
   ArrowLeftIcon,
   BlocksIcon,
-  DownloadIcon,
+  FilePenLineIcon,
+  GithubIcon,
   PlusIcon,
   Settings2Icon,
+  UploadIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -34,8 +36,10 @@ type AIComposerSkillPanelContentProps = Readonly<{
   isError?: boolean;
   onSelectSkill?: (skill: AIComposerSkillOption) => void;
   onManage: () => void;
-  onCreate: () => void;
-  onImport: () => void;
+  onBuildWithArclayer: () => void;
+  onWriteManually: () => void;
+  onImportGitHub: () => void;
+  onUploadZip: () => void;
 }>;
 
 export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentProps) {
@@ -57,13 +61,25 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
           icon={WandSparklesIcon}
           label={t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER")}
           description={t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER_DESC")}
-          onClick={props.onCreate}
+          onClick={props.onBuildWithArclayer}
         />
         <SkillAddAction
-          icon={DownloadIcon}
-          label={t("AI_CHAT_SKILL_IMPORT")}
-          description={t("AI_CHAT_SKILL_IMPORT_DESC")}
-          onClick={props.onImport}
+          icon={FilePenLineIcon}
+          label={t("AI_CHAT_SKILL_WRITE_MANUALLY")}
+          description={t("AI_CHAT_SKILL_WRITE_MANUALLY_DESC")}
+          onClick={props.onWriteManually}
+        />
+        <SkillAddAction
+          icon={GithubIcon}
+          label={t("AI_CHAT_SKILL_IMPORT_GITHUB")}
+          description={t("AI_CHAT_SKILL_IMPORT_GITHUB_DESC")}
+          onClick={props.onImportGitHub}
+        />
+        <SkillAddAction
+          icon={UploadIcon}
+          label={t("AI_CHAT_SKILL_UPLOAD_ZIP")}
+          description={t("AI_CHAT_SKILL_UPLOAD_ZIP_DESC")}
+          onClick={props.onUploadZip}
         />
       </SkillPanelScrollRegion>
     );
@@ -159,13 +175,21 @@ function SkillPanelFooter(
             {t("AI_CHAT_SKILL_ADD")}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-56">
-            <DropdownMenuItem onSelect={props.onCreate}>
+            <DropdownMenuItem onSelect={props.onBuildWithArclayer}>
               <WandSparklesIcon className="size-4" aria-hidden="true" />
               {t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER")}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={props.onImport}>
-              <DownloadIcon className="size-4" aria-hidden="true" />
-              {t("AI_CHAT_SKILL_IMPORT")}
+            <DropdownMenuItem onSelect={props.onWriteManually}>
+              <FilePenLineIcon className="size-4" aria-hidden="true" />
+              {t("AI_CHAT_SKILL_WRITE_MANUALLY")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={props.onImportGitHub}>
+              <GithubIcon className="size-4" aria-hidden="true" />
+              {t("AI_CHAT_SKILL_IMPORT_GITHUB")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={props.onUploadZip}>
+              <UploadIcon className="size-4" aria-hidden="true" />
+              {t("AI_CHAT_SKILL_UPLOAD_ZIP")}
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>

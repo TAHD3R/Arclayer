@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+from uuid import uuid4
+
 import pytest
 
 from src.modules.workspaces.skills.manifest import SkillToolRequirementV1
@@ -80,3 +83,81 @@ async def test_official_catalog_sync_fails_before_database_for_unavailable_tool(
 
     with pytest.raises(ValueError, match="unavailable Tools"):
         await service.sync()
+
+
+async def test_official_catalog_bootstrap_does_not_overwrite_platform_metadata_or_lifecycle() -> None:
+    bundle = build_official_skill_bundles((OFFICIAL_SKILL_ASSETS[0],))[0]
+    package = SimpleNamespace(
+        id=bundle.asset.stable_key,
+        workspace_id=None,
+        stable_key=bundle.asset.stable_key,
+        scope="system",
+        source_kind="builtin",
+        trust_level="official_verified",
+        publisher_id="arclayer",
+        display_name="Platform-managed name",
+        description="Platform-managed description",
+        status="archived",
+        metadata_revision=7,
+    )
+
+    class _Repository:
+        async def get_package_by_stable_key(self, **_kwargs):
+            return package
+
+        async def save_package(self, **_kwargs):
+            raise AssertionError("Bootstrap must not rewrite a Platform-managed package")
+
+    service = OfficialSkillCatalogSyncService(
+        repository=_Repository(),  # type: ignore[arg-type]
+        source=StaticOfficialSkillSource((bundle.asset,)),
+        supported_tool_ids=frozenset(tool.tool_id for tool in bundle.manifest.required_tools),
+    )
+
+    resolved, created = await service._upsert_package(
+        bundle=bundle,
+        conn=object(),  # type: ignore[arg-type]
+    )
+
+    assert resolved is package
+    assert created is False
+    assert package.display_name == "Platform-managed name"
+    assert package.status == "archived"
+    assert package.metadata_revision == 7
+
+
+async def test_official_catalog_version_counts_binds_connection_before_values(monkeypatch) -> None:
+    package_id = uuid4()
+    connection = object()
+    events: list[str] = []
+
+    class _QuerySet:
+        def using_db(self, conn):
+            assert conn is connection
+            events.append("using_db")
+            return self
+
+        def group_by(self, *_fields):
+            events.append("group_by")
+            return self
+
+        def annotate(self, **_annotations):
+            events.append("annotate")
+            return self
+
+        async def values(self, *_fields):
+            events.append("values")
+            return [{"package_id": package_id, "total": 2}]
+
+    queryset = _QuerySet()
+    monkeypatch.setattr(
+        "src.modules.workspaces.skills.official_catalog_repository.SkillVersionRecord.filter",
+        lambda **_filters: queryset,
+    )
+    repository = OfficialSkillCatalogRepository()
+    monkeypatch.setattr(repository, "public_connection", lambda: connection)
+
+    counts = await repository.package_version_counts(package_ids=(package_id,))
+
+    assert counts == {package_id: 2}
+    assert events == ["using_db", "group_by", "annotate", "values"]

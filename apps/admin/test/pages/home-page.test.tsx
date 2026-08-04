@@ -7,6 +7,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listProjects } from "@/api/projects";
 import { HomePage } from "@/pages/home/page";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
 import { AUTO_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
@@ -436,11 +440,40 @@ describe("HomePage", () => {
     return render(
       <main data-slot="sidebar-inset">
         <QueryClientProvider client={queryClient}>
-          <HomePage />
+          <SettingsScreenProvider>
+            <HomePage />
+            <SettingsStateProbe />
+          </SettingsScreenProvider>
         </QueryClientProvider>
       </main>,
     );
   }
+
+  function SettingsStateProbe() {
+    const { state } = useSettingsScreen();
+    return (
+      <output data-testid="settings-state">
+        {JSON.stringify({ open: state.open, screen: state.screen, section: state.section })}
+      </output>
+    );
+  }
+
+  it("opens the account danger section from a typed cross-application search target", async () => {
+    searchMock.mockReturnValue({ settings: "personal.profile", section: "danger" });
+
+    renderHomePage();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-state")).toHaveTextContent(
+        '"open":true,"screen":"personal.profile","section":"danger"',
+      ),
+    );
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/",
+      search: {},
+      replace: true,
+    });
+  });
 
   it("renders the Home entry surface without a legacy conversation state", () => {
     const { container } = renderHomePage();
@@ -685,6 +718,14 @@ describe("HomePage", () => {
 
     expect(useAiChatStore.getState().drawerOpen).toBe(false);
     expect(assistantUiMockState.runtimeStore?.queue?.items).toEqual([]);
+  });
+
+  it("preserves the trailing space in a routed slash command", async () => {
+    searchMock.mockReturnValue({ prompt: "/skill-creator " });
+
+    renderHomePage();
+
+    await waitFor(() => expect(assistantUiMockState.composerText).toBe("/skill-creator "));
   });
 
   it("moves the AI entry upward while preserving recent projects and inspiration", async () => {

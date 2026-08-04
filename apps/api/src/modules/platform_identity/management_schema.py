@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
@@ -102,7 +102,19 @@ class PlatformCurrentActorProfileOut(BaseSchema):
 
     username: str
     email: str | None = None
+    display_name: str | None = None
     avatar_url: str | None = None
+
+
+class PlatformCurrentActorProfileUpdateRequest(BaseSchema):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    display_name: str | None = Field(default=None, max_length=64)
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str | None) -> str | None:
+        return value or None
 
 
 class PlatformTeamUserOut(BaseSchema):
@@ -201,6 +213,8 @@ class PlatformRoleCatalogItemOut(BaseSchema):
     kind: str
     name: str
     description: str | None
+    name_i18n: str | None
+    description_i18n: str | None
     revision_id: UUID
     revision_sequence: int
     permission_codes: tuple[str, ...]
@@ -311,6 +325,7 @@ class PlatformSessionInventoryItemOut(BaseSchema):
     session_id: PublicUUID
     actor_user_id: PublicUUID
     device_label: str | None
+    created_at: datetime
     recent_activity_at: datetime
     inactivity_expires_at: datetime
     absolute_expires_at: datetime

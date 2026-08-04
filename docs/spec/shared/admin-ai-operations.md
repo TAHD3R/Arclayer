@@ -6,7 +6,7 @@ Experience authority: [Product and Platform administration experience redesign](
 
 ## 1. Scope
 
-This contract defines one Platform AI Operations Domain for cross-Workspace AI task investigation and recovery, model and provider readiness, official Agent availability, Platform action policy, and runtime operations.
+This contract defines one Platform AI Operations Domain for cross-Workspace AI task investigation and recovery, model and provider readiness, official Agent and Skill availability, Platform action policy, and runtime operations.
 
 “Platform AI Operations” is the canonical architecture term. The product label is `AI 服务 / AI Services`; primary navigation and copy use recognizable tasks rather than framework, policy, or state-machine terminology.
 
@@ -23,14 +23,15 @@ AI Services opens **AI tasks** by default and contains these peer operational su
 1. **AI tasks**: failed, stuck, retrying, Provider-blocked, and approval-waiting tasks with Workspace and Project context, age, last durable progress, a customer-safe failure summary, and authorized retry, cancel, or deep-link actions.
 2. **Models & providers**: Provider readiness and health, configured models, routing rules, defaults, safe secret rotation, connection testing, and unresolved configuration blockers.
 3. **Built-in assistants**: official Agent templates and versions, availability, assignments, default assistant selection, compatibility, and publication or disable operations.
-4. **Actions & policies**: official Tool catalog, write/external effects, maximum Platform policy, approval requirements, data-egress disclosure, routing/recovery policy, and policy conflicts. Queue, worker, recovery-storage, interruption, cancellation, and retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
+4. **Built-in skills**: the Arclayer-maintained Skill package catalog, immutable versions, validation evidence, publication state, Workspace adoption impact, disabling, and retirement. Package metadata may be edited; changing instructions or resources always creates a new immutable version.
+5. **Actions & policies**: official Tool catalog, write/external effects, maximum Platform policy, approval requirements, data-egress disclosure, routing/recovery policy, and policy conflicts. Queue, worker, recovery-storage, interruption, cancellation, and retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
 
 The domain has no metric-card Overview. A condition appears in AI tasks or Needs attention only when it identifies affected work, operational consequence, and a real resolution path.
 
 ## 4. Authority boundaries
 
 - A Platform Operator may investigate an approval-waiting task but cannot approve, reject, edit, or apply Workspace work on behalf of its authorized actor.
-- Workspace-authored Knowledge, Skills, Design Systems, Agents, Threads, and project content remain in the Product Application. Platform AI Operations may show sanitized identity and progress needed for investigation without becoming their editing authority.
+- Workspace-authored Knowledge, Skills, Design Systems, Agents, Threads, and project content remain in the Product Application. Platform AI Operations owns only the official built-in Skill catalog and may show sanitized Workspace adoption impact without editing Workspace installations or content.
 - Commerce owns commercial budgets, Credits, Entitlements, and provider-independent settlement. AI Services may show an authorized operational limit or blocker and deep-link to the exact Plans & Billing context without editing commercial state.
 - Monitoring & Audit owns historical cost, volume, latency, token, and failure analysis. AI services owns the current task, readiness, and recovery action rather than a second analytics dashboard.
 - Extensibility owns Connector installation and trust lifecycle; AI services owns AI-specific enablement, routing readiness, model exposure, and operational use of an installed Connector.
@@ -65,4 +66,4 @@ Provider request ids, framework names, checkpoint ids, model-routing evidence, t
 
 ## 8. Migration contract
 
-The hard cut removes `/system/settings/agents` after each retained capability moves to `/ai/tasks`, `/ai/providers`, `/ai/assistants`, or `/ai/policies` with a Platform Capability, action-scoped Platform Permission, complete lifecycle, readiness, failure, verification, and audit contract. Workspace-bound usage moves to its owning Product or Plans & Billing surface, historical analysis deep-links to Monitoring & Audit, and raw framework controls move to authorized diagnostics or disappear when no supported operator decision requires them. The old settings page, registry/search items, duplicate forms, and compatibility route are removed together.
+The hard cut removes `/system/settings/agents` after each retained capability moves to `/ai/tasks`, `/ai/providers`, `/ai/assistants`, `/ai/skills`, or `/ai/policies` with a Platform Capability, action-scoped Platform Permission, complete lifecycle, readiness, failure, verification, and audit contract. Workspace-bound usage moves to its owning Product or Plans & Billing surface, historical analysis deep-links to Monitoring & Audit, and raw framework controls move to authorized diagnostics or disappear when no supported operator decision requires them. The old settings page, registry/search items, duplicate forms, and compatibility route are removed together.

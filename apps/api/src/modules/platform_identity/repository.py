@@ -101,6 +101,12 @@ class PlatformIdentityRepository(TortoiseORMRepository):
     async def get_user_by_id(self, *, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id)
 
+    async def list_users_by_ids(self, *, user_ids: set[UUID]) -> list[User]:
+        return await User.filter(id__in=list(user_ids)).all()
+
+    async def update_user_display_name(self, *, user_id: UUID, display_name: str | None) -> bool:
+        return await User.filter(id=user_id).update(display_name=display_name) == 1
+
     async def get_operator_by_user_id(
         self, *, user_id: UUID, conn: BaseDBAsyncClient | None = None, for_update: bool = False
     ) -> PlatformOperator | None:
@@ -428,7 +434,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
         query = PlatformSession.filter(actor_user_id=user_id, revoked_at__isnull=True)
         if conn is not None:
             query = query.using_db(conn)
-        return await query.order_by("recent_activity_at", "id")
+        return await query.order_by("-recent_activity_at", "-id")
 
     async def list_active_sessions_for_operator(self, *, operator_id: UUID) -> list[PlatformSession]:
         operator = await self.get_operator_by_id(operator_id=operator_id)
@@ -2067,7 +2073,8 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             removed_role_ids = sorted(existing_role_ids - role_ids, key=str)
             if removed_role_ids:
                 await (
-                    PlatformOperatorRoleAssignment.filter(
+                    PlatformOperatorRoleAssignment
+                    .filter(
                         operator_id=target.operator_id,
                         role_id__in=removed_role_ids,
                         ended_at__isnull=True,
@@ -2411,10 +2418,15 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                 .using_db(conn)
                 .update(invalidated_at=now)
             )
-            revoked_session_count = await PlatformSession.filter(
-                actor_user_id=target_user_id,
-                revoked_at__isnull=True,
-            ).using_db(conn).count()
+            revoked_session_count = (
+                await PlatformSession
+                .filter(
+                    actor_user_id=target_user_id,
+                    revoked_at__isnull=True,
+                )
+                .using_db(conn)
+                .count()
+            )
             await self._revoke_actor_sessions_and_proofs(
                 user_id=target_user_id,
                 revoked_by_user_id=actor_user_id,

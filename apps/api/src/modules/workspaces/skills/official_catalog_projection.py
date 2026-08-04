@@ -29,8 +29,10 @@ def project_official_catalog_item(
     descriptor = package.source_descriptor or {}
     display_name_key = descriptor.get("displayNameKey")
     description_key = descriptor.get("descriptionKey")
-    if not isinstance(display_name_key, str) or not isinstance(description_key, str):
-        raise RuntimeError("Official Skill package is missing product copy keys")
+    if not isinstance(display_name_key, str):
+        display_name_key = None
+    if not isinstance(description_key, str):
+        description_key = None
     manifest = SkillManifestV1.model_validate(version.manifest)
     return OfficialSkillCatalogItemOut(
         package_id=package.id,

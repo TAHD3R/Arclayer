@@ -12,6 +12,13 @@ describe("cross-application origin contract", () => {
     expect(getProductApplicationUrl("home")).toBe("https://app.arclayer.example/");
   });
 
+  it("builds the typed Product account-deletion settings target", () => {
+    vi.stubEnv("VITE_PRODUCT_APP_ORIGIN", "https://app.arclayer.example");
+    expect(getProductApplicationUrl("account-danger")).toBe(
+      "https://app.arclayer.example/?settings=personal.profile&section=danger",
+    );
+  });
+
   it("rejects configured origins that carry credentials or path state", () => {
     vi.stubEnv("VITE_PRODUCT_APP_ORIGIN", "https://user@example.test/workspace?id=secret");
     expect(() => getProductApplicationUrl("home")).toThrow(

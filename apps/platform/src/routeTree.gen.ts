@@ -43,6 +43,7 @@ import { Route as AuthenticatedBillingCreditsRouteImport } from './routes/_authe
 import { Route as AuthenticatedBillingConfigurationRouteImport } from './routes/_authenticated/billing/configuration'
 import { Route as AuthenticatedAttentionSignalIdRouteImport } from './routes/_authenticated/attention/$signalId'
 import { Route as AuthenticatedAiTasksRouteImport } from './routes/_authenticated/ai/tasks'
+import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
 import { Route as AuthenticatedAiProvidersRouteImport } from './routes/_authenticated/ai/providers'
 import { Route as AuthenticatedAiPoliciesRouteImport } from './routes/_authenticated/ai/policies'
 import { Route as AuthenticatedAiAssistantsRouteImport } from './routes/_authenticated/ai/assistants'
@@ -246,6 +247,11 @@ const AuthenticatedAiTasksRoute = AuthenticatedAiTasksRouteImport.update({
   path: '/ai/tasks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAiSkillsRoute = AuthenticatedAiSkillsRouteImport.update({
+  id: '/ai/skills',
+  path: '/ai/skills',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAiProvidersRoute =
   AuthenticatedAiProvidersRouteImport.update({
     id: '/ai/providers',
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
   '/ai/policies': typeof AuthenticatedAiPoliciesRoute
   '/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/tasks': typeof AuthenticatedAiTasksRoute
   '/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
   '/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
   '/ai/policies': typeof AuthenticatedAiPoliciesRoute
   '/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/tasks': typeof AuthenticatedAiTasksRoute
   '/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
   '/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/_authenticated/ai/assistants': typeof AuthenticatedAiAssistantsRoute
   '/_authenticated/ai/policies': typeof AuthenticatedAiPoliciesRoute
   '/_authenticated/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/_authenticated/ai/tasks': typeof AuthenticatedAiTasksRoute
   '/_authenticated/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
   '/_authenticated/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
@@ -430,6 +439,7 @@ export interface FileRouteTypes {
     | '/ai/assistants'
     | '/ai/policies'
     | '/ai/providers'
+    | '/ai/skills'
     | '/ai/tasks'
     | '/attention/$signalId'
     | '/billing/configuration'
@@ -472,6 +482,7 @@ export interface FileRouteTypes {
     | '/ai/assistants'
     | '/ai/policies'
     | '/ai/providers'
+    | '/ai/skills'
     | '/ai/tasks'
     | '/attention/$signalId'
     | '/billing/configuration'
@@ -515,6 +526,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ai/assistants'
     | '/_authenticated/ai/policies'
     | '/_authenticated/ai/providers'
+    | '/_authenticated/ai/skills'
     | '/_authenticated/ai/tasks'
     | '/_authenticated/attention/$signalId'
     | '/_authenticated/billing/configuration'
@@ -791,6 +803,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiTasksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/ai/skills': {
+      id: '/_authenticated/ai/skills'
+      path: '/ai/skills'
+      fullPath: '/ai/skills'
+      preLoaderRoute: typeof AuthenticatedAiSkillsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/ai/providers': {
       id: '/_authenticated/ai/providers'
       path: '/ai/providers'
@@ -883,6 +902,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAiAssistantsRoute: typeof AuthenticatedAiAssistantsRoute
   AuthenticatedAiPoliciesRoute: typeof AuthenticatedAiPoliciesRoute
   AuthenticatedAiProvidersRoute: typeof AuthenticatedAiProvidersRoute
+  AuthenticatedAiSkillsRoute: typeof AuthenticatedAiSkillsRoute
   AuthenticatedAiTasksRoute: typeof AuthenticatedAiTasksRoute
   AuthenticatedBillingConfigurationRoute: typeof AuthenticatedBillingConfigurationRoute
   AuthenticatedBillingCreditsRoute: typeof AuthenticatedBillingCreditsRoute
@@ -922,6 +942,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAiAssistantsRoute: AuthenticatedAiAssistantsRoute,
   AuthenticatedAiPoliciesRoute: AuthenticatedAiPoliciesRoute,
   AuthenticatedAiProvidersRoute: AuthenticatedAiProvidersRoute,
+  AuthenticatedAiSkillsRoute: AuthenticatedAiSkillsRoute,
   AuthenticatedAiTasksRoute: AuthenticatedAiTasksRoute,
   AuthenticatedBillingConfigurationRoute:
     AuthenticatedBillingConfigurationRoute,

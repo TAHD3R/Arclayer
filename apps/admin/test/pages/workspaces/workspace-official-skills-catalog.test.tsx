@@ -143,7 +143,7 @@ function renderCatalog() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceOfficialSkillsCatalog workspaceId="workspace-1" search="site" />
+      <WorkspaceOfficialSkillsCatalog workspaceId="workspace-1" />
     </QueryClientProvider>,
   );
 }
@@ -159,18 +159,26 @@ describe("WorkspaceOfficialSkillsCatalog", () => {
   it("keeps verification details out of the catalog while installing the exact system version", async () => {
     renderCatalog();
 
-    expect(await screen.findByText("Sitemap Planning")).toBeInTheDocument();
+    expect((await screen.findAllByText("Sitemap Planning")).length).toBeGreaterThan(0);
     expect(screen.queryByText("site.sitemap")).not.toBeInTheDocument();
     expect(screen.queryByText(item.packageChecksum)).not.toBeInTheDocument();
+    expect(screen.queryByText("1.0.0")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_VALIDATION"),
+    ).not.toBeInTheDocument();
     expect(apiMocks.list).toHaveBeenCalledWith(
       "workspace-1",
-      expect.objectContaining({ q: "site", limit: 100 }),
+      expect.objectContaining({ limit: 100 }),
     );
 
+    expect(screen.getByText("settings:SETTINGS_WORKSPACE_SKILLS_DISABLED_BADGE")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "settings:SETTINGS_WORKSPACE_SKILLS_REVIEW_INSTALL" }),
+      await screen.findByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_ENABLE_ACTION",
+      }),
     );
-    const dialog = screen.getByTestId("official-install-dialog");
+    const dialog = await screen.findByTestId("official-install-dialog");
     expect(dialog).toHaveAttribute("data-scope", "system");
     fireEvent.click(dialog);
 

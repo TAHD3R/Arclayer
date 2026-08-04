@@ -239,12 +239,20 @@ export function AIComposerSlashPopoverContent(props: {
           void navigate({ to: "/customization/skills" });
           scope.close();
         }}
-        onCreate={() => {
+        onBuildWithArclayer={() => {
           aui.composer().setText("/skill-creator ");
           scope.close();
         }}
-        onImport={() => {
-          void navigate({ to: "/customization/skills", search: { action: "import" } });
+        onWriteManually={() => {
+          void navigate({ to: "/customization/skills", search: { action: "manual" } });
+          scope.close();
+        }}
+        onImportGitHub={() => {
+          void navigate({ to: "/customization/skills", search: { action: "github" } });
+          scope.close();
+        }}
+        onUploadZip={() => {
+          void navigate({ to: "/customization/skills", search: { action: "zip" } });
           scope.close();
         }}
       />

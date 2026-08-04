@@ -77,7 +77,9 @@ vi.mock("react-i18next", () => ({
         AI_CHAT_SKILL_EMPTY: "暂无技能",
         AI_CHAT_SKILL_ADD: "添加技能",
         AI_CHAT_SKILL_CREATE_WITH_ARCLAYER: "通过 Arclayer 创建",
-        AI_CHAT_SKILL_IMPORT: "导入技能",
+        AI_CHAT_SKILL_WRITE_MANUALLY: "手动编写",
+        AI_CHAT_SKILL_IMPORT_GITHUB: "从 GitHub 导入",
+        AI_CHAT_SKILL_UPLOAD_ZIP: "上传 ZIP",
       };
       if (key === "AI_CHAT_SKILL_PROMPT") {
         return `请使用已启用的${values?.skill ?? ""}技能帮我处理：`;
@@ -189,7 +191,7 @@ describe("AIComposerSkillMenu", () => {
     expect(await screen.findByRole("menu")).toHaveAttribute("data-collision-padding", "16");
   });
 
-  it("offers Arclayer creation and import from the add-skill submenu", async () => {
+  it("offers every supported creation path from the add-skill submenu", async () => {
     const user = userEvent.setup();
     renderMenu();
 
@@ -207,14 +209,44 @@ describe("AIComposerSkillMenu", () => {
     const reopenedAddSkillItem = await screen.findByRole("menuitem", { name: "添加技能" });
     reopenedAddSkillItem.focus();
     await user.keyboard("{ArrowRight}");
-    const importItem = await screen.findByRole("menuitem", { name: "导入技能" });
-    importItem.focus();
+    const githubItem = await screen.findByRole("menuitem", { name: "从 GitHub 导入" });
+    githubItem.focus();
     await user.keyboard("{Enter}");
 
     await waitFor(() =>
       expect(composerMocks.navigate).toHaveBeenCalledWith({
         to: "/customization/skills",
-        search: { action: "import" },
+        search: { action: "github" },
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "选择技能" }));
+    const thirdAddSkillItem = await screen.findByRole("menuitem", { name: "添加技能" });
+    thirdAddSkillItem.focus();
+    await user.keyboard("{ArrowRight}");
+    const zipItem = await screen.findByRole("menuitem", { name: "上传 ZIP" });
+    zipItem.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(composerMocks.navigate).toHaveBeenCalledWith({
+        to: "/customization/skills",
+        search: { action: "zip" },
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "选择技能" }));
+    const fourthAddSkillItem = await screen.findByRole("menuitem", { name: "添加技能" });
+    fourthAddSkillItem.focus();
+    await user.keyboard("{ArrowRight}");
+    const manualItem = await screen.findByRole("menuitem", { name: "手动编写" });
+    manualItem.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(composerMocks.navigate).toHaveBeenCalledWith({
+        to: "/customization/skills",
+        search: { action: "manual" },
       }),
     );
   });

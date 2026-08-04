@@ -19,6 +19,7 @@ import {
   revokeOtherCurrentPlatformSessions,
   updateSignInPolicy,
   updateSignInProvider,
+  updateCurrentPlatformActorProfile,
 } from "@/access/access-api";
 import { verifyPlatformAction } from "@/access/platform-step-up";
 import { PlatformAccountSettings } from "@/account/platform-account-settings";
@@ -42,6 +43,7 @@ vi.mock("@/access/access-api", async (importOriginal) => {
     revokeOtherCurrentPlatformSessions: vi.fn(),
     updateSignInPolicy: vi.fn(),
     updateSignInProvider: vi.fn(),
+    updateCurrentPlatformActorProfile: vi.fn(),
   };
 });
 vi.mock("@/access/platform-step-up", () => ({ verifyPlatformAction: vi.fn() }));
@@ -56,11 +58,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 
 function platformSession(sessionId: string, deviceLabel: string, isCurrent: boolean) {
   return {
-    absoluteExpiresAt: "2026-08-03T01:00:00.000Z",
+    absoluteExpiresAt: "2099-08-03T01:00:00.000Z",
     actorUserId: "user-1",
     assurance: "mfa",
+    createdAt: "2026-08-01T01:00:00.000Z",
     deviceLabel,
-    inactivityExpiresAt: "2026-08-02T05:00:00.000Z",
+    inactivityExpiresAt: "2099-08-02T05:00:00.000Z",
     isCurrent,
     policyRevision: 1,
     recentActivityAt: "2026-08-02T01:00:00.000Z",
@@ -86,6 +89,7 @@ beforeEach(async () => {
   });
   vi.mocked(getCurrentPlatformActorProfile).mockResolvedValue({
     avatarUrl: null,
+    displayName: "Platform administrator",
     email: "operator@example.test",
     username: "operator",
   });
@@ -108,6 +112,12 @@ beforeEach(async () => {
   vi.mocked(verifyPlatformAction).mockResolvedValue("step-up-proof");
   vi.mocked(updateSignInPolicy).mockResolvedValue(signInSettings());
   vi.mocked(updateSignInProvider).mockResolvedValue(signInSettings());
+  vi.mocked(updateCurrentPlatformActorProfile).mockResolvedValue({
+    avatarUrl: null,
+    displayName: "Platform administrator",
+    email: "operator@example.test",
+    username: "operator",
+  });
 });
 
 afterEach(() => {
@@ -118,10 +128,12 @@ describe("Platform Access & Security pages", () => {
   it("renders the server-owned role and permission catalog without a deferred-workflow notice", async () => {
     vi.mocked(listPlatformRoles).mockResolvedValue([
       {
-        code: "platform-operator",
-        description: "Operate the Platform Console.",
+        code: "access-security-operator",
+        description: null,
+        descriptionI18N: "platform.role.access_security_operator.description",
         kind: "built_in",
-        name: "Platform operator",
+        name: "access-security-operator",
+        nameI18N: "platform.role.access_security_operator.name",
         permissionCodes: ["platform:access-team:read"],
         revisionId: "role-revision-1",
         revisionSequence: 1,
@@ -141,7 +153,8 @@ describe("Platform Access & Security pages", () => {
 
     render(<PlatformRolesPage />);
 
-    expect(await screen.findByText("Platform operator")).toBeVisible();
+    expect(await screen.findByText("Access & Security Manager")).toBeVisible();
+    expect(screen.getByText("access-security-operator")).toBeVisible();
     await userEvent.setup().click(screen.getByRole("tab", { name: "Permission catalog" }));
     expect(screen.getByText("View the Platform team")).toBeVisible();
     expect(
@@ -178,6 +191,26 @@ describe("Platform Access & Security pages", () => {
     expect(screen.getByRole("button", { name: "Add authenticator app" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add security key or passkey" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Replace" })).toBeVisible();
+  });
+
+  it("edits the current Platform account profile and exposes guarded account deletion", async () => {
+    const user = userEvent.setup();
+    renderAccountSettings();
+
+    const displayName = await screen.findByLabelText("Display name");
+    await user.clear(displayName);
+    await user.type(displayName, "Security administrator");
+    await user.click(screen.getByRole("button", { name: "Save profile" }));
+
+    await waitFor(() =>
+      expect(updateCurrentPlatformActorProfile).toHaveBeenCalledWith({
+        displayName: "Security administrator",
+      }),
+    );
+    expect(screen.getByRole("link", { name: /Review deletion requirements/ })).toHaveAttribute(
+      "href",
+      expect.stringContaining("settings=personal.profile&section=danger"),
+    );
   });
 
   it("updates the sign-in and registration policy with action-bound verification", async () => {
@@ -286,11 +319,12 @@ describe("Platform Access & Security pages", () => {
     });
     vi.mocked(getCurrentSessions).mockResolvedValue([
       {
-        absoluteExpiresAt: "2026-08-03T01:00:00.000Z",
+        absoluteExpiresAt: "2099-08-03T01:00:00.000Z",
         actorUserId: "user-1",
         assurance: "mfa",
+        createdAt: "2026-08-01T01:00:00.000Z",
         deviceLabel: "MacBook Pro",
-        inactivityExpiresAt: "2026-08-02T05:00:00.000Z",
+        inactivityExpiresAt: "2099-08-02T05:00:00.000Z",
         isCurrent: true,
         policyRevision: 1,
         recentActivityAt: "2026-08-02T01:00:00.000Z",
@@ -317,11 +351,12 @@ describe("Platform Access & Security pages", () => {
       .mockRejectedValueOnce(new Error("session inventory unavailable"))
       .mockResolvedValueOnce([
         {
-          absoluteExpiresAt: "2026-08-03T01:00:00.000Z",
+          absoluteExpiresAt: "2099-08-03T01:00:00.000Z",
           actorUserId: "user-1",
           assurance: "mfa",
+          createdAt: "2026-08-01T01:00:00.000Z",
           deviceLabel: "Recovered session inventory",
-          inactivityExpiresAt: "2026-08-02T05:00:00.000Z",
+          inactivityExpiresAt: "2099-08-02T05:00:00.000Z",
           isCurrent: false,
           policyRevision: 1,
           recentActivityAt: "2026-08-02T01:00:00.000Z",
@@ -337,6 +372,33 @@ describe("Platform Access & Security pages", () => {
 
     expect(await screen.findByText("Recovered session inventory")).toBeVisible();
     await waitFor(() => expect(getCurrentSessions).toHaveBeenCalledTimes(2));
+  });
+
+  it("sorts device history newest first and excludes expired records from active actions", async () => {
+    vi.mocked(getCurrentSessions).mockResolvedValue([
+      {
+        ...platformSession("session-expired", "Expired device", false),
+        absoluteExpiresAt: "2026-08-03T01:00:00.000Z",
+        inactivityExpiresAt: "2026-08-03T00:30:00.000Z",
+        recentActivityAt: "2026-08-03T00:00:00.000Z",
+      },
+      {
+        ...platformSession("session-current", "Current device", true),
+        recentActivityAt: "2026-08-04T01:00:00.000Z",
+      },
+    ]);
+
+    renderAccountSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Signed-in devices" }));
+
+    const current = await screen.findByText("Current device");
+    const expired = screen.getByText("Expired device");
+    expect(
+      current.compareDocumentPosition(expired) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("Expired")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Revoke other sessions" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Revoke session" })).not.toBeInTheDocument();
   });
 
   it("revokes one other device session and refreshes the server-owned inventory", async () => {
@@ -489,6 +551,7 @@ function renderAccountSettings() {
     <PlatformPreferencesProvider>
       <PlatformAccountSettings
         onOpenChange={() => undefined}
+        onProfileUpdated={() => undefined}
         onSessionEnded={() => undefined}
         open
       />

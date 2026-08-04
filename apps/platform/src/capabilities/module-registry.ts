@@ -2,6 +2,7 @@ import {
   Activity,
   BadgeDollarSign,
   Bot,
+  BookOpenCheck,
   BrainCircuit,
   Building2,
   ChartNoAxesCombined,
@@ -49,6 +50,7 @@ export type TrustedNavigationRouteTarget =
   | "tenants.projects"
   | "ai.providers"
   | "ai.assistants"
+  | "ai.skills"
   | "ai.policies"
   | "site-delivery.domains"
   | "site-delivery.storage"
@@ -81,6 +83,7 @@ export type PlatformDestinationId =
   | "ai-tasks"
   | "ai-providers"
   | "ai-assistants"
+  | "ai-skills"
   | "ai-policies"
   | "hosting-issues"
   | "hosting-domains"
@@ -120,6 +123,7 @@ export type PlatformDestination = Readonly<{
     | "/ai/tasks"
     | "/ai/providers"
     | "/ai/assistants"
+    | "/ai/skills"
     | "/ai/policies"
     | "/hosting/issues"
     | "/hosting/domains"
@@ -268,6 +272,13 @@ export const PLATFORM_CAPABILITY_MODULES: Readonly<
         path: "/ai/assistants",
         labelKey: "navigation:AI_ASSISTANTS",
         icon: UsersRound,
+      },
+      {
+        id: "ai-skills",
+        routeTarget: "ai.skills",
+        path: "/ai/skills",
+        labelKey: "navigation:AI_SKILLS",
+        icon: BookOpenCheck,
       },
       {
         id: "ai-policies",

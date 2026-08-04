@@ -16,6 +16,7 @@ import {
   createWorkspaceSkillGitHubRefresh,
   createWorkspaceSkillInstallation,
   createWorkspaceSkillPackage,
+  createWorkspaceSkillZipImport,
   createWorkspaceSkillVersion,
   getWorkspaceSkillPackage,
   getWorkspaceSkillGitHubImport,
@@ -35,7 +36,7 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 
-export type WorkspaceSkillDialog = "package" | "github" | "version" | "install" | null;
+export type WorkspaceSkillDialog = "manual" | "github" | "zip" | "version" | "install" | null;
 
 function latestValidation(results: readonly SkillValidationResultOut[]) {
   return [...results].sort(
@@ -220,6 +221,17 @@ export function useWorkspaceSkillsController(workspaceId: string) {
     },
     onError: notifyError,
   });
+  const zipImportMutation = useMutation({
+    mutationFn: (file: File) =>
+      createWorkspaceSkillZipImport(workspaceId, file, crypto.randomUUID()),
+    onSuccess: async (created) => {
+      setSelectedPackageId(created.package.id);
+      setSelectedVersionId(created.version.id);
+      await invalidate();
+      notifySuccessText(t("SETTINGS_WORKSPACE_SKILLS_ZIP_IMPORTED"));
+    },
+    onError: notifyError,
+  });
   const githubRefreshMutation = useMutation({
     mutationFn: () =>
       createWorkspaceSkillGitHubRefresh(workspaceId, selectedPackage!.id, crypto.randomUUID()),
@@ -300,6 +312,7 @@ export function useWorkspaceSkillsController(workspaceId: string) {
     createPackageMutation,
     createVersionMutation,
     githubImportMutation,
+    zipImportMutation,
     githubRefreshMutation,
     validationMutation,
     installMutation,

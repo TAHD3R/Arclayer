@@ -1,95 +1,77 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, CircleAlert, PackageCheck, ShieldCheck } from "lucide-react";
+import type { ColumnDef, SortingState, Table } from "@tanstack/react-table";
+import type { i18n as I18nInstance } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type {
   OfficialSkillCatalogDetailOut,
   OfficialSkillCatalogItemOut,
   SkillInstallationCreateRequest,
-  SkillInstallationOut,
 } from "@arclayer/openapi";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
-import { Separator } from "@arclayer/ui/separator";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Switch } from "@arclayer/ui/switch";
+import { DataTableToolbarTools, useDataTableCore } from "@arclayer/ui/data-table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import {
   WORKSPACE_SKILLS_QUERY_KEY,
   createWorkspaceSkillInstallation,
   getOfficialSkillCatalogPackage,
-  getWorkspaceSkillInstallation,
   listOfficialSkillCatalog,
   updateWorkspaceSkillInstallation,
 } from "@/api/workspace-skills";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { BaseTag } from "@/components/ui/tags";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { requiredTranslation } from "@/lib/i18n/required-translation";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import { WorkspaceSkillInstallDialog } from "./workspace-skill-install-dialog";
-import { WorkspaceSkillRemovalAction } from "./workspace-skill-removal-action";
-import { WorkspaceSkillUpdateAction } from "./workspace-skill-update-action";
 
-export function WorkspaceOfficialSkillsCatalog(props: { workspaceId: string; search: string }) {
-  const { t } = useTranslation(["settings", "common"]);
+type StatusFilter = "all" | "enabled" | "disabled";
+type SortValue = "name-asc" | "name-desc" | "status-asc" | "status-desc";
+
+export function WorkspaceOfficialSkillsCatalog(props: { workspaceId: string }) {
+  const { t, i18n } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
-  const deferredSearch = useDeferredValue(props.search.trim());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [installDetail, setInstallDetail] = useState<OfficialSkillCatalogDetailOut | null>(null);
   const [installOpen, setInstallOpen] = useState(false);
+  const [preparingId, setPreparingId] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(search.trim());
   const catalogQuery = useQuery({
     queryKey: [...WORKSPACE_SKILLS_QUERY_KEY, props.workspaceId, "official", deferredSearch],
-    queryFn: ({ signal }) =>
-      listOfficialSkillCatalog(props.workspaceId, {
-        q: deferredSearch || undefined,
-        limit: 100,
-        signal,
-      }),
+    queryFn: ({ signal }) => loadOfficialCatalog(props.workspaceId, deferredSearch, signal),
   });
-  const items = catalogQuery.data?.items ?? [];
-  const selected = items.find((item) => item.packageId === selectedId) ?? items[0];
-
-  useEffect(() => {
-    if (selected?.packageId !== selectedId) setSelectedId(selected?.packageId ?? null);
-  }, [selected, selectedId]);
-
-  const detailQuery = useQuery({
-    queryKey: [
-      ...WORKSPACE_SKILLS_QUERY_KEY,
-      props.workspaceId,
-      "official-detail",
-      selected?.packageId,
-    ],
-    queryFn: ({ signal }) =>
-      getOfficialSkillCatalogPackage(props.workspaceId, selected!.packageId, signal),
-    enabled: Boolean(selected),
-  });
-  const installationQuery = useQuery({
-    queryKey: [
-      ...WORKSPACE_SKILLS_QUERY_KEY,
-      props.workspaceId,
-      "installation",
-      detailQuery.data?.installationId,
-    ],
-    queryFn: ({ signal }) =>
-      getWorkspaceSkillInstallation(props.workspaceId, detailQuery.data!.installationId!, signal),
-    enabled: Boolean(detailQuery.data?.installationId),
-  });
+  const items = useMemo(() => {
+    const available = catalogQuery.data ?? [];
+    if (statusFilter === "all") return available;
+    return available.filter((item) => isEnabled(item) === (statusFilter === "enabled"));
+  }, [catalogQuery.data, statusFilter]);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: WORKSPACE_SKILLS_QUERY_KEY });
   const installMutation = useMutation({
     mutationFn: (payload: SkillInstallationCreateRequest) =>
       createWorkspaceSkillInstallation(props.workspaceId, payload, crypto.randomUUID()),
     onSuccess: async () => {
       await invalidate();
-      notifySuccessText(t("settings:SETTINGS_WORKSPACE_SKILLS_INSTALLED"));
+      notifySuccessText(t("settings:SETTINGS_WORKSPACE_SKILLS_ENABLED"));
     },
     onError: notifyError,
   });
   const updateMutation = useMutation({
-    mutationFn: (enabled: boolean) => {
-      const detail = detailQuery.data!;
-      return updateWorkspaceSkillInstallation(props.workspaceId, detail.installationId!, {
+    mutationFn: ({ item, enabled }: { item: OfficialSkillCatalogItemOut; enabled: boolean }) => {
+      if (!item.installationId || item.installationMetadataRevision == null) {
+        throw new Error("Official Skill installation metadata is missing");
+      }
+      return updateWorkspaceSkillInstallation(props.workspaceId, item.installationId, {
         enabled,
-        expectedRevision: detail.installationMetadataRevision!,
+        expectedRevision: item.installationMetadataRevision,
       });
     },
     onSuccess: async (updated) => {
@@ -105,254 +87,273 @@ export function WorkspaceOfficialSkillsCatalog(props: { workspaceId: string; sea
     onError: notifyError,
   });
 
-  if (catalogQuery.isPending) return <OfficialCatalogLoading />;
-  if (catalogQuery.isError) {
-    return (
-      <Alert variant="destructive">
-        <CircleAlert aria-hidden="true" />
-        <AlertTitle>{t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_ERROR")}</AlertTitle>
-        <AlertDescription className="flex flex-col gap-2">
-          <span>{t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_ERROR_DESC")}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="self-start"
-            onClick={() => catalogQuery.refetch()}
-          >
-            {t("common:RETRY")}
-          </Button>
-        </AlertDescription>
-      </Alert>
-    );
+  async function prepareInstall(item: OfficialSkillCatalogItemOut) {
+    setPreparingId(item.packageId);
+    try {
+      const detail = await queryClient.fetchQuery({
+        queryKey: [
+          ...WORKSPACE_SKILLS_QUERY_KEY,
+          props.workspaceId,
+          "official-detail",
+          item.packageId,
+        ],
+        queryFn: ({ signal }) =>
+          getOfficialSkillCatalogPackage(props.workspaceId, item.packageId, signal),
+      });
+      setInstallDetail(detail);
+      setInstallOpen(true);
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setPreparingId(null);
+    }
   }
 
+  const columns = useMemo<ColumnDef<OfficialSkillCatalogItemOut, unknown>[]>(
+    () => [
+      {
+        id: "skill",
+        header: t("settings:SETTINGS_WORKSPACE_SKILLS_COLUMN_NAME"),
+        accessorFn: (item) => localizedName(item, i18n),
+        cell: ({ row }) => (
+          <div className="min-w-0 py-1">
+            <div className="font-semibold text-label-primary">{localizedName(row.original, i18n)}</div>
+            <div className="mt-1 max-w-3xl text-caption leading-5 text-label-secondary">
+              {localizedDescription(row.original, i18n)}
+            </div>
+          </div>
+        ),
+        meta: { sortKey: "skill" },
+        size: 640,
+      },
+      {
+        id: "status",
+        header: t("settings:SETTINGS_WORKSPACE_SKILLS_COLUMN_STATUS"),
+        accessorFn: (item) => (isEnabled(item) ? "enabled" : "disabled"),
+        cell: ({ row }) => {
+          const enabled = isEnabled(row.original);
+          return (
+            <BaseTag color={enabled ? "green" : "default"}>
+              {t(
+                enabled
+                  ? "settings:SETTINGS_WORKSPACE_SKILLS_ENABLED_BADGE"
+                  : "settings:SETTINGS_WORKSPACE_SKILLS_DISABLED_BADGE",
+              )}
+            </BaseTag>
+          );
+        },
+        meta: { sortKey: "status" },
+        size: 160,
+      },
+      {
+        id: "actions",
+        header: "",
+        enableHiding: false,
+        enableSorting: false,
+        meta: buildDataTableActionsColumnMeta("right", "right"),
+        size: 140,
+        cell: ({ row }) => {
+          const item = row.original;
+          const enabled = isEnabled(item);
+          const updating =
+            (updateMutation.isPending && updateMutation.variables?.item.packageId === item.packageId) ||
+            preparingId === item.packageId;
+          return (
+            <DataTableActionsCell>
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={updating}
+                disabled={updating}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!item.installed) {
+                    void prepareInstall(item);
+                    return;
+                  }
+                  updateMutation.mutate({ item, enabled: !enabled });
+                }}
+              >
+                {t(
+                  enabled
+                    ? "settings:SETTINGS_WORKSPACE_SKILLS_DISABLE_ACTION"
+                    : "settings:SETTINGS_WORKSPACE_SKILLS_ENABLE_ACTION",
+                )}
+              </Button>
+            </DataTableActionsCell>
+          );
+        },
+      },
+    ],
+    [i18n, preparingId, t, updateMutation],
+  );
+  const tableCore = useDataTableCore({
+    columns,
+    data: items,
+    pageCount: 1,
+    initialState: { pageSize: 100, sorting: [{ id: "skill", desc: false }] },
+    features: {
+      sorting: { enabled: true, mode: "client", multiSort: false },
+      columnPinning: { enabled: true },
+    },
+  });
+  const toolbar = (
+    <OfficialSkillsToolbar
+      onRefresh={() => void catalogQuery.refetch()}
+      onSearchChange={setSearch}
+      onSortChange={(sorting) => tableCore.setSorting(sorting)}
+      onStatusChange={setStatusFilter}
+      refreshing={catalogQuery.isFetching && !catalogQuery.isPending}
+      search={search}
+      sorting={tableCore.sorting}
+      status={statusFilter}
+      table={tableCore.table}
+      t={t}
+    />
+  );
+
   return (
-    <section aria-labelledby="official-skills-title" className="rounded-xl border bg-background">
-      <header className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <BadgeCheck className="size-4 text-action" aria-hidden="true" />
-            <h2 id="official-skills-title" className="text-headline text-label-primary">
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_TITLE")}
-            </h2>
-          </div>
-          <p className="mt-1 max-w-3xl text-footnote text-label-secondary">
-            {t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_AVAILABLE_DESC")}
-          </p>
-        </div>
-        <Badge variant="outline">{t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_VERIFIED")}</Badge>
-      </header>
-      <Separator />
-      {items.length && selected ? (
-        <div className="grid min-h-80 lg:grid-cols-[minmax(16rem,0.85fr)_minmax(0,1.35fr)]">
-          <div className="divide-y border-b lg:border-b-0 lg:border-r">
-            {items.map((item) => (
-              <OfficialSkillRow
-                key={item.packageId}
-                item={item}
-                selected={item.packageId === selected.packageId}
-                onSelect={() => setSelectedId(item.packageId)}
-              />
-            ))}
-          </div>
-          <OfficialSkillDetail
-            item={selected}
-            pending={detailQuery.isPending}
-            error={detailQuery.isError}
-            detail={detailQuery.data}
-            installation={installationQuery.data}
-            installationPending={
-              installationQuery.isPending && Boolean(detailQuery.data?.installed)
-            }
-            installationError={installationQuery.isError}
-            updating={updateMutation.isPending}
-            onRetry={() => detailQuery.refetch()}
-            onInstallationRetry={() => installationQuery.refetch()}
-            onInstall={() => setInstallOpen(true)}
-            onEnabledChange={(enabled) => updateMutation.mutate(enabled)}
-          />
-        </div>
-      ) : (
-        <p className="border-t px-5 py-8 text-center text-footnote text-label-secondary">
-          {t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_EMPTY")}
-        </p>
-      )}
-      {detailQuery.data ? (
+    <>
+      <AdminDataTableSection
+        table={tableCore.table}
+        toolbar={toolbar}
+        emptyText={t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_EMPTY")}
+        emptyTitle={t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_EMPTY")}
+        emptyDescription={t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_EMPTY_DESC")}
+        loading={catalogQuery.isPending}
+        error={catalogQuery.error}
+        onRetry={() => void catalogQuery.refetch()}
+        t={t}
+        rowHeight="tall"
+        wrapHeaders={false}
+      />
+      {installDetail ? (
         <WorkspaceSkillInstallDialog
           open={installOpen}
           onOpenChange={setInstallOpen}
           pending={installMutation.isPending}
           packageScope="system"
           version={{
-            id: detailQuery.data.versionId,
-            packageId: detailQuery.data.packageId,
-            versionNumber: detailQuery.data.versionNumber,
-            semanticVersion: detailQuery.data.semanticVersion,
-            packageChecksum: detailQuery.data.packageChecksum,
-            manifest: detailQuery.data.manifest,
+            id: installDetail.versionId,
+            packageId: installDetail.packageId,
+            versionNumber: installDetail.versionNumber,
+            semanticVersion: installDetail.semanticVersion,
+            packageChecksum: installDetail.packageChecksum,
+            manifest: installDetail.manifest,
           }}
-          validation={detailQuery.data.validation}
-          onSubmit={(payload) => installMutation.mutateAsync(payload).then(() => undefined)}
+          validation={installDetail.validation}
+          onSubmit={(payload) =>
+            installMutation.mutateAsync(payload).then(() => setInstallOpen(false))
+          }
         />
       ) : null}
-    </section>
+    </>
   );
 }
 
-function OfficialSkillRow(props: {
-  item: OfficialSkillCatalogItemOut;
-  selected: boolean;
-  onSelect: () => void;
+function OfficialSkillsToolbar(props: {
+  table: Table<OfficialSkillCatalogItemOut>;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  search: string;
+  status: StatusFilter;
+  sorting: SortingState;
+  refreshing: boolean;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: StatusFilter) => void;
+  onSortChange: (value: SortingState) => void;
+  onRefresh: () => void;
 }) {
-  const { t, i18n } = useTranslation("settings");
+  const sortValue = sortingToValue(props.sorting);
   return (
-    <button
-      type="button"
-      className={`w-full px-4 py-3 text-left transition-colors duration-100 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${props.selected ? "bg-accent/60" : ""}`}
-      aria-pressed={props.selected}
-      onClick={props.onSelect}
-    >
-      <span className="flex items-center justify-between gap-3">
-        <span className="text-footnote font-semibold text-label-primary">
-          {requiredTranslation(
-            i18n,
-            `settings:${props.item.displayNameKey}`,
-            "official Skill name",
-          )}
-        </span>
-        {props.item.installed ? (
-          <Badge variant="secondary">{t("SETTINGS_WORKSPACE_SKILLS_INSTALLED_BADGE")}</Badge>
-        ) : null}
-      </span>
-      <span className="mt-1 line-clamp-2 block text-caption text-label-secondary">
-        {requiredTranslation(
-          i18n,
-          `settings:${props.item.descriptionKey}`,
-          "official Skill description",
-        )}
-      </span>
-    </button>
+    <PageExtraToolbar
+      leading={
+        <>
+          <DataTableSearchInput
+            value={props.search}
+            onChange={props.onSearchChange}
+            placeholder={props.t("settings:SETTINGS_WORKSPACE_SKILLS_SEARCH_PLACEHOLDER")}
+            clearLabel={props.t("common:CLEAR")}
+          />
+          <Select value={props.status} onValueChange={(value) => props.onStatusChange(value as StatusFilter)}>
+            <SelectTrigger className="w-40" aria-label={props.t("settings:SETTINGS_WORKSPACE_SKILLS_FILTER_STATUS")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_FILTER_ALL")}</SelectItem>
+              <SelectItem value="enabled">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_ENABLED_BADGE")}</SelectItem>
+              <SelectItem value="disabled">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_DISABLED_BADGE")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortValue} onValueChange={(value) => props.onSortChange(valueToSorting(value as SortValue))}>
+            <SelectTrigger className="w-44" aria-label={props.t("settings:SETTINGS_WORKSPACE_SKILLS_SORT_LABEL")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_SORT_NAME_ASC")}</SelectItem>
+              <SelectItem value="name-desc">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_SORT_NAME_DESC")}</SelectItem>
+              <SelectItem value="status-desc">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_SORT_ENABLED_FIRST")}</SelectItem>
+              <SelectItem value="status-asc">{props.t("settings:SETTINGS_WORKSPACE_SKILLS_SORT_DISABLED_FIRST")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </>
+      }
+      trailing={
+        <DataTableToolbarTools
+          table={props.table}
+          onRefresh={props.onRefresh}
+          refreshing={props.refreshing}
+          labels={buildDataTableToolsLabels(props.t)}
+        />
+      }
+    />
   );
 }
 
-function OfficialSkillDetail(props: {
-  item: OfficialSkillCatalogItemOut;
-  pending: boolean;
-  error: boolean;
-  detail?: OfficialSkillCatalogDetailOut;
-  installation?: SkillInstallationOut;
-  installationPending: boolean;
-  installationError: boolean;
-  updating: boolean;
-  onRetry: () => void;
-  onInstallationRetry: () => void;
-  onInstall: () => void;
-  onEnabledChange: (enabled: boolean) => void;
-}) {
-  const { t, i18n } = useTranslation(["settings", "common"]);
-  if (props.pending) return <OfficialDetailLoading />;
-  if (props.error || !props.detail) {
-    return (
-      <div className="p-5">
-        <Alert variant="destructive">
-          <CircleAlert aria-hidden="true" />
-          <AlertTitle>{t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_DETAIL_ERROR")}</AlertTitle>
-          <AlertDescription>
-            <Button size="sm" variant="outline" className="mt-2" onClick={props.onRetry}>
-              {t("common:RETRY")}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  const exactInstallation = props.item.installationVersionId === props.item.versionId;
-  return (
-    <div className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-title-3 text-label-primary">
-            {requiredTranslation(
-              i18n,
-              `settings:${props.item.displayNameKey}`,
-              "official Skill name",
-            )}
-          </h3>
-        </div>
-        <p className="mt-2 text-footnote text-label-secondary">
-          {requiredTranslation(
-            i18n,
-            `settings:${props.item.descriptionKey}`,
-            "official Skill description",
-          )}
-        </p>
-      </div>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-        <span className="inline-flex items-center gap-2 text-footnote text-label-secondary">
-          <ShieldCheck className="size-4" aria-hidden="true" />
-          {t("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_VALIDATION", {
-            status: props.item.validationStatus,
-          })}
-        </span>
-        {!props.item.installed ? (
-          <Button onClick={props.onInstall}>
-            <PackageCheck data-icon="inline-start" />
-            {t("settings:SETTINGS_WORKSPACE_SKILLS_REVIEW_INSTALL")}
-          </Button>
-        ) : props.installationPending ? (
-          <Button variant="outline" loading disabled>
-            {t("settings:SETTINGS_WORKSPACE_SKILLS_INSTALLATION_LOADING")}
-          </Button>
-        ) : props.installationError ? (
-          <Button variant="outline" onClick={props.onInstallationRetry}>
-            {t("common:RETRY")}
-          </Button>
-        ) : props.installation ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {exactInstallation ? (
-              <label className="flex min-h-11 items-center gap-3 rounded-lg border px-3">
-                <span className="text-footnote font-semibold text-label-primary">
-                  {t("settings:SETTINGS_WORKSPACE_SKILLS_INSTALLATION_ENABLED")}
-                </span>
-                <Switch
-                  checked={props.item.installationStatus === "enabled"}
-                  disabled={props.updating}
-                  onCheckedChange={props.onEnabledChange}
-                />
-              </label>
-            ) : (
-              <WorkspaceSkillUpdateAction
-                workspaceId={props.installation.workspaceId}
-                installation={props.installation}
-                candidate={{
-                  id: props.detail.versionId,
-                  versionNumber: props.detail.versionNumber,
-                  semanticVersion: props.detail.semanticVersion,
-                  packageChecksum: props.detail.packageChecksum,
-                  validationFindingHash: props.detail.validationFindingHash,
-                  manifest: props.detail.manifest,
-                }}
-              />
-            )}
-            <WorkspaceSkillRemovalAction
-              workspaceId={props.installation.workspaceId}
-              installation={props.installation}
-            />
-          </div>
-        ) : (
-          <span className="text-footnote text-label-secondary">
-            {t("settings:SETTINGS_WORKSPACE_SKILLS_INSTALLATION_MISSING")}
-          </span>
-        )}
-      </div>
-    </div>
-  );
+async function loadOfficialCatalog(workspaceId: string, q: string, signal: AbortSignal) {
+  const items: OfficialSkillCatalogItemOut[] = [];
+  const seenCursors = new Set<string>();
+  let cursor: string | undefined;
+  do {
+    const page = await listOfficialSkillCatalog(workspaceId, {
+      limit: 100,
+      ...(cursor ? { cursor } : {}),
+      ...(q ? { q } : {}),
+      signal,
+    });
+    items.push(...(page.items ?? []));
+    cursor = page.nextCursor ?? undefined;
+    if (cursor && seenCursors.has(cursor)) {
+      throw new Error("Official Skill catalog returned a repeated cursor");
+    }
+    if (cursor) seenCursors.add(cursor);
+  } while (cursor);
+  return items;
 }
 
-function OfficialCatalogLoading() {
-  return <Skeleton className="h-96 w-full rounded-xl" />;
+function localizedName(item: OfficialSkillCatalogItemOut, i18n: I18nInstance) {
+  return item.displayNameKey
+    ? requiredTranslation(i18n, `settings:${item.displayNameKey}`, "official Skill name")
+    : item.displayName;
 }
 
-function OfficialDetailLoading() {
-  return <Skeleton className="m-5 h-64 rounded-lg" />;
+function localizedDescription(item: OfficialSkillCatalogItemOut, i18n: I18nInstance) {
+  return item.descriptionKey
+    ? requiredTranslation(i18n, `settings:${item.descriptionKey}`, "official Skill description")
+    : item.description;
+}
+
+function isEnabled(item: OfficialSkillCatalogItemOut) {
+  return item.installed && item.installationStatus === "enabled";
+}
+
+function sortingToValue(sorting: SortingState): SortValue {
+  const first = sorting[0];
+  if (first?.id === "status") return first.desc ? "status-desc" : "status-asc";
+  return first?.desc ? "name-desc" : "name-asc";
+}
+
+function valueToSorting(value: SortValue): SortingState {
+  if (value === "status-asc") return [{ id: "status", desc: false }];
+  if (value === "status-desc") return [{ id: "status", desc: true }];
+  return [{ id: "skill", desc: value === "name-desc" }];
 }

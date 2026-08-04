@@ -41,24 +41,30 @@ export function PlatformMfaSettings({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={() => setAction({ kind: "totp", type: "enroll" })}>
-          <Plus aria-hidden="true" />
-          {t("ADD_AUTHENTICATOR_APP")}
-        </Button>
-        <Button onClick={() => setAction({ kind: "webauthn", type: "enroll" })}>
-          <KeyRound aria-hidden="true" />
-          {t("ADD_SECURITY_KEY")}
-        </Button>
-      </div>
+    <div>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck aria-hidden="true" className="size-5 text-primary" />
-            {t("MFA_TITLE")}
-          </CardTitle>
-          <CardDescription>{t("MFA_DESCRIPTION")}</CardDescription>
+        <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck aria-hidden="true" className="size-5 text-primary" />
+              {t("MFA_TITLE")}
+            </CardTitle>
+            <CardDescription>{t("MFA_DESCRIPTION")}</CardDescription>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAction({ kind: "totp", type: "enroll" })}
+            >
+              <Plus aria-hidden="true" />
+              {t("ADD_AUTHENTICATOR_APP")}
+            </Button>
+            <Button size="sm" onClick={() => setAction({ kind: "webauthn", type: "enroll" })}>
+              <KeyRound aria-hidden="true" />
+              {t("ADD_SECURITY_KEY")}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <Badge variant={readiness.ready ? "secondary" : "outline"}>

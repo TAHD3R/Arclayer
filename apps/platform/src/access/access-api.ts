@@ -35,6 +35,7 @@ import {
   platformResetPlatformOperatorMfa,
   platformUpdatePlatformSignInPolicy,
   platformUpdatePlatformSignInProvider,
+  platformUpdateCurrentPlatformActorProfile,
   type PlatformCustomRoleApplyRequest,
   type PlatformCustomRoleCopyRequest,
   type PlatformCustomRoleCreateRequest,
@@ -42,6 +43,7 @@ import {
   type PlatformCustomRolePreviewRequest,
   type PlatformCustomRoleRetireRequest,
   type PlatformCurrentActorProfileOut,
+  type PlatformCurrentActorProfileUpdateRequest,
   type PlatformInvitationCreateRequest,
   type PlatformInvitationDetailOut,
   type PlatformInvitationOptionsOut,
@@ -134,6 +136,10 @@ export const getPlatformTeam = async (): Promise<PlatformTeamQueueOut> =>
   unwrap(await platformListPlatformTeam({ client: platformApiClient }));
 export const getCurrentPlatformActorProfile = async (): Promise<PlatformCurrentActorProfileOut> =>
   unwrap(await platformGetCurrentPlatformActorProfile({ client: platformApiClient }));
+export const updateCurrentPlatformActorProfile = async (
+  body: PlatformCurrentActorProfileUpdateRequest,
+): Promise<PlatformCurrentActorProfileOut> =>
+  unwrap(await platformUpdateCurrentPlatformActorProfile({ body, client: platformApiClient }));
 export const getCurrentPlatformTeamIdentity = async (): Promise<PlatformTeamIdentityOut> =>
   unwrap(await platformGetCurrentTeamIdentity({ client: platformApiClient }));
 export const invitePlatformOperator = async (

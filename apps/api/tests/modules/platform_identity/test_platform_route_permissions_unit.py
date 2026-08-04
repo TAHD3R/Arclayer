@@ -25,6 +25,7 @@ from src.modules.platform_identity.session_schema import PlatformSessionPrincipa
 from src.modules.system.agents import router as agents_router
 from src.modules.system.ai_providers import router as ai_providers_router
 from src.modules.system.mail import router as mail_router
+from src.modules.system.skills import router as skills_router
 from src.modules.system.storage_profiles import router as storage_router
 from tests.utils.asgi_client import asgi_client
 
@@ -131,6 +132,21 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
             agents_router.assignments_router.routes,
             {
                 "list_system_agent_assignments": PlatformPermissionCode.AI_ASSIGNMENTS_READ,
+            },
+        ),
+        (
+            skills_router.router.routes,
+            {
+                "list_platform_skills": PlatformPermissionCode.AI_SKILLS_READ,
+                "create_platform_skill": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "get_platform_skill_capabilities": PlatformPermissionCode.AI_SKILLS_READ,
+                "import_platform_skill_zip": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "import_platform_skill_github": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "get_platform_skill": PlatformPermissionCode.AI_SKILLS_READ,
+                "update_platform_skill": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "replace_platform_skill": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "create_platform_skill_version": PlatformPermissionCode.AI_SKILLS_MANAGE,
+                "archive_platform_skill": PlatformPermissionCode.AI_SKILLS_MANAGE,
             },
         ),
         (

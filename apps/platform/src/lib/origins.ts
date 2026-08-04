@@ -1,7 +1,8 @@
-export type ProductApplicationTarget = "home";
+export type ProductApplicationTarget = "home" | "account-danger";
 
 const PRODUCT_APPLICATION_PATHS: Readonly<Record<ProductApplicationTarget, string>> = {
   home: "/",
+  "account-danger": "/?settings=personal.profile&section=danger",
 };
 
 function parseConfiguredOrigin(value: string): URL {

@@ -12,6 +12,7 @@ import {
   localizePlatformPermission,
   localizePlatformPermissionDomain,
 } from "@/access/platform-permission-copy";
+import { localizePlatformRole } from "@/access/platform-role-copy";
 import { CreateRoleDialog, EditRoleDialog, RetireRoleDialog } from "@/access/platform-role-dialogs";
 import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -174,26 +175,34 @@ function RoleDirectory({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roles.map((role) => (
-              <TableRow key={role.roleId}>
-                <TableCell>
-                  <p className="font-medium">{role.name}</p>
-                  {role.description ? (
-                    <p className="max-w-xl text-sm text-muted-foreground">{role.description}</p>
-                  ) : null}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{t(`ROLE_KIND_${role.kind.toUpperCase()}`)}</Badge>
-                </TableCell>
-                <TableCell>
-                  {t("ROLE_PERMISSION_COUNT", { count: role.permissionCodes.length })}
-                </TableCell>
-                <TableCell>v{role.revisionSequence}</TableCell>
-                <TableCell>
-                  {canManage ? <RoleActions onAction={onAction} role={role} /> : null}
-                </TableCell>
-              </TableRow>
-            ))}
+            {roles.map((role) => {
+              const copy = localizePlatformRole(role, t);
+              return (
+                <TableRow key={role.roleId}>
+                  <TableCell>
+                    <p className="font-medium">{copy.name}</p>
+                    {copy.description ? (
+                      <p className="max-w-xl text-sm text-muted-foreground">{copy.description}</p>
+                    ) : null}
+                    {role.kind === "built_in" ? (
+                      <code className="mt-1 block text-xs text-muted-foreground">{role.code}</code>
+                    ) : null}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{t(`ROLE_KIND_${role.kind.toUpperCase()}`)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {t("ROLE_PERMISSION_COUNT", { count: role.permissionCodes.length })}
+                  </TableCell>
+                  <TableCell>v{role.revisionSequence}</TableCell>
+                  <TableCell>
+                    {canManage ? (
+                      <RoleActions displayName={copy.name} onAction={onAction} role={role} />
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
@@ -202,14 +211,19 @@ function RoleDirectory({
 }
 
 function RoleActions({
+  displayName,
   onAction,
   role,
-}: Readonly<{ onAction: (action: RoleAction) => void; role: PlatformRoleCatalogItemOut }>) {
+}: Readonly<{
+  displayName: string;
+  onAction: (action: RoleAction) => void;
+  role: PlatformRoleCatalogItemOut;
+}>) {
   const { t } = useTranslation("access");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button aria-label={t("ROLE_ACTIONS", { name: role.name })} size="icon" variant="ghost">
+        <Button aria-label={t("ROLE_ACTIONS", { name: displayName })} size="icon" variant="ghost">
           <MoreHorizontal aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>

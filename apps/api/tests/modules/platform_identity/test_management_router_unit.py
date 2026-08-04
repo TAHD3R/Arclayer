@@ -149,6 +149,7 @@ def test_platform_public_principal_ids_round_trip_through_boundary_models() -> N
         session_id=session_id,
         actor_user_id=actor_user_id,
         device_label="Current browser",
+        created_at=now,
         recent_activity_at=now,
         inactivity_expires_at=now,
         absolute_expires_at=now,

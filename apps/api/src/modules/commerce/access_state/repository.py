@@ -11,9 +11,11 @@ from src.core.exceptions import Conflict, ServiceUnavailable
 from src.core.i18n import t
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.commerce.billing import (
+    CommercePlanRevision,
     CommerceProviderEventApplication,
     CommercialAccessTransition,
     WorkspaceCommercialAccess,
+    WorkspaceSubscription,
 )
 from src.modules.commerce.access_state.schema import (
     CommercialAccessMemberView,
@@ -212,10 +214,17 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
         conn: BaseDBAsyncClient | None = None,
         for_update: bool = False,
     ) -> WorkspaceCommercialAccess | None:
-        query = WorkspaceCommercialAccess.filter(workspace_id=workspace_id).select_related("subscription")
+        query = WorkspaceCommercialAccess.filter(workspace_id=workspace_id)
         if for_update:
             query = query.select_for_update()
-        return await self.using_db(query, conn).first()
+        access = await self.using_db(query, conn).first()
+        if access is not None:
+            await self._load_access_relations(
+                access=access,
+                conn=conn,
+                lock_subscription=for_update,
+            )
+        return access
 
     async def _current_provider_period_id(self, *, access: WorkspaceCommercialAccess) -> str:
         application = (
@@ -223,7 +232,7 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
             .filter(
                 workspace_id=self._workspace_id(access),
                 subscription_id=self._subscription_id(access),
-                plan_revision_id=access.subscription.plan_revision_id,
+                plan_revision_id=self._plan_revision_id(access),
                 provider_period_identity__not_isnull=True,
             )
             .order_by("-created_at")
@@ -242,12 +251,14 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
     ) -> CommercialAccessStateApplyResult | None:
         identity = self._source_identity(provider=provider, provider_event_id=provider_event_id)
         transition = await self.using_db(
-            CommercialAccessTransition.filter(source_identity=identity).select_related("access__subscription"),
+            CommercialAccessTransition.filter(source_identity=identity),
             conn,
         ).first()
         if transition is None:
             return None
+        await transition.fetch_related("access", using_db=conn)
         access = transition.access
+        await self._load_access_relations(access=access, conn=conn)
         if access.source_identity != identity:
             raise self._unavailable("COMMERCIAL_ACCESS_RECEIPT_SUPERSEDED")
         application = await self.using_db(
@@ -311,7 +322,7 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
                 provider_event_id=write.source.provider_event_id,
                 workspace_id=self._workspace_id(access),
                 subscription_id=self._subscription_id(access),
-                plan_revision_id=access.subscription.plan_revision_id,
+                plan_revision_id=self._plan_revision_id(access),
                 provider_period_identity=write.source.provider_period_id,
             ),
             conn,
@@ -364,7 +375,7 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
     def _projection(*, access: WorkspaceCommercialAccess, provider_period_id: str) -> CommercialAccessProjection:
         return CommercialAccessProjection(
             workspace_id=TortoiseCommercialAccessStateRepository._workspace_id(access),
-            subscription_revision_id=access.subscription.plan_revision_id,
+            subscription_revision_id=TortoiseCommercialAccessStateRepository._plan_revision_id(access),
             provider=access.subscription.billing_provider,
             provider_period_id=provider_period_id,
             state=TortoiseCommercialAccessStateRepository._state(access),
@@ -385,6 +396,26 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
     @staticmethod
     def _subscription_id(access: WorkspaceCommercialAccess) -> UUID:
         return cast(_AccessIdentifiers, access).subscription_id
+
+    async def _load_access_relations(
+        self,
+        *,
+        access: WorkspaceCommercialAccess,
+        conn: BaseDBAsyncClient | None,
+        lock_subscription: bool = False,
+    ) -> None:
+        subscription_query = WorkspaceSubscription.filter(id=self._subscription_id(access))
+        if lock_subscription:
+            subscription_query = subscription_query.select_for_update()
+        subscription = await self.using_db(subscription_query, conn).first()
+        if subscription is None:
+            raise self._unavailable("COMMERCIAL_SUBSCRIPTION_UNAVAILABLE")
+        await subscription.fetch_related("plan_revision", using_db=conn)
+        access.subscription = subscription
+
+    @staticmethod
+    def _plan_revision_id(access: WorkspaceCommercialAccess) -> UUID:
+        return cast(CommercePlanRevision, access.subscription.plan_revision).id
 
     @staticmethod
     def _source_identity(*, provider: str, provider_event_id: str) -> str:
@@ -421,7 +452,7 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
     def _require_current_access(*, access: WorkspaceCommercialAccess, write: CommercialAccessTransitionWrite) -> None:
         if access.state_revision != write.expected_access_revision:
             raise TortoiseCommercialAccessStateRepository._conflict("COMMERCIAL_ACCESS_STATE_REVISION_STALE")
-        if access.subscription.plan_revision_id != write.source.subscription_revision_id:
+        if TortoiseCommercialAccessStateRepository._plan_revision_id(access) != write.source.subscription_revision_id:
             raise TortoiseCommercialAccessStateRepository._conflict("COMMERCIAL_ACCESS_SUBSCRIPTION_REVISION_CHANGED")
         if access.subscription.billing_provider != write.source.provider:
             raise TortoiseCommercialAccessStateRepository._conflict("COMMERCIAL_ACCESS_PROVIDER_CHANGED")

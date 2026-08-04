@@ -1,9 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReusableReferenceDirectory } from "@/pages/workspaces/settings/workspace/knowledge/reusable-reference-directory";
+import { makeQueryClient } from "@/lib/query/query-client";
 
 const mocks = vi.hoisted(() => ({
   capabilities: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   createVersion: vi.fn(),
   createIngestion: vi.fn(),
   notify: vi.fn(),
+  notifyError: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -41,6 +43,7 @@ vi.mock("@/api/workspace-knowledge", () => ({
 
 vi.mock("@/lib/notifications", () => ({
   notifySuccessText: (...args: unknown[]) => mocks.notify(...args),
+  notifyError: (...args: unknown[]) => mocks.notifyError(...args),
 }));
 
 vi.mock("@/pages/workspaces/settings/workspace/knowledge/reusable-reference-dialogs", () => ({
@@ -95,9 +98,7 @@ const readyUrlSource = {
 };
 
 function renderDirectory() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <ReusableReferenceDirectory workspaceId="workspace-1" />
@@ -173,6 +174,18 @@ describe("ReusableReferenceDirectory", () => {
         "command-key",
       );
     });
+  });
+
+  it("reports command failures through the global toast without a page alert", async () => {
+    const error = new Error("ingestion failed");
+    const user = userEvent.setup();
+    mocks.createIngestion.mockRejectedValue(error);
+    renderDirectory();
+
+    await user.click(await screen.findByRole("button", { name: "REFERENCE_RETRY_ACTION" }));
+
+    await waitFor(() => expect(mocks.notifyError).toHaveBeenCalledWith(error));
+    expect(screen.queryByText("OPERATION_FAILED_TITLE")).not.toBeInTheDocument();
   });
 
   it("does not present unavailable processing as an executable action", async () => {

@@ -105,6 +105,20 @@ export function createWorkspaceSkillGitHubImport(
   );
 }
 
+export function createWorkspaceSkillZipImport(
+  workspaceId: string,
+  file: File,
+  idempotencyKey: string,
+): Promise<SkillPackageCreateOut> {
+  const form = new FormData();
+  form.append("package", file);
+  return api.post<SkillPackageCreateOut>(
+    `${skillsPath(workspaceId)}/imports/zip`,
+    form,
+    idempotencyOptions(idempotencyKey),
+  );
+}
+
 export function getWorkspaceSkillGitHubImport(
   workspaceId: string,
   importId: string,

@@ -1,22 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import {
-  KeyRound,
-  LaptopMinimal,
-  MoreHorizontal,
-  Plus,
-  ShieldCheck,
-  UserRoundCog,
-  UserRoundX,
-} from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  PlatformInvitationDetailOut,
-  PlatformRoleCatalogItemOut,
-  PlatformTeamOperatorOut,
-  PlatformTeamQueueOut,
-  PlatformTeamUserOut,
-} from "@arclayer/platform-openapi";
+import type { PlatformInvitationDetailOut, PlatformTeamUserOut } from "@arclayer/platform-openapi";
 
 import {
   getCurrentPlatformTeamIdentity,
@@ -34,17 +20,12 @@ import {
   ResetOperatorMfaDialog,
   RevokeInvitationDialog,
 } from "@/access/platform-team-dialogs";
+import { PlatformTeamTable, type PlatformTeamMemberAction } from "@/access/platform-team-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -57,10 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTime } from "@/monitoring/format";
 
 type TeamTab = "operators" | "invitations" | "removed";
-type OperatorAction = Readonly<{
-  kind: "roles" | "sessions" | "reset-mfa" | "offboard";
-  operator: PlatformTeamOperatorOut;
-}>;
+type OperatorAction = PlatformTeamMemberAction;
 
 function person(user: PlatformTeamUserOut) {
   return user.displayName ?? user.username;
@@ -69,6 +47,7 @@ function person(user: PlatformTeamUserOut) {
 export function PlatformTeamPage() {
   const { t } = useTranslation("access");
   const [tab, setTab] = useState<TeamTab>("operators");
+  const [memberQuery, setMemberQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [operatorAction, setOperatorAction] = useState<OperatorAction | null>(null);
   const [revokeInvitation, setRevokeInvitation] = useState<PlatformInvitationDetailOut | null>(
@@ -96,11 +75,28 @@ export function PlatformTeamPage() {
       <AccessPage
         description={t("TEAM_DESCRIPTION")}
         extra={
-          <TabsList>
-            <TabsTrigger value="operators">{t("TEAM_TAB_OPERATORS")}</TabsTrigger>
-            <TabsTrigger value="invitations">{t("TEAM_TAB_INVITATIONS")}</TabsTrigger>
-            <TabsTrigger value="removed">{t("TEAM_TAB_REMOVED")}</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center gap-3">
+            {tab !== "invitations" ? (
+              <div className="relative min-w-56 flex-1 sm:max-w-xs">
+                <Search
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  aria-label={t("TEAM_MEMBER_SEARCH")}
+                  className="pl-9"
+                  onChange={(event) => setMemberQuery(event.target.value)}
+                  placeholder={t("TEAM_MEMBER_SEARCH_PLACEHOLDER")}
+                  value={memberQuery}
+                />
+              </div>
+            ) : null}
+            <TabsList>
+              <TabsTrigger value="operators">{t("TEAM_TAB_OPERATORS")}</TabsTrigger>
+              <TabsTrigger value="invitations">{t("TEAM_TAB_INVITATIONS")}</TabsTrigger>
+              <TabsTrigger value="removed">{t("TEAM_TAB_REMOVED")}</TabsTrigger>
+            </TabsList>
+          </div>
         }
         primaryAction={
           canInvite ? (
@@ -149,18 +145,21 @@ export function PlatformTeamPage() {
             return (
               <>
                 <TabsContent className="mt-0 space-y-5" value="operators">
-                  <OwnerCard team={data.team} />
-                  <OperatorDirectory
-                    canManageRoles={canManageRoles}
-                    canReadSessions={canReadSessions}
-                    canRemove={canRemove}
-                    canResetMfa={canResetMfa}
+                  <PlatformTeamTable
+                    capabilities={{
+                      canManageRoles,
+                      canReadSessions,
+                      canRemove,
+                      canResetMfa,
+                    }}
                     currentUserId={data.identity.userId}
+                    includeOwner
                     onAction={setOperatorAction}
                     operators={data.team.operators.filter(
                       (operator) => operator.status !== "deactivated",
                     )}
-                    roles={data.roles}
+                    owner={data.team.owner}
+                    query={memberQuery}
                   />
                 </TabsContent>
                 <TabsContent className="mt-0" value="invitations">
@@ -171,17 +170,21 @@ export function PlatformTeamPage() {
                   />
                 </TabsContent>
                 <TabsContent className="mt-0" value="removed">
-                  <OperatorDirectory
-                    canManageRoles={false}
-                    canReadSessions={false}
-                    canRemove={false}
-                    canResetMfa={false}
+                  <PlatformTeamTable
+                    capabilities={{
+                      canManageRoles: false,
+                      canReadSessions: false,
+                      canRemove: false,
+                      canResetMfa: false,
+                    }}
                     currentUserId={data.identity.userId}
+                    includeOwner={false}
                     onAction={setOperatorAction}
                     operators={data.team.operators.filter(
                       (operator) => operator.status === "deactivated",
                     )}
-                    roles={data.roles}
+                    owner={null}
+                    query={memberQuery}
                   />
                 </TabsContent>
                 {inviteOpen ? (
@@ -236,177 +239,6 @@ export function PlatformTeamPage() {
         </AccessQueryState>
       </AccessPage>
     </Tabs>
-  );
-}
-
-function OwnerCard({ team }: Readonly<{ team: PlatformTeamQueueOut }>) {
-  const { t } = useTranslation("access");
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShieldCheck aria-hidden="true" className="size-5 text-primary" />
-          {t("OWNER_TITLE")}
-        </CardTitle>
-        <CardDescription>{t("OWNER_DESCRIPTION")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {team.owner ? (
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">{person(team.owner.user)}</p>
-              <p className="text-sm text-muted-foreground">{team.owner.user.username}</p>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {t("MFA_SUMMARY", { count: team.owner.mfa.verifiedMethodCount })} ·{" "}
-              {t("SESSION_SUMMARY", { count: team.owner.sessions.activeSessionCount })}
-            </div>
-          </div>
-        ) : (
-          <p className="text-base text-muted-foreground">{t("OWNER_EMPTY")}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function OperatorDirectory({
-  canManageRoles,
-  canReadSessions,
-  canRemove,
-  canResetMfa,
-  currentUserId,
-  onAction,
-  operators,
-}: Readonly<{
-  canManageRoles: boolean;
-  canReadSessions: boolean;
-  canRemove: boolean;
-  canResetMfa: boolean;
-  currentUserId: string;
-  onAction: (action: OperatorAction) => void;
-  operators: PlatformTeamOperatorOut[];
-  roles: readonly PlatformRoleCatalogItemOut[];
-}>) {
-  const { t } = useTranslation("access");
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("OPERATORS_TITLE")}</CardTitle>
-        <CardDescription>{t("OPERATORS_DESCRIPTION")}</CardDescription>
-      </CardHeader>
-      <CardContent className="px-0">
-        {operators.length ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("OPERATOR_COLUMN_PERSON")}</TableHead>
-                <TableHead>{t("OPERATOR_COLUMN_ROLES")}</TableHead>
-                <TableHead>{t("OPERATOR_COLUMN_SECURITY")}</TableHead>
-                <TableHead>{t("OPERATOR_COLUMN_STATUS")}</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">{t("ACTIONS")}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {operators.map((operator) => (
-                <TableRow key={operator.operatorId}>
-                  <TableCell>
-                    <p className="font-medium">{person(operator.user)}</p>
-                    <p className="text-sm text-muted-foreground">{operator.user.username}</p>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex max-w-md flex-wrap gap-1.5">
-                      {operator.roles.length ? (
-                        operator.roles.map((role) => (
-                          <Badge key={role.roleId} variant="secondary">
-                            {role.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">{t("NO_ROLES")}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <p>{t("MFA_SUMMARY", { count: operator.mfa.verifiedMethodCount })}</p>
-                    <p>{t("SESSION_SUMMARY", { count: operator.sessions.activeSessionCount })}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={operator.status === "active" ? "secondary" : "outline"}>
-                      {t(`OPERATOR_${operator.status.toUpperCase()}`)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {operator.status !== "deactivated" &&
-                    (canManageRoles ||
-                      ((canReadSessions || canResetMfa || canRemove) &&
-                        operator.user.userId !== currentUserId)) ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-label={t("OPERATOR_ACTIONS", { name: person(operator.user) })}
-                            size="icon"
-                            variant="ghost"
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {canManageRoles ? (
-                            <DropdownMenuItem
-                              onSelect={() => onAction({ kind: "roles", operator })}
-                            >
-                              <UserRoundCog aria-hidden="true" />
-                              {t("MANAGE_ROLES")}
-                            </DropdownMenuItem>
-                          ) : null}
-                          {canReadSessions && operator.user.userId !== currentUserId ? (
-                            <DropdownMenuItem
-                              onSelect={() => onAction({ kind: "sessions", operator })}
-                            >
-                              <LaptopMinimal aria-hidden="true" />
-                              {t("VIEW_OPERATOR_SESSIONS")}
-                            </DropdownMenuItem>
-                          ) : null}
-                          {canResetMfa && operator.user.userId !== currentUserId ? (
-                            <DropdownMenuItem
-                              onSelect={() => onAction({ kind: "reset-mfa", operator })}
-                            >
-                              <KeyRound aria-hidden="true" />
-                              {t("RESET_OPERATOR_MFA")}
-                            </DropdownMenuItem>
-                          ) : null}
-                          {(canManageRoles || canReadSessions || canResetMfa) &&
-                          canRemove &&
-                          operator.user.userId !== currentUserId ? (
-                            <DropdownMenuSeparator />
-                          ) : null}
-                          {canRemove && operator.user.userId !== currentUserId ? (
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onSelect={() => onAction({ kind: "offboard", operator })}
-                            >
-                              <UserRoundX aria-hidden="true" />
-                              {t("REMOVE_PLATFORM_ACCESS")}
-                            </DropdownMenuItem>
-                          ) : null}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="px-5 py-8 text-center text-base text-muted-foreground">
-            {t("OPERATORS_EMPTY")}
-          </p>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 

@@ -50,7 +50,7 @@ describe("WorkspaceSkillGitHubImportDialog", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_IMPORT_ACTION",
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB",
       }),
     );
 
@@ -67,7 +67,7 @@ describe("WorkspaceSkillGitHubImportDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("keeps the public-only boundary explicit and rejects non-repository URLs", async () => {
+  it("uses direct placeholders and rejects non-repository URLs", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(
       <WorkspaceSkillGitHubImportDialog
@@ -79,7 +79,12 @@ describe("WorkspaceSkillGitHubImportDialog", () => {
     );
 
     expect(
-      screen.getByText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_PUBLIC_DESC"),
+      screen.getByPlaceholderText(
+        "settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_PLACEHOLDER",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_PLACEHOLDER"),
     ).toBeInTheDocument();
     fireEvent.change(
       screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_LABEL"),
@@ -87,12 +92,46 @@ describe("WorkspaceSkillGitHubImportDialog", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_IMPORT_ACTION",
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB",
       }),
     );
 
     expect(
       await screen.findByText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_ERROR"),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("requires an exact branch, tag, or commit", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <WorkspaceSkillGitHubImportDialog
+        open
+        onOpenChange={vi.fn()}
+        pending={false}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(
+      screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_LABEL"),
+      { target: { value: "https://github.com/acme/site-skill" } },
+    );
+    fireEvent.change(screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_LABEL"), {
+      target: { value: "" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_LABEL"),
+      { target: { value: "Plan a site." } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB",
+      }),
+    );
+
+    expect(
+      await screen.findByText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_ERROR"),
     ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });

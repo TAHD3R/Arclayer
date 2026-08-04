@@ -86,8 +86,8 @@ describe("trusted Platform capability projection", () => {
     ],
     [
       "ai.tasks",
-      ["ai.tasks", "ai.providers", "ai.assistants", "ai.policies"],
-      ["ai-tasks", "ai-providers", "ai-assistants", "ai-policies"],
+      ["ai.tasks", "ai.providers", "ai.assistants", "ai.skills", "ai.policies"],
+      ["ai-tasks", "ai-providers", "ai-assistants", "ai-skills", "ai-policies"],
     ],
     [
       "site-delivery.issues",

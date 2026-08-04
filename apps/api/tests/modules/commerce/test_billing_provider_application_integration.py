@@ -26,6 +26,7 @@ from src.models.commerce.billing import (
     SubscriptionRevisionTransitionItem,
     SubscriptionStatus,
     SubscriptionTransitionStatus,
+    WorkspaceCommercialAccess,
     WorkspaceCreditAccount,
     WorkspaceSubscription,
 )
@@ -40,7 +41,7 @@ from src.modules.commerce.access_state.schema import (
     CommercialAccessTransitionFact,
     CommercialLifecycleNotificationFact,
 )
-from src.modules.commerce.billing_connector import ProviderSubscription
+from src.modules.commerce.billing_connector import ProviderDunningEvent, ProviderSubscription
 from src.modules.commerce.billing_provider_application_service import (
     BillingProviderSubscriptionApplicationService,
     VerifiedBillingProviderEvent,
@@ -257,6 +258,77 @@ async def test_verified_stripe_schedule_evidence_applies_convergence_and_rebinds
     assert application.result_code == "applied"
     assert application.applied_at is not None
     assert current.plan_revision_id != source.id
+
+
+async def test_verified_dunning_uses_the_eager_loaded_plan_revision_for_current_access(db_schema) -> None:
+    _ = db_schema
+    workspace, plan, source, _target, current, _convergence, _item = await _scheduled_transition_fixture()
+    now = datetime.now(UTC).replace(microsecond=0)
+    external_price_id = f"price-current-{uuid4().hex}"
+    provider_period_id = f"invoice-{uuid4().hex}"
+    event_id = f"evt-dunning-{uuid4().hex}"
+    assert current.external_customer_id is not None
+    assert current.external_subscription_id is not None
+
+    await CommercePlanRevisionPrice.create(
+        plan_revision_id=source.id,
+        provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+        billing_cycle=BillingCycle.MONTHLY,
+        currency="USD",
+        amount_micros=10_000_000,
+        external_price_id=external_price_id,
+    )
+    access = await WorkspaceCommercialAccess.create(
+        workspace_id=workspace.id,
+        subscription_id=current.id,
+        state=CommercialAccessState.NORMAL,
+        source_identity=f"provider:stripe:evt-bootstrap-{uuid4().hex}",
+    )
+    incoming = ProviderSubscription(
+        event_id=event_id,
+        workspace_id=workspace.id,
+        plan_id=plan.id,
+        plan_revision_id=source.id,
+        external_price_id=external_price_id,
+        billing_cycle=BillingCycle.MONTHLY,
+        currency="USD",
+        customer_id=current.external_customer_id,
+        subscription_id=current.external_subscription_id,
+        status=SubscriptionStatus.ACTIVE,
+        current_period_start=current.current_period_start,
+        current_period_end=current.current_period_end,
+        cancel_at_period_end=False,
+        dunning_event=ProviderDunningEvent(
+            kind="payment_failure",
+            provider_period_id=provider_period_id,
+            occurred_at=now,
+            recovery_deadline=now + timedelta(days=5),
+        ),
+    )
+
+    service = BillingProviderSubscriptionApplicationService()
+    await service.apply_provider_subscription(
+        subscription=incoming,
+        provider="stripe",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=_verified_event(event_id),
+    )
+    await service.apply_provider_subscription(
+        subscription=incoming,
+        provider="stripe",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=_verified_event(event_id),
+    )
+
+    await access.refresh_from_db()
+    application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
+    assert access.state == CommercialAccessState.PAYMENT_GRACE
+    assert access.state_revision == 2
+    assert application.plan_revision_id == source.id
+    assert application.provider_period_identity == provider_period_id
 
 
 async def test_schedule_mismatch_persists_reconciliation_result_without_rebinding(db_schema) -> None:

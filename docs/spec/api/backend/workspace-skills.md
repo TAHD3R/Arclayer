@@ -19,11 +19,16 @@ Current implementation status (2026-07-20):
   installation, installation enable/disable revisions, request fingerprints,
   idempotency, tenant isolation, required Activity writes, generated OpenAPI
   routes, and bilingual stable error copy;
-- implemented official catalog authority: five packaged Arclayer Skills,
+- implemented official catalog authority: six packaged Arclayer Skills,
   verified publisher metadata, immutable public package/version/resource/
   validation records, exact pinned checksums, atomic and idempotent startup
-  synchronization under a PostgreSQL advisory transaction lock, archival of
-  removed packages, and fail-fast duplicate/checksum/credential/Tool checks;
+  bootstrap synchronization under a PostgreSQL advisory transaction lock, six
+  packaged seed Skills, and fail-fast duplicate/checksum/credential/Tool checks;
+- approved Platform official-catalog authority: public package metadata,
+  immutable version publication, validation evidence, lifecycle state, and
+  Workspace adoption impact are managed through Platform API permissions;
+  packaged assets seed missing packages and publish reviewed new checksums but
+  never overwrite Platform metadata or archive Platform-managed packages;
 - implemented official catalog API and workspace projection: cursor list,
   search, package detail, exact manifest/resources/validation evidence,
   workspace-isolated installed state, and exact `system`-scope installation
@@ -76,6 +81,11 @@ Current implementation status (2026-07-20):
   and declaration review evidence, and fails closed when a declared Tool is
   outside the currently supported runtime Tool surface. Installation does not
   grant that Tool. Re-enabling revalidates the exact target and evidence;
+- implemented ZIP package import: one bounded multipart upload containing root
+  `skill.json` metadata, root `SKILL.md` instructions, and optional UTF-8
+  Markdown/plain-text/JSON references; archive paths, compression ratios,
+  collisions, expanded bytes, schema, and MIME are validated before entering
+  the existing immutable package transaction;
 - gated: private GitHub Connector authorization, Asset-backed resources,
   durable validation Jobs, durable package purge, legacy locator migration,
   Knowledge grants, model-aware Skill token allocation, and removal of the
@@ -104,6 +114,8 @@ end of this contract.
 - Supported source kinds:
   - `builtin`: Arclayer-official, read-only package source;
   - `inline`: workspace-authored declarative instructions/resources;
+  - `archive`: workspace-uploaded ZIP package resolved to immutable inline
+    resources with the original archive checksum retained as provenance;
   - `github`: repository/ref/subpath imported at an immutable commit.
 
 `npx`, npm package execution, shell commands, Python entrypoints, dynamically
@@ -141,9 +153,12 @@ but the runtime registry stops being the catalog source of truth.
 
 Storage ownership:
 
-- official package identities, official immutable versions, publisher
-  verification, and official resource manifests live in the public control
-  plane and are synchronized from reviewed Arclayer-owned package assets.
+- official package identities, mutable package metadata/lifecycle, official
+  immutable versions, publisher verification, validation evidence, and
+  official resource manifests live in the public control plane. Platform AI
+  Operations is the write authority. Reviewed Arclayer-owned package assets are
+  bootstrap seeds and may append a reviewed checksum, but are not a competing
+  runtime or metadata authority.
 - workspace-authored/imported package identities, versions, resources,
   validation results, import review records, and all workspace installations
   live in the workspace tenant schema.
@@ -188,6 +203,9 @@ Contracts:
 - official catalog synchronization is fail-fast: duplicate IDs, missing
   resources, invalid signatures/checksums, or undeclared Tools prevent catalog
   activation.
+- startup bootstrap never rewrites Platform-edited metadata, reactivates an
+  archived package, or archives a package merely because it is absent from the
+  packaged seed list.
 - Skill loading returns immutable values and never mutates a caller-supplied
   manifest/resource list.
 
@@ -196,7 +214,7 @@ Contracts:
 #### 4.1 Stable enums
 
 ```text
-SkillSourceKind = builtin | inline | github
+SkillSourceKind = builtin | inline | archive | github
 SkillPackageScope = system | workspace
 SkillTrustLevel = official_verified | workspace_authored | imported_unverified
 SkillPackageStatus = active | archived
@@ -290,6 +308,7 @@ Every authoring/import operation creates an immutable version candidate with:
 - resolved source provenance:
   - official catalog release/build identity;
   - inline parent version and author;
+  - ZIP archive checksum, uploaded filename, and actor;
   - Git repository URL, requested ref, resolved full commit, subpath, tree hash,
     and fetch timestamp;
 - compatibility snapshot and declared Tool/permission/data-egress sets;
@@ -363,6 +382,7 @@ The domain router excludes `/api/v1` and uses tag
 | `GET /packages/{packageId}/versions` | Cursor-paginated immutable version history. |
 | `POST /packages/{packageId}/versions` | Create an inline version candidate from strict manifest/resources. |
 | `GET /packages/{packageId}/versions/{versionId}` | Return immutable manifest, provenance, validation, and safe resources. |
+| `POST /imports/zip` | Idempotently import one bounded ZIP containing `skill.json`, `SKILL.md`, and optional supported text references into a package and first immutable candidate version. |
 | `POST /imports` | Create a durable GitHub import that resolves a commit and returns a candidate package/version. |
 | `GET /imports/{importId}` | Return durable queued/fetching/persisting/succeeded/failed/cancelled import evidence. |
 | `POST /packages/{packageId}/refreshes` | Queue a refresh of the package's fixed GitHub source locator without changing existing versions or installations. |
@@ -380,6 +400,24 @@ All create/import/validation/install/update/archive commands require `Idempotenc
 Mutable metadata commands require `expectedRevision`. Collections use opaque
 cursor pagination with deterministic ordering. Responses use typed
 `ResponseModel[T]`, `PublicUUID`, stable errors, and generated OpenAPI types.
+
+Platform official-catalog routes use the Platform API composition and exact
+permissions `platform:ai-skills:read` and `platform:ai-skills:manage`:
+
+| Method and local path | Contract |
+| --- | --- |
+| `GET /skills` | Cursor-paginated official packages including active/archived lifecycle and adoption counts. |
+| `POST /skills` | Idempotently create an official package plus its first immutable validated version. |
+| `GET /skills/{packageId}` | Read metadata, immutable versions, resources, validation, and sanitized Workspace adoption impact. |
+| `PATCH /skills/{packageId}` | Update display metadata with `expectedRevision`; identity, scope, publisher trust, and source kind remain immutable. |
+| `POST /skills/{packageId}/versions` | Publish a new immutable manifest/resource version after deterministic validation. |
+| `DELETE /skills/{packageId}?expectedRevision={revision}` | Archive the package after impact review; installed and historical exact versions remain readable. |
+
+Platform deletion is archival, not hard purge. Archiving removes the package
+from new Workspace discovery and blocks new installations and Runs that have
+not yet snapshotted it; it never mutates existing installation pins or retained
+Run snapshots. Re-enabling an existing installation still fails while its
+official package is archived.
 
 Read/catalog actions map to `system:settings:read`; package/import/validate/
 install/update/delete actions map to `system:settings:manage`. Tool usage remains

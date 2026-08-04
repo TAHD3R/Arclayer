@@ -21,7 +21,7 @@ export type AiModelCatalogItem = {
     /**
      * Descriptioni18N
      */
-    descriptionI18n?: {
+    descriptionI18N?: {
         [key: string]: string;
     };
     /**
@@ -35,7 +35,7 @@ export type AiModelCatalogItem = {
     /**
      * Labeli18N
      */
-    labelI18n?: {
+    labelI18N?: {
         [key: string]: string;
     };
     /**
@@ -3555,6 +3555,16 @@ export type BillingRedirectOut = {
      * Url
      */
     url: string;
+};
+
+/**
+ * Body_create_workspace_skill_zip_import_api_v1_workspaces__workspace_id__skills_imports_zip_post
+ */
+export type BodyCreateWorkspaceSkillZipImportApiV1WorkspacesWorkspaceIdSkillsImportsZipPost = {
+    /**
+     * Package
+     */
+    package: Blob | File;
 };
 
 /**
@@ -15070,7 +15080,7 @@ export type OfficialSkillCatalogDetailOut = {
     /**
      * Descriptionkey
      */
-    descriptionKey: string;
+    descriptionKey: string | null;
     /**
      * Displayname
      */
@@ -15078,7 +15088,7 @@ export type OfficialSkillCatalogDetailOut = {
     /**
      * Displaynamekey
      */
-    displayNameKey: string;
+    displayNameKey: string | null;
     /**
      * Installationid
      */
@@ -15174,7 +15184,7 @@ export type OfficialSkillCatalogItemOut = {
     /**
      * Descriptionkey
      */
-    descriptionKey: string;
+    descriptionKey: string | null;
     /**
      * Displayname
      */
@@ -15182,7 +15192,7 @@ export type OfficialSkillCatalogItemOut = {
     /**
      * Displaynamekey
      */
-    displayNameKey: string;
+    displayNameKey: string | null;
     /**
      * Installationid
      */
@@ -48847,6 +48857,44 @@ export type DomainWorkspacesCreateWorkspaceSkillGithubImportResponses = {
 };
 
 export type DomainWorkspacesCreateWorkspaceSkillGithubImportResponse = DomainWorkspacesCreateWorkspaceSkillGithubImportResponses[keyof DomainWorkspacesCreateWorkspaceSkillGithubImportResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillZipImportData = {
+    body: BodyCreateWorkspaceSkillZipImportApiV1WorkspacesWorkspaceIdSkillsImportsZipPost;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/imports/zip';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillZipImportErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillZipImportError = DomainWorkspacesCreateWorkspaceSkillZipImportErrors[keyof DomainWorkspacesCreateWorkspaceSkillZipImportErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillZipImportResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillPackageCreateOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillZipImportResponse = DomainWorkspacesCreateWorkspaceSkillZipImportResponses[keyof DomainWorkspacesCreateWorkspaceSkillZipImportResponses];
 
 export type DomainWorkspacesGetWorkspaceSkillGithubImportData = {
     body?: never;

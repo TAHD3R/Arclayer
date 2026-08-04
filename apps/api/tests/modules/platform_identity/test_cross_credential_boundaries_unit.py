@@ -51,6 +51,7 @@ class _MutablePlatformAuthority:
         self.operator = SimpleNamespace(id=uuid4())
         self.session = _PlatformSessionRecord(actor_id=actor_id, operator_id=self.operator.id, now=now)
         self.operator_active = True
+        self.user_status = "active"
         self.current_permissions = {_BOUNDARY_PERMISSION}
         # Legacy tenant authority is deliberately present but has no Platform meaning.
         self.is_workspace_owner = True
@@ -62,6 +63,10 @@ class _MutablePlatformAuthority:
         if session_identifier_hash != self.session.session_identifier_hash:
             return None
         return self.session
+
+    async def get_user_by_id(self, *, user_id: UUID):
+        assert user_id == self.actor_id
+        return SimpleNamespace(status=self.user_status)
 
     async def is_instance_owner(self, *, user_id: UUID) -> bool:
         assert user_id == self.actor_id

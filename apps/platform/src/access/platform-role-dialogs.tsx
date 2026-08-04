@@ -1,5 +1,6 @@
-import { useRef, useState, type FormEvent, type RefObject } from "react";
+import { useMemo, useRef, useState, type FormEvent, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { Search } from "lucide-react";
 import type {
   PlatformCustomRolePreviewOut,
   PlatformPermissionCatalogItemOut,
@@ -85,31 +86,123 @@ function PermissionSelector({
 }>) {
   const { t } = useTranslation("access");
   const delegable = permissions.filter((permission) => permission.isDelegable);
+  const [query, setQuery] = useState("");
+  const visible = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase();
+    if (!normalized) return delegable;
+    return delegable.filter((permission) => {
+      const copy = localizePlatformPermission(permission.code, t);
+      return [permission.code, permission.ownerDomain, copy.name, copy.description]
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(normalized);
+    });
+  }, [delegable, query, t]);
+  const groups = useMemo(() => {
+    const grouped = new Map<string, PlatformPermissionCatalogItemOut[]>();
+    for (const permission of visible) {
+      grouped.set(permission.ownerDomain, [
+        ...(grouped.get(permission.ownerDomain) ?? []),
+        permission,
+      ]);
+    }
+    return grouped;
+  }, [visible]);
+
+  const selectVisible = () => {
+    setSelected(new Set([...selected, ...visible.map((permission) => permission.code)]));
+  };
+  const invertVisible = () => {
+    const next = new Set(selected);
+    for (const permission of visible) {
+      if (next.has(permission.code)) next.delete(permission.code);
+      else next.add(permission.code);
+    }
+    setSelected(next);
+  };
+
   return (
-    <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border p-3">
-      {delegable.map((permission) => {
-        const copy = localizePlatformPermission(permission.code, t);
-        return (
-          <label className="flex items-start gap-3" key={permission.code}>
-            <Checkbox
-              checked={selected.has(permission.code)}
-              onCheckedChange={(checked) => {
-                const next = new Set(selected);
-                if (checked) next.add(permission.code);
-                else next.delete(permission.code);
-                setSelected(next);
-              }}
-            />
-            <span>
-              <span className="block text-sm font-medium">{copy.name}</span>
-              <span className="block text-xs text-muted-foreground">{copy.description}</span>
-            </span>
-          </label>
-        );
-      })}
-      {!delegable.length ? (
-        <p className="text-sm text-muted-foreground">{t("NO_DELEGABLE_PERMISSIONS")}</p>
-      ) : null}
+    <div className="overflow-hidden rounded-lg border">
+      <div className="relative border-b">
+        <Search
+          aria-hidden="true"
+          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          className="rounded-none border-0 pl-9 shadow-none focus-visible:ring-0"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("ROLE_PERMISSION_SEARCH_PLACEHOLDER")}
+          value={query}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
+        <span className="text-xs text-muted-foreground">
+          {t("ROLE_PERMISSION_SELECTION_COUNT", {
+            selected: selected.size,
+            visible: visible.length,
+          })}
+        </span>
+        <div className="flex gap-2">
+          <Button
+            disabled={!visible.length}
+            onClick={selectVisible}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {t("SELECT_ALL_VISIBLE")}
+          </Button>
+          <Button
+            disabled={!visible.length}
+            onClick={invertVisible}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {t("INVERT_VISIBLE_SELECTION")}
+          </Button>
+        </div>
+      </div>
+      <div className="max-h-72 overflow-y-auto p-2">
+        {visible.length ? (
+          [...groups.entries()].map(([domain, items]) => (
+            <section className="space-y-1 py-1" key={domain}>
+              <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{domain}</p>
+              {items.map((permission) => {
+                const copy = localizePlatformPermission(permission.code, t);
+                const checked = selected.has(permission.code);
+                return (
+                  <label
+                    className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-accent"
+                    key={permission.code}
+                  >
+                    <Checkbox
+                      aria-label={copy.name}
+                      checked={checked}
+                      onCheckedChange={(value) => {
+                        const next = new Set(selected);
+                        if (value) next.add(permission.code);
+                        else next.delete(permission.code);
+                        setSelected(next);
+                      }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">{copy.name}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {copy.description}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </section>
+          ))
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {t("NO_DELEGABLE_PERMISSIONS_MATCH")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -229,6 +322,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
           <SettingDialogField title={<label htmlFor="platform-role-name">{t("ROLE_NAME")}</label>}>
             <Input
               id="platform-role-name"
+              placeholder={t("ROLE_NAME_PLACEHOLDER")}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -240,6 +334,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
             <Input
               id="platform-role-code"
               pattern="[a-z][a-z0-9_-]*"
+              placeholder={t("ROLE_CODE_PLACEHOLDER")}
               value={code}
               onChange={(event) => setCode(event.target.value)}
             />
@@ -249,6 +344,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
           >
             <Textarea
               id="platform-role-description"
+              placeholder={t("ROLE_DESCRIPTION_PLACEHOLDER")}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
@@ -383,6 +479,7 @@ export function EditRoleDialog(props: ExistingRoleDialogProps) {
             <SettingDialogField title={<label htmlFor="edit-role-name">{t("ROLE_NAME")}</label>}>
               <Input
                 id="edit-role-name"
+                placeholder={t("ROLE_NAME_PLACEHOLDER")}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
@@ -392,6 +489,7 @@ export function EditRoleDialog(props: ExistingRoleDialogProps) {
             >
               <Textarea
                 id="edit-role-description"
+                placeholder={t("ROLE_DESCRIPTION_PLACEHOLDER")}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
               />

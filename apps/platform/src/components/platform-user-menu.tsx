@@ -1,5 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, LoaderCircle, LogOut, RefreshCw, Settings } from "lucide-react";
+import {
+  AlertTriangle,
+  Languages,
+  LoaderCircle,
+  LogOut,
+  Monitor,
+  Moon,
+  Palette,
+  RefreshCw,
+  Settings,
+  Sun,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,6 +18,7 @@ import { getCurrentPlatformActorProfile } from "@/access/access-api";
 import { PlatformAccountSettings } from "@/account/platform-account-settings";
 import { usePlatformAuth } from "@/auth/platform-auth";
 import { getPlatformAppConfig } from "@/lib/app-config";
+import { usePlatformPreferences } from "@/lib/preferences";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -25,7 +37,12 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -81,14 +98,15 @@ function ProfileSummary({ state }: Readonly<{ state: CurrentActorProfileState }>
 
   const { profile } = state;
   const avatarUrl = resolveAvatarUrl(profile.avatarUrl);
+  const profileName = profile.displayName ?? profile.username;
   return (
     <>
       <Avatar className="size-8 rounded-lg">
-        <AvatarImage alt={profile.username} src={avatarUrl} />
-        <AvatarFallback className="rounded-lg">{avatarFallback(profile.username)}</AvatarFallback>
+        <AvatarImage alt={profileName} src={avatarUrl} />
+        <AvatarFallback className="rounded-lg">{avatarFallback(profileName)}</AvatarFallback>
       </Avatar>
       <span className="grid min-w-0 flex-1 text-left leading-tight">
-        <span className="truncate text-sm font-semibold">{profile.username}</span>
+        <span className="truncate text-sm font-semibold">{profileName}</span>
         <span className="truncate text-xs">{profile.email ?? t("EMAIL_NOT_SET")}</span>
       </span>
     </>
@@ -146,6 +164,7 @@ export function PlatformUserMenu() {
   const { t } = useTranslation(["common", "access"]);
   const { isMobile } = useSidebar();
   const { session, signOut } = usePlatformAuth();
+  const { locale, setLocale, setTheme, theme } = usePlatformPreferences();
   const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -229,6 +248,60 @@ export function PlatformUserMenu() {
                   <Settings aria-hidden="true" />
                   {t("access:OPEN_ACCOUNT_SETTINGS")}
                 </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Languages aria-hidden="true" />
+                    {t("common:CHANGE_LANGUAGE")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup
+                      value={locale}
+                      onValueChange={(value) => {
+                        if (value !== "zh-CN" && value !== "en-US") {
+                          throw new Error(`Unsupported Platform locale: ${value}`);
+                        }
+                        setLocale(value);
+                      }}
+                    >
+                      <DropdownMenuRadioItem value="zh-CN">
+                        {t("common:LANGUAGE_ZH_CN")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="en-US">
+                        {t("common:LANGUAGE_EN_US")}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Palette aria-hidden="true" />
+                    {t("common:THEME")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup
+                      value={theme}
+                      onValueChange={(value) => {
+                        if (value !== "light" && value !== "dark" && value !== "system") {
+                          throw new Error(`Unsupported Platform theme: ${value}`);
+                        }
+                        setTheme(value);
+                      }}
+                    >
+                      <DropdownMenuRadioItem value="light">
+                        <Sun aria-hidden="true" />
+                        {t("common:THEME_LIGHT")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="dark">
+                        <Moon aria-hidden="true" />
+                        {t("common:THEME_DARK")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system">
+                        <Monitor aria-hidden="true" />
+                        {t("common:THEME_SYSTEM")}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -254,6 +327,7 @@ export function PlatformUserMenu() {
       />
       <PlatformAccountSettings
         onOpenChange={setSettingsOpen}
+        onProfileUpdated={loadProfile}
         onSessionEnded={() => void navigate({ to: "/sign-in", replace: true })}
         open={settingsOpen}
       />

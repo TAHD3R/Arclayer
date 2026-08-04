@@ -475,6 +475,16 @@ export type BillingCycle = 'monthly' | 'yearly';
 export type BillingProviderMode = 'test' | 'live';
 
 /**
+ * Body_import_platform_skill_zip_platform_api_v1_skills_imports_zip_post
+ */
+export type BodyImportPlatformSkillZipPlatformApiV1SkillsImportsZipPost = {
+    /**
+     * Package
+     */
+    package: Blob | File;
+};
+
+/**
  * Body_review_manual_plugin_artifact_platform_api_v1_extensions_artifacts_manual_post
  */
 export type BodyReviewManualPluginArtifactPlatformApiV1ExtensionsArtifactsManualPost = {
@@ -6406,6 +6416,54 @@ export type PageDataPlatformDeliveryStorageOut = {
 };
 
 /**
+ * PageData[PlatformSkillPackageSummaryOut]
+ */
+export type PageDataPlatformSkillPackageSummaryOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<PlatformSkillPackageSummaryOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[SystemAgentAssignmentOut]
  */
 export type PageDataSystemAgentAssignmentOut = {
@@ -7154,7 +7212,7 @@ export type PlatformCapabilityReadinessState = 'ready' | 'not_ready';
 /**
  * PlatformCapabilityRouteTarget
  */
-export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
+export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.skills' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
 
 /**
  * PlatformCapabilityRuntimeHealth
@@ -7341,6 +7399,10 @@ export type PlatformCurrentActorProfileOut = {
      */
     avatarUrl?: string | null;
     /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
      * Email
      */
     email?: string | null;
@@ -7348,6 +7410,16 @@ export type PlatformCurrentActorProfileOut = {
      * Username
      */
     username: string;
+};
+
+/**
+ * PlatformCurrentActorProfileUpdateRequest
+ */
+export type PlatformCurrentActorProfileUpdateRequest = {
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
 };
 
 /**
@@ -8714,7 +8786,7 @@ export type PlatformPermissionCatalogItemOut = {
  *
  * Stable exact permission identifiers for Platform API authorization.
  */
-export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:commerce-settings:read' | 'platform:commerce-settings:manage' | 'platform:workspace-capability-rollout:apply';
+export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-skills:read' | 'platform:ai-skills:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:workspace-capability-rollout:apply';
 
 /**
  * PlatformProvisioningSettingsOut
@@ -8840,6 +8912,10 @@ export type PlatformRoleCatalogItemOut = {
      */
     description: string | null;
     /**
+     * Descriptioni18N
+     */
+    descriptionI18N: string | null;
+    /**
      * Kind
      */
     kind: string;
@@ -8847,6 +8923,10 @@ export type PlatformRoleCatalogItemOut = {
      * Name
      */
     name: string;
+    /**
+     * Namei18N
+     */
+    nameI18N: string | null;
     /**
      * Permissioncodes
      */
@@ -9162,6 +9242,10 @@ export type PlatformSessionInventoryItemOut = {
      * Assurance
      */
     assurance: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
     /**
      * Devicelabel
      */
@@ -9479,6 +9563,426 @@ export type PlatformSignInSettingsOut = {
      * Revision
      */
     revision: number;
+};
+
+/**
+ * PlatformSkillCapabilitiesOut
+ */
+export type PlatformSkillCapabilitiesOut = {
+    /**
+     * Supportedtoolids
+     */
+    supportedToolIds: Array<string>;
+};
+
+/**
+ * PlatformSkillGitHubImportRequest
+ *
+ * Synchronously import one bounded public GitHub Skill snapshot.
+ */
+export type PlatformSkillGitHubImportRequest = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Repositoryurl
+     */
+    repositoryUrl: string;
+    /**
+     * Requestedref
+     */
+    requestedRef: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Subpath
+     */
+    subpath?: string;
+};
+
+/**
+ * PlatformSkillPackageCreateRequest
+ *
+ * Create one Arclayer-maintained package and its first immutable version.
+ */
+export type PlatformSkillPackageCreateRequest = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    /**
+     * References
+     */
+    references?: Array<SkillInlineReferenceInput>;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion?: string | null;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * PlatformSkillPackageDetailOut
+ */
+export type PlatformSkillPackageDetailOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey?: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Displaynamekey
+     */
+    displayNameKey?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sourceauthority
+     */
+    sourceAuthority: string;
+    /**
+     * Stablekey
+     */
+    stableKey: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Versions
+     */
+    versions: Array<PlatformSkillVersionOut>;
+};
+
+/**
+ * PlatformSkillPackageReplaceRequest
+ *
+ * Atomically update package copy and publish the edited Skill content.
+ */
+export type PlatformSkillPackageReplaceRequest = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    /**
+     * References
+     */
+    references?: Array<SkillInlineReferenceInput>;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion?: string | null;
+};
+
+/**
+ * PlatformSkillPackageSummaryOut
+ */
+export type PlatformSkillPackageSummaryOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey?: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Displaynamekey
+     */
+    displayNameKey?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sourceauthority
+     */
+    sourceAuthority: string;
+    /**
+     * Stablekey
+     */
+    stableKey: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+};
+
+/**
+ * PlatformSkillPackageUpdateRequest
+ */
+export type PlatformSkillPackageUpdateRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * PlatformSkillValidationOut
+ */
+export type PlatformSkillValidationOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Findinghash
+     */
+    findingHash: string;
+    /**
+     * Findings
+     */
+    findings: Array<SkillValidationFindingOut>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Policyversion
+     */
+    policyVersion: number;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * PlatformSkillVersionCreateRequest
+ *
+ * Publish another immutable version for an official package.
+ */
+export type PlatformSkillVersionCreateRequest = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    /**
+     * References
+     */
+    references?: Array<SkillInlineReferenceInput>;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion?: string | null;
+};
+
+/**
+ * PlatformSkillVersionOut
+ */
+export type PlatformSkillVersionOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    manifest: SkillManifestV1;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Resources
+     */
+    resources: Array<SkillResourceOut>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Sourceprovenance
+     */
+    sourceProvenance: {
+        [key: string]: unknown;
+    };
+    /**
+     * Status
+     */
+    status: string;
+    validation: PlatformSkillValidationOut;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
 };
 
 /**
@@ -12120,6 +12624,31 @@ export type ResponseModelPageDataPlatformDeliveryStorageOut = {
 };
 
 /**
+ * ResponseModel[PageData[PlatformSkillPackageSummaryOut]]
+ */
+export type ResponseModelPageDataPlatformSkillPackageSummaryOut = {
+    data?: PageDataPlatformSkillPackageSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[SystemAgentAssignmentOut]]
  */
 export type ResponseModelPageDataSystemAgentAssignmentOut = {
@@ -12899,6 +13428,81 @@ export type ResponseModelPlatformSignInOut = {
  */
 export type ResponseModelPlatformSignInSettingsOut = {
     data?: PlatformSignInSettingsOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformSkillCapabilitiesOut]
+ */
+export type ResponseModelPlatformSkillCapabilitiesOut = {
+    data?: PlatformSkillCapabilitiesOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformSkillPackageDetailOut]
+ */
+export type ResponseModelPlatformSkillPackageDetailOut = {
+    data?: PlatformSkillPackageDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformSkillVersionOut]
+ */
+export type ResponseModelPlatformSkillVersionOut = {
+    data?: PlatformSkillVersionOut | null;
     /**
      * Error
      */
@@ -14167,6 +14771,240 @@ export type RoleResponsibilityImpact = {
      * Userid
      */
     userId: string;
+};
+
+/**
+ * SkillCompatibilityV1
+ */
+export type SkillCompatibilityV1 = {
+    /**
+     * Agentprotocol
+     */
+    agentProtocol?: 1;
+    /**
+     * Arclayerrange
+     */
+    arclayerRange?: string;
+};
+
+/**
+ * SkillDataEgressDeclarationV1
+ */
+export type SkillDataEgressDeclarationV1 = {
+    /**
+     * Dataclasses
+     */
+    dataClasses: Array<string>;
+    /**
+     * Destination
+     */
+    destination: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+};
+
+/**
+ * SkillInlineReferenceInput
+ */
+export type SkillInlineReferenceInput = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Mimetype
+     */
+    mimeType?: 'text/markdown' | 'text/plain' | 'application/json';
+    /**
+     * Path
+     */
+    path: string;
+};
+
+/**
+ * SkillManifestResourceV1
+ */
+export type SkillManifestResourceV1 = {
+    /**
+     * Bytesize
+     */
+    byteSize: number;
+    /**
+     * Digest
+     */
+    digest: string;
+    /**
+     * Mimetype
+     */
+    mimeType: string;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Role
+     */
+    role: 'instructions' | 'reference' | 'asset';
+};
+
+/**
+ * SkillManifestV1
+ */
+export type SkillManifestV1 = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Checksum
+     */
+    checksum: string;
+    compatibility?: SkillCompatibilityV1;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Instructionsentrypoint
+     */
+    instructionsEntrypoint: string;
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: 1;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    publisher: SkillPublisherV1;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Resources
+     */
+    resources: Array<SkillManifestResourceV1>;
+    /**
+     * Skillid
+     */
+    skillId: string;
+};
+
+/**
+ * SkillPermissionDeclarationV1
+ */
+export type SkillPermissionDeclarationV1 = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+};
+
+/**
+ * SkillPublisherV1
+ */
+export type SkillPublisherV1 = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Verified
+     */
+    verified: boolean;
+};
+
+/**
+ * SkillResourceOut
+ */
+export type SkillResourceOut = {
+    /**
+     * Bytesize
+     */
+    byteSize: number;
+    /**
+     * Content
+     */
+    content?: string | null;
+    /**
+     * Digest
+     */
+    digest: string;
+    /**
+     * Mimetype
+     */
+    mimeType: string;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Role
+     */
+    role: string;
+};
+
+/**
+ * SkillToolRequirementV1
+ */
+export type SkillToolRequirementV1 = {
+    /**
+     * Intendeduse
+     */
+    intendedUse: string;
+    /**
+     * Toolid
+     */
+    toolId: string;
+    /**
+     * Versionrange
+     */
+    versionRange?: string;
+};
+
+/**
+ * SkillValidationFindingOut
+ */
+export type SkillValidationFindingOut = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Resourcepath
+     */
+    resourcePath?: string | null;
+    /**
+     * Severity
+     */
+    severity: 'warning' | 'error';
 };
 
 /**
@@ -16754,6 +17592,31 @@ export type PlatformGetCurrentPlatformActorProfileResponses = {
 };
 
 export type PlatformGetCurrentPlatformActorProfileResponse = PlatformGetCurrentPlatformActorProfileResponses[keyof PlatformGetCurrentPlatformActorProfileResponses];
+
+export type PlatformUpdateCurrentPlatformActorProfileData = {
+    body: PlatformCurrentActorProfileUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/me';
+};
+
+export type PlatformUpdateCurrentPlatformActorProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdateCurrentPlatformActorProfileError = PlatformUpdateCurrentPlatformActorProfileErrors[keyof PlatformUpdateCurrentPlatformActorProfileErrors];
+
+export type PlatformUpdateCurrentPlatformActorProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCurrentActorProfileOut;
+};
+
+export type PlatformUpdateCurrentPlatformActorProfileResponse = PlatformUpdateCurrentPlatformActorProfileResponses[keyof PlatformUpdateCurrentPlatformActorProfileResponses];
 
 export type PlatformBeginCurrentPlatformTotpMethodData = {
     body: PlatformMfaTotpBeginRequest;
@@ -23736,6 +24599,328 @@ export type PlatformTestPlatformDeliveryStorageResponses = {
 };
 
 export type PlatformTestPlatformDeliveryStorageResponse = PlatformTestPlatformDeliveryStorageResponses[keyof PlatformTestPlatformDeliveryStorageResponses];
+
+export type PlatformListPlatformSkillsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: 'active' | 'archived' | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/skills';
+};
+
+export type PlatformListPlatformSkillsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformSkillsError = PlatformListPlatformSkillsErrors[keyof PlatformListPlatformSkillsErrors];
+
+export type PlatformListPlatformSkillsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPlatformSkillPackageSummaryOut;
+};
+
+export type PlatformListPlatformSkillsResponse = PlatformListPlatformSkillsResponses[keyof PlatformListPlatformSkillsResponses];
+
+export type PlatformCreatePlatformSkillData = {
+    body: PlatformSkillPackageCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/skills';
+};
+
+export type PlatformCreatePlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCreatePlatformSkillError = PlatformCreatePlatformSkillErrors[keyof PlatformCreatePlatformSkillErrors];
+
+export type PlatformCreatePlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformCreatePlatformSkillResponse = PlatformCreatePlatformSkillResponses[keyof PlatformCreatePlatformSkillResponses];
+
+export type PlatformGetPlatformSkillCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/skills/capabilities';
+};
+
+export type PlatformGetPlatformSkillCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillCapabilitiesOut;
+};
+
+export type PlatformGetPlatformSkillCapabilitiesResponse = PlatformGetPlatformSkillCapabilitiesResponses[keyof PlatformGetPlatformSkillCapabilitiesResponses];
+
+export type PlatformImportPlatformSkillGithubData = {
+    body: PlatformSkillGitHubImportRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/skills/imports';
+};
+
+export type PlatformImportPlatformSkillGithubErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformImportPlatformSkillGithubError = PlatformImportPlatformSkillGithubErrors[keyof PlatformImportPlatformSkillGithubErrors];
+
+export type PlatformImportPlatformSkillGithubResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformImportPlatformSkillGithubResponse = PlatformImportPlatformSkillGithubResponses[keyof PlatformImportPlatformSkillGithubResponses];
+
+export type PlatformImportPlatformSkillZipData = {
+    body: BodyImportPlatformSkillZipPlatformApiV1SkillsImportsZipPost;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/skills/imports/zip';
+};
+
+export type PlatformImportPlatformSkillZipErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformImportPlatformSkillZipError = PlatformImportPlatformSkillZipErrors[keyof PlatformImportPlatformSkillZipErrors];
+
+export type PlatformImportPlatformSkillZipResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformImportPlatformSkillZipResponse = PlatformImportPlatformSkillZipResponses[keyof PlatformImportPlatformSkillZipResponses];
+
+export type PlatformArchivePlatformSkillData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query: {
+        /**
+         * Expectedrevision
+         */
+        expectedRevision: number;
+    };
+    url: '/platform-api/v1/skills/{package_id}';
+};
+
+export type PlatformArchivePlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformArchivePlatformSkillError = PlatformArchivePlatformSkillErrors[keyof PlatformArchivePlatformSkillErrors];
+
+export type PlatformArchivePlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformArchivePlatformSkillResponse = PlatformArchivePlatformSkillResponses[keyof PlatformArchivePlatformSkillResponses];
+
+export type PlatformGetPlatformSkillData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/skills/{package_id}';
+};
+
+export type PlatformGetPlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformSkillError = PlatformGetPlatformSkillErrors[keyof PlatformGetPlatformSkillErrors];
+
+export type PlatformGetPlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformGetPlatformSkillResponse = PlatformGetPlatformSkillResponses[keyof PlatformGetPlatformSkillResponses];
+
+export type PlatformUpdatePlatformSkillData = {
+    body: PlatformSkillPackageUpdateRequest;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/skills/{package_id}';
+};
+
+export type PlatformUpdatePlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformSkillError = PlatformUpdatePlatformSkillErrors[keyof PlatformUpdatePlatformSkillErrors];
+
+export type PlatformUpdatePlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformUpdatePlatformSkillResponse = PlatformUpdatePlatformSkillResponses[keyof PlatformUpdatePlatformSkillResponses];
+
+export type PlatformReplacePlatformSkillData = {
+    body: PlatformSkillPackageReplaceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/skills/{package_id}';
+};
+
+export type PlatformReplacePlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformReplacePlatformSkillError = PlatformReplacePlatformSkillErrors[keyof PlatformReplacePlatformSkillErrors];
+
+export type PlatformReplacePlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformReplacePlatformSkillResponse = PlatformReplacePlatformSkillResponses[keyof PlatformReplacePlatformSkillResponses];
+
+export type PlatformCreatePlatformSkillVersionData = {
+    body: PlatformSkillVersionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/skills/{package_id}/versions';
+};
+
+export type PlatformCreatePlatformSkillVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCreatePlatformSkillVersionError = PlatformCreatePlatformSkillVersionErrors[keyof PlatformCreatePlatformSkillVersionErrors];
+
+export type PlatformCreatePlatformSkillVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelPlatformSkillVersionOut;
+};
+
+export type PlatformCreatePlatformSkillVersionResponse = PlatformCreatePlatformSkillVersionResponses[keyof PlatformCreatePlatformSkillVersionResponses];
 
 export type PlatformListStorageProfilesData = {
     body?: never;

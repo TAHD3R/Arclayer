@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import type {
   KnowledgeGuidanceDraftSaveRequest,
+  KnowledgeGuidanceLayerOut,
   KnowledgeGuidancePreviewOut,
 } from "@arclayer/openapi";
-import { listProjects } from "@/api/projects";
 import {
   WORKSPACE_GUIDANCE_QUERY_KEY,
   type GuidanceScope,
@@ -24,7 +24,6 @@ import {
 } from "@/api/workspace-guidance";
 import { WORKSPACE_KNOWLEDGE_QUERY_KEY, listKnowledgeBases } from "@/api/workspace-knowledge";
 import { notifySuccessText } from "@/lib/notifications";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const HISTORY_PAGE_SIZE = 25;
 type ProjectGuidanceMode = NonNullable<KnowledgeGuidanceDraftSaveRequest["projectMode"]>;
@@ -43,58 +42,53 @@ function guidanceQueryKey(workspaceId: string, projectId?: string | null) {
   ] as const;
 }
 
+function guidanceContent(layer: KnowledgeGuidanceLayerOut | null): string {
+  return (layer?.currentDraft ?? layer?.currentPublished)?.content ?? "";
+}
+
+function guidanceProjectMode(layer: KnowledgeGuidanceLayerOut | null): ProjectGuidanceMode {
+  return layer?.projectMode ?? "supplement";
+}
+
+function queryKeysMatch(left: readonly unknown[], right: readonly unknown[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   const { workspaceId, projectId } = scopeInput;
   const { t } = useTranslation("knowledge");
   const queryClient = useQueryClient();
-  const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
-  const [draft, setDraft] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projectId ?? null);
+  const [draft, setDraftValue] = useState("");
   const [projectMode, setProjectMode] = useState<ProjectGuidanceMode>("supplement");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingPreview, setPendingPreview] = useState<PendingPreview | null>(null);
   const scope = useMemo(() => ({ workspaceId, projectId }), [projectId, workspaceId]);
+  const layerQueryKey = useMemo(
+    () => [...guidanceQueryKey(workspaceId, projectId), "layer"] as const,
+    [projectId, workspaceId],
+  );
 
   const guidanceQuery = useQuery({
-    queryKey: [...guidanceQueryKey(workspaceId, projectId), "layer"],
+    queryKey: layerQueryKey,
     queryFn: ({ signal }) => getGuidanceLayer(scope, signal),
     retry: false,
   });
   const layer = guidanceQuery.data ?? null;
-  const contentRevision = layer?.currentDraft ?? layer?.currentPublished ?? null;
-
   useEffect(() => {
-    setDraft(contentRevision?.content ?? "");
-  }, [contentRevision?.content, contentRevision?.id]);
-
+    setDraftValue("");
+    setProjectMode("supplement");
+    setHasUnsavedChanges(false);
+  }, [projectId, workspaceId]);
   useEffect(() => {
-    setProjectMode(layer?.projectMode ?? "supplement");
-  }, [layer?.projectMode]);
-
-  const projectsQuery = useQuery({
-    queryKey: [...guidanceQueryKey(workspaceId, projectId), "projects"],
-    queryFn: () => listProjects({ workspaceId, archived: false, size: 100 }),
-    enabled: !projectId,
-    retry: false,
-  });
-  const projects = projectsQuery.data?.items ?? [];
-
-  useEffect(() => {
-    if (projectId) {
-      setSelectedProjectId(projectId);
-      return;
-    }
-    const projectIds = new Set(projects.map((project) => project.id));
-    setSelectedProjectId((current) => {
-      if (current && projectIds.has(current)) return current;
-      if (currentProjectId && projectIds.has(currentProjectId)) return currentProjectId;
-      return null;
-    });
-  }, [currentProjectId, projectId, projects]);
+    if (hasUnsavedChanges) return;
+    setDraftValue(guidanceContent(layer));
+    setProjectMode(guidanceProjectMode(layer));
+  }, [hasUnsavedChanges, layer]);
 
   const effectiveQuery = useQuery({
-    queryKey: [...guidanceQueryKey(workspaceId, projectId), "effective", selectedProjectId],
-    queryFn: ({ signal }) => getEffectiveGuidance(workspaceId, selectedProjectId, signal),
-    enabled: Boolean(layer),
+    queryKey: [...guidanceQueryKey(workspaceId, projectId), "effective"],
+    queryFn: ({ signal }) => getEffectiveGuidance(workspaceId, projectId ?? null, signal),
+    enabled: Boolean(layer && projectId),
     retry: false,
   });
   const historyQuery = useInfiniteQuery({
@@ -107,13 +101,13 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
       }),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: Boolean(layer),
+    enabled: Boolean(layer && projectId),
     retry: false,
   });
   const referenceBasesQuery = useQuery({
     queryKey: [...guidanceQueryKey(workspaceId, projectId), "reference-bases"],
     queryFn: ({ signal }) => listKnowledgeBases(workspaceId, { limit: 100, signal }),
-    enabled: Boolean(layer),
+    enabled: Boolean(layer && projectId),
     retry: false,
   });
   const history = useMemo(
@@ -123,14 +117,31 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
 
   const invalidate = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: WORKSPACE_GUIDANCE_QUERY_KEY }),
+      queryClient.invalidateQueries({
+        queryKey: WORKSPACE_GUIDANCE_QUERY_KEY,
+        predicate: (query) => !queryKeysMatch(query.queryKey, layerQueryKey),
+      }),
       queryClient.invalidateQueries({ queryKey: WORKSPACE_KNOWLEDGE_QUERY_KEY }),
     ]);
+  };
+  const cacheServerLayer = (nextLayer: KnowledgeGuidanceLayerOut) => {
+    queryClient.setQueryData(layerQueryKey, nextLayer);
+  };
+  const acceptServerLayer = (nextLayer: KnowledgeGuidanceLayerOut) => {
+    cacheServerLayer(nextLayer);
+    setDraftValue(guidanceContent(nextLayer));
+    setProjectMode(guidanceProjectMode(nextLayer));
+    setHasUnsavedChanges(false);
   };
   const saveDraftMutation = useMutation({
     mutationFn: (input: KnowledgeGuidanceDraftSaveRequest) =>
       saveGuidanceDraft(scope, input, crypto.randomUUID()),
-    onSuccess: async () => {
+    onSuccess: async (nextLayer, input) => {
+      cacheServerLayer(nextLayer);
+      const savedCurrentEditor =
+        draft === input.content &&
+        (!projectId || projectMode === (input.projectMode ?? "supplement"));
+      if (savedCurrentEditor) acceptServerLayer(nextLayer);
       await invalidate();
       notifySuccessText(t("DRAFT_SAVED"));
     },
@@ -138,7 +149,8 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   const publishMutation = useMutation({
     mutationFn: (input: { expectedRevision: number; revisionId: string }) =>
       publishGuidance(scope, input, crypto.randomUUID()),
-    onSuccess: async () => {
+    onSuccess: async (nextLayer) => {
+      acceptServerLayer(nextLayer);
       await invalidate();
       notifySuccessText(t("PUBLISHED"));
     },
@@ -200,30 +212,29 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     },
   });
 
-  const commandError =
-    saveDraftMutation.error ??
-    publishMutation.error ??
-    restorePreviewMutation.error ??
-    removePreviewMutation.error ??
-    applyPreviewMutation.error ??
-    attachReferenceMutation.error ??
-    detachReferenceMutation.error;
-
   return {
     layer,
     draft,
-    setDraft,
+    setDraft: (value: string) => {
+      setDraftValue(value);
+      setHasUnsavedChanges(
+        value !== guidanceContent(layer) ||
+          (Boolean(projectId) && projectMode !== guidanceProjectMode(layer)),
+      );
+    },
+    hasUnsavedChanges,
     isProject: Boolean(projectId),
     projectMode,
-    setProjectMode,
-    projects,
-    selectedProjectId,
-    setSelectedProjectId,
+    setProjectMode: (value: ProjectGuidanceMode) => {
+      setProjectMode(value);
+      setHasUnsavedChanges(
+        draft !== guidanceContent(layer) || value !== guidanceProjectMode(layer),
+      );
+    },
     history,
     pendingPreview,
     setPendingPreview,
     guidanceQuery,
-    projectsQuery,
     effectiveQuery,
     historyQuery,
     referenceBasesQuery,
@@ -234,10 +245,9 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     applyPreviewMutation,
     attachReferenceMutation,
     detachReferenceMutation,
-    commandError,
     saveDraft: () => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      return saveDraftMutation.mutateAsync({
+      saveDraftMutation.mutate({
         content: draft,
         expectedRevision: layer.metadataRevision,
         ...(projectId ? { projectMode } : {}),
@@ -245,34 +255,25 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     },
     publish: () => {
       if (!layer?.currentDraft?.id) throw new Error("KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED");
-      return publishMutation.mutateAsync({
+      publishMutation.mutate({
         expectedRevision: layer.metadataRevision,
         revisionId: layer.currentDraft.id,
       });
     },
     previewRestore: (sourceRevisionId: string) => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      return restorePreviewMutation.mutateAsync({
+      restorePreviewMutation.mutate({
         expectedRevision: layer.metadataRevision,
         sourceRevisionId,
       });
     },
     previewRemoval: () => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      return removePreviewMutation.mutateAsync({ expectedRevision: layer.metadataRevision });
+      removePreviewMutation.mutate({ expectedRevision: layer.metadataRevision });
     },
     applyPendingPreview: () => {
       if (!pendingPreview) throw new Error("KNOWLEDGE_GUIDANCE_PREVIEW_REQUIRED");
-      return applyPreviewMutation.mutateAsync(pendingPreview);
-    },
-    resetCommandErrors: () => {
-      saveDraftMutation.reset();
-      publishMutation.reset();
-      restorePreviewMutation.reset();
-      removePreviewMutation.reset();
-      applyPreviewMutation.reset();
-      attachReferenceMutation.reset();
-      detachReferenceMutation.reset();
+      applyPreviewMutation.mutate(pendingPreview);
     },
   };
 }

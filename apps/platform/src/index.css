@@ -2,6 +2,7 @@
 
 @config "../tailwind.config.ts";
 
+@import "@arclayer/ui/tokens.css" layer(theme);
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 

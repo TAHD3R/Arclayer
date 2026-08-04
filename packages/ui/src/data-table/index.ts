@@ -1,3 +1,5 @@
+import "./react-table-column-meta";
+
 export * from "./types";
 export * from "./use-data-table";
 export * from "./use-data-table-core";

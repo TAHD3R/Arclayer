@@ -4,10 +4,27 @@ from uuid import UUID
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.platform_identity.identity import (
+    PlatformInstanceOwnership,
+    PlatformOperator,
+    PlatformOperatorStatus,
+)
 from src.models.workspaces.workspace import Workspace
 
 
 class AccountDeletionRepository(TortoiseORMRepository):
+    async def is_platform_instance_owner(self, *, user_id: UUID) -> bool:
+        return await PlatformInstanceOwnership.filter(
+            singleton_key="instance",
+            owner_user_id=user_id,
+        ).exists()
+
+    async def has_active_platform_access(self, *, user_id: UUID) -> bool:
+        return await PlatformOperator.filter(
+            user_id=user_id,
+            status=PlatformOperatorStatus.ACTIVE,
+        ).exists()
+
     async def list_owned_org_ids(self, *, user_id: UUID) -> list[UUID]:
         rows = await OrgMembership.filter(
             user_id=user_id,

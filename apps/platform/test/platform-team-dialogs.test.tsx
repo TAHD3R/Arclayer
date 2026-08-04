@@ -53,8 +53,10 @@ const person: PlatformInvitationCandidateOut = {
 const role: PlatformRoleCatalogItemOut = {
   code: "workspace-support",
   description: "Investigate Workspace health and support requests.",
+  descriptionI18N: null,
   kind: "custom",
   name: "Workspace support",
+  nameI18N: null,
   permissionCodes: ["platform:tenant-workspaces:read"],
   revisionId: "role-revision-1",
   revisionSequence: 1,
@@ -253,11 +255,12 @@ describe("Platform team dialogs", () => {
   it("lists and revokes another operator device through the session-management endpoint", async () => {
     vi.mocked(listPlatformOperatorSessions).mockResolvedValue([
       {
-        absoluteExpiresAt: "2026-08-05T00:00:00.000Z",
+        absoluteExpiresAt: "2099-08-05T00:00:00.000Z",
         actorUserId: person.userId,
         assurance: "phishing_resistant",
+        createdAt: "2026-08-01T00:00:00.000Z",
         deviceLabel: "Operations laptop",
-        inactivityExpiresAt: "2026-08-04T12:00:00.000Z",
+        inactivityExpiresAt: "2099-08-04T12:00:00.000Z",
         isCurrent: false,
         policyRevision: 1,
         recentActivityAt: "2026-08-04T01:00:00.000Z",

@@ -25,13 +25,6 @@ export function StyleGuideStage(props: StyleGuideStageProps) {
   const { t } = useTranslation("account");
   const { controller } = props;
   const queryError = controller.assignmentQuery.error ?? controller.sourceVersionQuery.error;
-  const commandError =
-    controller.forkMutation.error ??
-    controller.createVersionMutation.error ??
-    controller.validateMutation.error ??
-    controller.assignMutation.error ??
-    controller.previewRefreshMutation.error ??
-    controller.applyRefreshMutation.error;
   const displayedVersion = controller.candidateVersion ?? controller.sourceVersion;
 
   return (
@@ -93,14 +86,6 @@ export function StyleGuideStage(props: StyleGuideStageProps) {
                     <AlertDescription>{t("CREATION_EDITOR_STYLE_READ_ONLY_DESC")}</AlertDescription>
                   </Alert>
                 ) : null}
-                {commandError ? (
-                  <Alert className="mt-5" variant="destructive" role="alert">
-                    <CircleAlert aria-hidden="true" />
-                    <AlertTitle>{t("CREATION_EDITOR_STYLE_COMMAND_ERROR_TITLE")}</AlertTitle>
-                    <AlertDescription>{getErrorMessage(commandError)}</AlertDescription>
-                  </Alert>
-                ) : null}
-
                 <StyleGuideAgentConcepts controller={controller} />
 
                 <StyleGuideFoundationPreview

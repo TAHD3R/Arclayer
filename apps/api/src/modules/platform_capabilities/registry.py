@@ -125,6 +125,11 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
             PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.AI_SKILLS,
+                required_view_permissions=(PlatformPermissionCode.AI_SKILLS_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.AI_POLICIES,
                 required_view_permissions=(PlatformPermissionCode.AI_AGENTS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
@@ -132,8 +137,11 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         ),
         required_view_permissions=(PlatformPermissionCode.AI_TASKS_READ,),
         view_permission_match=PlatformCapabilityPermissionMatch.ALL,
-        required_manage_permissions=(PlatformPermissionCode.AI_TASKS_RECOVER,),
-        manage_permission_match=PlatformCapabilityPermissionMatch.ALL,
+        required_manage_permissions=(
+            PlatformPermissionCode.AI_TASKS_RECOVER,
+            PlatformPermissionCode.AI_SKILLS_MANAGE,
+        ),
+        manage_permission_match=PlatformCapabilityPermissionMatch.ANY,
     ),
     PlatformCapabilityRegistration(
         capability_id="communications",

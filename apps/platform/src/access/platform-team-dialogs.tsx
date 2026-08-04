@@ -19,9 +19,16 @@ import {
   revokePlatformInvitation,
   revokePlatformOperatorSession,
 } from "@/access/access-api";
+import {
+  isPlatformSessionExpired,
+  platformSessionExpiresAt,
+  sortPlatformSessionsNewestFirst,
+} from "@/access/platform-session-status";
+import { localizePlatformRole } from "@/access/platform-role-copy";
 import { verifyPlatformAction } from "@/access/platform-step-up";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -38,6 +45,7 @@ import { SettingDialogField, SettingDialogFields } from "@/components/setting-di
 import { SettingDrawer } from "@/components/setting-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/monitoring/format";
+import { cn } from "@/lib/utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -91,6 +99,30 @@ function MutationError({ message }: { message: string }) {
 
 function userLabel(user: PlatformInvitationCandidateOut): string {
   return user.displayName?.trim() || user.username;
+}
+
+function RoleSelectionOption({
+  checked,
+  onCheckedChange,
+  role,
+}: Readonly<{
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  role: PlatformRoleCatalogItemOut;
+}>) {
+  const { t } = useTranslation("access");
+  const copy = localizePlatformRole(role, t);
+  return (
+    <label className="flex items-start gap-3">
+      <Checkbox checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} />
+      <span>
+        <span className="block text-sm font-medium">{copy.name}</span>
+        {copy.description ? (
+          <span className="block text-xs text-muted-foreground">{copy.description}</span>
+        ) : null}
+      </span>
+    </label>
+  );
 }
 
 export function InviteOperatorDialog(props: DialogBaseProps) {
@@ -215,27 +247,19 @@ export function InviteOperatorDialog(props: DialogBaseProps) {
           <SettingDialogField title={t("ROLES")} description={t("INVITE_ROLES_HELP")}>
             <div className="space-y-2 rounded-lg border p-3">
               {roles.map((role) => (
-                <label key={role.roleId} className="flex items-start gap-3">
-                  <Checkbox
-                    checked={roleIds.has(role.roleId)}
-                    onCheckedChange={(checked) =>
-                      setRoleIds((current) => {
-                        const next = new Set(current);
-                        if (checked) next.add(role.roleId);
-                        else next.delete(role.roleId);
-                        return next;
-                      })
-                    }
-                  />
-                  <span>
-                    <span className="block text-sm font-medium">{role.name}</span>
-                    {role.description ? (
-                      <span className="block text-xs text-muted-foreground">
-                        {role.description}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
+                <RoleSelectionOption
+                  checked={roleIds.has(role.roleId)}
+                  key={role.roleId}
+                  onCheckedChange={(checked) =>
+                    setRoleIds((current) => {
+                      const next = new Set(current);
+                      if (checked) next.add(role.roleId);
+                      else next.delete(role.roleId);
+                      return next;
+                    })
+                  }
+                  role={role}
+                />
               ))}
             </div>
           </SettingDialogField>
@@ -363,27 +387,19 @@ export function ManageOperatorRolesDialog(props: OperatorDialogProps) {
             {props.roles.length ? (
               <div className="space-y-2 rounded-lg border p-3">
                 {props.roles.map((role) => (
-                  <label key={role.roleId} className="flex items-start gap-3">
-                    <Checkbox
-                      checked={roleIds.has(role.roleId)}
-                      onCheckedChange={(checked) =>
-                        setRoleIds((current) => {
-                          const next = new Set(current);
-                          if (checked) next.add(role.roleId);
-                          else next.delete(role.roleId);
-                          return next;
-                        })
-                      }
-                    />
-                    <span>
-                      <span className="block text-sm font-medium">{role.name}</span>
-                      {role.description ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {role.description}
-                        </span>
-                      ) : null}
-                    </span>
-                  </label>
+                  <RoleSelectionOption
+                    checked={roleIds.has(role.roleId)}
+                    key={role.roleId}
+                    onCheckedChange={(checked) =>
+                      setRoleIds((current) => {
+                        const next = new Set(current);
+                        if (checked) next.add(role.roleId);
+                        else next.delete(role.roleId);
+                        return next;
+                      })
+                    }
+                    role={role}
+                  />
                 ))}
               </div>
             ) : (
@@ -440,26 +456,40 @@ export function OperatorSessionsDrawer(
           </div>
         ) : state.data.length ? (
           <div className="space-y-3">
-            {state.data.map((session) => (
-              <article className="rounded-lg border p-4" key={session.sessionId}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{session.deviceLabel ?? t("UNRECOGNIZED_DEVICE")}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t("LAST_ACTIVE", { date: formatDateTime(session.recentActivityAt) })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("EXPIRES", { date: formatDateTime(session.absoluteExpiresAt) })}
-                    </p>
+            {sortPlatformSessionsNewestFirst(state.data).map((session) => {
+              const expired = isPlatformSessionExpired(session);
+              return (
+                <article
+                  className={cn("rounded-lg border p-4", expired && "opacity-55 grayscale")}
+                  key={session.sessionId}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        {session.deviceLabel ?? t("UNRECOGNIZED_DEVICE")}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t("SESSION_CREATED", { date: formatDateTime(session.createdAt) })}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t("LAST_ACTIVE", { date: formatDateTime(session.recentActivityAt) })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("EXPIRES", { date: formatDateTime(platformSessionExpiresAt(session)) })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {expired ? <Badge variant="outline">{t("SESSION_EXPIRED")}</Badge> : null}
+                      {props.canRevoke && !expired ? (
+                        <Button onClick={() => setSelected(session)} size="sm" variant="outline">
+                          {t("REVOKE_SESSION")}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
-                  {props.canRevoke ? (
-                    <Button onClick={() => setSelected(session)} size="sm" variant="outline">
-                      {t("REVOKE_SESSION")}
-                    </Button>
-                  ) : null}
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <p className="rounded-lg border p-5 text-sm text-muted-foreground">

@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from src.modules.tenancy.schema import TenantMigration
 
+_KNOWLEDGE_GUIDANCE_TABLES = (
+    "knowledge_guidance_layers",
+    "knowledge_guidance_revisions",
+    "knowledge_guidance_references",
+    "knowledge_guidance_previews",
+    "knowledge_guidance_commands",
+)
+
 _TENANT_OWNED_TABLES = (
     "system_settings",
     "content_model_definitions",
@@ -31,6 +39,7 @@ _TENANT_OWNED_TABLES = (
     "knowledge_source_versions",
     "knowledge_source_version_states",
     "knowledge_chunks",
+    *_KNOWLEDGE_GUIDANCE_TABLES,
     "skill_packages",
     "skill_versions",
     "skill_resources",
@@ -823,6 +832,68 @@ ALTER TABLE {schema}.builder_generations
 ALTER TABLE {schema}.upload_sessions
     ALTER COLUMN status TYPE VARCHAR(32)
     USING status::VARCHAR(32)
+            """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=30,
+        name="knowledge_guidance_tables",
+        sql=tuple(_clone_public_table_sql(table_name) for table_name in _KNOWLEDGE_GUIDANCE_TABLES),
+    ),
+    TenantMigration.create(
+        version=31,
+        name="knowledge_guidance_layer_backfill",
+        sql=(
+            """
+INSERT INTO {schema}.knowledge_guidance_layers (
+    id,
+    created_at,
+    updated_at,
+    workspace_id,
+    scope_kind,
+    scope_id,
+    project_mode,
+    metadata_revision
+)
+SELECT
+    md5('arclayer:knowledge-guidance:workspace:' || registry.workspace_id::TEXT)::UUID,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    registry.workspace_id,
+    'workspace',
+    registry.workspace_id,
+    NULL,
+    1
+FROM public.workspace_tenant_registry AS registry
+WHERE registry.schema_name = replace('{schema}', '"', '')
+  AND registry.status = 'ready'
+ON CONFLICT (workspace_id, scope_kind, scope_id) DO NOTHING
+            """.strip(),
+            """
+INSERT INTO {schema}.knowledge_guidance_layers (
+    id,
+    created_at,
+    updated_at,
+    workspace_id,
+    scope_kind,
+    scope_id,
+    project_mode,
+    metadata_revision
+)
+SELECT
+    md5('arclayer:knowledge-guidance:project:' || project.id::TEXT)::UUID,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    project.workspace_id,
+    'project',
+    project.id,
+    'supplement',
+    1
+FROM public.projects AS project
+JOIN public.workspace_tenant_registry AS registry ON registry.workspace_id = project.workspace_id
+WHERE registry.schema_name = replace('{schema}', '"', '')
+  AND registry.status = 'ready'
+ON CONFLICT (workspace_id, scope_kind, scope_id) DO NOTHING
             """.strip(),
         ),
     ),

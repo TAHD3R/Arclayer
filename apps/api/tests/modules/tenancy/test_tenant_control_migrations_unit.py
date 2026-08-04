@@ -85,8 +85,8 @@ def test_builder_design_generation_context_contract() -> None:
     assert "ADD COLUMN IF NOT EXISTS design_context JSONB NULL" in sql
 
 
-def test_upload_session_status_capacity_is_the_latest_contract() -> None:
-    migration = TENANT_CONTROL_MIGRATIONS[-1]
+def test_upload_session_status_capacity_contract() -> None:
+    migration = _migration(29)
     sql = "\n".join(migration.sql)
 
     assert migration.version == 29
@@ -94,3 +94,38 @@ def test_upload_session_status_capacity_is_the_latest_contract() -> None:
     assert "ALTER TABLE {schema}.upload_sessions" in sql
     assert "ALTER COLUMN status TYPE VARCHAR(32)" in sql
     assert "USING status::VARCHAR(32)" in sql
+
+
+def test_knowledge_guidance_tables_contract() -> None:
+    owned_tables_sql = "\n".join(_migration(2).sql)
+    migration = _migration(30)
+    sql = "\n".join(migration.sql)
+
+    assert migration.version == 30
+    assert migration.name == "knowledge_guidance_tables"
+
+    for table_name in (
+        "knowledge_guidance_layers",
+        "knowledge_guidance_revisions",
+        "knowledge_guidance_references",
+        "knowledge_guidance_previews",
+        "knowledge_guidance_commands",
+    ):
+        assert f"{{schema}}.{table_name}" in owned_tables_sql
+        assert f"{{schema}}.{table_name}" in sql
+
+
+def test_knowledge_guidance_layer_backfill_is_the_latest_contract() -> None:
+    migration = TENANT_CONTROL_MIGRATIONS[-1]
+    sql = "\n".join(migration.sql)
+
+    assert migration.version == 31
+    assert migration.name == "knowledge_guidance_layer_backfill"
+    assert "INSERT INTO {schema}.knowledge_guidance_layers" in sql
+    assert "FROM public.workspace_tenant_registry AS registry" in sql
+    assert "FROM public.projects AS project" in sql
+    assert "registry.status = 'ready'" in sql
+    assert "'workspace'" in sql
+    assert "'project'" in sql
+    assert "'supplement'" in sql
+    assert "ON CONFLICT (workspace_id, scope_kind, scope_id) DO NOTHING" in sql

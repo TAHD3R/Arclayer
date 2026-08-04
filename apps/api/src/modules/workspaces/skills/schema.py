@@ -203,8 +203,8 @@ class OfficialSkillCatalogItemOut(BaseSchema):
     slug: str
     display_name: str
     description: str
-    display_name_key: str
-    description_key: str
+    display_name_key: str | None
+    description_key: str | None
     publisher_id: str
     publisher_name: str
     publisher_verified: Literal[True]

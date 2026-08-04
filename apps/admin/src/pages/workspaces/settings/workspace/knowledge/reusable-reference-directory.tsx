@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, BookOpenText, Clock3, FileText, Plus, RefreshCw, Search } from "lucide-react";
+import { BookOpenText, Clock3, FileText, Plus, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -352,18 +352,6 @@ export function ReusableReferenceDirectory({ workspaceId }: { workspaceId: strin
       notifySuccessText(t("knowledge:REFERENCE_PROCESSING_QUEUED"));
     },
   });
-  const commandError =
-    createBaseMutation.error ??
-    createSourceMutation.error ??
-    createVersionMutation.error ??
-    ingestionMutation.error;
-
-  const resetCommandErrors = () => {
-    createBaseMutation.reset();
-    createSourceMutation.reset();
-    createVersionMutation.reset();
-    ingestionMutation.reset();
-  };
   const canCreate = manualSourcesAvailable && !capabilitiesQuery.isError;
   const canQueueProcessing =
     selectedSource?.sourceKind !== "manual" &&
@@ -372,19 +360,6 @@ export function ReusableReferenceDirectory({ workspaceId }: { workspaceId: strin
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 pb-8">
-      {commandError ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>{t("knowledge:OPERATION_FAILED_TITLE")}</AlertTitle>
-          <AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>{t("knowledge:OPERATION_FAILED_DESCRIPTION")}</span>
-            <Button size="sm" variant="outline" onClick={resetCommandErrors}>
-              {t("common:DISMISS")}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       {capabilitiesQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>{t("knowledge:REFERENCE_CAPABILITIES_FAILED_TITLE")}</AlertTitle>

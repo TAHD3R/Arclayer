@@ -6,6 +6,7 @@ from uuid import UUID
 
 from src.common.utils.ids import uuid7
 from src.core.exceptions import Forbidden, Unauthorized
+from src.models.organization.user import UserStatus
 from src.models.platform_identity.operations import PlatformSession, PlatformVerificationAssurance
 from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.platform_identity.session_schema import PlatformSessionCredential, PlatformSessionPrincipal
@@ -118,6 +119,9 @@ async def resolve_platform_session(
         raise _unauthorized("PLATFORM_SESSION_INVALID")
     if UUID(str(session.actor_user_id)) != actor_id or session.token_version != payload.get("ver"):
         raise _unauthorized("PLATFORM_SESSION_STALE")
+    actor = await repository.get_user_by_id(user_id=actor_id)
+    if actor is None or str(actor.status) != UserStatus.ACTIVE.value:
+        raise _unauthorized("PLATFORM_SESSION_ACCESS_REVOKED")
     if session.policy_revision != settings.device_session.policy_revision:
         raise _unauthorized("PLATFORM_SESSION_POLICY_STALE")
     if checked_at >= session.inactivity_expires_at or checked_at >= session.absolute_expires_at:

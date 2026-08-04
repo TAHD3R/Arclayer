@@ -61,6 +61,9 @@ export interface FileUploadDropZoneProps {
   maxSizeBytes?: number;
   hintSummary?: ReactNode;
   hintDetail?: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  formatsHelpLabel?: string;
   onPickFiles?: (files: File[]) => void;
   onDropUnacceptedFiles?: (files: File[]) => void;
   onSizeLimitExceed?: (files: File[]) => void;
@@ -284,6 +287,9 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
 
   const hintSummary = props.hintSummary ?? t("assets:ASSET_UPLOAD_DROP_HINT");
   const hintDetail = props.hintDetail ?? t("assets:ASSET_UPLOAD_DROP_HINT_DETAIL");
+  const title = props.title ?? t("assets:ASSET_UPLOAD_DROP_TITLE");
+  const description = props.description ?? t("assets:ASSET_UPLOAD_DROP_DESC");
+  const formatsHelpLabel = props.formatsHelpLabel ?? t("assets:ASSET_UPLOAD_FORMATS_HELP");
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     multiple: props.allowsMultiple ?? true,
@@ -343,7 +349,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
         props.className,
       )}
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps({ accept: props.accept })} />
 
       <CloudUpload
         aria-hidden="true"
@@ -364,10 +370,10 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
               open();
             }}
           >
-            {t("assets:ASSET_UPLOAD_DROP_TITLE")}
+            {title}
           </Button>
           <span className="text-body text-label-secondary">
-            {t("assets:ASSET_UPLOAD_DROP_DESC")}
+            {description}
           </span>
           <span className="text-body text-label-secondary">{hintSummary}</span>
 
@@ -381,7 +387,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
                   "hover:bg-accent/35 hover:text-label-primary",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                 )}
-                aria-label={t("assets:ASSET_UPLOAD_FORMATS_HELP")}
+                aria-label={formatsHelpLabel}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

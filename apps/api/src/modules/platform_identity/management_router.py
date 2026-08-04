@@ -17,6 +17,7 @@ from src.modules.platform_identity.http import (
 )
 from src.modules.platform_identity.management_schema import (
     PlatformCurrentActorProfileOut,
+    PlatformCurrentActorProfileUpdateRequest,
     PlatformCustomRoleApplyRequest,
     PlatformCustomRoleCopyRequest,
     PlatformCustomRoleCreateRequest,
@@ -90,6 +91,19 @@ async def get_current_platform_actor_profile(
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformCurrentActorProfileOut]:
     return ApiResponse.success(data=await service.current_actor_profile(user_id=actor.actor_id))
+
+
+@router.patch(
+    "/me",
+    response_model=ResponseModel[PlatformCurrentActorProfileOut],
+    summary="Update the current Platform administrator profile",
+)
+async def update_current_platform_actor_profile(
+    payload: PlatformCurrentActorProfileUpdateRequest,
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[PlatformCurrentActorProfileOut]:
+    return ApiResponse.success(data=await service.update_current_actor_profile(user_id=actor.actor_id, payload=payload))
 
 
 @router.get(
@@ -356,7 +370,7 @@ async def list_platform_permissions(
 @router.get(
     "/sessions/me",
     response_model=ResponseModel[tuple[PlatformSessionInventoryItemOut, ...]],
-    summary="List the current actor's active Platform device sessions",
+    summary="List the current actor's retained Platform device session records",
 )
 async def list_current_platform_sessions(
     actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],

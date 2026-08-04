@@ -18,6 +18,7 @@ import { zodResolver } from "@/lib/forms/zod-resolver";
 import {
   skillAuthoringDefaults,
   skillAuthoringSchema,
+  deriveSkillSlug,
   toSkillVersionPayload,
   type SkillAuthoringValues,
 } from "./workspace-skill-authoring-model";
@@ -51,6 +52,7 @@ function PackageIdentityFields(props: {
   form: UseFormReturn<SkillAuthoringValues>;
 }) {
   const { t } = useTranslation("settings");
+  const nameField = props.form.register("displayName");
   return (
     <>
       <SettingDialogField
@@ -68,8 +70,17 @@ function PackageIdentityFields(props: {
         <Input
           id={`${props.formId}-name`}
           autoFocus
+          placeholder={t("SETTINGS_WORKSPACE_SKILLS_NAME_PLACEHOLDER")}
           aria-invalid={Boolean(props.form.formState.errors.displayName)}
-          {...props.form.register("displayName")}
+          {...nameField}
+          onChange={(event) => {
+            void nameField.onChange(event);
+            if (!props.form.getFieldState("slug").isDirty) {
+              props.form.setValue("slug", deriveSkillSlug(event.target.value), {
+                shouldValidate: true,
+              });
+            }
+          }}
         />
       </SettingDialogField>
       <SettingDialogField
@@ -78,10 +89,16 @@ function PackageIdentityFields(props: {
             {t("SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_LABEL")}
           </label>
         }
+        error={
+          fieldError(props.form, "description")
+            ? t("SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
+            : undefined
+        }
       >
         <Textarea
           id={`${props.formId}-description`}
           className="min-h-24"
+          placeholder={t("SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_PLACEHOLDER")}
           aria-invalid={Boolean(props.form.formState.errors.description)}
           {...props.form.register("description")}
         />
@@ -114,15 +131,15 @@ function SkillAuthoringDialog(props: AuthoringDialogProps) {
       onOpenChange={props.onOpenChange}
       title={t(
         isPackage
-          ? "settings:SETTINGS_WORKSPACE_SKILLS_CREATE_TITLE"
+          ? "settings:SETTINGS_WORKSPACE_SKILLS_WRITE_MANUALLY"
           : "settings:SETTINGS_WORKSPACE_SKILLS_VERSION_CREATE_TITLE",
       )}
       description={t(
         isPackage
-          ? "settings:SETTINGS_WORKSPACE_SKILLS_CREATE_DESC"
+          ? "settings:SETTINGS_WORKSPACE_SKILLS_WRITE_MANUALLY_DESC"
           : "settings:SETTINGS_WORKSPACE_SKILLS_VERSION_CREATE_DESC",
       )}
-      contentClassName="sm:max-w-3xl"
+      contentClassName={isPackage ? "sm:max-w-2xl" : "sm:max-w-3xl"}
       preventInitialFocus={false}
       footer={
         <>
@@ -163,12 +180,17 @@ function SkillAuthoringDialog(props: AuthoringDialogProps) {
               id={`${formId}-instructions`}
               autoFocus={!isPackage}
               className="min-h-64"
+              placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_INSTRUCTIONS_PLACEHOLDER")}
               aria-invalid={Boolean(form.formState.errors.instructions)}
               {...form.register("instructions")}
             />
           </SettingDialogField>
-          <WorkspaceSkillReferenceFields form={form} />
-          <WorkspaceSkillAdvancedFields form={form} showIdentifier={isPackage} />
+          {isPackage ? null : (
+            <>
+              <WorkspaceSkillReferenceFields form={form} />
+              <WorkspaceSkillAdvancedFields form={form} showIdentifier={false} />
+            </>
+          )}
         </SettingDialogFields>
       </form>
     </SettingDialog>

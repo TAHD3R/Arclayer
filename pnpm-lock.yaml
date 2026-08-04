@@ -785,6 +785,9 @@ importers:
       '@arclayer/platform-openapi':
         specifier: workspace:*
         version: link:../../packages/platform-openapi
+      '@arclayer/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -827,6 +830,9 @@ importers:
       '@tanstack/react-router':
         specifier: 'catalog:'
         version: 1.170.16(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-table':
+        specifier: 'catalog:'
+        version: 8.21.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1

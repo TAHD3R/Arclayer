@@ -1,10 +1,14 @@
 import { Blocks, BookOpenText, SwatchBook } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { WorkspaceDesignSystemsPage } from "@/pages/workspaces/settings/workspace/design-systems/page";
 import { WorkspaceKnowledgePage } from "@/pages/workspaces/settings/workspace/knowledge/page";
-import { WorkspaceSkillsPage } from "@/pages/workspaces/settings/workspace/skills/page";
+import {
+  WorkspaceSkillsPage,
+  type WorkspaceSkillCreateAction,
+} from "@/pages/workspaces/settings/workspace/skills/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 
@@ -30,11 +34,19 @@ const SECTION_COPY = {
 
 export function CustomizationPage(props: {
   section: CustomizationSection;
-  requestedAction?: "import";
+  requestedAction?: WorkspaceSkillCreateAction;
 }) {
   const { t } = useTranslation("settings");
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const copy = SECTION_COPY[props.section];
+  const [requestedAction, setRequestedAction] = useState<WorkspaceSkillCreateAction>();
+  const [focusRequestId, setFocusRequestId] = useState(0);
+
+  useEffect(() => {
+    if (!props.requestedAction) return;
+    setRequestedAction(props.requestedAction);
+    setFocusRequestId((current) => current + 1);
+  }, [props.requestedAction]);
 
   return (
     <DefaultPage
@@ -48,8 +60,8 @@ export function CustomizationPage(props: {
         ) : props.section === "skills" ? (
           <WorkspaceSkillsPage
             workspaceId={workspaceId}
-            requestedAction={props.requestedAction}
-            focusRequestId={props.requestedAction ? 1 : 0}
+            requestedAction={requestedAction}
+            focusRequestId={focusRequestId}
           />
         ) : (
           <WorkspaceDesignSystemsPage workspaceId={workspaceId} />

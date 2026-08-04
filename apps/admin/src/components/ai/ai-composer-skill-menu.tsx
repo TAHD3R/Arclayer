@@ -54,20 +54,24 @@ export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) 
           label:
             workspacePackage?.displayName ??
             (officialPackage
-              ? requiredTranslation(
-                  i18n,
-                  `settings:${officialPackage.displayNameKey}`,
-                  "official Skill name",
-                )
+              ? officialPackage.displayNameKey
+                ? requiredTranslation(
+                    i18n,
+                    `settings:${officialPackage.displayNameKey}`,
+                    "official Skill name",
+                  )
+                : officialPackage.displayName
               : installation.packageId),
           description:
             workspacePackage?.description ??
             (officialPackage
-              ? requiredTranslation(
-                  i18n,
-                  `settings:${officialPackage.descriptionKey}`,
-                  "official Skill description",
-                )
+              ? officialPackage.descriptionKey
+                ? requiredTranslation(
+                    i18n,
+                    `settings:${officialPackage.descriptionKey}`,
+                    "official Skill description",
+                  )
+                : officialPackage.description
               : installation.packageId),
         };
       });
@@ -152,10 +156,18 @@ export function AIComposerSkillMenu(props: {
             setOpen(false);
             void navigate({ to: "/customization/skills" });
           }}
-          onCreate={createSkillWithArclayer}
-          onImport={() => {
+          onBuildWithArclayer={createSkillWithArclayer}
+          onWriteManually={() => {
             setOpen(false);
-            void navigate({ to: "/customization/skills", search: { action: "import" } });
+            void navigate({ to: "/customization/skills", search: { action: "manual" } });
+          }}
+          onImportGitHub={() => {
+            setOpen(false);
+            void navigate({ to: "/customization/skills", search: { action: "github" } });
+          }}
+          onUploadZip={() => {
+            setOpen(false);
+            void navigate({ to: "/customization/skills", search: { action: "zip" } });
           }}
         />
       </DropdownMenuContent>

@@ -1,18 +1,19 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ProjectGuidanceView,
   WorkspaceGuidanceView,
 } from "@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-view";
+import { makeQueryClient } from "@/lib/query/query-client";
 
 const mocks = vi.hoisted(() => ({
   getLayer: vi.fn(),
   getEffective: vi.fn(),
   listHistory: vi.fn(),
   listBases: vi.fn(),
-  listProjects: vi.fn(),
   saveDraft: vi.fn(),
   publish: vi.fn(),
   createRestorePreview: vi.fn(),
@@ -22,6 +23,11 @@ const mocks = vi.hoisted(() => ({
   attachReference: vi.fn(),
   detachReference: vi.fn(),
   notify: vi.fn(),
+  notifyError: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -52,17 +58,9 @@ vi.mock("@/api/workspace-knowledge", () => ({
   listKnowledgeBases: (...args: unknown[]) => mocks.listBases(...args),
 }));
 
-vi.mock("@/api/projects", () => ({
-  listProjects: (...args: unknown[]) => mocks.listProjects(...args),
-}));
-
-vi.mock("@/stores/use-workspace-store", () => ({
-  useWorkspaceStore: (selector: (state: { currentProjectId: string | null }) => unknown) =>
-    selector({ currentProjectId: null }),
-}));
-
 vi.mock("@/lib/notifications", () => ({
   notifySuccessText: (...args: unknown[]) => mocks.notify(...args),
+  notifyError: (...args: unknown[]) => mocks.notifyError(...args),
 }));
 
 const publishedRevision = {
@@ -98,6 +96,22 @@ const layer = {
   updatedAt: "2026-08-01T00:00:00Z",
 };
 
+const savedDraftRevision = {
+  ...publishedRevision,
+  id: "revision-2",
+  revisionNumber: 2,
+  status: "draft" as const,
+  publishedAt: null,
+  publishedByUserId: null,
+};
+
+const savedLayer = {
+  ...layer,
+  metadataRevision: 4,
+  draftRevisionId: savedDraftRevision.id,
+  currentDraft: savedDraftRevision,
+};
+
 const projectLayer = {
   ...layer,
   id: "project-guidance-1",
@@ -124,9 +138,7 @@ const restorePreview = {
 };
 
 function renderView() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <WorkspaceGuidanceView workspaceId="workspace-1" />
@@ -135,9 +147,7 @@ function renderView() {
 }
 
 function renderProjectView() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <ProjectGuidanceView workspaceId="workspace-1" projectId="project-1" />
@@ -160,8 +170,10 @@ describe("WorkspaceGuidanceView", () => {
     });
     mocks.listHistory.mockResolvedValue({ items: [publishedRevision], nextCursor: null });
     mocks.listBases.mockResolvedValue({ items: [], nextCursor: null });
-    mocks.listProjects.mockResolvedValue({ items: [] });
-    mocks.saveDraft.mockResolvedValue(layer);
+    mocks.saveDraft.mockImplementation(async (_scope: unknown, input: { content: string }) => ({
+      ...savedLayer,
+      currentDraft: { ...savedDraftRevision, content: input.content.trim() },
+    }));
     mocks.publish.mockResolvedValue(layer);
     mocks.createRestorePreview.mockResolvedValue(restorePreview);
     mocks.createRemovePreview.mockResolvedValue({
@@ -175,16 +187,24 @@ describe("WorkspaceGuidanceView", () => {
     mocks.detachReference.mockResolvedValue(layer);
   });
 
-  it("uses shared guidance as the primary surface instead of a Knowledge Base container", async () => {
+  it("uses a focused workspace knowledge editor without secondary management surfaces", async () => {
     renderView();
 
     expect(await screen.findByRole("heading", { name: "EDITOR_TITLE" })).toBeInTheDocument();
     expect(screen.getByLabelText("EDITOR_FIELD_LABEL")).toHaveValue(publishedRevision.content);
-    expect(await screen.findByText("EFFECTIVE_PRECEDENCE_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("HISTORY_TITLE")).toBeInTheDocument();
-    expect(
-      screen.queryByText("SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "SAVE_DRAFT" })).not.toBeInTheDocument();
+    const publishButton = screen.getByRole("button", { name: "PUBLISH_ACTION" });
+    expect(publishButton).toBeDisabled();
+    expect(publishButton.querySelector("svg")).toBeNull();
+    expect(screen.getByText("EDITOR_FAQ_TITLE")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "EDITOR_FAQ_BUSINESS_QUESTION" }));
+    expect(await screen.findByText("EDITOR_FAQ_BUSINESS_ANSWER")).toBeInTheDocument();
+    expect(screen.queryByText("EFFECTIVE_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("HISTORY_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("REFERENCES_TITLE")).not.toBeInTheDocument();
+    expect(mocks.getEffective).not.toHaveBeenCalled();
+    expect(mocks.listHistory).not.toHaveBeenCalled();
+    expect(mocks.listBases).not.toHaveBeenCalled();
   });
 
   it("saves a real immutable draft with the current metadata revision", async () => {
@@ -192,6 +212,7 @@ describe("WorkspaceGuidanceView", () => {
     fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
       target: { value: "Keep source claims traceable." },
     });
+    expect(screen.getByRole("button", { name: "SAVE_DRAFT" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "SAVE_DRAFT" }));
 
     await waitFor(() => {
@@ -201,15 +222,35 @@ describe("WorkspaceGuidanceView", () => {
         "command-key",
       );
     });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "SAVE_DRAFT" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "PUBLISH_ACTION" })).toBeEnabled();
+  });
+
+  it("keeps operation failures in the global toast instead of rendering an alert", async () => {
+    const error = new Error("save failed");
+    mocks.saveDraft.mockRejectedValue(error);
+    renderView();
+
+    fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Keep source claims traceable." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "SAVE_DRAFT" }));
+
+    await waitFor(() => expect(mocks.notifyError).toHaveBeenCalledWith(error));
+    expect(screen.queryByText("OPERATION_FAILED_TITLE")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "SAVE_DRAFT" })).toBeInTheDocument();
   });
 
   it("requires a server-created restoration preview before applying history", async () => {
-    renderView();
+    mocks.getLayer.mockResolvedValue(projectLayer);
+    renderProjectView();
     fireEvent.click(await screen.findByRole("button", { name: "RESTORE_ACTION" }));
 
     await waitFor(() => {
       expect(mocks.createRestorePreview).toHaveBeenCalledWith(
-        { workspaceId: "workspace-1" },
+        { workspaceId: "workspace-1", projectId: "project-1" },
         { expectedRevision: 3, sourceRevisionId: "revision-1" },
         "command-key",
       );
@@ -221,7 +262,7 @@ describe("WorkspaceGuidanceView", () => {
     fireEvent.click(screen.getByRole("button", { name: "RESTORE_APPLY" }));
     await waitFor(() => {
       expect(mocks.applyRestorePreview).toHaveBeenCalledWith(
-        { workspaceId: "workspace-1" },
+        { workspaceId: "workspace-1", projectId: "project-1" },
         "restore-preview-1",
         { expectedGuidanceRevision: 3, expectedPreviewRevision: 1 },
         "command-key",
@@ -245,7 +286,7 @@ describe("WorkspaceGuidanceView", () => {
       await screen.findByRole("heading", { name: "PROJECT_EDITOR_TITLE" }),
     ).toBeInTheDocument();
     expect(screen.getByText("PROJECT_MODE_LABEL")).toBeInTheDocument();
-    expect(screen.queryByLabelText("EFFECTIVE_PROJECT_LABEL")).not.toBeInTheDocument();
+    expect(screen.getByText("EFFECTIVE_CURRENT_PROJECT")).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("PROJECT_MODE_LABEL"));
     fireEvent.click(await screen.findByRole("option", { name: "PROJECT_MODE_OVERRIDE" }));
@@ -263,6 +304,5 @@ describe("WorkspaceGuidanceView", () => {
         "command-key",
       );
     });
-    expect(mocks.listProjects).not.toHaveBeenCalled();
   });
 });

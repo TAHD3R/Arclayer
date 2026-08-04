@@ -55,31 +55,17 @@ class OfficialSkillCatalogSyncService(BaseService):
         self._require_supported_tools(bundles)
         packages_created = 0
         versions_created = 0
-        packages_archived = 0
         async with self.tx() as conn:
             await self._repository.lock_catalog_sync(conn=conn)
-            existing = await self._repository.list_all_packages_for_update(conn=conn)
-            retained_ids = set()
             for bundle in bundles:
                 package, package_created = await self._upsert_package(bundle=bundle, conn=conn)
-                retained_ids.add(package.id)
                 version_created = await self._sync_version(package=package, bundle=bundle, conn=conn)
                 packages_created += int(package_created)
                 versions_created += int(version_created)
-            for package in existing:
-                if package.id not in retained_ids and str(package.status) != SkillPackageStatus.ARCHIVED.value:
-                    package.status = SkillPackageStatus.ARCHIVED
-                    package.metadata_revision += 1
-                    await self._repository.save_package(
-                        package=package,
-                        update_fields=("status", "metadata_revision"),
-                        conn=conn,
-                    )
-                    packages_archived += 1
         return OfficialSkillCatalogSyncResult(
             packages_created=packages_created,
             versions_created=versions_created,
-            packages_archived=packages_archived,
+            packages_archived=0,
         )
 
     async def _upsert_package(
@@ -92,6 +78,7 @@ class OfficialSkillCatalogSyncService(BaseService):
         package = await self._repository.get_package_by_stable_key(stable_key=asset.stable_key, conn=conn)
         descriptor = {
             "kind": "builtin",
+            "authority": "packaged_seed",
             "catalogRevision": OFFICIAL_SKILL_CATALOG_REVISION,
             "displayNameKey": asset.display_name_key,
             "descriptionKey": asset.description_key,
@@ -127,25 +114,6 @@ class OfficialSkillCatalogSyncService(BaseService):
                 True,
             )
         self._require_official_package(package)
-        changes = {
-            "slug": asset.slug,
-            "normalized_slug": asset.slug,
-            "display_name": asset.name,
-            "description": asset.description,
-            "publisher_verification": verification,
-            "source_descriptor": descriptor,
-            "status": SkillPackageStatus.ACTIVE,
-        }
-        changed_fields = tuple(field for field, value in changes.items() if getattr(package, field) != value)
-        if changed_fields:
-            for field in changed_fields:
-                setattr(package, field, changes[field])
-            package.metadata_revision += 1
-            await self._repository.save_package(
-                package=package,
-                update_fields=(*changed_fields, "metadata_revision"),
-                conn=conn,
-            )
         return package, False
 
     async def _sync_version(
@@ -172,7 +140,7 @@ class OfficialSkillCatalogSyncService(BaseService):
                 conn=conn,
             )
             created = False
-        if package.latest_valid_version_id != version.id:
+        if str(package.status) == SkillPackageStatus.ACTIVE.value and package.latest_valid_version_id != version.id:
             package.latest_valid_version_id = version.id
             await self._repository.save_package(
                 package=package,

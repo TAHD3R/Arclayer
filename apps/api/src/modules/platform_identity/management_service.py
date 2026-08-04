@@ -35,6 +35,7 @@ from src.models.platform_identity.roles import (
 )
 from src.modules.platform_identity.management_schema import (
     PlatformCurrentActorProfileOut,
+    PlatformCurrentActorProfileUpdateRequest,
     PlatformCustomRoleApplyRequest,
     PlatformCustomRoleCopyRequest,
     PlatformCustomRoleCreateRequest,
@@ -143,8 +144,21 @@ class PlatformIdentityManagementService:
         return PlatformCurrentActorProfileOut(
             username=user.username,
             email=user.email,
+            display_name=user.display_name,
             avatar_url=avatar_url,
         )
+
+    async def update_current_actor_profile(
+        self, *, user_id: UUID, payload: PlatformCurrentActorProfileUpdateRequest
+    ) -> PlatformCurrentActorProfileOut:
+        if "display_name" in payload.model_fields_set:
+            updated = await self._repository.update_user_display_name(
+                user_id=user_id,
+                display_name=payload.display_name,
+            )
+            if not updated:
+                raise NotFound(error="PLATFORM_ACTOR_NOT_FOUND")
+        return await self.current_actor_profile(user_id=user_id)
 
     async def team_identity(self, *, user_id: UUID) -> PlatformTeamIdentityOut:
         snapshot = await self._repository.get_identity_snapshot(user_id=user_id, at=self._now())
@@ -460,6 +474,8 @@ class PlatformIdentityManagementService:
                 kind=str(role.kind),
                 name=role.name,
                 description=role.description,
+                name_i18n=role.name_i18n,
+                description_i18n=role.description_i18n,
                 revision_id=revision.id,
                 revision_sequence=revision.sequence,
                 permission_codes=tuple(sorted(permissions_by_revision[UUID(str(revision.id))])),
@@ -491,6 +507,7 @@ class PlatformIdentityManagementService:
                 session_id=session.id,
                 actor_user_id=session.actor_user_id,
                 device_label=session.device_label,
+                created_at=session.created_at,
                 recent_activity_at=session.recent_activity_at,
                 inactivity_expires_at=session.inactivity_expires_at,
                 absolute_expires_at=session.absolute_expires_at,
@@ -525,6 +542,7 @@ class PlatformIdentityManagementService:
                 session_id=session.id,
                 actor_user_id=session.actor_user_id,
                 device_label=session.device_label,
+                created_at=session.created_at,
                 recent_activity_at=session.recent_activity_at,
                 inactivity_expires_at=session.inactivity_expires_at,
                 absolute_expires_at=session.absolute_expires_at,
@@ -935,7 +953,7 @@ class PlatformIdentityManagementService:
     async def _users_by_id(self, user_ids: set[UUID]) -> dict[UUID, User]:
         if not user_ids:
             return {}
-        users = await User.filter(id__in=list(user_ids)).all()
+        users = await self._repository.list_users_by_ids(user_ids=user_ids)
         return {UUID(str(user.id)): user for user in users}
 
     async def _operator_roles(
@@ -969,7 +987,7 @@ class PlatformIdentityManagementService:
             user_id__in=list(user_ids), status=PlatformMfaMethodStatus.VERIFIED, revoked_at__isnull=True
         ).order_by("user_id", "verified_at", "id")
         sessions = await PlatformSession.filter(actor_user_id__in=list(user_ids), revoked_at__isnull=True).order_by(
-            "actor_user_id", "recent_activity_at", "id"
+            "actor_user_id", "-recent_activity_at", "-id"
         )
         methods_by_user: dict[UUID, list[PlatformMfaMethod]] = defaultdict(list)
         sessions_by_user: dict[UUID, list[PlatformSession]] = defaultdict(list)
@@ -1087,9 +1105,16 @@ class PlatformIdentityManagementService:
 
     @staticmethod
     def _session_summary(*, sessions: tuple[PlatformSession, ...]) -> PlatformSessionSummaryOut:
+        now = datetime.now(UTC)
+        active_sessions = tuple(
+            session for session in sessions if now < session.inactivity_expires_at and now < session.absolute_expires_at
+        )
         return PlatformSessionSummaryOut(
-            active_session_count=len(sessions),
-            most_recent_activity_at=max((session.recent_activity_at for session in sessions), default=None),
+            active_session_count=len(active_sessions),
+            most_recent_activity_at=max(
+                (session.recent_activity_at for session in active_sessions),
+                default=None,
+            ),
         )
 
     @staticmethod

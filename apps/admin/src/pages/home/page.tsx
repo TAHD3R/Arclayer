@@ -28,6 +28,7 @@ import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import {
   applyWebSearchDirective,
   appendMessageToText,
@@ -80,15 +81,14 @@ function HomeComposerInitialPrompt(props: {
   const appliedPromptRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const prompt = rawPrompt?.trim();
-    if (!prompt) {
+    if (!rawPrompt?.trim()) {
       appliedPromptRef.current = null;
       return;
     }
-    if (appliedPromptRef.current === prompt) return;
+    if (appliedPromptRef.current === rawPrompt) return;
 
-    appliedPromptRef.current = prompt;
-    aui.composer().setText(prompt);
+    appliedPromptRef.current = rawPrompt;
+    aui.composer().setText(rawPrompt);
     inputRef.current?.focus();
     onApplied?.();
   }, [aui, inputRef, onApplied, rawPrompt]);
@@ -247,8 +247,9 @@ function HomeComposer({
  * Prompt 进入 scene 级 normalized Agent Thread runtime，并在右侧 Drawer 中承载执行过程。
  */
 export function HomePage() {
-  const { prompt: initialPrompt } = useSearch({ from: "/" });
+  const { prompt: initialPrompt, section, settings } = useSearch({ from: "/" });
   const navigate = useNavigate();
+  const { openSettings } = useSettingsScreen();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -274,6 +275,16 @@ export function HomePage() {
   const clearInitialPrompt = useCallback(() => {
     void navigate({ to: "/" as never, search: {} as never, replace: true });
   }, [navigate]);
+
+  useEffect(() => {
+    if (settings !== "personal.profile") return;
+    openSettings({ screen: settings, section });
+    void navigate({
+      to: "/" as never,
+      search: initialPrompt ? ({ prompt: initialPrompt } as never) : ({} as never),
+      replace: true,
+    });
+  }, [initialPrompt, navigate, openSettings, section, settings]);
 
   return (
     <AdminRouteContainer

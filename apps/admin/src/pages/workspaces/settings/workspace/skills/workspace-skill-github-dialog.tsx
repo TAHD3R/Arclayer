@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Github } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { SkillGitHubImportCreateRequest } from "@arclayer/openapi";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
@@ -61,28 +60,19 @@ export function WorkspaceSkillGitHubImportDialog(props: {
             {t("common:CANCEL")}
           </Button>
           <Button type="submit" form={formId} loading={props.pending} disabled={props.pending}>
-            <Github data-icon="inline-start" />
-            {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_IMPORT_ACTION")}
+            {t("settings:SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB")}
           </Button>
         </>
       }
     >
       <form id={formId} onSubmit={submit}>
-        <SettingDialogFields>
-          <Alert>
-            <Github aria-hidden="true" />
-            <AlertTitle>{t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_PUBLIC_TITLE")}</AlertTitle>
-            <AlertDescription>
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_PUBLIC_DESC")}
-            </AlertDescription>
-          </Alert>
+        <SettingDialogFields className="gap-6">
           <SettingDialogField
             title={
               <label htmlFor={`${formId}-repository`}>
                 {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_LABEL")}
               </label>
             }
-            description={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_HELP")}
             error={
               form.formState.errors.repositoryUrl
                 ? t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_ERROR")
@@ -94,7 +84,7 @@ export function WorkspaceSkillGitHubImportDialog(props: {
               autoFocus
               autoComplete="url"
               inputMode="url"
-              placeholder="https://github.com/acme/site-skill"
+              placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_PLACEHOLDER")}
               aria-invalid={Boolean(form.formState.errors.repositoryUrl)}
               {...repositoryField}
               onChange={(event) => {
@@ -111,86 +101,63 @@ export function WorkspaceSkillGitHubImportDialog(props: {
               }}
             />
           </SettingDialogField>
+          <details className="group rounded-xl border bg-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-footnote font-semibold text-label-primary">
+              {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_OPTIONS_TITLE")}
+              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="grid gap-5 border-t p-4 sm:grid-cols-2">
+              <SettingDialogField
+                title={<label htmlFor={`${formId}-ref`}>{t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_LABEL")}</label>}
+                error={form.formState.errors.requestedRef ? t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_ERROR") : undefined}
+              >
+                <Input
+                  id={`${formId}-ref`}
+                  className="font-mono"
+                  placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_PLACEHOLDER")}
+                  aria-invalid={Boolean(form.formState.errors.requestedRef)}
+                  {...form.register("requestedRef")}
+                />
+              </SettingDialogField>
+              <SettingDialogField
+                title={<label htmlFor={`${formId}-subpath`}>{t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_LABEL")}</label>}
+                error={form.formState.errors.subpath ? t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_ERROR") : undefined}
+              >
+                <Input
+                  id={`${formId}-subpath`}
+                  className="font-mono"
+                  placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_PLACEHOLDER")}
+                  aria-invalid={Boolean(form.formState.errors.subpath)}
+                  {...form.register("subpath")}
+                />
+              </SettingDialogField>
+            </div>
+          </details>
           <div className="grid gap-5 sm:grid-cols-2">
             <SettingDialogField
-              title={
-                <label htmlFor={`${formId}-ref`}>
-                  {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_LABEL")}
-                </label>
-              }
-              description={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_HELP")}
-              error={
-                form.formState.errors.requestedRef
-                  ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
-                  : undefined
-              }
+              title={<label htmlFor={`${formId}-name`}>{t("settings:SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}</label>}
+              error={form.formState.errors.displayName ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED") : undefined}
             >
               <Input
-                id={`${formId}-ref`}
-                className="font-mono"
-                aria-invalid={Boolean(form.formState.errors.requestedRef)}
-                {...form.register("requestedRef")}
+                id={`${formId}-name`}
+                placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_NAME_PLACEHOLDER")}
+                aria-invalid={Boolean(form.formState.errors.displayName)}
+                {...form.register("displayName")}
               />
             </SettingDialogField>
             <SettingDialogField
-              title={
-                <label htmlFor={`${formId}-subpath`}>
-                  {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_LABEL")}
-                </label>
-              }
-              description={t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_HELP")}
-              error={
-                form.formState.errors.subpath
-                  ? t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_ERROR")
-                  : undefined
-              }
+              title={<label htmlFor={`${formId}-description`}>{t("settings:SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_LABEL")}</label>}
+              error={form.formState.errors.description ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED") : undefined}
             >
-              <Input
-                id={`${formId}-subpath`}
-                className="font-mono"
-                placeholder="skills/site-planner"
-                aria-invalid={Boolean(form.formState.errors.subpath)}
-                {...form.register("subpath")}
+              <Textarea
+                id={`${formId}-description`}
+                className="min-h-24"
+                placeholder={t("settings:SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_PLACEHOLDER")}
+                aria-invalid={Boolean(form.formState.errors.description)}
+                {...form.register("description")}
               />
             </SettingDialogField>
           </div>
-          <SettingDialogField
-            title={
-              <label htmlFor={`${formId}-name`}>
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}
-              </label>
-            }
-            error={
-              form.formState.errors.displayName
-                ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
-                : undefined
-            }
-          >
-            <Input
-              id={`${formId}-name`}
-              aria-invalid={Boolean(form.formState.errors.displayName)}
-              {...form.register("displayName")}
-            />
-          </SettingDialogField>
-          <SettingDialogField
-            title={
-              <label htmlFor={`${formId}-description`}>
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_DESCRIPTION_LABEL")}
-              </label>
-            }
-            error={
-              form.formState.errors.description
-                ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
-                : undefined
-            }
-          >
-            <Textarea
-              id={`${formId}-description`}
-              className="min-h-24"
-              aria-invalid={Boolean(form.formState.errors.description)}
-              {...form.register("description")}
-            />
-          </SettingDialogField>
         </SettingDialogFields>
       </form>
     </SettingDialog>

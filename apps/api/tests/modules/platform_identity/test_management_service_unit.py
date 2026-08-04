@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
@@ -13,6 +13,7 @@ from src.models.organization.user import UserStatus
 from src.models.platform_identity.identity import PlatformInstanceOwnership, PlatformOperatorStatus
 from src.models.platform_identity.operations import PlatformVerificationAssurance
 from src.modules.platform_identity.management_schema import (
+    PlatformCurrentActorProfileUpdateRequest,
     PlatformInvitationRevokeRequest,
     PlatformMfaTotpBeginRequest,
     PlatformOperatorMfaResetRequest,
@@ -42,6 +43,56 @@ def _webauthn_credential() -> PlatformWebAuthnAuthenticationCredential:
             "user_handle": None,
         },
     })
+
+
+@pytest.mark.asyncio
+async def test_current_actor_profile_update_changes_only_the_display_name() -> None:
+    user_id = uuid4()
+    repository = SimpleNamespace(
+        get_user_by_id=AsyncMock(
+            return_value=SimpleNamespace(
+                avatar_asset_id=None,
+                avatar_url=None,
+                display_name="Before",
+                email="owner@example.test",
+                username="owner",
+            )
+        ),
+        update_user_display_name=AsyncMock(return_value=True),
+    )
+    service = object.__new__(PlatformIdentityManagementService)
+    service._repository = repository
+
+    result = await service.update_current_actor_profile(
+        user_id=user_id,
+        payload=PlatformCurrentActorProfileUpdateRequest(display_name="After"),
+    )
+
+    repository.update_user_display_name.assert_awaited_once_with(
+        user_id=user_id,
+        display_name="After",
+    )
+    assert result.username == "owner"
+    assert result.email == "owner@example.test"
+
+
+def test_session_summary_excludes_expired_unrevoked_records() -> None:
+    now = datetime.now(UTC)
+    active = SimpleNamespace(
+        inactivity_expires_at=now + timedelta(minutes=10),
+        absolute_expires_at=now + timedelta(hours=1),
+        recent_activity_at=now,
+    )
+    expired = SimpleNamespace(
+        inactivity_expires_at=now - timedelta(minutes=1),
+        absolute_expires_at=now + timedelta(hours=1),
+        recent_activity_at=now - timedelta(hours=1),
+    )
+
+    summary = PlatformIdentityManagementService._session_summary(sessions=(expired, active))
+
+    assert summary.active_session_count == 1
+    assert summary.most_recent_activity_at == now
 
 
 class _Repository:
@@ -116,6 +167,8 @@ async def test_invitation_options_exposes_only_delegable_roles_and_invite_candid
         kind="custom",
         name="Support",
         description=None,
+        name_i18n=None,
+        description_i18n=None,
         revision_id=uuid4(),
         revision_sequence=1,
         permission_codes=("platform:tenant-workspaces:read",),

@@ -110,7 +110,7 @@ describe("Platform team page", () => {
     render(<PlatformTeamPage />);
 
     expect(await screen.findByText("Owner")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Invite operator" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Invite team member" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Manage Operator" }));
     expect(screen.getByRole("menuitem", { name: "Manage roles" })).toBeVisible();
     expect(screen.getByRole("menuitem", { name: "View login devices" })).toBeVisible();
