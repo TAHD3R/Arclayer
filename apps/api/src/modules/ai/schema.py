@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from src.common.schemas import BaseSchema
 from src.models.agents.conversation import AgentConversationMode
+from src.modules.ai.provider_icon import AIProviderIcon
 
 AIReasoningEffort = Literal["low", "medium", "high"]
 
@@ -14,9 +17,10 @@ class AIModelCatalogItem(BaseSchema):
     id: str
     provider: str
     label: str
-    label_key: str | None = None
+    label_i18n: dict[str, str] = Field(default_factory=dict)
     description: str | None = None
-    description_key: str | None = None
+    description_i18n: dict[str, str] = Field(default_factory=dict)
+    provider_icon: AIProviderIcon | None = None
     available: bool = True
 
 

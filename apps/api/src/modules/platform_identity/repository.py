@@ -119,6 +119,16 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             query = query.using_db(conn)
         return await query.first()
 
+    async def get_operator_by_id(
+        self, *, operator_id: UUID, conn: BaseDBAsyncClient | None = None, for_update: bool = False
+    ) -> PlatformOperator | None:
+        query = PlatformOperator.filter(id=operator_id)
+        if conn is not None:
+            query = query.using_db(conn)
+        if for_update:
+            query = query.select_for_update()
+        return await query.first()
+
     async def get_invitation_by_id(
         self, *, invitation_id: UUID, conn: BaseDBAsyncClient | None = None, for_update: bool = False
     ) -> PlatformOperatorInvitation | None:
@@ -346,6 +356,14 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             return snapshot
         raise Forbidden(error="PLATFORM_PERMISSION_DENIED")
 
+    async def assert_current_platform_actor_for_update(
+        self, *, actor_user_id: UUID, at: datetime, conn: BaseDBAsyncClient
+    ) -> PlatformIdentitySnapshot:
+        snapshot = await self.load_authority_snapshot_for_update(user_id=actor_user_id, at=at, conn=conn)
+        if snapshot.is_instance_owner or snapshot.is_active_operator:
+            return snapshot
+        raise Forbidden(error="PLATFORM_SESSION_ACCESS_REVOKED")
+
     async def lock_role_revision_authority_for_update(
         self, *, role_id: UUID, at: datetime, conn: BaseDBAsyncClient
     ) -> PlatformRoleBinding | None:
@@ -411,6 +429,12 @@ class PlatformIdentityRepository(TortoiseORMRepository):
         if conn is not None:
             query = query.using_db(conn)
         return await query.order_by("recent_activity_at", "id")
+
+    async def list_active_sessions_for_operator(self, *, operator_id: UUID) -> list[PlatformSession]:
+        operator = await self.get_operator_by_id(operator_id=operator_id)
+        if operator is None:
+            raise NotFound(error="PLATFORM_OPERATOR_NOT_FOUND")
+        return await self.list_active_sessions_for_user(user_id=UUID(str(operator.user_id)))
 
     async def get_step_up_proof_by_hash(
         self,
@@ -1442,10 +1466,13 @@ class PlatformIdentityRepository(TortoiseORMRepository):
     async def get_action_policy(
         self, *, action_code: str, conn: BaseDBAsyncClient, for_update: bool = False
     ) -> PlatformActionPolicy | None:
-        query = PlatformActionPolicy.filter(code=action_code).using_db(conn).select_related("permission")
-        if for_update:
-            query = query.select_for_update()
-        return await query.first()
+        query = PlatformActionPolicy.filter(code=action_code).using_db(conn)
+        if not for_update:
+            return await query.select_related("permission").first()
+        policy = await query.select_for_update().first()
+        if policy is not None:
+            await policy.fetch_related("permission", using_db=conn)
+        return policy
 
     async def get_platform_session(
         self, *, session_id: UUID, conn: BaseDBAsyncClient, for_update: bool = False
@@ -1973,7 +2000,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
         if not matches:
             raise Conflict(error="PLATFORM_OWNERSHIP_TRANSFER_IDEMPOTENCY_CONFLICT")
 
-    async def assign_roles_additively(
+    async def replace_operator_roles(
         self,
         *,
         actor_user_id: UUID,
@@ -1983,7 +2010,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
         idempotency_key: str,
         correlation_id: UUID,
     ) -> PlatformMutationReceipt:
-        action = "assign_platform_roles"
+        action = "replace_platform_roles"
         fingerprint = self._fingerprint((str(target_user_id), expected_operator_revision, sorted(map(str, role_ids))))
         now = datetime.now(UTC)
         async with self.transaction() as conn:
@@ -2037,6 +2064,17 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             )
             existing_role_ids = {UUID(str(item.role_id)) for item in existing}
             added_role_ids = sorted(role_ids - existing_role_ids, key=str)
+            removed_role_ids = sorted(existing_role_ids - role_ids, key=str)
+            if removed_role_ids:
+                await (
+                    PlatformOperatorRoleAssignment.filter(
+                        operator_id=target.operator_id,
+                        role_id__in=removed_role_ids,
+                        ended_at__isnull=True,
+                    )
+                    .using_db(conn)
+                    .update(ended_at=now)
+                )
             for role_id in added_role_ids:
                 await PlatformOperatorRoleAssignment.create(
                     using_db=conn,
@@ -2048,12 +2086,12 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             operator = await self.get_operator_by_user_id(user_id=target_user_id, conn=conn, for_update=True)
             if operator is None:
                 raise Conflict(error="PLATFORM_OPERATOR_REVISION_STALE")
-            if added_role_ids:
+            if added_role_ids or removed_role_ids:
                 operator.revision += 1
                 await operator.save(update_fields=["revision"], using_db=conn)
             await self._write_audit(
                 audit=PlatformAuditEvent(
-                    event_name="platform.operator.roles_assigned",
+                    event_name="platform.operator.roles_replaced",
                     actor_user_id=actor_user_id,
                     subject_user_id=target_user_id,
                     correlation_id=correlation_id,
@@ -2062,7 +2100,11 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                 entity_type="platform_operator",
                 entity_id=operator.id,
                 conn=conn,
-                properties={"added_role_ids": [str(role_id) for role_id in added_role_ids]},
+                properties={
+                    "added_role_ids": [str(role_id) for role_id in added_role_ids],
+                    "removed_role_ids": [str(role_id) for role_id in removed_role_ids],
+                    "role_ids": [str(role_id) for role_id in sorted(role_ids, key=str)],
+                },
             )
             await self._record_mutation(
                 actor_user_id=actor_user_id,
@@ -2170,9 +2212,8 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             )
             if replay:
                 return replay
-            await self.assert_platform_permission_for_update(
+            await self.assert_current_platform_actor_for_update(
                 actor_user_id=actor_user_id,
-                permission_code=PlatformPermissionCode.ACCESS_SESSIONS_REVOKE,
                 at=now,
                 conn=conn,
             )
@@ -2228,6 +2269,196 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             )
             return PlatformMutationReceipt(entity_id=entity_id, mutation=action, correlation_id=correlation_id)
 
+    async def revoke_operator_session(
+        self,
+        *,
+        actor_user_id: UUID,
+        operator_id: UUID,
+        session_id: UUID,
+        idempotency_key: str,
+        correlation_id: UUID,
+    ) -> PlatformMutationReceipt:
+        action = "revoke_operator_platform_session"
+        fingerprint = self._fingerprint((str(operator_id), str(session_id)))
+        now = datetime.now(UTC)
+        async with self.transaction() as conn:
+            replay = await self._mutation_replay(
+                actor_user_id=actor_user_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                fingerprint=fingerprint,
+                conn=conn,
+            )
+            if replay:
+                return replay
+            await self.assert_platform_permission_for_update(
+                actor_user_id=actor_user_id,
+                permission_code=PlatformPermissionCode.ACCESS_SESSIONS_REVOKE,
+                at=now,
+                conn=conn,
+            )
+            operator = await self.get_operator_by_id(operator_id=operator_id, conn=conn, for_update=True)
+            if operator is None or operator.status == PlatformOperatorStatus.DEACTIVATED:
+                raise NotFound(error="PLATFORM_ACTIVE_OPERATOR_NOT_FOUND")
+            target_user_id = UUID(str(operator.user_id))
+            if target_user_id == actor_user_id:
+                raise Conflict(error="PLATFORM_OPERATOR_SELF_SESSION_MANAGEMENT_FORBIDDEN")
+            session = (
+                await PlatformSession
+                .filter(
+                    id=session_id,
+                    operator_id=operator_id,
+                    actor_user_id=target_user_id,
+                    revoked_at__isnull=True,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if session is None:
+                raise NotFound(error="PLATFORM_SESSION_NOT_FOUND")
+            session.revoked_at = now
+            session.revoked_by_user_id = actor_user_id
+            session.token_version += 1
+            await session.save(
+                update_fields=["revoked_at", "revoked_by_user_id", "token_version"],
+                using_db=conn,
+            )
+            await (
+                PlatformStepUpProof
+                .filter(session_id=session_id, status=PlatformStepUpProofStatus.ACTIVE)
+                .using_db(conn)
+                .update(status=PlatformStepUpProofStatus.INVALIDATED)
+            )
+            await self._write_audit(
+                audit=PlatformAuditEvent(
+                    event_name="platform.operator_session.revoked",
+                    actor_user_id=actor_user_id,
+                    subject_user_id=target_user_id,
+                    correlation_id=correlation_id,
+                    idempotency_key=idempotency_key,
+                ),
+                entity_type="platform_session",
+                entity_id=session.id,
+                conn=conn,
+                properties={"operator_id": str(operator_id)},
+            )
+            await self._record_mutation(
+                actor_user_id=actor_user_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                fingerprint=fingerprint,
+                entity_id=session.id,
+                correlation_id=correlation_id,
+                conn=conn,
+            )
+            return PlatformMutationReceipt(
+                entity_id=session.id,
+                mutation=action,
+                correlation_id=correlation_id,
+            )
+
+    async def reset_operator_mfa(
+        self,
+        *,
+        actor_user_id: UUID,
+        operator_id: UUID,
+        expected_operator_revision: int,
+        reason: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+    ) -> PlatformMutationReceipt:
+        action = "reset_platform_operator_mfa"
+        fingerprint = self._fingerprint((str(operator_id), expected_operator_revision, reason))
+        now = datetime.now(UTC)
+        async with self.transaction() as conn:
+            replay = await self._mutation_replay(
+                actor_user_id=actor_user_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                fingerprint=fingerprint,
+                conn=conn,
+            )
+            if replay:
+                return replay
+            await self.assert_platform_permission_for_update(
+                actor_user_id=actor_user_id,
+                permission_code=PlatformPermissionCode.ACCESS_MFA_RESET,
+                at=now,
+                conn=conn,
+            )
+            operator = await self.get_operator_by_id(operator_id=operator_id, conn=conn, for_update=True)
+            if operator is None or operator.status != PlatformOperatorStatus.ACTIVE:
+                raise NotFound(error="PLATFORM_ACTIVE_OPERATOR_NOT_FOUND")
+            target_user_id = UUID(str(operator.user_id))
+            if target_user_id == actor_user_id:
+                raise Conflict(error="PLATFORM_OPERATOR_SELF_MFA_RESET_FORBIDDEN")
+            if await self.is_instance_owner(user_id=target_user_id, conn=conn):
+                raise Conflict(error="PLATFORM_OWNER_MFA_RECOVERY_FORBIDDEN")
+            if operator.revision != expected_operator_revision:
+                raise Conflict(error="PLATFORM_OPERATOR_REVISION_STALE")
+            revoked_method_count = await (
+                PlatformMfaMethod
+                .filter(user_id=target_user_id, revoked_at__isnull=True)
+                .using_db(conn)
+                .update(status=PlatformMfaMethodStatus.REVOKED, revoked_at=now)
+            )
+            await (
+                PlatformMfaRecoveryCode
+                .filter(operator_id=operator_id, used_at__isnull=True, invalidated_at__isnull=True)
+                .using_db(conn)
+                .update(invalidated_at=now)
+            )
+            revoked_session_count = await PlatformSession.filter(
+                actor_user_id=target_user_id,
+                revoked_at__isnull=True,
+            ).using_db(conn).count()
+            await self._revoke_actor_sessions_and_proofs(
+                user_id=target_user_id,
+                revoked_by_user_id=actor_user_id,
+                revoked_at=now,
+                conn=conn,
+            )
+            operator.status = PlatformOperatorStatus.MFA_SETUP_REQUIRED
+            operator.setup_reason = PlatformOperatorSetupReason.RECOVERY
+            operator.revision += 1
+            await operator.save(update_fields=["status", "setup_reason", "revision"], using_db=conn)
+            await self._write_audit(
+                audit=PlatformAuditEvent(
+                    event_name="platform.operator_mfa.reset",
+                    actor_user_id=actor_user_id,
+                    subject_user_id=target_user_id,
+                    correlation_id=correlation_id,
+                    idempotency_key=idempotency_key,
+                ),
+                entity_type="platform_operator",
+                entity_id=operator.id,
+                conn=conn,
+                properties={
+                    "expected_operator_revision": expected_operator_revision,
+                    "committed_operator_revision": operator.revision,
+                    "reason": reason,
+                    "revoked_method_count": revoked_method_count,
+                    "revoked_session_count": revoked_session_count,
+                },
+            )
+            await self._record_mutation(
+                actor_user_id=actor_user_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                fingerprint=fingerprint,
+                entity_id=operator.id,
+                correlation_id=correlation_id,
+                conn=conn,
+            )
+            return PlatformMutationReceipt(
+                entity_id=operator.id,
+                mutation=action,
+                correlation_id=correlation_id,
+            )
+
     async def remove_current_actor_mfa_method(
         self, *, actor_user_id: UUID, method_id: UUID, idempotency_key: str, correlation_id: UUID
     ) -> PlatformMutationReceipt:
@@ -2245,8 +2476,10 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             )
             if replay:
                 return replay
-            snapshot = await self.assert_platform_permission_for_update(
-                actor_user_id=actor_user_id, permission_code=PlatformPermissionCode.ACCESS_MFA_RESET, at=now, conn=conn
+            snapshot = await self.assert_current_platform_actor_for_update(
+                actor_user_id=actor_user_id,
+                at=now,
+                conn=conn,
             )
             methods = (
                 await PlatformMfaMethod

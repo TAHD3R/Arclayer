@@ -10,18 +10,30 @@ describe("auth branding i18n", () => {
   it("uses localized slogan copy for zh-CN and en-US", async () => {
     expect(i18n.t("auth:SLOGAN_TITLE")).toBe("Arclayer");
     expect(i18n.t("auth:SLOGAN_SUBTITLE")).toBe("结构化内容，可视化构建。");
+    expect(i18n.t("auth:LOGIN_SLOGAN_HEADLINE")).toBe("让想法成为作品");
+    expect(i18n.t("auth:LOGIN_SLOGAN_PROMISE")).toBe("用 AI 构建内容与网站");
 
     await i18n.changeLanguage("en-US");
     expect(i18n.t("auth:SLOGAN_TITLE")).toBe("Arclayer");
     expect(i18n.t("auth:SLOGAN_SUBTITLE")).toBe("Structured content, visually built.");
+    expect(i18n.t("auth:LOGIN_SLOGAN_HEADLINE")).toBe("Bring your ideas to life");
+    expect(i18n.t("auth:LOGIN_SLOGAN_PROMISE")).toBe("Build content and websites with AI");
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
 
-  it("uses localized separator copy for the auth oauth divider", async () => {
+  it("uses localized copy for login-method actions and dividers", async () => {
     expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("或使用以下方式登录");
+    expect(i18n.t("auth:OAUTH_METHOD_DIVIDER")).toBe("或");
+    expect(i18n.t("auth:LOGIN_CONTINUE_EMAIL")).toBe("使用邮箱登录");
+    expect(i18n.t("auth:LOGIN_BACK_TO_METHODS")).toBe("返回");
+    expect(i18n.t("auth:CREATE_ACCOUNT")).toBe("注册");
 
     await i18n.changeLanguage("en-US");
     expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("Or continue with");
+    expect(i18n.t("auth:OAUTH_METHOD_DIVIDER")).toBe("OR");
+    expect(i18n.t("auth:LOGIN_CONTINUE_EMAIL")).toBe("Continue with email");
+    expect(i18n.t("auth:LOGIN_BACK_TO_METHODS")).toBe("Go Back");
+    expect(i18n.t("auth:CREATE_ACCOUNT")).toBe("Sign up");
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
 

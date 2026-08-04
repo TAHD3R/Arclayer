@@ -590,12 +590,6 @@ def build_core_settings_schema() -> ConfigSchema:
                         ],
                     ),
                     ConfigField(
-                        key="default_model",
-                        type="str",
-                        default="deepseek-v4-pro",
-                        label="Default model",
-                    ),
-                    ConfigField(
                         key="reasoning_effort",
                         type="str",
                         default="medium",
@@ -682,6 +676,12 @@ def build_core_settings_schema() -> ConfigSchema:
                 id="auth",
                 title="Auth",
                 fields=[
+                    ConfigField(
+                        key="configuration_revision",
+                        type="int",
+                        default=1,
+                        label="Sign-in configuration revision",
+                    ),
                     ConfigField(
                         key="public_register_enabled",
                         type="bool",

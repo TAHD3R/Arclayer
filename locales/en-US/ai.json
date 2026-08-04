@@ -245,6 +245,7 @@
   "AI_CHAT_MODEL_CLAUDE_SONNET_DESC": "Strong long-form analysis and writing",
   "AI_CHAT_MODEL_SEARCH_PLACEHOLDER": "Search models…",
   "AI_CHAT_MODEL_EMPTY": "AI is currently unavailable in this workspace. Try again later, or contact support if the problem continues.",
+  "AI_CHAT_MODEL_DESCRIPTION_UNAVAILABLE": "No model description configured",
   "AI_CHAT_MODEL_AUTO": "Auto",
   "AI_CHAT_MODEL_AUTO_DESC": "Use the system default model from enabled model providers.",
   "AI_CHAT_MODEL_GROUP": "Models",

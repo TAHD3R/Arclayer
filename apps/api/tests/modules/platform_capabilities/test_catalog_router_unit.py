@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from src.config import get_settings
-from src.core.exceptions import init_exception_handlers
+from src.core.exceptions import ServiceUnavailable, init_exception_handlers
 from src.core.registry import create_app, create_platform_app
 from src.modules.platform_capabilities.rollout_schema import (
     WorkspaceCapabilityRolloutApplyReceipt,
@@ -26,6 +26,7 @@ from src.modules.platform_identity.http import (
 )
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.agents.rollout_eligibility import AgentWorkspaceCapabilityEligibility
 from tests.utils.asgi_client import asgi_client
 
 
@@ -167,6 +168,18 @@ def test_catalog_route_is_mounted_only_in_platform_composition() -> None:
 
     assert "/platform-api/v1/capabilities" in platform_paths
     assert "/platform-api/v1/capabilities" not in product_paths
+
+
+def test_workspace_capability_rollout_composition_registers_only_ai_services_eligibility() -> None:
+    service = get_workspace_capability_rollout_service(
+        settings=get_settings(),
+        identity_repository=_PermissionRepository(),
+    )
+    eligibility = service._eligibility
+
+    assert isinstance(eligibility._registered("ai-services"), AgentWorkspaceCapabilityEligibility)
+    with pytest.raises(ServiceUnavailable, match="WORKSPACE_CAPABILITY_ELIGIBILITY_UNREGISTERED"):
+        eligibility._registered("commerce")
 
 
 @pytest.mark.asyncio

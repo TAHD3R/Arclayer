@@ -20,7 +20,7 @@ def test_core_settings_schema_includes_agent_runtime_controls() -> None:
     assert agent_fields["enabled"].default is True
     assert agent_fields["default_mode"].default == "build"
     assert [option.value for option in agent_fields["default_mode"].options] == ["build", "plan"]
-    assert agent_fields["default_model"].default == "deepseek-v4-pro"
+    assert "default_model" not in agent_fields
     assert agent_fields["system_prompt"].default == ""
     assert "conversation_retention_days" not in agent_fields
     assert "auto_title_enabled" not in agent_fields
@@ -45,7 +45,6 @@ def test_core_settings_schema_includes_langgraph_persistence_controls() -> None:
 @pytest.mark.parametrize(
     ("patch", "section", "field"),
     [
-        ({"ai_agents": {"default_model": "   "}}, "ai_agents", "default_model"),
         ({"ai_agents": {"default_mode": "agent"}}, "ai_agents", "default_mode"),
         ({"ai_agents": {"default_mode": "execute"}}, "ai_agents", "default_mode"),
         ({"ai_agents": {"reasoning_effort": "maximum"}}, "ai_agents", "reasoning_effort"),
@@ -76,7 +75,6 @@ def test_ai_agent_settings_schema_accepts_valid_runtime_values() -> None:
         {
             "ai_agents": {
                 "default_mode": "plan",
-                "default_model": "openai/gpt-5-mini",
                 "system_prompt": "Respond with concise project-aware guidance.",
                 "reasoning_effort": "high",
                 "monthly_budget_micros": 25_000_000,

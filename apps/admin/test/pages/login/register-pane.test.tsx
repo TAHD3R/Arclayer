@@ -69,10 +69,40 @@ describe("RegisterPane oauth section", () => {
     const oauthWrapper = container.querySelector(".empty\\:hidden");
     const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
-    expect(contentGroup).toHaveClass("grid", "gap-2");
-    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
+    expect(contentGroup).toHaveClass("grid", "gap-4");
+    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-6");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByTestId("login-brand-slogan")).toBeInTheDocument();
+    expect(screen.getByText("auth:REGISTER_PAGE_TITLE")).toHaveClass("sr-only");
+    expect(screen.queryByText("auth:FIELD_EMAIL_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("auth:FIELD_EMAIL_LABEL").closest("[data-slot='input-group']"),
+    ).toHaveClass("h-14!", "rounded-full!");
+    expect(
+      screen.getByLabelText("auth:FIELD_PASSWORD_LABEL").closest("[data-slot='input-group']"),
+    ).toHaveClass("h-14!", "rounded-full!");
+    expect(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" })).toHaveClass(
+      "h-14!",
+      "w-full",
+      "rounded-full!",
+    );
+    expect(
+      screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }).querySelector("svg"),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toHaveClass(
+      "h-14!",
+      "w-full",
+      "rounded-full!",
+    );
+    expect(
+      screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" }).querySelector("svg"),
+    ).toBeNull();
+    expect(screen.getByTestId("auth-account-switch")).toContainElement(
+      screen.getByRole("button", { name: "auth:SIGN_IN" }),
+    );
+    expect(screen.getByRole("button", { name: "auth:SIGN_IN" })).toHaveClass("underline");
     expect(
       screen
         .getByTestId("oauth-section")
@@ -144,7 +174,7 @@ describe("RegisterPane oauth section", () => {
     });
   });
 
-  it("hides password guidance before interaction and shows the checklist while invalid", async () => {
+  it("hides password guidance before focus and shows the checklist in a popover", async () => {
     const user = userEvent.setup();
 
     renderPane({
@@ -154,13 +184,14 @@ describe("RegisterPane oauth section", () => {
     expect(screen.queryByText("auth:PASSWORD_REQUIREMENT_LENGTH")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "short");
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENTS_TITLE")).toBeInTheDocument();
     expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LENGTH")).toBeInTheDocument();
     expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LOWERCASE")).toBeInTheDocument();
     expect(screen.getByText("auth:PASSWORD_REQUIREMENT_UPPERCASE")).toBeInTheDocument();
     expect(screen.getByText("auth:PASSWORD_REQUIREMENT_NUMBER")).toBeInTheDocument();
   });
 
-  it("shows a single success message when all password requirements are met", async () => {
+  it("keeps the full live checklist visible when all password requirements are met", async () => {
     const user = userEvent.setup();
 
     renderPane({
@@ -168,8 +199,11 @@ describe("RegisterPane oauth section", () => {
     });
 
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
-    expect(await screen.findByText("auth:PASSWORD_REQUIREMENTS_MET")).toBeInTheDocument();
-    expect(screen.queryByText("auth:PASSWORD_REQUIREMENT_LENGTH")).not.toBeInTheDocument();
+    expect(await screen.findByText("auth:PASSWORD_REQUIREMENT_LENGTH")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LOWERCASE")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_UPPERCASE")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_NUMBER")).toBeInTheDocument();
+    expect(screen.queryByText("auth:PASSWORD_REQUIREMENTS_MET")).not.toBeInTheDocument();
   });
 
   it("shows pending verification state and resends when countdown is over", async () => {

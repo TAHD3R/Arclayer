@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 from uuid import UUID, uuid4
@@ -92,6 +93,36 @@ class UnregisteredWorkspaceCapabilityEligibilityPort:
     ) -> WorkspaceCapabilityEligibilityDecision:
         _ = (capability_id, workspace_id, conn)
         raise ServiceUnavailable(error="WORKSPACE_CAPABILITY_ELIGIBILITY_UNREGISTERED")
+
+
+class WorkspaceCapabilityEligibilityRegistry:
+    """Dispatches rollout eligibility to the capability's owning domain."""
+
+    def __init__(self, registrations: Mapping[str, WorkspaceCapabilityEligibilityPort]) -> None:
+        self._registrations = dict(registrations)
+
+    def _registered(self, capability_id: str) -> WorkspaceCapabilityEligibilityPort:
+        eligibility = self._registrations.get(capability_id)
+        if eligibility is None:
+            raise ServiceUnavailable(error="WORKSPACE_CAPABILITY_ELIGIBILITY_UNREGISTERED")
+        return eligibility
+
+    async def capture_eligibility(
+        self, *, capability_id: str, conn: BaseDBAsyncClient
+    ) -> WorkspaceCapabilityEligibilitySnapshot:
+        return await self._registered(capability_id).capture_eligibility(
+            capability_id=capability_id,
+            conn=conn,
+        )
+
+    async def evaluate_workspace_eligibility(
+        self, *, capability_id: str, workspace_id: UUID, conn: BaseDBAsyncClient
+    ) -> WorkspaceCapabilityEligibilityDecision:
+        return await self._registered(capability_id).evaluate_workspace_eligibility(
+            capability_id=capability_id,
+            workspace_id=workspace_id,
+            conn=conn,
+        )
 
 
 class PlatformIdentityWorkspaceCapabilityRolloutPermission:

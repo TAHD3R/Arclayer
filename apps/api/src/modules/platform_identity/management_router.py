@@ -34,15 +34,16 @@ from src.modules.platform_identity.management_schema import (
     PlatformMfaWebAuthnBeginRequest,
     PlatformMfaWebAuthnCompleteRequest,
     PlatformMfaWebAuthnRegistrationOut,
+    PlatformOperatorMfaResetRequest,
     PlatformOperatorOffboardingRequest,
     PlatformOwnershipTransferNominationRequest,
     PlatformPermissionCatalogItemOut,
-    PlatformRoleAssignmentRequest,
+    PlatformRoleAssignmentReplaceRequest,
     PlatformRoleCatalogItemOut,
     PlatformSessionInventoryItemOut,
     PlatformSessionRevokeRequest,
-    PlatformSignInReadinessOut,
     PlatformStepUpProofOut,
+    PlatformStepUpTotpCompleteRequest,
     PlatformStepUpWebAuthnCompleteRequest,
     PlatformStepUpWebAuthnOptionsOut,
     PlatformTeamIdentityOut,
@@ -53,6 +54,13 @@ from src.modules.platform_identity.mfa_schema import PlatformTotpSetup
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.schema import PlatformMutationReceipt
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.platform_identity.sign_in_settings_schema import (
+    PlatformSignInPolicyUpdateRequest,
+    PlatformSignInProviderDeleteRequest,
+    PlatformSignInProviderUpdateRequest,
+    PlatformSignInSettingsOut,
+)
+from src.modules.platform_identity.sign_in_settings_service import PlatformSignInSettingsService
 from src.modules.platform_identity.step_up_schema import PlatformStepUpProofIssueRequest
 
 router = APIRouter(prefix="/access", tags=["platform.access"])
@@ -63,6 +71,13 @@ def get_platform_identity_management_service(
     connector_registry: Annotated[ConnectorRegistry, Depends(get_connector_registry)],
 ) -> PlatformIdentityManagementService:
     return PlatformIdentityManagementService(settings=settings, connector_registry=connector_registry)
+
+
+def get_platform_sign_in_settings_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    connector_registry: Annotated[ConnectorRegistry, Depends(get_connector_registry)],
+) -> PlatformSignInSettingsService:
+    return PlatformSignInSettingsService(settings=settings, connector_registry=connector_registry)
 
 
 @router.get(
@@ -83,7 +98,7 @@ async def get_current_platform_actor_profile(
     summary="Read the current Platform identity and delegated authority",
 )
 async def get_current_team_identity(
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_TEAM_READ)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformTeamIdentityOut]:
     return ApiResponse.success(data=await service.team_identity(user_id=actor.actor_id))
@@ -185,7 +200,10 @@ async def offboard_platform_operator(
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(
         data=await service.offboard_operator(
-            actor_user_id=actor.actor_id, target_user_id=target_user_id, request=payload
+            actor_user_id=actor.actor_id,
+            actor_session_id=actor.session_id,
+            target_user_id=target_user_id,
+            request=payload,
         )
     )
 
@@ -287,16 +305,16 @@ async def apply_platform_custom_role_revision(
 @router.post(
     "/team/operators/{target_user_id}/roles",
     response_model=ResponseModel[PlatformMutationReceipt],
-    summary="Add reusable Platform Role assignments without replacing existing roles",
+    summary="Replace the complete reusable Platform Role assignment set for one Operator",
 )
-async def assign_platform_operator_roles(
+async def replace_platform_operator_roles(
     target_user_id: UUID,
-    payload: PlatformRoleAssignmentRequest,
+    payload: PlatformRoleAssignmentReplaceRequest,
     actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_ROLES_MANAGE)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(
-        data=await service.assign_roles_additively(
+        data=await service.replace_operator_roles(
             actor_user_id=actor.actor_id,
             actor_session_id=actor.session_id,
             target_user_id=target_user_id,
@@ -341,9 +359,7 @@ async def list_platform_permissions(
     summary="List the current actor's active Platform device sessions",
 )
 async def list_current_platform_sessions(
-    actor: Annotated[
-        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_READ)
-    ],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[tuple[PlatformSessionInventoryItemOut, ...]]:
     return ApiResponse.success(
@@ -359,9 +375,7 @@ async def list_current_platform_sessions(
 async def revoke_current_platform_session(
     session_id: PublicUUID,
     payload: PlatformSessionRevokeRequest,
-    actor: Annotated[
-        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_REVOKE)
-    ],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(
@@ -381,9 +395,7 @@ async def revoke_current_platform_session(
 )
 async def revoke_other_current_platform_sessions(
     payload: PlatformSessionRevokeRequest,
-    actor: Annotated[
-        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_REVOKE)
-    ],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(
@@ -394,12 +406,77 @@ async def revoke_other_current_platform_sessions(
 
 
 @router.get(
+    "/team/operators/{operator_id}/sessions",
+    response_model=ResponseModel[tuple[PlatformSessionInventoryItemOut, ...]],
+    summary="List one Platform operator's active device sessions",
+)
+async def list_platform_operator_sessions(
+    operator_id: UUID,
+    _actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_READ),
+    ],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[tuple[PlatformSessionInventoryItemOut, ...]]:
+    return ApiResponse.success(data=await service.list_operator_sessions(operator_id=operator_id))
+
+
+@router.post(
+    "/team/operators/{operator_id}/sessions/{session_id}/revoke",
+    response_model=ResponseModel[PlatformMutationReceipt],
+    summary="Revoke one Platform operator device session",
+)
+async def revoke_platform_operator_session(
+    operator_id: UUID,
+    session_id: PublicUUID,
+    payload: PlatformSessionRevokeRequest,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_REVOKE),
+    ],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[PlatformMutationReceipt]:
+    return ApiResponse.success(
+        data=await service.revoke_operator_session(
+            actor_user_id=actor.actor_id,
+            operator_id=operator_id,
+            session_id=session_id,
+            request=payload,
+        )
+    )
+
+
+@router.post(
+    "/team/operators/{operator_id}/mfa/reset",
+    response_model=ResponseModel[PlatformMutationReceipt],
+    summary="Reset another active Platform operator's MFA enrollment",
+)
+async def reset_platform_operator_mfa(
+    operator_id: UUID,
+    payload: PlatformOperatorMfaResetRequest,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET),
+    ],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[PlatformMutationReceipt]:
+    return ApiResponse.success(
+        data=await service.reset_operator_mfa(
+            actor_user_id=actor.actor_id,
+            actor_session_id=actor.session_id,
+            operator_id=operator_id,
+            request=payload,
+        )
+    )
+
+
+@router.get(
     "/mfa/readiness",
     response_model=ResponseModel[PlatformMfaReadinessOut],
     summary="Read the current actor's safe Platform MFA readiness facts",
 )
 async def get_current_platform_mfa_readiness(
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_TEAM_READ)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMfaReadinessOut]:
     return ApiResponse.success(data=await service.mfa_readiness(user_id=actor.actor_id))
@@ -413,7 +490,7 @@ async def get_current_platform_mfa_readiness(
 async def remove_current_platform_mfa_method(
     method_id: UUID,
     payload: PlatformMfaMethodRemoveRequest,
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(
@@ -430,7 +507,7 @@ async def remove_current_platform_mfa_method(
 )
 async def begin_current_platform_totp_method(
     payload: PlatformMfaTotpBeginRequest,
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformTotpSetup]:
     return ApiResponse.success(
@@ -447,7 +524,7 @@ async def begin_current_platform_totp_method(
 )
 async def confirm_current_platform_totp_method(
     payload: PlatformMfaTotpConfirmRequest,
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMfaReadinessOut]:
     return ApiResponse.success(
@@ -464,7 +541,7 @@ async def confirm_current_platform_totp_method(
 )
 async def begin_current_platform_webauthn_method(
     payload: PlatformMfaWebAuthnBeginRequest,
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMfaWebAuthnRegistrationOut]:
     return ApiResponse.success(
@@ -481,12 +558,31 @@ async def begin_current_platform_webauthn_method(
 )
 async def complete_current_platform_webauthn_method(
     payload: PlatformMfaWebAuthnCompleteRequest,
-    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_MFA_RESET)],
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMfaReadinessOut]:
     return ApiResponse.success(
         data=await service.complete_current_webauthn_method(
             actor_user_id=actor.actor_id, actor_session_id=actor.session_id, request=payload
+        )
+    )
+
+
+@router.post(
+    "/step-up/authenticator-app/complete",
+    response_model=ResponseModel[PlatformStepUpProofOut],
+    summary="Complete an authenticator-app Platform action verification and issue an action-bound proof",
+)
+async def complete_platform_step_up_totp(
+    payload: PlatformStepUpTotpCompleteRequest,
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[PlatformStepUpProofOut]:
+    return ApiResponse.success(
+        data=await service.complete_step_up_totp(
+            actor_user_id=actor.actor_id,
+            session_id=actor.session_id,
+            request=payload,
         )
     )
 
@@ -526,15 +622,85 @@ async def complete_platform_step_up_webauthn(
 
 
 @router.get(
-    "/sign-in/readiness",
-    response_model=ResponseModel[PlatformSignInReadinessOut],
-    summary="Read configured registration and identity-provider readiness",
+    "/sign-in/settings",
+    response_model=ResponseModel[PlatformSignInSettingsOut],
+    summary="Read deployment sign-in, registration, and identity-provider settings",
 )
-async def get_platform_sign_in_readiness(
+async def get_platform_sign_in_settings(
     _actor: Annotated[
         PlatformSessionPrincipal,
         require_platform_permission(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ),
     ],
-    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
-) -> ResponseModel[PlatformSignInReadinessOut]:
-    return ApiResponse.success(data=await service.sign_in_readiness())
+    service: Annotated[PlatformSignInSettingsService, Depends(get_platform_sign_in_settings_service)],
+) -> ResponseModel[PlatformSignInSettingsOut]:
+    return ApiResponse.success(data=await service.get_settings())
+
+
+@router.put(
+    "/sign-in/settings/policy",
+    response_model=ResponseModel[PlatformSignInSettingsOut],
+    summary="Update deployment sign-in and registration policy",
+)
+async def update_platform_sign_in_policy(
+    payload: PlatformSignInPolicyUpdateRequest,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE),
+    ],
+    service: Annotated[PlatformSignInSettingsService, Depends(get_platform_sign_in_settings_service)],
+) -> ResponseModel[PlatformSignInSettingsOut]:
+    return ApiResponse.success(
+        data=await service.update_policy(
+            actor_user_id=actor.actor_id,
+            actor_session_id=actor.session_id,
+            request=payload,
+        )
+    )
+
+
+@router.put(
+    "/sign-in/settings/providers/{provider_key}",
+    response_model=ResponseModel[PlatformSignInSettingsOut],
+    summary="Create or replace one identity-provider configuration",
+)
+async def update_platform_sign_in_provider(
+    provider_key: str,
+    payload: PlatformSignInProviderUpdateRequest,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE),
+    ],
+    service: Annotated[PlatformSignInSettingsService, Depends(get_platform_sign_in_settings_service)],
+) -> ResponseModel[PlatformSignInSettingsOut]:
+    return ApiResponse.success(
+        data=await service.update_provider(
+            actor_user_id=actor.actor_id,
+            actor_session_id=actor.session_id,
+            provider_key=provider_key,
+            request=payload,
+        )
+    )
+
+
+@router.delete(
+    "/sign-in/settings/providers/{provider_key}",
+    response_model=ResponseModel[PlatformSignInSettingsOut],
+    summary="Delete one identity-provider configuration",
+)
+async def delete_platform_sign_in_provider(
+    provider_key: str,
+    payload: PlatformSignInProviderDeleteRequest,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE),
+    ],
+    service: Annotated[PlatformSignInSettingsService, Depends(get_platform_sign_in_settings_service)],
+) -> ResponseModel[PlatformSignInSettingsOut]:
+    return ApiResponse.success(
+        data=await service.delete_provider(
+            actor_user_id=actor.actor_id,
+            actor_session_id=actor.session_id,
+            provider_key=provider_key,
+            request=payload,
+        )
+    )

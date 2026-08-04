@@ -9,7 +9,7 @@ import {
   listAIProjectAgents,
 } from "@/api/ai";
 import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
-import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { AUTO_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 
 vi.mock("@/api/ai", () => ({
   buildAIAgentApprovalsQueryKey: vi.fn((projectId: string | null | undefined) => [
@@ -122,6 +122,27 @@ describe("AIContentProposalCard", () => {
 
     expect(screen.queryByText("Content proposal")).not.toBeInTheDocument();
     expect(listAIProjectAgents).not.toHaveBeenCalled();
+  });
+
+  it("omits the model when automatic selection is enabled", async () => {
+    const user = userEvent.setup();
+    useAiChatStore.setState({ selectedModel: AUTO_AI_CHAT_MODEL });
+    renderCard();
+
+    await user.type(await screen.findByLabelText("Content proposal instruction"), "Rewrite");
+    await user.click(screen.getByRole("button", { name: /Create proposal/ }));
+
+    await waitFor(() => {
+      expect(createAIAgentContentDraftProposal).toHaveBeenCalledWith({
+        projectId: "project-1",
+        payload: {
+          targetId: "item-1",
+          instruction: "Rewrite",
+          model: undefined,
+          reasoningEffort: "high",
+        },
+      });
+    });
   });
 
   it("explains why the writer skill is disabled", async () => {

@@ -48,29 +48,27 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
 
   await currentPage.setViewportSize({ width: 1280, height: 900 });
   await currentPage.goto(platformUrl("/"));
-  await currentPage.getByLabel("Theme").click();
-  await currentPage.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
+  await currentPage.getByRole("button", { name: "Open administrator menu" }).click();
+  await currentPage.getByRole("menuitem", { name: "Account settings" }).click();
+  await currentPage.getByRole("button", { name: "Appearance & language" }).click();
+  await currentPage.getByRole("button", { name: "Dark", exact: true }).click();
   await expect
     .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
     .toBe(true);
   await currentPage.emulateMedia({ colorScheme: "light" });
-  await currentPage.getByLabel("Theme").click();
-  await currentPage.getByRole("menuitemradio", { name: "Light", exact: true }).click();
+  await currentPage.getByRole("button", { name: "Light", exact: true }).click();
   await expect
     .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
     .toBe(false);
   await currentPage.emulateMedia({ colorScheme: "dark" });
-  await currentPage.getByLabel("Theme").click();
-  await currentPage.getByRole("menuitemradio", { name: "Use system setting", exact: true }).click();
+  await currentPage.getByRole("button", { name: "Use system setting", exact: true }).click();
   await expect
     .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
     .toBe(true);
 
-  await currentPage.getByLabel("Change language").click();
-  await currentPage.getByRole("menuitemradio", { name: "简体中文", exact: true }).click();
+  await currentPage.getByRole("button", { name: "简体中文", exact: true }).click();
   await expect(currentPage.getByRole("heading", { name: "总览", exact: true })).toBeVisible();
-  await currentPage.getByLabel("切换语言").click();
-  await currentPage.getByRole("menuitemradio", { name: "English", exact: true }).click();
+  await currentPage.getByRole("button", { name: "English", exact: true }).click();
   await expect(currentPage.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
 
   const revokedContext = await browser.newContext({ colorScheme: "light", locale: "en-US" });
@@ -78,7 +76,7 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
   await signInToPlatform(revokedPage);
   await expect(revokedPage.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
 
-  await currentPage.goto(platformUrl("/access/sessions"));
+  await currentPage.getByRole("button", { name: "Signed-in devices", exact: true }).click();
   const revokeOthers = currentPage.getByRole("button", {
     name: "Revoke other sessions",
     exact: true,

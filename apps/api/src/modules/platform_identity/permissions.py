@@ -86,5 +86,7 @@ class PlatformActionCode(StrEnum):
     INVITE_OPERATOR = "platform.access.invite_operator"
     CHANGE_ROLE = "platform.access.change_role"
     REMOVE_OPERATOR = "platform.access.remove_operator"
+    MANAGE_CURRENT_MFA = "platform.access.manage_current_mfa"
     RESET_OPERATOR_MFA = "platform.access.reset_operator_mfa"
+    CHANGE_SIGN_IN_SETTINGS = "platform.access.change_sign_in_settings"
     TRANSFER_INSTANCE_OWNERSHIP = "platform.access.transfer_instance_ownership"

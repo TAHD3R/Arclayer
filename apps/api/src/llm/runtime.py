@@ -47,6 +47,7 @@ _PRICING_MICROS_PER_1K: dict[str, dict[str, float]] = {
     "claude-sonnet-4-6": {"input": 3000.0, "output": 15000.0},
     "deepseek-v4-pro": {"input": 435.0, "output": 870.0},
 }
+ModelPricing = tuple[int, int]
 
 
 def detect_provider(model: str) -> str:
@@ -64,29 +65,49 @@ def detect_provider(model: str) -> str:
     return model.split("/")[0] if "/" in model else "unknown"
 
 
-def compute_cost_micros(model: str, prompt_tokens: int, completion_tokens: int) -> int:
+def compute_cost_micros(
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    *,
+    pricing: ModelPricing | None = None,
+) -> int:
     """Compute actual cost in microdollars from token counts.
 
     Falls back to estimated 1 µ$/token for unknown models.
     """
-    pricing = _PRICING_MICROS_PER_1K.get(model)
-    if pricing is None:
+    if pricing is not None:
+        input_cost, output_cost = pricing
+        configured_cost = (prompt_tokens * input_cost + completion_tokens * output_cost) / 1_000_000
+        return max(int(round(configured_cost)), 1) if configured_cost > 0 else 0
+    static_pricing = _PRICING_MICROS_PER_1K.get(model)
+    if static_pricing is None:
         return prompt_tokens + completion_tokens  # rough fallback at 1 µ$/token
 
-    cost = (prompt_tokens * pricing["input"] + completion_tokens * pricing["output"]) / 1000.0
+    cost = (prompt_tokens * static_pricing["input"] + completion_tokens * static_pricing["output"]) / 1000.0
     return max(int(round(cost)), 1)
 
 
-def estimate_cost_micros(model: str, prompt_tokens: int, max_tokens: int) -> int:
+def estimate_cost_micros(
+    model: str,
+    prompt_tokens: int,
+    max_tokens: int,
+    *,
+    pricing: ModelPricing | None = None,
+) -> int:
     """Pre-call cost estimate in microdollars using model pricing.
 
     Falls back to 1 µ$/token for unknown models.
     """
-    pricing = _PRICING_MICROS_PER_1K.get(model)
-    if pricing is None:
+    if pricing is not None:
+        input_cost, output_cost = pricing
+        configured_cost = (prompt_tokens * input_cost + max_tokens * output_cost) / 1_000_000
+        return max(int(round(configured_cost)), 1) if configured_cost > 0 else 0
+    static_pricing = _PRICING_MICROS_PER_1K.get(model)
+    if static_pricing is None:
         return prompt_tokens + max_tokens  # rough fallback at 1 µ$/token
 
-    cost = (prompt_tokens * pricing["input"] + max_tokens * pricing["output"]) / 1000.0
+    cost = (prompt_tokens * static_pricing["input"] + max_tokens * static_pricing["output"]) / 1000.0
     return max(int(round(cost)), 1)
 
 
@@ -169,7 +190,7 @@ class LLMRuntime:
         model: str,
         max_tokens: int | None,
         provider_params: dict[str, Any] | None,
-    ) -> tuple[str, int, int, int, dict[str, Any]]:
+    ) -> tuple[str, int, int, int, dict[str, Any], ModelPricing | None]:
         """Resolve key + policy before a provider call.
 
         Returns (virtual_key, prompt_tokens, estimated_cost_micros, effective_max_tokens, merged_params).
@@ -177,8 +198,18 @@ class LLMRuntime:
         from src.llm.keys import resolve_litellm_key
         from src.llm.policy import enforce_model_policy, resolve_model_policy, resolve_provider_retention_params
         from src.llm.token_counter import estimate_prompt_tokens_upper_bound
+        from src.modules.system.ai_providers.configuration import resolve_active_system_model
 
-        provider_name = detect_provider(model)
+        configured_model = await resolve_active_system_model(model)
+        provider_name = configured_model.provider if configured_model is not None else detect_provider(model)
+        pricing = (
+            (
+                configured_model.billing.input_cost_micros_per_million_tokens,
+                configured_model.billing.output_cost_micros_per_million_tokens,
+            )
+            if configured_model is not None and configured_model.billing is not None
+            else None
+        )
         effective_max_tokens = max_tokens if max_tokens is not None else self._default_max_tokens
 
         resolved_key = await resolve_litellm_key(
@@ -201,7 +232,12 @@ class LLMRuntime:
             messages,
             provider_params=merged_params,
         )
-        estimated_cost = estimate_cost_micros(model, prompt_tokens, effective_max_tokens)
+        estimated_cost = estimate_cost_micros(
+            model,
+            prompt_tokens,
+            effective_max_tokens,
+            pricing=pricing,
+        )
         enforce_model_policy(
             model=model,
             max_tokens=effective_max_tokens,
@@ -210,14 +246,21 @@ class LLMRuntime:
             provider=provider_name,
         )
 
-        return resolved_key.virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params
+        return (
+            resolved_key.virtual_key,
+            prompt_tokens,
+            estimated_cost,
+            effective_max_tokens,
+            merged_params,
+            pricing,
+        )
 
     async def chat(
         self,
         messages: list[dict[str, str]],
         *,
         context: LLMRequestContext,
-        model: str = "gpt-4o-mini",
+        model: str,
         temperature: float | None = None,
         max_tokens: int | None = None,
         budget_id: UUID | None = None,
@@ -234,6 +277,7 @@ class LLMRuntime:
             estimated_cost,
             effective_max_tokens,
             merged_params,
+            pricing,
         ) = await self._resolve_call_context(
             messages,
             context=context,
@@ -272,7 +316,12 @@ class LLMRuntime:
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
 
-        actual_cost = compute_cost_micros(model, prompt_tokens, completion_tokens)
+        actual_cost = compute_cost_micros(
+            model,
+            prompt_tokens,
+            completion_tokens,
+            pricing=pricing,
+        )
 
         if reservation is not None:
             await budget_commit(
@@ -296,7 +345,7 @@ class LLMRuntime:
         messages: list[dict[str, str]],
         *,
         context: LLMRequestContext,
-        model: str = "gpt-4o-mini",
+        model: str,
         temperature: float | None = None,
         max_tokens: int | None = None,
         budget_id: UUID | None = None,
@@ -313,6 +362,7 @@ class LLMRuntime:
             estimated_cost,
             effective_max_tokens,
             merged_params,
+            pricing,
         ) = await self._resolve_call_context(
             messages,
             context=context,
@@ -349,7 +399,12 @@ class LLMRuntime:
                     usage = chunk.get("usage", {})
                     prompt_tokens = usage.get("prompt_tokens", 0)
                     completion_tokens = usage.get("completion_tokens", 0)
-                    actual_cost = compute_cost_micros(model, prompt_tokens, completion_tokens)
+                    actual_cost = compute_cost_micros(
+                        model,
+                        prompt_tokens,
+                        completion_tokens,
+                        pricing=pricing,
+                    )
                     await budget_commit(
                         reservation_id=reservation.id,
                         actual_cost_micros=actual_cost,
@@ -361,7 +416,12 @@ class LLMRuntime:
                 usage = last_chunk.get("usage", {})
                 prompt_tokens = usage.get("prompt_tokens", 0)
                 completion_tokens = usage.get("completion_tokens", 0)
-                actual_cost = compute_cost_micros(model, prompt_tokens, completion_tokens)
+                actual_cost = compute_cost_micros(
+                    model,
+                    prompt_tokens,
+                    completion_tokens,
+                    pricing=pricing,
+                )
                 await budget_commit(
                     reservation_id=reservation.id,
                     actual_cost_micros=actual_cost,

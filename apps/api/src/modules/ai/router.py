@@ -39,7 +39,6 @@ async def list_chat_models(
             settings,
             workspace_id=ctx.workspace_id,
             user_id=user_id,
-            default_model=_str_setting(agent_settings, "default_model"),
             default_mode=_str_setting(agent_settings, "default_mode"),
             reasoning_effort=_str_setting(agent_settings, "reasoning_effort"),
         )

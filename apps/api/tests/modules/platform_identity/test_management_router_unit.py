@@ -57,15 +57,21 @@ def test_platform_identity_management_routes_are_platform_only_and_exactly_guard
         "/platform-api/v1/access/sessions/me",
         "/platform-api/v1/access/sessions/me/{session_id}/revoke",
         "/platform-api/v1/access/sessions/me/revoke-others",
+        "/platform-api/v1/access/team/operators/{operator_id}/sessions",
+        "/platform-api/v1/access/team/operators/{operator_id}/sessions/{session_id}/revoke",
+        "/platform-api/v1/access/team/operators/{operator_id}/mfa/reset",
         "/platform-api/v1/access/mfa/readiness",
         "/platform-api/v1/access/mfa/methods/{method_id}/remove",
         "/platform-api/v1/access/mfa/authenticator-app/setup",
         "/platform-api/v1/access/mfa/authenticator-app/setup/confirm",
         "/platform-api/v1/access/mfa/security-key/setup/options",
         "/platform-api/v1/access/mfa/security-key/setup/complete",
+        "/platform-api/v1/access/step-up/authenticator-app/complete",
         "/platform-api/v1/access/step-up/security-key/options",
         "/platform-api/v1/access/step-up/security-key/complete",
-        "/platform-api/v1/access/sign-in/readiness",
+        "/platform-api/v1/access/sign-in/settings",
+        "/platform-api/v1/access/sign-in/settings/policy",
+        "/platform-api/v1/access/sign-in/settings/providers/{provider_key}",
     }
     assert expected_paths <= platform_paths
     assert expected_paths.isdisjoint(product_paths)
@@ -79,7 +85,6 @@ def test_platform_identity_management_routes_are_platform_only_and_exactly_guard
     )
     assert _route_permissions(routes) == {
         "list_platform_team": PlatformPermissionCode.ACCESS_TEAM_READ,
-        "get_current_team_identity": PlatformPermissionCode.ACCESS_TEAM_READ,
         "list_platform_invitations": PlatformPermissionCode.ACCESS_TEAM_READ,
         "get_platform_invitation": PlatformPermissionCode.ACCESS_TEAM_READ,
         "invite_platform_operator": PlatformPermissionCode.ACCESS_TEAM_INVITE,
@@ -91,19 +96,16 @@ def test_platform_identity_management_routes_are_platform_only_and_exactly_guard
         "copy_platform_custom_role": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
         "preview_platform_custom_role_revision": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
         "apply_platform_custom_role_revision": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
-        "assign_platform_operator_roles": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
+        "replace_platform_operator_roles": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
         "retire_platform_custom_role": PlatformPermissionCode.ACCESS_ROLES_MANAGE,
         "list_platform_permissions": PlatformPermissionCode.ACCESS_ROLES_READ,
-        "list_current_platform_sessions": PlatformPermissionCode.ACCESS_SESSIONS_READ,
-        "revoke_current_platform_session": PlatformPermissionCode.ACCESS_SESSIONS_REVOKE,
-        "revoke_other_current_platform_sessions": PlatformPermissionCode.ACCESS_SESSIONS_REVOKE,
-        "get_current_platform_mfa_readiness": PlatformPermissionCode.ACCESS_TEAM_READ,
-        "remove_current_platform_mfa_method": PlatformPermissionCode.ACCESS_MFA_RESET,
-        "begin_current_platform_totp_method": PlatformPermissionCode.ACCESS_MFA_RESET,
-        "confirm_current_platform_totp_method": PlatformPermissionCode.ACCESS_MFA_RESET,
-        "begin_current_platform_webauthn_method": PlatformPermissionCode.ACCESS_MFA_RESET,
-        "complete_current_platform_webauthn_method": PlatformPermissionCode.ACCESS_MFA_RESET,
-        "get_platform_sign_in_readiness": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,
+        "list_platform_operator_sessions": PlatformPermissionCode.ACCESS_SESSIONS_READ,
+        "revoke_platform_operator_session": PlatformPermissionCode.ACCESS_SESSIONS_REVOKE,
+        "reset_platform_operator_mfa": PlatformPermissionCode.ACCESS_MFA_RESET,
+        "get_platform_sign_in_settings": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,
+        "update_platform_sign_in_policy": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE,
+        "update_platform_sign_in_provider": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE,
+        "delete_platform_sign_in_provider": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_MANAGE,
     }
 
 

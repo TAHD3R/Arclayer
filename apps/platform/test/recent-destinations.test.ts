@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { OVERVIEW_DESTINATION, PLATFORM_CAPABILITY_MODULES } from "@/capabilities/module-registry";
+import {
+  NEEDS_ATTENTION_DESTINATION,
+  OVERVIEW_DESTINATION,
+  PLATFORM_CAPABILITY_MODULES,
+} from "@/capabilities/module-registry";
 import {
   readRecentDestinations,
   recordRecentDestination,
@@ -42,6 +46,22 @@ describe("typed recent Platform destinations", () => {
     ]);
   });
 
+  it("accepts every destination registered by the current Platform build", () => {
+    const destinations = [
+      OVERVIEW_DESTINATION,
+      NEEDS_ATTENTION_DESTINATION,
+      ...Object.values(PLATFORM_CAPABILITY_MODULES).flatMap(({ destinations }) => destinations),
+    ];
+
+    for (const destination of destinations) {
+      const storage = memoryStorage();
+      recordRecentDestination(storage, destination, destinations, 42);
+      expect(readRecentDestinations(storage, destinations)).toEqual([
+        { destinationId: destination.id, visitedAt: 42 },
+      ]);
+    }
+  });
+
   it("removes destinations that are no longer authorized from reads", () => {
     const storage = memoryStorage(
       JSON.stringify([
@@ -57,5 +77,11 @@ describe("typed recent Platform destinations", () => {
 
   it("surfaces corrupted recent state instead of silently replacing it", () => {
     expect(() => readRecentDestinations(memoryStorage("not-json"), authorized)).toThrow();
+    expect(() =>
+      readRecentDestinations(
+        memoryStorage(JSON.stringify([{ destinationId: "unregistered", visitedAt: 42 }])),
+        authorized,
+      ),
+    ).toThrow();
   });
 });

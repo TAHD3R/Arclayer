@@ -24,7 +24,7 @@
     "@radix-ui/react-dialog": "catalog:",
     "@radix-ui/react-dropdown-menu": "catalog:",
     "@radix-ui/react-label": "catalog:",
-    "@radix-ui/react-select": "^2.3.7",
+    "@radix-ui/react-select": "2.3.1",
     "@radix-ui/react-separator": "catalog:",
     "@radix-ui/react-slot": "catalog:",
     "@radix-ui/react-tabs": "catalog:",
@@ -41,7 +41,9 @@
     "react-dom": "catalog:",
     "react-i18next": "catalog:",
     "recharts": "2.15.4",
-    "tailwind-merge": "^3.4.0"
+    "sonner": "catalog:",
+    "tailwind-merge": "^3.4.0",
+    "vaul": "catalog:"
   },
   "devDependencies": {
     "@arclayer/config": "workspace:*",

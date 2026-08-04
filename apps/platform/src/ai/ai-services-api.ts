@@ -1,11 +1,14 @@
 import {
   platformApplySystemAiProviderAvailability,
+  platformApplyWorkspaceCapabilityRollout,
   platformCancelPlatformAiTask,
   platformCreateSystemAiProvider,
+  platformDeleteSystemAiProvider,
   platformGetPlatformAiProviderReadiness,
   platformListPlatformAiTasks,
   platformListSystemAiProviders,
   platformPreviewSystemAiProviderAvailability,
+  platformPreviewWorkspaceCapabilityRollout,
   platformReconcilePlatformAiTask,
   platformRetryPlatformAiTask,
   platformTestSystemAiProviderReadiness,
@@ -20,6 +23,8 @@ import {
   type SystemAiProviderOut,
   type SystemAiProviderReadinessTestOut,
   type SystemAiProviderUpdateRequest,
+  type WorkspaceCapabilityRolloutApplyReceipt,
+  type WorkspaceCapabilityRolloutPreview,
   type PlatformListPlatformAiTasksData,
 } from "@arclayer/platform-openapi";
 
@@ -61,6 +66,21 @@ function unwrap<T>(result: SdkResult<T>): T {
   return result.data.data;
 }
 
+function unwrapVoid(result: SdkResult<unknown>): void {
+  if (result.error !== undefined) {
+    throw new PlatformAiServicesApiError(
+      code(result.error) ?? "PLATFORM_AI_SERVICES_REQUEST_FAILED",
+      result.response?.status,
+    );
+  }
+  if (!result.data || result.data.error) {
+    throw new PlatformAiServicesApiError(
+      result.data?.error ?? "PLATFORM_AI_SERVICES_RESPONSE_INVALID",
+      result.response?.status,
+    );
+  }
+}
+
 export function listAiTasks(
   query?: NonNullable<PlatformListPlatformAiTasksData["query"]>,
 ): Promise<PageDataPlatformAiTaskOut> {
@@ -92,6 +112,13 @@ export function updateAiProvider(
   }).then(unwrap);
 }
 
+export function deleteAiProvider(providerId: string): Promise<void> {
+  return platformDeleteSystemAiProvider({
+    client: platformApiClient,
+    path: { provider_id: providerId },
+  }).then(unwrapVoid);
+}
+
 export function testAiProviderReadiness(
   providerId: string,
 ): Promise<SystemAiProviderReadinessTestOut> {
@@ -121,6 +148,25 @@ export function applyAiProviderAvailability(
     client: platformApiClient,
     path: { provider_id: providerId },
     body: { isActive, previewRevision },
+  }).then(unwrap);
+}
+
+export function previewAiServicesWorkspaceRollout(): Promise<WorkspaceCapabilityRolloutPreview> {
+  return platformPreviewWorkspaceCapabilityRollout({
+    client: platformApiClient,
+    path: { capability_id: "ai-services" },
+    body: { proposedStage: "all_eligible", selectedWorkspaceIds: [] },
+  }).then(unwrap);
+}
+
+export function applyAiServicesWorkspaceRollout(
+  previewId: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<WorkspaceCapabilityRolloutApplyReceipt> {
+  return platformApplyWorkspaceCapabilityRollout({
+    client: platformApiClient,
+    body: { previewId, reason, idempotencyKey },
   }).then(unwrap);
 }
 

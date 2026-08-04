@@ -19,7 +19,7 @@ class WorkspaceCapabilityRollout(BaseModel):
     """Canonical adoption policy for one Workspace-facing Platform capability."""
 
     capability_id = fields.CharField(max_length=128, unique=True)
-    stage = fields.CharEnumField(WorkspaceCapabilityRolloutStage, default=WorkspaceCapabilityRolloutStage.NOT_AVAILABLE)
+    stage = fields.CharEnumField(WorkspaceCapabilityRolloutStage, default=WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE)
     revision = fields.BigIntField(default=0)
     selection_revision = fields.BigIntField(default=0)
 

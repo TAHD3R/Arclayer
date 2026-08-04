@@ -16,11 +16,13 @@ import {
   retirePlatformCustomRole,
 } from "@/access/access-api";
 import { verifyPlatformAction } from "@/access/platform-step-up";
+import { localizePlatformPermission } from "@/access/platform-permission-copy";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SettingDialog } from "@/components/setting-dialog";
+import { SettingDrawer } from "@/components/setting-drawer";
 import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -85,25 +87,26 @@ function PermissionSelector({
   const delegable = permissions.filter((permission) => permission.isDelegable);
   return (
     <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border p-3">
-      {delegable.map((permission) => (
-        <label className="flex items-start gap-3" key={permission.code}>
-          <Checkbox
-            checked={selected.has(permission.code)}
-            onCheckedChange={(checked) => {
-              const next = new Set(selected);
-              if (checked) next.add(permission.code);
-              else next.delete(permission.code);
-              setSelected(next);
-            }}
-          />
-          <span>
-            <span className="block text-sm font-medium">{permission.nameI18N}</span>
-            <span className="block text-xs text-muted-foreground">
-              {permission.descriptionI18N}
+      {delegable.map((permission) => {
+        const copy = localizePlatformPermission(permission.code, t);
+        return (
+          <label className="flex items-start gap-3" key={permission.code}>
+            <Checkbox
+              checked={selected.has(permission.code)}
+              onCheckedChange={(checked) => {
+                const next = new Set(selected);
+                if (checked) next.add(permission.code);
+                else next.delete(permission.code);
+                setSelected(next);
+              }}
+            />
+            <span>
+              <span className="block text-sm font-medium">{copy.name}</span>
+              <span className="block text-xs text-muted-foreground">{copy.description}</span>
             </span>
-          </span>
-        </label>
-      ))}
+          </label>
+        );
+      })}
       {!delegable.length ? (
         <p className="text-sm text-muted-foreground">{t("NO_DELEGABLE_PERMISSIONS")}</p>
       ) : null}
@@ -200,7 +203,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
   };
 
   return (
-    <SettingDialog
+    <SettingDrawer
       open={props.open}
       onOpenChange={(open) => !pending && props.onOpenChange(open)}
       title={t(props.sourceRole ? "COPY_ROLE" : "CREATE_ROLE")}
@@ -263,7 +266,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
           <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
         </SettingDialogFields>
       </form>
-    </SettingDialog>
+    </SettingDrawer>
   );
 }
 
@@ -345,7 +348,7 @@ export function EditRoleDialog(props: ExistingRoleDialogProps) {
   };
 
   return (
-    <SettingDialog
+    <SettingDrawer
       open={props.open}
       onOpenChange={(open) => !pending && props.onOpenChange(open)}
       title={t("EDIT_ROLE")}
@@ -406,7 +409,7 @@ export function EditRoleDialog(props: ExistingRoleDialogProps) {
           </SettingDialogFields>
         </form>
       )}
-    </SettingDialog>
+    </SettingDrawer>
   );
 }
 

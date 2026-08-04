@@ -16,7 +16,7 @@ from src.modules.platform_capabilities.rollout_schema import (
 from src.modules.platform_capabilities.rollout_service import (
     WORKSPACE_CAPABILITY_ROLLOUT_APPLY_PERMISSION,
     PlatformIdentityWorkspaceCapabilityRolloutPermission,
-    UnregisteredWorkspaceCapabilityEligibilityPort,
+    WorkspaceCapabilityEligibilityRegistry,
     WorkspaceCapabilityRolloutService,
 )
 from src.modules.platform_capabilities.schema import PlatformCapabilityCatalogOut
@@ -28,6 +28,13 @@ from src.modules.platform_identity.http import (
 )
 from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.agents.rollout_eligibility import (
+    AI_SERVICES_CAPABILITY_ID,
+    AgentWorkspaceCapabilityEligibility,
+)
+from src.modules.system.agents.rollout_eligibility_repository import (
+    TortoiseAgentWorkspaceEligibilityRepository,
+)
 
 router = APIRouter(prefix="/capabilities", tags=["platform.capabilities"])
 
@@ -36,11 +43,13 @@ def get_workspace_capability_rollout_service(
     settings: Settings = Depends(get_settings),
     identity_repository: PlatformIdentityRepository = Depends(get_platform_identity_repository),
 ) -> WorkspaceCapabilityRolloutService:
-    """Domains must replace the explicit unregistered eligibility port at composition time."""
-
     return WorkspaceCapabilityRolloutService(
         repository=TortoiseWorkspaceCapabilityRolloutRepository(),
-        eligibility=UnregisteredWorkspaceCapabilityEligibilityPort(),
+        eligibility=WorkspaceCapabilityEligibilityRegistry({
+            AI_SERVICES_CAPABILITY_ID: AgentWorkspaceCapabilityEligibility(
+                TortoiseAgentWorkspaceEligibilityRepository(),
+            ),
+        }),
         permission=PlatformIdentityWorkspaceCapabilityRolloutPermission(identity_repository),
         settings=settings,
     )

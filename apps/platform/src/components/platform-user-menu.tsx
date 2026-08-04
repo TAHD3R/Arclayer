@@ -1,21 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import {
-  AlertTriangle,
-  Languages,
-  LoaderCircle,
-  LogOut,
-  Monitor,
-  Moon,
-  RefreshCw,
-  Sun,
-} from "lucide-react";
+import { AlertTriangle, LoaderCircle, LogOut, RefreshCw, Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getCurrentPlatformActorProfile, PlatformAccessApiError } from "@/access/access-api";
+import { getCurrentPlatformActorProfile } from "@/access/access-api";
+import { PlatformAccountSettings } from "@/account/platform-account-settings";
 import { usePlatformAuth } from "@/auth/platform-auth";
 import { getPlatformAppConfig } from "@/lib/app-config";
-import { usePlatformPreferences, type ThemePreference } from "@/lib/preferences";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -34,12 +25,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -48,12 +34,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; icon: typeof Sun }> = [
-  { value: "light", icon: Sun },
-  { value: "dark", icon: Moon },
-  { value: "system", icon: Monitor },
-];
 
 type CurrentActorProfile = Awaited<ReturnType<typeof getCurrentPlatformActorProfile>>;
 type CurrentActorProfileState =
@@ -117,17 +97,13 @@ function ProfileSummary({ state }: Readonly<{ state: CurrentActorProfileState }>
 
 function SignOutError({ error }: Readonly<{ error: unknown }>) {
   const { t } = useTranslation("access");
-  const code =
-    error instanceof PlatformAccessApiError ? error.message : "PLATFORM_SESSION_SIGN_OUT_FAILED";
+  void error;
 
   return (
     <Alert variant="destructive">
       <AlertTriangle aria-hidden="true" />
       <AlertTitle>{t("SIGN_OUT_ERROR")}</AlertTitle>
-      <AlertDescription>
-        <p>{t("SIGN_OUT_UNCHANGED")}</p>
-        <p className="font-mono text-xs">{code}</p>
-      </AlertDescription>
+      <AlertDescription>{t("SIGN_OUT_UNCHANGED")}</AlertDescription>
     </Alert>
   );
 }
@@ -169,17 +145,15 @@ function PlatformSignOutDialog(props: {
 export function PlatformUserMenu() {
   const { t } = useTranslation(["common", "access"]);
   const { isMobile } = useSidebar();
-  const { locale, setLocale, setTheme, theme } = usePlatformPreferences();
   const { session, signOut } = usePlatformAuth();
   const navigate = useNavigate();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [profileState, setProfileState] = useState<CurrentActorProfileState>({
     status: "loading",
   });
-
-  const CurrentThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
 
   const loadProfile = useCallback(async () => {
     setProfileState({ status: "loading" });
@@ -251,65 +225,10 @@ export function PlatformUserMenu() {
               ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Languages aria-hidden="true" />
-                    {t("common:CHANGE_LANGUAGE")}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup
-                      onValueChange={(value) => {
-                        if (value !== "zh-CN" && value !== "en-US") {
-                          throw new Error(`Unsupported Platform locale: ${value}`);
-                        }
-                        setLocale(value);
-                      }}
-                      value={locale}
-                    >
-                      <DropdownMenuRadioItem value="zh-CN">
-                        {t("common:LANGUAGE_ZH_CN")}
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="en-US">
-                        {t("common:LANGUAGE_EN_US")}
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <CurrentThemeIcon aria-hidden="true" className="size-4" />
-                    {t("common:THEME")}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup
-                      onValueChange={(value) => {
-                        if (value !== "light" && value !== "dark" && value !== "system") {
-                          throw new Error(`Unsupported Platform theme: ${value}`);
-                        }
-                        setTheme(value);
-                      }}
-                      value={theme}
-                    >
-                      {THEME_OPTIONS.map((option) => {
-                        const Icon = option.icon;
-                        const labelKey =
-                          option.value === "system"
-                            ? "common:THEME_SYSTEM"
-                            : `common:THEME_${option.value.toUpperCase()}`;
-                        return (
-                          <DropdownMenuRadioItem
-                            className="gap-2"
-                            key={option.value}
-                            value={option.value}
-                          >
-                            <Icon aria-hidden="true" className="size-4 shrink-0" />
-                            {t(labelKey)}
-                          </DropdownMenuRadioItem>
-                        );
-                      })}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
+                  <Settings aria-hidden="true" />
+                  {t("access:OPEN_ACCOUNT_SETTINGS")}
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -332,6 +251,11 @@ export function PlatformUserMenu() {
         onOpenChange={(open) => !pending && setSignOutOpen(open)}
         open={signOutOpen}
         pending={pending}
+      />
+      <PlatformAccountSettings
+        onOpenChange={setSettingsOpen}
+        onSessionEnded={() => void navigate({ to: "/sign-in", replace: true })}
+        open={settingsOpen}
       />
     </>
   );

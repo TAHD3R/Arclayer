@@ -22,5 +22,7 @@
   "TABS_SCROLL_LEFT": "向左滚动标签",
   "TABS_SCROLL_RIGHT": "向右滚动标签",
   "TRY_AGAIN": "重试",
-  "LOADING": "正在加载…"
+  "LOADING": "正在加载…",
+  "CLOSE": "关闭",
+  "TOAST_NOTIFICATIONS": "通知"
 }

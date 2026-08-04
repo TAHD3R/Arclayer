@@ -1,15 +1,17 @@
 import type { PropsWithChildren } from "react";
 
-import { AuroraSceneBackground } from "@/components/aurora-scene-background";
+import { AuthShowcaseBackground } from "@/components/auth-showcase-background";
 import { AuthSceneLayout } from "@/layouts/auth-scene-layout";
-import { AuthPreferencesBar } from "@/layouts/auth-preferences-bar";
 
 export function AuthLayout({ children }: PropsWithChildren) {
   return (
     <AuthSceneLayout
       logoTo="/login"
-      footer={<AuthPreferencesBar />}
-      background={<AuroraSceneBackground testId="auth-aurora" />}
+      footer={null}
+      hideHeader
+      background={<AuthShowcaseBackground />}
+      contentClassName="max-md:-mt-[20px]"
+      contentMaxClassName="max-w-[25.875rem]"
       withRouteTransition
     >
       {children}

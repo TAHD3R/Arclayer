@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from hashlib import sha256
 from uuid import UUID
 
+from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import NotFound
@@ -32,8 +33,6 @@ from src.models.platform_identity.roles import (
     PlatformRoleRevision,
     PlatformRoleRevisionPermission,
 )
-from src.modules.auth.oauth.social.providers import OAuthProviderDefinition, list_oauth_provider_connectors
-from src.modules.auth.registration.service import get_public_register_policy
 from src.modules.platform_identity.management_schema import (
     PlatformCurrentActorProfileOut,
     PlatformCustomRoleApplyRequest,
@@ -57,19 +56,18 @@ from src.modules.platform_identity.management_schema import (
     PlatformMfaWebAuthnBeginRequest,
     PlatformMfaWebAuthnCompleteRequest,
     PlatformMfaWebAuthnRegistrationOut,
+    PlatformOperatorMfaResetRequest,
     PlatformOperatorOffboardingRequest,
     PlatformOwnershipTransferNominationRequest,
     PlatformPermissionCatalogItemOut,
-    PlatformRegistrationReadinessOut,
-    PlatformRoleAssignmentRequest,
+    PlatformRoleAssignmentReplaceRequest,
     PlatformRoleAssignmentSummaryOut,
     PlatformRoleCatalogItemOut,
     PlatformSessionInventoryItemOut,
     PlatformSessionRevokeRequest,
     PlatformSessionSummaryOut,
-    PlatformSignInProviderReadinessOut,
-    PlatformSignInReadinessOut,
     PlatformStepUpProofOut,
+    PlatformStepUpTotpCompleteRequest,
     PlatformStepUpWebAuthnCompleteRequest,
     PlatformStepUpWebAuthnOptionsOut,
     PlatformTeamIdentityOut,
@@ -79,7 +77,7 @@ from src.modules.platform_identity.management_schema import (
     PlatformTeamUserOut,
 )
 from src.modules.platform_identity.mfa import PlatformMfaService
-from src.modules.platform_identity.mfa_schema import PlatformTotpSetup
+from src.modules.platform_identity.mfa_schema import PlatformMfaAssurance, PlatformTotpSetup
 from src.modules.platform_identity.permissions import PlatformActionCode
 from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.platform_identity.schema import (
@@ -95,7 +93,6 @@ from src.modules.platform_identity.step_up_schema import (
     PlatformStepUpProofIssueRequest,
 )
 from src.modules.platform_identity.webauthn import PlatformWebAuthnService
-from src.settings.runtime import get_core_settings_value_cached
 
 
 class _VerifiedPlatformMfaReadiness:
@@ -254,8 +251,26 @@ class PlatformIdentityManagementService:
         )
 
     async def offboard_operator(
-        self, *, actor_user_id: UUID, target_user_id: UUID, request: PlatformOperatorOffboardingRequest
+        self,
+        *,
+        actor_user_id: UUID,
+        actor_session_id: UUID,
+        target_user_id: UUID,
+        request: PlatformOperatorOffboardingRequest,
     ) -> PlatformMutationReceipt:
+        await self._consume_step_up(
+            actor_user_id=actor_user_id,
+            session_id=actor_session_id,
+            proof=request.step_up_proof,
+            action_code=PlatformActionCode.REMOVE_OPERATOR,
+            target_type="platform_operator",
+            target_id=target_user_id,
+            scope={
+                "expected_operator_revision": request.expected_operator_revision,
+                "reason": request.reason,
+            },
+            idempotency_key=request.idempotency_key,
+        )
         return await self._authority.offboard_operator(
             command=PlatformOffboardingCommand(
                 actor_user_id=actor_user_id,
@@ -373,13 +388,13 @@ class PlatformIdentityManagementService:
             correlation_id=request.correlation_id,
         )
 
-    async def assign_roles_additively(
+    async def replace_operator_roles(
         self,
         *,
         actor_user_id: UUID,
         actor_session_id: UUID,
         target_user_id: UUID,
-        request: PlatformRoleAssignmentRequest,
+        request: PlatformRoleAssignmentReplaceRequest,
     ) -> PlatformMutationReceipt:
         await self._consume_step_up(
             actor_user_id=actor_user_id,
@@ -394,7 +409,7 @@ class PlatformIdentityManagementService:
             },
             idempotency_key=request.idempotency_key,
         )
-        return await self._repository.assign_roles_additively(
+        return await self._repository.replace_operator_roles(
             actor_user_id=actor_user_id,
             target_user_id=target_user_id,
             expected_operator_revision=request.expected_operator_revision,
@@ -503,6 +518,70 @@ class PlatformIdentityManagementService:
             correlation_id=request.correlation_id,
         )
 
+    async def list_operator_sessions(self, *, operator_id: UUID) -> tuple[PlatformSessionInventoryItemOut, ...]:
+        sessions = await self._repository.list_active_sessions_for_operator(operator_id=operator_id)
+        return tuple(
+            PlatformSessionInventoryItemOut(
+                session_id=session.id,
+                actor_user_id=session.actor_user_id,
+                device_label=session.device_label,
+                recent_activity_at=session.recent_activity_at,
+                inactivity_expires_at=session.inactivity_expires_at,
+                absolute_expires_at=session.absolute_expires_at,
+                policy_revision=session.policy_revision,
+                assurance=str(session.assurance),
+                is_current=False,
+            )
+            for session in sessions
+        )
+
+    async def revoke_operator_session(
+        self,
+        *,
+        actor_user_id: UUID,
+        operator_id: UUID,
+        session_id: UUID,
+        request: PlatformSessionRevokeRequest,
+    ) -> PlatformMutationReceipt:
+        return await self._repository.revoke_operator_session(
+            actor_user_id=actor_user_id,
+            operator_id=operator_id,
+            session_id=session_id,
+            idempotency_key=request.idempotency_key,
+            correlation_id=request.correlation_id,
+        )
+
+    async def reset_operator_mfa(
+        self,
+        *,
+        actor_user_id: UUID,
+        actor_session_id: UUID,
+        operator_id: UUID,
+        request: PlatformOperatorMfaResetRequest,
+    ) -> PlatformMutationReceipt:
+        scope: JsonObject = {
+            "expected_operator_revision": request.expected_operator_revision,
+            "reason": request.reason,
+        }
+        await self._consume_step_up(
+            actor_user_id=actor_user_id,
+            session_id=actor_session_id,
+            proof=request.step_up_proof,
+            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
+            target_type="platform_operator",
+            target_id=operator_id,
+            scope=scope,
+            idempotency_key=request.idempotency_key,
+        )
+        return await self._repository.reset_operator_mfa(
+            actor_user_id=actor_user_id,
+            operator_id=operator_id,
+            expected_operator_revision=request.expected_operator_revision,
+            reason=request.reason,
+            idempotency_key=request.idempotency_key,
+            correlation_id=request.correlation_id,
+        )
+
     async def revoke_other_sessions(
         self, *, actor_user_id: UUID, current_session_id: UUID, request: PlatformSessionRevokeRequest
     ) -> PlatformMutationReceipt:
@@ -544,14 +623,18 @@ class PlatformIdentityManagementService:
     async def remove_current_mfa_method(
         self, *, actor_user_id: UUID, actor_session_id: UUID, method_id: UUID, request: PlatformMfaMethodRemoveRequest
     ) -> PlatformMutationReceipt:
+        action_code = await self._current_mfa_action(
+            actor_user_id=actor_user_id,
+            method_id=method_id,
+        )
         await self._consume_step_up(
             actor_user_id=actor_user_id,
             session_id=actor_session_id,
             proof=request.step_up_proof,
-            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
-            target_type="platform_mfa_method",
-            target_id=method_id,
-            scope={},
+            action_code=action_code,
+            target_type="platform_mfa_actor",
+            target_id=actor_user_id,
+            scope={"method_id": str(method_id), "operation": "remove_method"},
             idempotency_key=request.idempotency_key,
         )
         return await self._repository.remove_current_actor_mfa_method(
@@ -568,14 +651,19 @@ class PlatformIdentityManagementService:
         actor_session_id: UUID,
         request: PlatformMfaTotpBeginRequest,
     ) -> PlatformTotpSetup:
+        scope = self._totp_enrollment_scope(replace_method_id=request.replace_method_id)
+        action_code = await self._current_mfa_action(
+            actor_user_id=actor_user_id,
+            method_id=request.replace_method_id,
+        )
         await self._consume_step_up(
             actor_user_id=actor_user_id,
             session_id=actor_session_id,
             proof=request.step_up_proof,
-            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
+            action_code=action_code,
             target_type="platform_mfa_actor",
             target_id=actor_user_id,
-            scope={"operation": "totp_enrollment"},
+            scope=scope,
             idempotency_key=request.idempotency_key,
         )
         return await self._mfa.begin_totp_setup(
@@ -593,14 +681,19 @@ class PlatformIdentityManagementService:
         actor_session_id: UUID,
         request: PlatformMfaTotpConfirmRequest,
     ) -> PlatformMfaReadinessOut:
+        scope = self._totp_enrollment_scope(replace_method_id=request.replace_method_id)
+        action_code = await self._current_mfa_action(
+            actor_user_id=actor_user_id,
+            method_id=request.replace_method_id,
+        )
         await self._consume_step_up(
             actor_user_id=actor_user_id,
             session_id=actor_session_id,
             proof=request.step_up_proof,
-            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
+            action_code=action_code,
             target_type="platform_mfa_actor",
             target_id=actor_user_id,
-            scope={"operation": "totp_enrollment"},
+            scope=scope,
             idempotency_key=request.idempotency_key,
         )
         await self._mfa.confirm_totp_setup(
@@ -621,11 +714,15 @@ class PlatformIdentityManagementService:
         request: PlatformMfaWebAuthnBeginRequest,
     ) -> PlatformMfaWebAuthnRegistrationOut:
         scope = self._mfa_enrollment_scope(replace_method_id=request.replace_method_id)
+        action_code = await self._current_mfa_action(
+            actor_user_id=actor_user_id,
+            method_id=request.replace_method_id,
+        )
         await self._consume_step_up(
             actor_user_id=actor_user_id,
             session_id=actor_session_id,
             proof=request.step_up_proof,
-            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
+            action_code=action_code,
             target_type="platform_mfa_actor",
             target_id=actor_user_id,
             scope=scope,
@@ -657,11 +754,15 @@ class PlatformIdentityManagementService:
         request: PlatformMfaWebAuthnCompleteRequest,
     ) -> PlatformMfaReadinessOut:
         scope = self._mfa_enrollment_scope(replace_method_id=request.replace_method_id)
+        action_code = await self._current_mfa_action(
+            actor_user_id=actor_user_id,
+            method_id=request.replace_method_id,
+        )
         await self._consume_step_up(
             actor_user_id=actor_user_id,
             session_id=actor_session_id,
             proof=request.step_up_proof,
-            action_code=PlatformActionCode.RESET_OPERATOR_MFA,
+            action_code=action_code,
             target_type="platform_mfa_actor",
             target_id=actor_user_id,
             scope=scope,
@@ -704,7 +805,7 @@ class PlatformIdentityManagementService:
             binding=self._step_up_binding(request=bound),
             credential=request.credential,
         )
-        if verification.assurance.value != PlatformVerificationAssurance.PHISHING_RESISTANT.value:
+        if verification.assurance != PlatformMfaAssurance.PHISHING_RESISTANT:
             from src.core.exceptions import Forbidden
 
             raise Forbidden(error="PLATFORM_PHISHING_RESISTANT_VERIFICATION_REQUIRED")
@@ -712,6 +813,44 @@ class PlatformIdentityManagementService:
             request=bound,
             verified_assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
         )
+
+    async def complete_step_up_totp(
+        self,
+        *,
+        actor_user_id: UUID,
+        session_id: UUID,
+        request: PlatformStepUpTotpCompleteRequest,
+    ) -> PlatformStepUpProofOut:
+        bound = self._bound_step_up_request(
+            actor_user_id=actor_user_id,
+            session_id=session_id,
+            request=request,
+        )
+        await self._mfa.verify_totp_for_baseline(
+            user_id=actor_user_id,
+            method_id=request.method_id,
+            code=request.code,
+        )
+        return await self._step_up.issue(
+            request=bound,
+            verified_assurance=PlatformVerificationAssurance.LOCAL_MFA,
+        )
+
+    async def _current_mfa_action(
+        self,
+        *,
+        actor_user_id: UUID,
+        method_id: UUID | None,
+    ) -> PlatformActionCode:
+        if method_id is None:
+            return PlatformActionCode.MANAGE_CURRENT_MFA
+        methods = await self._repository.list_verified_mfa_methods(user_id=actor_user_id)
+        method = next((item for item in methods if UUID(str(item.id)) == method_id), None)
+        if method is None:
+            raise NotFound(error="PLATFORM_MFA_METHOD_NOT_FOUND")
+        if method.kind == PlatformMfaMethodKind.WEBAUTHN:
+            return PlatformActionCode.RESET_OPERATOR_MFA
+        return PlatformActionCode.MANAGE_CURRENT_MFA
 
     async def _consume_step_up(
         self,
@@ -722,7 +861,7 @@ class PlatformIdentityManagementService:
         action_code: str,
         target_type: str,
         target_id: UUID | None,
-        scope: dict[str, object],
+        scope: JsonObject,
         idempotency_key: str,
     ) -> None:
         await self._step_up.consume(
@@ -750,15 +889,23 @@ class PlatformIdentityManagementService:
 
     @staticmethod
     def _step_up_binding(*, request: PlatformStepUpProofIssueRequest) -> str:
-        context = PlatformStepUpProofIssueRequest.model_validate(request)
-        return sha256(
-            json.dumps(context.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        context = request.model_dump(
+            mode="json",
+            include=set(PlatformStepUpProofIssueRequest.model_fields),
+        )
+        return sha256(json.dumps(context, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     @staticmethod
-    def _mfa_enrollment_scope(*, replace_method_id: UUID | None) -> dict[str, object]:
+    def _mfa_enrollment_scope(*, replace_method_id: UUID | None) -> JsonObject:
         return {
             "operation": "webauthn_enrollment",
+            "replace_method_id": None if replace_method_id is None else str(replace_method_id),
+        }
+
+    @staticmethod
+    def _totp_enrollment_scope(*, replace_method_id: UUID | None) -> JsonObject:
+        return {
+            "operation": "totp_enrollment",
             "replace_method_id": None if replace_method_id is None else str(replace_method_id),
         }
 
@@ -784,23 +931,6 @@ class PlatformIdentityManagementService:
                 separators=(",", ":"),
             ).encode()
         ).hexdigest()
-
-    async def sign_in_readiness(self) -> PlatformSignInReadinessOut:
-        registration = await get_public_register_policy(self._settings)
-        core = await get_core_settings_value_cached(self._settings, ttl_seconds=2.0)
-        providers = tuple(
-            self._provider_readiness(connector.definition, core)
-            for connector in list_oauth_provider_connectors(self._connector_registry)
-        )
-        return PlatformSignInReadinessOut(
-            registration=PlatformRegistrationReadinessOut(
-                public_registration_enabled=registration.enabled,
-                require_email=registration.require_email,
-                require_email_verification=registration.require_email_verification,
-                email_domains_allowlist=tuple(sorted(registration.email_domains_allowlist)),
-            ),
-            providers=providers,
-        )
 
     async def _users_by_id(self, user_ids: set[UUID]) -> dict[UUID, User]:
         if not user_ids:
@@ -960,37 +1090,6 @@ class PlatformIdentityManagementService:
         return PlatformSessionSummaryOut(
             active_session_count=len(sessions),
             most_recent_activity_at=max((session.recent_activity_at for session in sessions), default=None),
-        )
-
-    @staticmethod
-    def _provider_readiness(
-        definition: OAuthProviderDefinition, core: dict[str, object]
-    ) -> PlatformSignInProviderReadinessOut:
-        section_id = definition.section_id
-        section = core.get(section_id)
-        enabled = False
-        client_id: object = None
-        client_secret: object = None
-        if isinstance(section, dict):
-            for key, value in section.items():
-                if key == "enabled":
-                    enabled = value is True
-                elif key == "client_id":
-                    client_id = value
-                elif key == "client_secret":
-                    client_secret = value
-        configured = (
-            isinstance(client_id, str)
-            and bool(client_id.strip())
-            and isinstance(client_secret, str)
-            and bool(client_secret.strip())
-        )
-        return PlatformSignInProviderReadinessOut(
-            key=definition.key,
-            label=definition.label,
-            installed=True,
-            enabled=enabled,
-            configured=configured,
         )
 
     @staticmethod

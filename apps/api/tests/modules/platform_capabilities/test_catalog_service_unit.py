@@ -150,11 +150,10 @@ async def test_catalog_returns_only_navigation_targets_authorized_for_the_operat
         (
             PlatformPermissionCode.ACCESS_TEAM_READ,
             "access",
-            ["access.team", "access.mfa"],
+            ["access.team"],
         ),
         (PlatformPermissionCode.ACCESS_ROLES_READ, "access", ["access.roles"]),
         (PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ, "access", ["access.sign-in"]),
-        (PlatformPermissionCode.ACCESS_SESSIONS_READ, "access", ["access.sessions"]),
         (PlatformPermissionCode.TENANT_USERS_READ, "tenant-governance", ["tenants.users"]),
         (PlatformPermissionCode.TENANT_PROJECTS_READ, "tenant-governance", ["tenants.projects"]),
     ),
@@ -361,7 +360,6 @@ async def test_access_team_read_authority_exposes_the_ready_trusted_route() -> N
     assert access.navigation_candidate is True
     assert [target.route_target for target in access.navigation_targets] == [
         PlatformCapabilityRouteTarget.ACCESS_TEAM,
-        PlatformCapabilityRouteTarget.ACCESS_MFA,
     ]
 
 
@@ -376,8 +374,6 @@ def test_registry_contains_every_canonical_platform_navigation_target() -> None:
         "access.team",
         "access.roles",
         "access.sign-in",
-        "access.mfa",
-        "access.sessions",
         "tenants.workspaces",
         "tenants.users",
         "tenants.projects",

@@ -129,7 +129,7 @@ describe("Login auth otp layouts", () => {
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
     const otpSlots = otpGrid?.querySelectorAll(".flex-1");
-    expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
+    expect(otpSlots?.[0]).toHaveClass("h-14!", "rounded-2xl!", "bg-card");
   });
 
   it("starts resend cooldown and shows a success toast after requesting a code", async () => {
@@ -214,8 +214,12 @@ describe("Login auth otp layouts", () => {
       name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
     });
     expect(passwordButton).toBeInTheDocument();
-    expect(passwordButton.querySelector("svg")).toBeInTheDocument();
-    expect(screen.getByTestId("oauth-section").closest("form")).not.toBeNull();
+    expect(passwordButton).toHaveClass("text-footnote", "font-semibold", "text-label-secondary");
+    expect(passwordButton).toHaveAttribute("data-variant", "ghost");
+    expect(passwordButton).toHaveAttribute("data-size", "inline");
+    expect(passwordButton.querySelector("svg")).toBeNull();
+    expect(verifyButton.querySelector("svg")).toBeNull();
+    expect(passwordButton.closest("form")).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), {
       target: { value: "123456" },
@@ -249,10 +253,20 @@ describe("Login auth otp layouts", () => {
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
     const otpSlots = otpGrid?.querySelectorAll(".flex-1");
-    expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
+    expect(otpSlots?.[0]).toHaveClass("h-14!", "rounded-2xl!", "bg-card");
+    expect(
+      screen
+        .getByRole("button", { name: "auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON" })
+        .querySelector("svg"),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "auth:TWO_FACTOR_BACK_TO_EMAIL_CODE" })
+        .querySelector("svg"),
+    ).toBeNull();
   });
 
-  it("omits legal copy on email-code and two-factor login recovery panes", async () => {
+  it("shows legal copy on email-code and two-factor login recovery panes", async () => {
     const { rerender } = render(
       <LoginEmailCodePane
         seed={{
@@ -270,7 +284,7 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
+    expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
     expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
 
     rerender(
@@ -290,6 +304,6 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
+    expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
   });
 });

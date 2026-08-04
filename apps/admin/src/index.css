@@ -8,6 +8,19 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is([data-theme="dark"] *));
 
+:root:not([data-theme="dark"]) {
+  /* Keep Admin light mode crisp while preserving the shared dark palette unchanged. */
+  --background: hsl(210 25% 99%);
+  --muted: hsl(210 20% 97%);
+  --accent: hsl(210 18% 95%);
+  --sidebar: hsl(210 22% 98%);
+
+  --border: hsl(214 18% 88%);
+  --input: hsl(214 16% 84%);
+  --ui-border: hsl(214 16% 84%);
+  --layout-border: hsl(214 18% 91%);
+}
+
 html {
   color-scheme: light;
 }
@@ -107,9 +120,56 @@ body,
   }
 }
 
+@keyframes arclayer-auth-shiny-text {
+  from {
+    background-position: var(--auth-shiny-start);
+  }
+  to {
+    background-position: var(--auth-shiny-end);
+  }
+}
+
+.auth-shiny-text {
+  --auth-shiny-default-color: var(--color-foreground);
+  --auth-shiny-default-highlight: color-mix(in oklab, var(--color-foreground) 34%, white);
+  background-image: linear-gradient(
+    var(--auth-shiny-angle),
+    var(--auth-shiny-color) 0%,
+    var(--auth-shiny-color) 35%,
+    var(--auth-shiny-highlight) 50%,
+    var(--auth-shiny-color) 65%,
+    var(--auth-shiny-color) 100%
+  );
+  background-size: 240% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="dark"] .auth-shiny-text {
+  --auth-shiny-default-color: color-mix(
+    in oklab,
+    var(--color-foreground) 58%,
+    var(--color-background)
+  );
+  --auth-shiny-default-highlight: var(--color-foreground);
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--color-foreground) 12%, transparent));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-section-flash {
     animation-duration: 1ms;
+  }
+
+  .auth-shiny-text {
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .auth-shiny-text {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
   }
 }
 

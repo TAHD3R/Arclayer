@@ -174,6 +174,23 @@ describe("RouteTransition progress contract", () => {
     expect(view.container.firstElementChild).toHaveAttribute("aria-busy", "true");
   });
 
+  it("uses a route-specific pending fallback without rendering the generic page skeleton", () => {
+    routerState.isLoading = true;
+    routerState.location.pathname = "/login";
+    routerState.resolvedLocation = { pathname: "/reset-password" };
+    routerState.matches = [{ status: "pending", routeId: "/login" }];
+
+    render(
+      <RouteTransition pendingFallback={<div data-testid="auth-pending-fallback" />}>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    expect(screen.getByTestId("auth-pending-fallback")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveClass("bg-transparent");
+  });
+
   it("covers stale route content when pathname advances before pending state", () => {
     const view = render(
       <RouteTransition pendingMs={10_000}>

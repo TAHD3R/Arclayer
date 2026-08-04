@@ -54,11 +54,11 @@ class TortoiseWorkspaceCapabilityRolloutEnforcer(BaseService):
                 workspace_id=workspace_id,
                 conn=tx_conn,
             )
-            if rollout is None or rollout.stage == WorkspaceCapabilityRolloutStage.NOT_AVAILABLE:
+            if rollout is not None and rollout.stage == WorkspaceCapabilityRolloutStage.NOT_AVAILABLE:
                 return WorkspaceCapabilityRolloutEnforcement(
                     capability_id=capability_id,
                     workspace_id=workspace_id,
-                    rollout_revision=0 if rollout is None else rollout.rollout_revision,
+                    rollout_revision=rollout.rollout_revision,
                     is_available=False,
                     denial_code="WORKSPACE_CAPABILITY_ROLLOUT_NOT_AVAILABLE",
                 )
@@ -71,16 +71,16 @@ class TortoiseWorkspaceCapabilityRolloutEnforcer(BaseService):
                 return WorkspaceCapabilityRolloutEnforcement(
                     capability_id=capability_id,
                     workspace_id=workspace_id,
-                    rollout_revision=rollout.rollout_revision,
+                    rollout_revision=0 if rollout is None else rollout.rollout_revision,
                     is_available=False,
                     denial_code="WORKSPACE_CAPABILITY_ROLLOUT_INELIGIBLE",
                     ineligibility_reasons=eligibility.workspace.ineligibility_reasons,
                 )
-            if rollout.stage == WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE:
+            if rollout is None or rollout.stage == WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE:
                 return WorkspaceCapabilityRolloutEnforcement(
                     capability_id=capability_id,
                     workspace_id=workspace_id,
-                    rollout_revision=rollout.rollout_revision,
+                    rollout_revision=0 if rollout is None else rollout.rollout_revision,
                     is_available=True,
                 )
             selected = rollout.is_selected

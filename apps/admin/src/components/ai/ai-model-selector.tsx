@@ -17,11 +17,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { useAssistantRuntime } from "@assistant-ui/react";
 
-import {
-  AUTO_AI_CHAT_MODEL,
-  DEFAULT_AI_CHAT_MODEL,
-  useAiChatStore,
-} from "@/stores/use-ai-chat-store";
+import { AUTO_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type AIModelSelectorProps = {
@@ -30,10 +26,11 @@ type AIModelSelectorProps = {
 };
 
 export function AIModelSelector({ className, compact = false }: AIModelSelectorProps) {
-  const { t } = useTranslation(["ai", "common"]);
+  const { t, i18n } = useTranslation(["ai", "common"]);
   const runtime = useAssistantRuntime({ optional: true });
   const [open, setOpen] = useState(false);
-  const selectedModel = useAiChatStore((s) => s.selectedModel || DEFAULT_AI_CHAT_MODEL);
+  const selectedModel = useAiChatStore((s) => s.selectedModel);
+  const selectedModelSource = useAiChatStore((s) => s.selectedModelSource);
   const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const setSelectedModel = useAiChatStore((s) => s.setSelectedModel);
   const applyRuntimeDefaults = useAiChatStore((s) => s.applyRuntimeDefaults);
@@ -57,23 +54,25 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   );
   const canShowSelectedModel = isModelCatalogSuccess && models.length > 0;
   const isAutoModel = selectedModel === AUTO_AI_CHAT_MODEL;
-  const defaultModel =
-    models.find((model) => model.id === modelCatalog?.defaultModel)?.id ?? models[0]?.id;
+  const defaultModel = models.find((model) => model.id === modelCatalog?.defaultModel)?.id;
+  const productLocale = modelProductLocale(i18n.resolvedLanguage ?? i18n.language);
   const selected =
     canShowSelectedModel && !isAutoModel
-      ? (models.find((model) => model.id === selectedModel) ?? models[0])
+      ? (models.find((model) => model.id === selectedModel) ?? null)
       : null;
   const triggerLabel =
     canShowSelectedModel && isAutoModel
       ? t("ai:AI_CHAT_MODEL_AUTO")
       : selected
-        ? formatModelLabel(selected, t)
-        : getModelSelectorStatusLabel({
-            hasWorkspace: Boolean(workspaceId),
-            isLoading: isModelCatalogLoading,
-            isError: isModelCatalogError,
-            t,
-          });
+        ? formatModelLabel(selected, productLocale)
+        : canShowSelectedModel
+          ? t("ai:AI_CHAT_MODEL_SELECT")
+          : getModelSelectorStatusLabel({
+              hasWorkspace: Boolean(workspaceId),
+              isLoading: isModelCatalogLoading,
+              isError: isModelCatalogError,
+              t,
+            });
 
   useEffect(() => {
     if (!runtime) return undefined;
@@ -81,35 +80,48 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
     return runtime.registerModelContextProvider({
       getModelContext: () => ({
         config: {
-          modelName: isAutoModel ? undefined : selectedModel,
+          modelName: selected?.id,
           reasoningEffort: selectedReasoningEffort,
         },
       }),
     });
-  }, [isAutoModel, runtime, selectedModel, selectedReasoningEffort]);
+  }, [runtime, selected, selectedReasoningEffort]);
 
   useEffect(() => {
     const catalog = modelCatalog;
     if (!catalog) return;
+    const runtimeDefaults = {
+      reasoningEffort: catalog.reasoningEffort,
+      composerMode: catalog.defaultMode,
+    };
     if (models.length === 0) {
+      applyRuntimeDefaults(runtimeDefaults);
       if (selectedModel !== AUTO_AI_CHAT_MODEL) {
         setSelectedModel(AUTO_AI_CHAT_MODEL, "default");
       }
       return;
     }
-    const defaultCatalogModel =
-      models.find((model) => model.id === catalog.defaultModel)?.id ?? models[0].id;
+    const defaultCatalogModel = models.find((model) => model.id === catalog.defaultModel)?.id;
+    applyRuntimeDefaults({
+      ...runtimeDefaults,
+      model: defaultCatalogModel,
+    });
     if (selectedModel === AUTO_AI_CHAT_MODEL) return;
     if (!models.some((model) => model.id === selectedModel)) {
-      setSelectedModel(defaultCatalogModel, "default");
+      setSelectedModel(defaultCatalogModel ?? AUTO_AI_CHAT_MODEL, "default");
       return;
     }
-    applyRuntimeDefaults({
-      model: defaultCatalogModel,
-      reasoningEffort: catalog.reasoningEffort,
-      composerMode: catalog.defaultMode,
-    });
-  }, [applyRuntimeDefaults, modelCatalog, models, selectedModel, setSelectedModel]);
+    if (!defaultCatalogModel && selectedModelSource === "default") {
+      setSelectedModel(AUTO_AI_CHAT_MODEL, "default");
+    }
+  }, [
+    applyRuntimeDefaults,
+    modelCatalog,
+    models,
+    selectedModel,
+    selectedModelSource,
+    setSelectedModel,
+  ]);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -129,7 +141,11 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
           {isAutoModel ? (
             <AIModelBrandIcon auto />
           ) : selected ? (
-            <AIModelBrandIcon provider={selected.provider} modelId={selected.id} />
+            <AIModelBrandIcon
+              provider={selected.provider}
+              modelId={selected.id}
+              providerIcon={selected.providerIcon}
+            />
           ) : null}
           <span className={cn("truncate", !selected && "text-label-secondary")}>
             {triggerLabel}
@@ -166,7 +182,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
             return (
               <DropdownMenuItem
                 key={model.id}
-                disabled={isAutoModel}
+                disabled={isAutoModel && Boolean(defaultModel)}
                 onSelect={() => {
                   setSelectedModel(model.id);
                   setOpen(false);
@@ -176,14 +192,15 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
                 <AIModelBrandIcon
                   provider={model.provider}
                   modelId={model.id}
+                  providerIcon={model.providerIcon}
                   className="mt-0.5 size-5"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-callout font-semibold text-label-primary">
-                    {formatModelLabel(model, t)}
+                    {formatModelLabel(model, productLocale)}
                   </span>
                   <span className="mt-0.5 block truncate text-footnote text-label-secondary">
-                    {formatModelDescription(model, t)}
+                    {formatModelDescription(model, productLocale, t)}
                   </span>
                 </span>
                 <CheckIcon
@@ -222,13 +239,26 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   );
 }
 
-function formatModelLabel(model: AIModelCatalogItem, t: (key: string) => string): string {
-  return model.labelKey ? t(model.labelKey) : model.label;
+type ModelProductLocale = "zh-CN" | "en-US";
+
+function modelProductLocale(language: string): ModelProductLocale {
+  return language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
 }
 
-function formatModelDescription(model: AIModelCatalogItem, t: (key: string) => string): string {
-  if (model.descriptionKey) return t(model.descriptionKey);
-  return model.description ?? model.id;
+function formatModelLabel(model: AIModelCatalogItem, locale: ModelProductLocale): string {
+  return model.labelI18n?.[locale]?.trim() || model.label;
+}
+
+function formatModelDescription(
+  model: AIModelCatalogItem,
+  locale: ModelProductLocale,
+  t: (key: string) => string,
+): string {
+  return (
+    model.descriptionI18n?.[locale]?.trim() ||
+    model.description?.trim() ||
+    t("ai:AI_CHAT_MODEL_DESCRIPTION_UNAVAILABLE")
+  );
 }
 
 function getModelSelectorStatusLabel(options: {

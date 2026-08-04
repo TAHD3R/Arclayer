@@ -42,6 +42,16 @@ class _Repository:
             policy_revision=7,
             is_active=True,
         )
+        self.current_mfa_policy = SimpleNamespace(
+            id=uuid4(),
+            code="platform.access.manage_current_mfa",
+            permission=SimpleNamespace(code="platform:access-mfa:reset"),
+            requires_step_up=True,
+            required_assurance=PlatformVerificationAssurance.LOCAL_MFA,
+            freshness_seconds=300,
+            policy_revision=1,
+            is_active=True,
+        )
         self.session = SimpleNamespace(
             id=self.session_id,
             actor_user_id=self.actor_id,
@@ -56,7 +66,11 @@ class _Repository:
 
     async def get_action_policy(self, *, action_code: str, conn: object, for_update: bool = False):
         return next(
-            (policy for policy in (self.policy, self.alternate_policy) if action_code == policy.code),
+            (
+                policy
+                for policy in (self.policy, self.alternate_policy, self.current_mfa_policy)
+                if action_code == policy.code
+            ),
             None,
         )
 
@@ -140,6 +154,30 @@ async def test_phishing_resistant_action_rejects_totp_assurance() -> None:
         )
 
     assert repository.created is None
+
+
+@pytest.mark.asyncio
+async def test_current_actor_mfa_action_does_not_require_an_administrative_reset_permission() -> None:
+    from src.modules.platform_identity.step_up import PlatformStepUpService
+
+    repository = _Repository()
+    repository.permission_granted = False
+    service = PlatformStepUpService(repository=repository, proof_factory=lambda: "self-mfa-proof")
+    request = _request(repository).model_copy(
+        update={
+            "action_code": repository.current_mfa_policy.code,
+            "target_type": "platform_mfa_actor",
+            "target_id": repository.actor_id,
+            "scope": {"operation": "remove_method", "method_id": str(uuid4())},
+        }
+    )
+
+    issued = await service.issue(
+        request=request,
+        verified_assurance=PlatformVerificationAssurance.LOCAL_MFA,
+    )
+
+    assert issued.proof == "self-mfa-proof"
 
 
 @pytest.mark.asyncio

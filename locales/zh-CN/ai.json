@@ -245,6 +245,7 @@
   "AI_CHAT_MODEL_CLAUDE_SONNET_DESC": "擅长长文本分析与写作",
   "AI_CHAT_MODEL_SEARCH_PLACEHOLDER": "搜索模型…",
   "AI_CHAT_MODEL_EMPTY": "当前工作空间的 AI 暂时不可用。请稍后重试；如果问题持续存在，请联系支持。",
+  "AI_CHAT_MODEL_DESCRIPTION_UNAVAILABLE": "暂未配置模型介绍",
   "AI_CHAT_MODEL_AUTO": "自动选择",
   "AI_CHAT_MODEL_AUTO_DESC": "使用系统默认模型；仅在已启用的模型供应商中选择。",
   "AI_CHAT_MODEL_GROUP": "模型",

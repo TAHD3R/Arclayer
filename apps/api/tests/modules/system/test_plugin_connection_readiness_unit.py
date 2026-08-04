@@ -13,7 +13,7 @@ class _ReadinessPort:
         self.value = value
         self.calls = 0
 
-    async def sign_in_readiness(self) -> object:
+    async def get_settings(self) -> object:
         self.calls += 1
         return self.value
 
@@ -27,7 +27,7 @@ class _ReadinessPort:
 
 
 class _UnexpectedPort:
-    async def sign_in_readiness(self) -> object:
+    async def get_settings(self) -> object:
         raise AssertionError("analytics must not read a non-existent owning readiness port")
 
     async def provider_readiness(self) -> object:

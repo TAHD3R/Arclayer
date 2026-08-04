@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import {
+  AUTO_AI_CHAT_MODEL,
   DEFAULT_AI_AGENT_ID,
-  DEFAULT_AI_CHAT_MODEL,
   DEFAULT_AI_COMPOSER_MODE,
   DEFAULT_AI_REASONING_EFFORT,
   useAiChatStore,
@@ -22,7 +22,7 @@ describe("useAiChatStore persistence", () => {
   beforeEach(() => {
     window.localStorage.clear();
     useAiChatStore.setState({
-      selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModel: AUTO_AI_CHAT_MODEL,
       selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
       selectedReasoningEffortSource: "default",
@@ -149,6 +149,44 @@ describe("useAiChatStore persistence", () => {
       composerMode: "build",
       composerModeSource: "user",
       selectedAgentId: null,
+    });
+  });
+
+  it("removes the retired managed model while preserving explicit user selections", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.aiChat,
+      JSON.stringify({
+        version: 8,
+        state: {
+          selectedModel: "deepseek-v4-pro",
+          selectedModelSource: "default",
+        },
+      }),
+    );
+
+    await useAiChatStore.persist.rehydrate();
+
+    expect(useAiChatStore.getState()).toMatchObject({
+      selectedModel: AUTO_AI_CHAT_MODEL,
+      selectedModelSource: "default",
+    });
+
+    window.localStorage.setItem(
+      STORAGE_KEYS.aiChat,
+      JSON.stringify({
+        version: 8,
+        state: {
+          selectedModel: "custom-model",
+          selectedModelSource: "user",
+        },
+      }),
+    );
+
+    await useAiChatStore.persist.rehydrate();
+
+    expect(useAiChatStore.getState()).toMatchObject({
+      selectedModel: "custom-model",
+      selectedModelSource: "user",
     });
   });
 });

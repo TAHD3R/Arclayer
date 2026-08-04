@@ -10,7 +10,9 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/feedback", () => ({ submitFeedback: vi.fn() }));
 vi.mock("@/components/Aurora", () => ({
-  default: () => <div data-testid="aurora-canvas" />,
+  default: ({ colorStops }: { colorStops: [string, string, string] }) => (
+    <div data-testid="aurora-canvas" data-color-stops={JSON.stringify(colorStops)} />
+  ),
 }));
 vi.mock("@/lib/notifications", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/notifications")>();
@@ -68,6 +70,10 @@ describe("ServerErrorView", () => {
     expect(screen.getByTestId("fullscreen-result-aurora")).toHaveClass("h-1/2", "opacity-30");
     expect(screen.getByTestId("fullscreen-result-aurora")).toContainElement(
       screen.getByTestId("aurora-canvas"),
+    );
+    expect(screen.getByTestId("aurora-canvas")).toHaveAttribute(
+      "data-color-stops",
+      JSON.stringify(["#339cff", "#526477", "#339cff"]),
     );
 
     const heading = screen.getByRole("heading", {

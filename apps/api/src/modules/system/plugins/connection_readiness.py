@@ -4,13 +4,13 @@ from typing import Protocol
 
 from src.core.connectors import ConnectorDefinition, ConnectorKind
 from src.modules.commerce.platform_operations_schema import ProviderReadinessOut
-from src.modules.platform_identity.management_schema import PlatformSignInReadinessOut
+from src.modules.platform_identity.sign_in_settings_schema import PlatformSignInSettingsOut
 from src.modules.system.mail.profile_schema import MailServiceOut
 from src.modules.system.plugins.schema import ExtensionConfigurationReadiness
 
 
 class PlatformSignInReadinessPort(Protocol):
-    async def sign_in_readiness(self) -> PlatformSignInReadinessOut: ...
+    async def get_settings(self) -> PlatformSignInSettingsOut: ...
 
 
 class CommerceProviderReadinessPort(Protocol):
@@ -46,7 +46,7 @@ class ExtensionConnectionReadinessService:
 
     async def _oauth_readiness(self, definition: ConnectorDefinition) -> ExtensionConfigurationReadiness:
         provider_key = _provider_key(definition)
-        readiness = await self._platform_sign_in.sign_in_readiness()
+        readiness = await self._platform_sign_in.get_settings()
         provider = next((item for item in readiness.providers if item.key == provider_key), None)
         if provider is None or not provider.installed:
             return ExtensionConfigurationReadiness.UNAVAILABLE

@@ -81,8 +81,8 @@ describe("trusted Platform capability projection", () => {
   it.each([
     [
       "access.team",
-      ["access.team", "access.roles", "access.sign-in", "access.mfa", "access.sessions"],
-      ["access-team", "access-roles", "access-sign-in", "access-mfa", "access-sessions"],
+      ["access.team", "access.roles", "access.sign-in"],
+      ["access-team", "access-roles", "access-sign-in"],
     ],
     [
       "ai.tasks",

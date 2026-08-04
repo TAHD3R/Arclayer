@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
+import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
 import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
-import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
@@ -18,16 +18,16 @@ import { useEmailVerificationCountdown } from "../hooks/use-email-verification-c
 import type { RegisterFormValues, RegisterPaneSeed } from "../types";
 import {
   AUTH_FIELD_CLASS,
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_GROUP_CLASS,
   AUTH_PANE_CONTENT_CLASS,
-  AUTH_PANE_META_CLASS,
   AUTH_PANE_ROOT_CLASS,
+  AUTH_PILL_BUTTON_CLASS,
+  AUTH_PILL_INPUT_CLASS,
+  AUTH_PILL_INPUT_GROUP_CLASS,
+  AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
-  AuthPaneHeader,
   AuthPaneLegal,
-  AuthPaneTitleRow,
 } from "./auth-pane-primitives";
+import { AuthEntryHeader } from "./login-brand-slogan";
 
 type RegisterPaneProps = {
   onEmailSubmit: (email: string) => Promise<boolean>;
@@ -49,7 +49,6 @@ type RegisterPaneProps = {
 };
 
 function RegisterField(props: {
-  title: string;
   helpText?: string;
   error?: string;
   variants: Variants | {};
@@ -58,9 +57,11 @@ function RegisterField(props: {
   return (
     <motion.div variants={props.variants}>
       <Field className={AUTH_FIELD_CLASS}>
-        <FieldContent className="gap-2.5">
-          <AuthPaneTitleRow title={props.title} helpText={props.helpText} />
+        <FieldContent className="gap-2">
           {props.children}
+          {props.helpText ? (
+            <p className="px-4 text-footnote text-label-secondary">{props.helpText}</p>
+          ) : null}
           <FieldError>{props.error}</FieldError>
         </FieldContent>
       </Field>
@@ -185,13 +186,20 @@ export function RegisterPane(props: RegisterPaneProps) {
 
   return (
     <div className={AUTH_PANE_ROOT_CLASS}>
-      <AuthPaneHeader titleKey="auth:REGISTER_PAGE_TITLE" variants={variants} />
+      <AuthEntryHeader
+        mode="register"
+        onSwitch={() => props.onSwitchToLogin()}
+        disabled={busy}
+        variants={variants}
+      />
+      <h2 className="sr-only">{t("auth:REGISTER_PAGE_TITLE")}</h2>
       <div className={AUTH_PANE_CONTENT_CLASS}>
         <motion.div variants={variants} className="empty:hidden">
           <AuthOauthButtons
             disabled={busy || isVerificationPending}
             redirect={props.redirect}
             dividerPlacement="after"
+            providerLayout="primary-plus-grid"
             loadingProvider={props.pendingOAuthProvider}
             onProviderStart={
               props.onStartOAuth
@@ -205,17 +213,16 @@ export function RegisterPane(props: RegisterPaneProps) {
             }
           />
         </motion.div>
-        <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
+        <form onSubmit={handleSubmit} className="grid gap-4" autoComplete="on">
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2.5">
-                <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
+              <FieldContent className="gap-2">
                 <AuthInputControl
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
                   aria-invalid={form.formState.errors.email ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
+                  className={AUTH_PILL_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_PILL_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
                   disabled={busy || isVerificationPending || props.emailLocked}
@@ -255,7 +262,6 @@ export function RegisterPane(props: RegisterPaneProps) {
             <>
               {props.invitationRegistration ? (
                 <RegisterField
-                  title={t("auth:FIELD_USERNAME_LABEL")}
                   helpText={t("auth:FIELD_USERNAME_HELP")}
                   error={
                     form.formState.errors.username?.message
@@ -268,8 +274,8 @@ export function RegisterPane(props: RegisterPaneProps) {
                     autoComplete="username"
                     aria-label={t("auth:FIELD_USERNAME_LABEL")}
                     aria-invalid={form.formState.errors.username ? true : undefined}
-                    className={AUTH_INPUT_GROUP_CLASS}
-                    inputClassName={AUTH_INPUT_CLASS}
+                    className={AUTH_PILL_INPUT_GROUP_CLASS}
+                    inputClassName={AUTH_PILL_INPUT_CLASS}
                     placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
                     startIcon={<UserRound size={16} />}
                     disabled={busy}
@@ -279,7 +285,6 @@ export function RegisterPane(props: RegisterPaneProps) {
                 </RegisterField>
               ) : null}
               <RegisterField
-                title={t("auth:FIELD_PASSWORD_LABEL")}
                 error={
                   form.formState.errors.password?.message
                     ? String(form.formState.errors.password.message)
@@ -287,29 +292,26 @@ export function RegisterPane(props: RegisterPaneProps) {
                 }
                 variants={variants}
               >
-                <AuthPasswordControl
-                  autoComplete="new-password"
-                  aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                  aria-invalid={form.formState.errors.password ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
-                  placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                  startIcon={<Lock size={16} />}
-                  disabled={busy}
-                  {...form.register("password")}
-                />
-                <PasswordRequirementChecklist
-                  password={passwordValue}
-                  active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
-                  t={t}
-                />
+                <PasswordRulesPopover password={passwordValue}>
+                  <AuthPasswordControl
+                    autoComplete="new-password"
+                    aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                    aria-invalid={form.formState.errors.password ? true : undefined}
+                    className={AUTH_PILL_INPUT_GROUP_CLASS}
+                    inputClassName={AUTH_PILL_INPUT_CLASS}
+                    placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                    startIcon={<Lock size={16} />}
+                    disabled={busy}
+                    {...form.register("password")}
+                  />
+                </PasswordRulesPopover>
               </RegisterField>
             </>
           )}
 
-          <motion.div variants={variants} className="grid gap-3 pt-1">
+          <motion.div variants={variants} className="grid gap-4 pt-1">
             <Button
-              className="w-full"
+              className={AUTH_PILL_BUTTON_CLASS}
               type="submit"
               size="lg"
               loading={busy && (!isVerificationPending || props.resendLoading)}
@@ -323,28 +325,21 @@ export function RegisterPane(props: RegisterPaneProps) {
                   : t("auth:REGISTER_BUTTON")}
               </AuthButtonLabel>
             </Button>
-          </motion.div>
-        </form>
-        <div className="grid mt-4 gap-2">
-          <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-            <div className="text-callout text-label-secondary">
-              <span>{t("auth:HAVE_ACCOUNT")} </span>
-              <AuthLinkButton
-                className="!px-1 !text-callout font-normal"
+            {isVerificationPending ? null : (
+              <Button
+                className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+                type="button"
+                size="lg"
+                variant="outline"
                 disabled={busy}
                 onClick={() => props.onSwitchToLogin()}
-                type="button"
               >
-                {t("auth:SIGN_IN")}
-              </AuthLinkButton>
-            </div>
+                {t("auth:BACK_TO_LOGIN")}
+              </Button>
+            )}
           </motion.div>
-          <AuthPaneLegal
-            i18nKey="auth:LEGAL_REGISTER"
-            variants={variants}
-            className={AUTH_PANE_META_CLASS}
-          />
-        </div>
+        </form>
+        <AuthPaneLegal i18nKey="auth:LEGAL_REGISTER" variants={variants} className="mt-2" />
       </div>
     </div>
   );

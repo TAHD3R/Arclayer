@@ -214,7 +214,7 @@ function OverviewContent({ data, retry }: Readonly<{ data: PlatformOverview; ret
   const recoveryCount = data.recovered.status === "ready" ? data.recovered.data.total : null;
   return (
     <PlatformPage
-      actions={
+      secondaryActions={
         <Button onClick={retry} size="sm" variant="outline">
           <RefreshCw aria-hidden="true" />
           {t("REFRESH")}

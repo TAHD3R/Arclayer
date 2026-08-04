@@ -81,6 +81,7 @@ from src.modules.projects.source.schema import (
     ProjectSourceManifestOut,
 )
 from src.modules.projects.source.service import ProjectSourceService
+from src.modules.system.ai_providers.configuration import resolve_default_system_model
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
@@ -593,6 +594,17 @@ class WorkspaceActionPlanner:
         payload: WorkspaceAIActionRequest,
         user_id: UUID,
     ) -> WorkspaceAIPlannerDecision:
+        if self._settings.ai.mock_enabled:
+            resolved_model = "mock"
+        else:
+            configured_model = await resolve_default_system_model()
+            if configured_model is None:
+                raise APIError(
+                    "No default AI service model is configured",
+                    error="PROVIDER_MODEL_UNAVAILABLE",
+                    status_code=400,
+                )
+            resolved_model = configured_model.public_model
         try:
             result = await self._runtime.chat(
                 _planner_messages(payload),
@@ -602,7 +614,7 @@ class WorkspaceActionPlanner:
                     user_id=user_id,
                     source="agent",
                 ),
-                model=self._settings.ai.default_model,
+                model=resolved_model,
                 temperature=0,
                 max_tokens=900,
                 provider_params=_planner_tool_provider_params(),

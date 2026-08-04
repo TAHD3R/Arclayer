@@ -20,7 +20,7 @@ import {
   AddSecurityKeyDialog,
   RemoveMfaMethodDialog,
 } from "@/access/platform-mfa-dialogs";
-import { verifyPlatformAction } from "@/access/platform-step-up";
+import { verifyPlatformAction, verifyPlatformTotpAction } from "@/access/platform-step-up";
 import { createPlatformSecurityKey } from "@/auth/webauthn";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
 
@@ -35,7 +35,10 @@ vi.mock("@/access/access-api", async (importOriginal) => {
     removeCurrentPlatformMfaMethod: vi.fn(),
   };
 });
-vi.mock("@/access/platform-step-up", () => ({ verifyPlatformAction: vi.fn() }));
+vi.mock("@/access/platform-step-up", () => ({
+  verifyPlatformAction: vi.fn(),
+  verifyPlatformTotpAction: vi.fn(),
+}));
 vi.mock("@/auth/webauthn", () => ({ createPlatformSecurityKey: vi.fn() }));
 
 const userId = "user-1";
@@ -69,6 +72,13 @@ const method: PlatformMfaMethodReadinessOut = {
   methodId: "method-1",
   verifiedAt: "2026-08-02T00:00:00.000Z",
 };
+const totpMethod: PlatformMfaMethodReadinessOut = {
+  kind: "totp",
+  label: "Phone authenticator",
+  lastUsedAt: null,
+  methodId: "totp-current-1",
+  verifiedAt: "2026-08-02T00:00:00.000Z",
+};
 
 beforeAll(async () => {
   await initializePlatformI18n("en-US");
@@ -88,6 +98,7 @@ describe("Platform MFA dialogs", () => {
     const user = userEvent.setup();
     render(
       <AddAuthenticatorAppDialog
+        methods={[method]}
         open
         onCompleted={vi.fn()}
         onOpenChange={vi.fn()}
@@ -120,6 +131,7 @@ describe("Platform MFA dialogs", () => {
     const user = userEvent.setup();
     render(
       <AddAuthenticatorAppDialog
+        methods={[method]}
         open
         onCompleted={vi.fn()}
         onOpenChange={vi.fn()}
@@ -156,7 +168,13 @@ describe("Platform MFA dialogs", () => {
       });
     const user = userEvent.setup();
     render(
-      <AddSecurityKeyDialog open onCompleted={vi.fn()} onOpenChange={vi.fn()} userId={userId} />,
+      <AddSecurityKeyDialog
+        methods={[method]}
+        open
+        onCompleted={vi.fn()}
+        onOpenChange={vi.fn()}
+        userId={userId}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Verify and add security key" }));
@@ -171,6 +189,44 @@ describe("Platform MFA dialogs", () => {
     expect(createPlatformSecurityKey).toHaveBeenCalledOnce();
     expect(vi.mocked(completeCurrentPlatformWebauthnMethod).mock.calls[1]).toEqual(
       vi.mocked(completeCurrentPlatformWebauthnMethod).mock.calls[0],
+    );
+  });
+
+  it("binds a security-key replacement to the reviewed method and completes atomically", async () => {
+    vi.mocked(verifyPlatformAction).mockResolvedValue("step-up-proof");
+    vi.mocked(beginCurrentPlatformWebauthnMethod).mockResolvedValue(registration);
+    vi.mocked(createPlatformSecurityKey).mockResolvedValue(credential);
+    vi.mocked(completeCurrentPlatformWebauthnMethod).mockResolvedValue({
+      availableRecoveryCodeCount: null,
+      methods: [],
+      ready: true,
+      userId,
+    });
+    const user = userEvent.setup();
+
+    render(
+      <AddSecurityKeyDialog
+        methods={[method]}
+        open
+        onCompleted={vi.fn()}
+        onOpenChange={vi.fn()}
+        replaceMethod={{ ...method, methodId: "old-method" }}
+        userId={userId}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Verify and replace" }));
+
+    await waitFor(() => expect(completeCurrentPlatformWebauthnMethod).toHaveBeenCalledOnce());
+    expect(verifyPlatformAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: { operation: "webauthn_enrollment", replace_method_id: "old-method" },
+      }),
+    );
+    expect(beginCurrentPlatformWebauthnMethod).toHaveBeenCalledWith(
+      expect.objectContaining({ replaceMethodId: "old-method" }),
+    );
+    expect(completeCurrentPlatformWebauthnMethod).toHaveBeenCalledWith(
+      expect.objectContaining({ replaceMethodId: "old-method" }),
     );
   });
 
@@ -189,6 +245,7 @@ describe("Platform MFA dialogs", () => {
     render(
       <RemoveMfaMethodDialog
         method={method}
+        methods={[method]}
         open
         onCompleted={vi.fn()}
         onOpenChange={vi.fn()}
@@ -208,5 +265,38 @@ describe("Platform MFA dialogs", () => {
     await waitFor(() => expect(removeCurrentPlatformMfaMethod).toHaveBeenCalledTimes(3));
     expect(verifyPlatformAction).toHaveBeenCalledTimes(2);
     expect(vi.mocked(removeCurrentPlatformMfaMethod).mock.calls[2]?.[1]).not.toEqual(failedRequest);
+  });
+
+  it("uses a current authenticator code to add the first security key", async () => {
+    vi.mocked(verifyPlatformTotpAction).mockResolvedValue("totp-step-up-proof");
+    vi.mocked(beginCurrentPlatformWebauthnMethod).mockResolvedValue(registration);
+    vi.mocked(createPlatformSecurityKey).mockResolvedValue(credential);
+    vi.mocked(completeCurrentPlatformWebauthnMethod).mockResolvedValue({
+      availableRecoveryCodeCount: 8,
+      methods: [totpMethod],
+      ready: true,
+      userId,
+    });
+    const user = userEvent.setup();
+
+    render(
+      <AddSecurityKeyDialog
+        methods={[totpMethod]}
+        open
+        onCompleted={vi.fn()}
+        onOpenChange={vi.fn()}
+        userId={userId}
+      />,
+    );
+    await user.type(screen.getByLabelText("Current verification code"), "123 456");
+    await user.click(screen.getByRole("button", { name: "Verify and add security key" }));
+
+    await waitFor(() => expect(completeCurrentPlatformWebauthnMethod).toHaveBeenCalledOnce());
+    expect(verifyPlatformTotpAction).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCode: "platform.access.manage_current_mfa" }),
+      totpMethod.methodId,
+      "123456",
+    );
+    expect(verifyPlatformAction).not.toHaveBeenCalled();
   });
 });

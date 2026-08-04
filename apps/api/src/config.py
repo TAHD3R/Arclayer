@@ -833,8 +833,6 @@ class AISettings(BaseSettings):
     litellm_master_key: str | None = Field(default=None, description="LiteLLM master key for virtual key management")
     litellm_timeout_seconds: float = Field(default=120.0, ge=1.0, le=600.0)
 
-    # Default LLM model
-    default_model: str = Field(default="gpt-4o-mini")
     default_max_tokens: int = Field(default=4096, ge=1, le=128000)
 
     # Budget defaults (in microdollars)

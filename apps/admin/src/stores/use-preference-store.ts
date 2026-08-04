@@ -296,6 +296,8 @@ function resolveWorkspaceLocaleFallback(): AppLocale {
   return detectBrowserLocale();
 }
 
+let activeThemeModeOverride: { mode: ThemeMode } | null = null;
+
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   themeMode: "light",
   themePreference: "light",
@@ -320,9 +322,10 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   setThemePreference: (preference) => {
     const nextPreference = normalizeThemePreference(preference);
     const nextMode = resolveThemeMode(nextPreference);
-    applyThemeModeToDom(nextMode);
+    const effectiveMode = activeThemeModeOverride?.mode ?? nextMode;
+    applyThemeModeToDom(effectiveMode);
     writeStorageItem(STORAGE_KEYS.themeMode, nextPreference);
-    set({ themeMode: nextMode, themePreference: nextPreference });
+    set({ themeMode: effectiveMode, themePreference: nextPreference });
   },
 
   toggleThemeMode: () => {
@@ -457,6 +460,28 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   },
 }));
 
+export function activateThemeModeOverride(mode: ThemeMode): () => void {
+  if (activeThemeModeOverride) {
+    throw new Error("A runtime theme mode override is already active");
+  }
+
+  const override = { mode };
+  applyThemeModeToDom(mode);
+  activeThemeModeOverride = override;
+  usePreferencesStore.setState({ themeMode: mode });
+
+  return () => {
+    if (activeThemeModeOverride !== override) {
+      throw new Error("Runtime theme mode override cleanup does not match the active override");
+    }
+
+    const restoredMode = resolveThemeMode(usePreferencesStore.getState().themePreference);
+    applyThemeModeToDom(restoredMode);
+    activeThemeModeOverride = null;
+    usePreferencesStore.setState({ themeMode: restoredMode });
+  };
+}
+
 let isInitialized = false;
 let themeObserver: MutationObserver | null = null;
 let systemThemeMediaQuery: MediaQueryList | null = null;
@@ -525,6 +550,14 @@ export function initializePreferences() {
     for (const m of mutations) {
       if (m.type !== "attributes" || m.attributeName !== "data-theme") continue;
       const mode = normalizeThemeMode(document.documentElement.dataset.theme);
+      if (activeThemeModeOverride) {
+        const enforcedMode = activeThemeModeOverride.mode;
+        if (mode !== enforcedMode) {
+          applyThemeModeToDom(enforcedMode);
+          usePreferencesStore.setState({ themeMode: enforcedMode });
+        }
+        continue;
+      }
       const current = usePreferencesStore.getState().themeMode;
       if (mode === current) continue;
       writeStorageItem(STORAGE_KEYS.themeMode, mode);
@@ -542,7 +575,7 @@ export function initializePreferences() {
     systemThemeListener = () => {
       const state = usePreferencesStore.getState();
       if (state.themePreference !== "system") return;
-      const nextMode = detectSystemThemeMode();
+      const nextMode = activeThemeModeOverride?.mode ?? detectSystemThemeMode();
       applyThemeModeToDom(nextMode);
       usePreferencesStore.setState({ themeMode: nextMode });
     };
@@ -559,6 +592,7 @@ export function teardownPreferences() {
   }
   systemThemeMediaQuery = null;
   systemThemeListener = null;
+  activeThemeModeOverride = null;
 
   isInitialized = false;
 }

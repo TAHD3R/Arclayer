@@ -23,9 +23,9 @@ Identity & Access opens the **Platform team** queue by default and contains thes
 
 1. **Platform team**: Instance Owner, invited and active Platform Operators, role assignments, MFA readiness, recent access, and explicit revoke or recovery actions.
 2. **Roles & permissions**: localized Built-in Platform Roles, deployment-owned Custom Platform Roles, readable permission descriptions, affected operators, copy-to-custom workflows, change preview, and audited assignments.
-3. **Sign-in & registration**: public-registration availability, email requirements and verification, allowed email domains, and automatic-account-provisioning policy.
-4. **Sign-in methods**: installed identity providers, configuration readiness, safe credential replacement, enablement, health, and sign-in test evidence.
-5. **Sessions & MFA**: Platform MFA compliance and Platform Session inventory, expiry, revocation, and security-event deep links.
+3. **Sign-in & registration**: public-registration availability, email requirements and verification, allowed email domains, automatic-account-provisioning policy, and installed identity-provider configuration.
+
+Current-actor MFA methods and device-scoped Platform Sessions are not peer administration pages. They live in the account settings overlay opened from the Sidebar user menu, alongside the current identity profile and local appearance/language preferences. The overlay uses the same server-enforced MFA and Session contracts; moving the surface does not weaken permission, Step-up, expiry, revocation, or Audit requirements.
 
 The domain has no decorative Overview. Configuration readiness and security problems appear beside the affected work queue and project an Operational Signal when operator action is required.
 

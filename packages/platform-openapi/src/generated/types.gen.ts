@@ -5,6 +5,22 @@ export type ClientOptions = {
 };
 
 /**
+ * AIProviderIcon
+ *
+ * Theme-aware provider icon shared by Platform and Product APIs.
+ */
+export type AiProviderIcon = {
+    /**
+     * Darkurl
+     */
+    darkUrl: string;
+    /**
+     * Lighturl
+     */
+    lightUrl: string;
+};
+
+/**
  * AIUsageGroupOut
  */
 export type AiUsageGroupOut = {
@@ -6778,7 +6794,7 @@ export type PlatformAiProviderActionAvailabilityOut = {
     /**
      * Action
      */
-    action: 'test_readiness' | 'enable' | 'disable' | 'rotate_credentials' | 'remove_credentials';
+    action: 'test_readiness' | 'enable' | 'disable' | 'rotate_credentials' | 'remove_credentials' | 'archive' | 'restore' | 'delete';
     /**
      * Available
      */
@@ -6798,9 +6814,21 @@ export type PlatformAiProviderOut = {
      */
     actions: Array<PlatformAiProviderActionAvailabilityOut>;
     /**
+     * Archived
+     */
+    archived: boolean;
+    /**
+     * Cleanuprequired
+     */
+    cleanupRequired: boolean;
+    /**
      * Configured
      */
     configured: boolean;
+    /**
+     * Defaultmodel
+     */
+    defaultModel: string;
     /**
      * Desiredisactive
      */
@@ -6845,10 +6873,6 @@ export type PlatformAiProviderOut = {
      * Reachable
      */
     reachable: boolean | null;
-    /**
-     * Requestmodel
-     */
-    requestModel: string;
     /**
      * Routable
      */
@@ -7130,7 +7154,7 @@ export type PlatformCapabilityReadinessState = 'ready' | 'not_ready';
 /**
  * PlatformCapabilityRouteTarget
  */
-export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'access.mfa' | 'access.sessions' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
+export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
 
 /**
  * PlatformCapabilityRuntimeHealth
@@ -8443,6 +8467,10 @@ export type PlatformMfaTotpBeginRequest = {
      */
     issuer: string;
     /**
+     * Replacemethodid
+     */
+    replaceMethodId?: string | null;
+    /**
      * Stepupproof
      */
     stepUpProof: string;
@@ -8549,11 +8577,37 @@ export type PlatformMutationReceipt = {
     /**
      * Mutation
      */
-    mutation: 'bootstrap_owner' | 'invite_operator' | 'revoke_operator_invitation' | 'accept_operator_invitation' | 'offboard_operator' | 'nominate_ownership_transfer' | 'accept_ownership_transfer' | 'create_custom_role' | 'copy_custom_role' | 'apply_custom_role_revision' | 'assign_platform_roles' | 'retire_custom_role' | 'revoke_platform_session' | 'revoke_other_platform_sessions' | 'remove_platform_mfa_method';
+    mutation: 'bootstrap_owner' | 'invite_operator' | 'revoke_operator_invitation' | 'accept_operator_invitation' | 'offboard_operator' | 'nominate_ownership_transfer' | 'accept_ownership_transfer' | 'create_custom_role' | 'copy_custom_role' | 'apply_custom_role_revision' | 'replace_platform_roles' | 'retire_custom_role' | 'revoke_platform_session' | 'revoke_other_platform_sessions' | 'revoke_operator_platform_session' | 'remove_platform_mfa_method' | 'reset_platform_operator_mfa';
     /**
      * Replayed
      */
     replayed?: boolean;
+};
+
+/**
+ * PlatformOperatorMfaResetRequest
+ */
+export type PlatformOperatorMfaResetRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedoperatorrevision
+     */
+    expectedOperatorRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
 };
 
 /**
@@ -8576,6 +8630,10 @@ export type PlatformOperatorOffboardingRequest = {
      * Reason
      */
     reason: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
 };
 
 /**
@@ -8659,6 +8717,20 @@ export type PlatformPermissionCatalogItemOut = {
 export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:commerce-settings:read' | 'platform:commerce-settings:manage' | 'platform:workspace-capability-rollout:apply';
 
 /**
+ * PlatformProvisioningSettingsOut
+ */
+export type PlatformProvisioningSettingsOut = {
+    /**
+     * Autoacceptemailinvites
+     */
+    autoAcceptEmailInvites: boolean;
+    /**
+     * Autoprovisionenabled
+     */
+    autoProvisionEnabled: boolean;
+};
+
+/**
  * PlatformRecoveryCodeSet
  *
  * One-time display of newly generated recovery codes.
@@ -8672,9 +8744,9 @@ export type PlatformRecoveryCodeSet = {
 };
 
 /**
- * PlatformRegistrationReadinessOut
+ * PlatformRegistrationSettingsOut
  */
-export type PlatformRegistrationReadinessOut = {
+export type PlatformRegistrationSettingsOut = {
     /**
      * Emaildomainsallowlist
      */
@@ -8694,9 +8766,9 @@ export type PlatformRegistrationReadinessOut = {
 };
 
 /**
- * PlatformRoleAssignmentRequest
+ * PlatformRoleAssignmentReplaceRequest
  */
-export type PlatformRoleAssignmentRequest = {
+export type PlatformRoleAssignmentReplaceRequest = {
     /**
      * Correlationid
      */
@@ -8712,7 +8784,7 @@ export type PlatformRoleAssignmentRequest = {
     /**
      * Roleids
      */
-    roleIds: Array<string>;
+    roleIds?: Array<string>;
     /**
      * Stepupproof
      */
@@ -9240,9 +9312,81 @@ export type PlatformSignInOut = {
 };
 
 /**
- * PlatformSignInProviderReadinessOut
+ * PlatformSignInPolicyUpdateRequest
  */
-export type PlatformSignInProviderReadinessOut = {
+export type PlatformSignInPolicyUpdateRequest = {
+    /**
+     * Autoacceptemailinvites
+     */
+    autoAcceptEmailInvites: boolean;
+    /**
+     * Autoprovisionenabled
+     */
+    autoProvisionEnabled: boolean;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Emaildomainsallowlist
+     */
+    emailDomainsAllowlist?: Array<string>;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Publicregistrationenabled
+     */
+    publicRegistrationEnabled: boolean;
+    /**
+     * Requireemail
+     */
+    requireEmail: boolean;
+    /**
+     * Requireemailverification
+     */
+    requireEmailVerification: boolean;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformSignInProviderDeleteRequest
+ */
+export type PlatformSignInProviderDeleteRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformSignInProviderSettingsOut
+ */
+export type PlatformSignInProviderSettingsOut = {
+    /**
+     * Clientid
+     */
+    clientId: string | null;
     /**
      * Configured
      */
@@ -9251,6 +9395,10 @@ export type PlatformSignInProviderReadinessOut = {
      * Enabled
      */
     enabled: boolean;
+    /**
+     * Hasclientsecret
+     */
+    hasClientSecret: boolean;
     /**
      * Installed
      */
@@ -9266,14 +9414,41 @@ export type PlatformSignInProviderReadinessOut = {
 };
 
 /**
- * PlatformSignInReadinessOut
+ * PlatformSignInProviderUpdateRequest
  */
-export type PlatformSignInReadinessOut = {
+export type PlatformSignInProviderUpdateRequest = {
     /**
-     * Providers
+     * Clearclientsecret
      */
-    providers: Array<PlatformSignInProviderReadinessOut>;
-    registration: PlatformRegistrationReadinessOut;
+    clearClientSecret?: boolean;
+    /**
+     * Clientid
+     */
+    clientId: string;
+    /**
+     * Clientsecret
+     */
+    clientSecret?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
 };
 
 /**
@@ -9288,6 +9463,22 @@ export type PlatformSignInRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * PlatformSignInSettingsOut
+ */
+export type PlatformSignInSettingsOut = {
+    /**
+     * Providers
+     */
+    providers: Array<PlatformSignInProviderSettingsOut>;
+    provisioning: PlatformProvisioningSettingsOut;
+    registration: PlatformRegistrationSettingsOut;
+    /**
+     * Revision
+     */
+    revision: number;
 };
 
 /**
@@ -9359,6 +9550,58 @@ export type PlatformStepUpProofIssueResult = {
      * Proofid
      */
     proofId: string;
+};
+
+/**
+ * PlatformStepUpTotpCompleteRequest
+ */
+export type PlatformStepUpTotpCompleteRequest = {
+    /**
+     * Actioncode
+     */
+    actionCode: string;
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision?: number | null;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Methodid
+     */
+    methodId: string;
+    /**
+     * Previewrevision
+     */
+    previewRevision?: number | null;
+    /**
+     * Scope
+     */
+    scope: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Sessionid
+     */
+    sessionId: string;
+    /**
+     * Targetid
+     */
+    targetId?: string | null;
+    /**
+     * Targettype
+     */
+    targetType: string;
 };
 
 /**
@@ -12652,10 +12895,10 @@ export type ResponseModelPlatformSignInOut = {
 };
 
 /**
- * ResponseModel[PlatformSignInReadinessOut]
+ * ResponseModel[PlatformSignInSettingsOut]
  */
-export type ResponseModelPlatformSignInReadinessOut = {
-    data?: PlatformSignInReadinessOut | null;
+export type ResponseModelPlatformSignInSettingsOut = {
+    data?: PlatformSignInSettingsOut | null;
     /**
      * Error
      */
@@ -14369,25 +14612,61 @@ export type SystemAiProviderAvailabilityPreviewRequest = {
 };
 
 /**
+ * SystemAIProviderBillingConfig
+ */
+export type SystemAiProviderBillingConfig = {
+    /**
+     * Currency
+     */
+    currency?: 'USD';
+    /**
+     * Inputcostmicrospermilliontokens
+     */
+    inputCostMicrosPerMillionTokens?: number;
+    /**
+     * Outputcostmicrospermilliontokens
+     */
+    outputCostMicrosPerMillionTokens?: number;
+};
+
+/**
  * SystemAIProviderCreateRequest
  */
 export type SystemAiProviderCreateRequest = {
     /**
+     * Authheader
+     */
+    authHeader?: string;
+    /**
      * Baseurl
      */
     baseUrl?: string | null;
+    billingConfig?: SystemAiProviderBillingConfig;
     /**
      * Compatibility
      */
     compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible';
     /**
+     * Defaultmodel
+     */
+    defaultModel: string;
+    /**
      * Expiresat
      */
     expiresAt?: string | null;
+    icon?: AiProviderIcon | null;
     /**
      * Label
      */
     label: string;
+    /**
+     * Modelmappings
+     */
+    modelMappings: Array<SystemAiProviderModelMapping>;
+    /**
+     * Note
+     */
+    note?: string | null;
     /**
      * Provider
      */
@@ -14396,10 +14675,11 @@ export type SystemAiProviderCreateRequest = {
      * Providerapikey
      */
     providerApiKey: string;
+    testConfig?: SystemAiProviderTestConfig;
     /**
-     * Requestmodel
+     * Websiteurl
      */
-    requestModel: string;
+    websiteUrl?: string | null;
 };
 
 /**
@@ -14413,13 +14693,56 @@ export type SystemAiProviderListOut = {
 };
 
 /**
+ * SystemAIProviderModelMapping
+ */
+export type SystemAiProviderModelMapping = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Descriptioni18N
+     */
+    descriptionI18n?: {
+        [key: string]: string;
+    };
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Labeli18N
+     */
+    labelI18n?: {
+        [key: string]: string;
+    };
+    /**
+     * Providermodel
+     */
+    providerModel: string;
+    /**
+     * Publicmodel
+     */
+    publicModel: string;
+};
+
+/**
  * SystemAIProviderOut
  */
 export type SystemAiProviderOut = {
     /**
+     * Authheader
+     */
+    authHeader: string;
+    /**
      * Baseurl
      */
     baseUrl?: string | null;
+    billingConfig: SystemAiProviderBillingConfig;
+    /**
+     * Cleanuprequired
+     */
+    cleanupRequired: boolean;
     /**
      * Compatibility
      */
@@ -14429,6 +14752,10 @@ export type SystemAiProviderOut = {
      */
     createdAt: string;
     /**
+     * Defaultmodel
+     */
+    defaultModel: string;
+    /**
      * Expiresat
      */
     expiresAt?: string | null;
@@ -14436,6 +14763,7 @@ export type SystemAiProviderOut = {
      * Hasvirtualkey
      */
     hasVirtualKey: boolean;
+    icon?: AiProviderIcon | null;
     /**
      * Id
      */
@@ -14444,6 +14772,10 @@ export type SystemAiProviderOut = {
      * Isactive
      */
     isActive: boolean;
+    /**
+     * Isarchived
+     */
+    isArchived: boolean;
     /**
      * Label
      */
@@ -14456,6 +14788,14 @@ export type SystemAiProviderOut = {
      * Litellmkeyid
      */
     litellmKeyId?: string | null;
+    /**
+     * Modelmappings
+     */
+    modelMappings?: Array<SystemAiProviderModelMapping>;
+    /**
+     * Note
+     */
+    note?: string | null;
     /**
      * Provider
      */
@@ -14472,14 +14812,15 @@ export type SystemAiProviderOut = {
      * Readinessstatus
      */
     readinessStatus?: 'unknown' | 'healthy' | 'unhealthy';
-    /**
-     * Requestmodel
-     */
-    requestModel: string;
+    testConfig: SystemAiProviderTestConfig;
     /**
      * Updatedat
      */
     updatedAt: string;
+    /**
+     * Websiteurl
+     */
+    websiteUrl?: string | null;
 };
 
 /**
@@ -14505,37 +14846,82 @@ export type SystemAiProviderReadinessTestOut = {
 };
 
 /**
+ * SystemAIProviderTestConfig
+ */
+export type SystemAiProviderTestConfig = {
+    /**
+     * Expectedtext
+     */
+    expectedText?: string | null;
+    /**
+     * Maxtokens
+     */
+    maxTokens?: number;
+    /**
+     * Prompt
+     */
+    prompt?: string;
+};
+
+/**
  * SystemAIProviderUpdateRequest
  */
 export type SystemAiProviderUpdateRequest = {
     /**
+     * Authheader
+     */
+    authHeader?: string | null;
+    /**
      * Baseurl
      */
     baseUrl?: string | null;
+    billingConfig?: SystemAiProviderBillingConfig | null;
     /**
      * Compatibility
      */
     compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible' | null;
     /**
+     * Defaultmodel
+     */
+    defaultModel?: string | null;
+    /**
      * Expiresat
      */
     expiresAt?: string | null;
+    icon?: AiProviderIcon | null;
     /**
      * Isactive
      */
     isActive?: boolean | null;
     /**
+     * Isarchived
+     */
+    isArchived?: boolean | null;
+    /**
      * Label
      */
     label?: string | null;
     /**
+     * Modelmappings
+     */
+    modelMappings?: Array<SystemAiProviderModelMapping> | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
      * Providerapikey
      */
     providerApiKey?: string | null;
+    testConfig?: SystemAiProviderTestConfig | null;
     /**
-     * Requestmodel
+     * Websiteurl
      */
-    requestModel?: string | null;
+    websiteUrl?: string | null;
 };
 
 /**
@@ -16753,21 +17139,131 @@ export type PlatformRevokeCurrentPlatformSessionResponses = {
 
 export type PlatformRevokeCurrentPlatformSessionResponse = PlatformRevokeCurrentPlatformSessionResponses[keyof PlatformRevokeCurrentPlatformSessionResponses];
 
-export type PlatformGetPlatformSignInReadinessData = {
+export type PlatformGetPlatformSignInSettingsData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/platform-api/v1/access/sign-in/readiness';
+    url: '/platform-api/v1/access/sign-in/settings';
 };
 
-export type PlatformGetPlatformSignInReadinessResponses = {
+export type PlatformGetPlatformSignInSettingsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformSignInReadinessOut;
+    200: ResponseModelPlatformSignInSettingsOut;
 };
 
-export type PlatformGetPlatformSignInReadinessResponse = PlatformGetPlatformSignInReadinessResponses[keyof PlatformGetPlatformSignInReadinessResponses];
+export type PlatformGetPlatformSignInSettingsResponse = PlatformGetPlatformSignInSettingsResponses[keyof PlatformGetPlatformSignInSettingsResponses];
+
+export type PlatformUpdatePlatformSignInPolicyData = {
+    body: PlatformSignInPolicyUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/sign-in/settings/policy';
+};
+
+export type PlatformUpdatePlatformSignInPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformSignInPolicyError = PlatformUpdatePlatformSignInPolicyErrors[keyof PlatformUpdatePlatformSignInPolicyErrors];
+
+export type PlatformUpdatePlatformSignInPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSignInSettingsOut;
+};
+
+export type PlatformUpdatePlatformSignInPolicyResponse = PlatformUpdatePlatformSignInPolicyResponses[keyof PlatformUpdatePlatformSignInPolicyResponses];
+
+export type PlatformDeletePlatformSignInProviderData = {
+    body: PlatformSignInProviderDeleteRequest;
+    path: {
+        /**
+         * Provider Key
+         */
+        provider_key: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/sign-in/settings/providers/{provider_key}';
+};
+
+export type PlatformDeletePlatformSignInProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformDeletePlatformSignInProviderError = PlatformDeletePlatformSignInProviderErrors[keyof PlatformDeletePlatformSignInProviderErrors];
+
+export type PlatformDeletePlatformSignInProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSignInSettingsOut;
+};
+
+export type PlatformDeletePlatformSignInProviderResponse = PlatformDeletePlatformSignInProviderResponses[keyof PlatformDeletePlatformSignInProviderResponses];
+
+export type PlatformUpdatePlatformSignInProviderData = {
+    body: PlatformSignInProviderUpdateRequest;
+    path: {
+        /**
+         * Provider Key
+         */
+        provider_key: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/sign-in/settings/providers/{provider_key}';
+};
+
+export type PlatformUpdatePlatformSignInProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformSignInProviderError = PlatformUpdatePlatformSignInProviderErrors[keyof PlatformUpdatePlatformSignInProviderErrors];
+
+export type PlatformUpdatePlatformSignInProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSignInSettingsOut;
+};
+
+export type PlatformUpdatePlatformSignInProviderResponse = PlatformUpdatePlatformSignInProviderResponses[keyof PlatformUpdatePlatformSignInProviderResponses];
+
+export type PlatformCompletePlatformStepUpTotpData = {
+    body: PlatformStepUpTotpCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/step-up/authenticator-app/complete';
+};
+
+export type PlatformCompletePlatformStepUpTotpErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCompletePlatformStepUpTotpError = PlatformCompletePlatformStepUpTotpErrors[keyof PlatformCompletePlatformStepUpTotpErrors];
+
+export type PlatformCompletePlatformStepUpTotpResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformStepUpProofIssueResult;
+};
+
+export type PlatformCompletePlatformStepUpTotpResponse = PlatformCompletePlatformStepUpTotpResponses[keyof PlatformCompletePlatformStepUpTotpResponses];
 
 export type PlatformCompletePlatformStepUpWebauthnData = {
     body: PlatformStepUpWebAuthnCompleteRequest;
@@ -16982,6 +17478,100 @@ export type PlatformGetCurrentTeamIdentityResponses = {
 
 export type PlatformGetCurrentTeamIdentityResponse = PlatformGetCurrentTeamIdentityResponses[keyof PlatformGetCurrentTeamIdentityResponses];
 
+export type PlatformResetPlatformOperatorMfaData = {
+    body: PlatformOperatorMfaResetRequest;
+    path: {
+        /**
+         * Operator Id
+         */
+        operator_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/team/operators/{operator_id}/mfa/reset';
+};
+
+export type PlatformResetPlatformOperatorMfaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformResetPlatformOperatorMfaError = PlatformResetPlatformOperatorMfaErrors[keyof PlatformResetPlatformOperatorMfaErrors];
+
+export type PlatformResetPlatformOperatorMfaResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformResetPlatformOperatorMfaResponse = PlatformResetPlatformOperatorMfaResponses[keyof PlatformResetPlatformOperatorMfaResponses];
+
+export type PlatformListPlatformOperatorSessionsData = {
+    body?: never;
+    path: {
+        /**
+         * Operator Id
+         */
+        operator_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/team/operators/{operator_id}/sessions';
+};
+
+export type PlatformListPlatformOperatorSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformOperatorSessionsError = PlatformListPlatformOperatorSessionsErrors[keyof PlatformListPlatformOperatorSessionsErrors];
+
+export type PlatformListPlatformOperatorSessionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTuplePlatformSessionInventoryItemOut;
+};
+
+export type PlatformListPlatformOperatorSessionsResponse = PlatformListPlatformOperatorSessionsResponses[keyof PlatformListPlatformOperatorSessionsResponses];
+
+export type PlatformRevokePlatformOperatorSessionData = {
+    body: PlatformSessionRevokeRequest;
+    path: {
+        /**
+         * Operator Id
+         */
+        operator_id: string;
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/team/operators/{operator_id}/sessions/{session_id}/revoke';
+};
+
+export type PlatformRevokePlatformOperatorSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRevokePlatformOperatorSessionError = PlatformRevokePlatformOperatorSessionErrors[keyof PlatformRevokePlatformOperatorSessionErrors];
+
+export type PlatformRevokePlatformOperatorSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRevokePlatformOperatorSessionResponse = PlatformRevokePlatformOperatorSessionResponses[keyof PlatformRevokePlatformOperatorSessionResponses];
+
 export type PlatformOffboardPlatformOperatorData = {
     body: PlatformOperatorOffboardingRequest;
     path: {
@@ -17012,8 +17602,8 @@ export type PlatformOffboardPlatformOperatorResponses = {
 
 export type PlatformOffboardPlatformOperatorResponse = PlatformOffboardPlatformOperatorResponses[keyof PlatformOffboardPlatformOperatorResponses];
 
-export type PlatformAssignPlatformOperatorRolesData = {
-    body: PlatformRoleAssignmentRequest;
+export type PlatformReplacePlatformOperatorRolesData = {
+    body: PlatformRoleAssignmentReplaceRequest;
     path: {
         /**
          * Target User Id
@@ -17024,23 +17614,23 @@ export type PlatformAssignPlatformOperatorRolesData = {
     url: '/platform-api/v1/access/team/operators/{target_user_id}/roles';
 };
 
-export type PlatformAssignPlatformOperatorRolesErrors = {
+export type PlatformReplacePlatformOperatorRolesErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformAssignPlatformOperatorRolesError = PlatformAssignPlatformOperatorRolesErrors[keyof PlatformAssignPlatformOperatorRolesErrors];
+export type PlatformReplacePlatformOperatorRolesError = PlatformReplacePlatformOperatorRolesErrors[keyof PlatformReplacePlatformOperatorRolesErrors];
 
-export type PlatformAssignPlatformOperatorRolesResponses = {
+export type PlatformReplacePlatformOperatorRolesResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelPlatformMutationReceipt;
 };
 
-export type PlatformAssignPlatformOperatorRolesResponse = PlatformAssignPlatformOperatorRolesResponses[keyof PlatformAssignPlatformOperatorRolesResponses];
+export type PlatformReplacePlatformOperatorRolesResponse = PlatformReplacePlatformOperatorRolesResponses[keyof PlatformReplacePlatformOperatorRolesResponses];
 
 export type PlatformNominatePlatformOwnershipTransferData = {
     body: PlatformOwnershipTransferNominationRequest;

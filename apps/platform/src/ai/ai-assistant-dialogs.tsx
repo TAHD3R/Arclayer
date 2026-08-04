@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type {
   AgentVersionCreateRequest,
   SystemAgentDefinitionSummaryOut,
@@ -10,7 +11,6 @@ import {
   createAiAssistantVersion,
   updateAiAssistant,
 } from "@/ai/ai-assistants-api";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -34,16 +34,6 @@ type AssistantEditorProps = Readonly<{
   supportedToolGrants: readonly string[];
 }>;
 
-function ErrorNotice(props: Readonly<{ message: string }>) {
-  const { t } = useTranslation("ai");
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
-      <AlertDescription>{props.message}</AlertDescription>
-    </Alert>
-  );
-}
-
 export function AiAssistantEditorDialog(props: AssistantEditorProps) {
   const { t } = useTranslation("ai");
   const [displayName, setDisplayName] = useState("");
@@ -56,7 +46,6 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
   const [planMode, setPlanMode] = useState(true);
   const [buildMode, setBuildMode] = useState(true);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayName(props.assistant?.displayName ?? "");
@@ -68,7 +57,6 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
     setApprovalProfile(props.approvalProfiles[0] ?? "");
     setPlanMode(true);
     setBuildMode(true);
-    setError(null);
   }, [props.approvalProfiles, props.assistant, props.open]);
 
   const submit = async (event: FormEvent) => {
@@ -77,15 +65,16 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
       (value): value is "plan" | "build" => value !== null,
     );
     if (!displayName.trim() || !role.trim() || (!props.assistant && !slug.trim())) {
-      setError(t("ASSISTANT_REQUIRED_FIELDS"));
+      toast.error(t("ACTION_FAILED"), { description: t("ASSISTANT_REQUIRED_FIELDS") });
       return;
     }
     if (!props.assistant && (!instructions.trim() || modes.length === 0 || !approvalProfile)) {
-      setError(t("ASSISTANT_VERSION_REQUIRED_FIELDS"));
+      toast.error(t("ACTION_FAILED"), {
+        description: t("ASSISTANT_VERSION_REQUIRED_FIELDS"),
+      });
       return;
     }
     setPending(true);
-    setError(null);
     try {
       if (props.assistant) {
         await updateAiAssistant(props.assistant.id, {
@@ -112,7 +101,9 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
       props.onCompleted();
       props.onOpenChange(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
+      toast.error(t("ACTION_FAILED"), {
+        description: cause instanceof Error ? cause.message : t("ACTION_FAILED"),
+      });
     } finally {
       setPending(false);
     }
@@ -140,7 +131,6 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
     >
       <form id={formId} onSubmit={submit}>
         <SettingDialogFields>
-          {error ? <ErrorNotice message={error} /> : null}
           <SettingDialogField title={<label htmlFor={`${formId}-name`}>{t("NAME")}</label>}>
             <Input
               id={`${formId}-name`}
@@ -297,7 +287,6 @@ export function AiAssistantVersionDialog(
     latest?.supportedExecutionModes.includes("build") ?? true,
   );
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -305,11 +294,12 @@ export function AiAssistantVersionDialog(
     if (planMode) supportedExecutionModes.push("plan");
     if (buildMode) supportedExecutionModes.push("build");
     if (!instructions.trim() || supportedExecutionModes.length === 0 || !approvalProfile) {
-      setError(t("ASSISTANT_VERSION_REQUIRED_FIELDS"));
+      toast.error(t("ACTION_FAILED"), {
+        description: t("ASSISTANT_VERSION_REQUIRED_FIELDS"),
+      });
       return;
     }
     setPending(true);
-    setError(null);
     try {
       await createAiAssistantVersion(props.assistant.id, {
         approvalProfile: { profileId: approvalProfile.trim() },
@@ -326,7 +316,9 @@ export function AiAssistantVersionDialog(
       props.onCompleted();
       props.onOpenChange(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
+      toast.error(t("ACTION_FAILED"), {
+        description: cause instanceof Error ? cause.message : t("ACTION_FAILED"),
+      });
     } finally {
       setPending(false);
     }
@@ -353,7 +345,6 @@ export function AiAssistantVersionDialog(
     >
       <form id="create-ai-assistant-version" onSubmit={submit}>
         <SettingDialogFields>
-          {error ? <ErrorNotice message={error} /> : null}
           <InitialVersionFields
             approvalProfile={approvalProfile}
             approvalProfiles={props.approvalProfiles}

@@ -51,8 +51,6 @@ class PlatformCapabilityRouteTarget(StrEnum):
     ACCESS_TEAM = "access.team"
     ACCESS_ROLES = "access.roles"
     ACCESS_SIGN_IN = "access.sign-in"
-    ACCESS_MFA = "access.mfa"
-    ACCESS_SESSIONS = "access.sessions"
     TENANT_WORKSPACES = "tenants.workspaces"
     TENANT_USERS = "tenants.users"
     TENANT_PROJECTS = "tenants.projects"

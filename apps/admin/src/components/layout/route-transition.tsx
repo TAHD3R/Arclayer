@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
   type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import clsx from "clsx";
 
@@ -20,6 +21,7 @@ type RouteTransitionProps = PropsWithChildren<{
   className?: string;
   pendingMs?: number;
   pendingMinMs?: number;
+  pendingFallback?: ReactNode;
   variant?: "slide" | "fade";
 }>;
 
@@ -99,17 +101,23 @@ function resolveAdminSkeletonVariant(routeId: string | undefined, pathname: stri
   return "form" satisfies PageSkeletonVariant;
 }
 
-function DefaultRoutePending({ variant }: { variant: PageSkeletonVariant }) {
+function DefaultRoutePending({
+  variant,
+  children,
+}: PropsWithChildren<{ variant: PageSkeletonVariant }>) {
   const { t } = useTranslation("common");
 
   return (
     <div
       aria-label={t("LOADING")}
       aria-live="polite"
-      className="absolute inset-0 z-10 min-h-full overflow-hidden bg-background"
+      className={clsx(
+        "absolute inset-0 z-10 min-h-full overflow-hidden",
+        children ? "bg-transparent" : "bg-background",
+      )}
       role="status"
     >
-      <PageSkeleton className="p-4 sm:p-6" variant={variant} />
+      {children ?? <PageSkeleton className="p-4 sm:p-6" variant={variant} />}
     </div>
   );
 }
@@ -119,6 +127,7 @@ export function RouteTransition({
   className,
   pendingMs = 200,
   pendingMinMs = 180,
+  pendingFallback,
   variant = "slide",
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
@@ -311,7 +320,11 @@ export function RouteTransition({
               {children}
             </motion.div>
           </AnimatePresence>
-          {shouldShowPending ? <DefaultRoutePending variant={pendingSkeletonVariant} /> : null}
+          {shouldShowPending ? (
+            <DefaultRoutePending variant={pendingSkeletonVariant}>
+              {pendingFallback}
+            </DefaultRoutePending>
+          ) : null}
         </RouteTransitionContext.Provider>
       </div>
     </MotionConfig>

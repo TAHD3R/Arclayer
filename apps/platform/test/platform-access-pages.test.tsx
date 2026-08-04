@@ -4,38 +4,53 @@ import { fileURLToPath } from "node:url";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
 
 import {
   getCurrentMfaReadiness,
+  getCurrentPlatformActorProfile,
   getCurrentPlatformTeamIdentity,
   getCurrentSessions,
-  getSignInReadiness,
+  getSignInSettings,
   listPlatformPermissions,
   listPlatformRoles,
   PlatformAccessApiError,
   revokeCurrentPlatformSession,
   revokeOtherCurrentPlatformSessions,
+  updateSignInPolicy,
+  updateSignInProvider,
 } from "@/access/access-api";
+import { verifyPlatformAction } from "@/access/platform-step-up";
+import { PlatformAccountSettings } from "@/account/platform-account-settings";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
-import { PlatformMfaPage } from "@/pages/access-mfa";
+import { PlatformPreferencesProvider } from "@/lib/preferences";
 import { PlatformRolesPage } from "@/pages/access-roles";
-import { PlatformSessionsPage } from "@/pages/access-sessions";
-import { PlatformSignInReadinessPage } from "@/pages/access-sign-in";
+import { PlatformSignInSettingsPage } from "@/pages/access-sign-in";
 
 vi.mock("@/access/access-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/access/access-api")>();
   return {
     ...actual,
     getCurrentMfaReadiness: vi.fn(),
+    getCurrentPlatformActorProfile: vi.fn(),
     getCurrentPlatformTeamIdentity: vi.fn(),
     getCurrentSessions: vi.fn(),
-    getSignInReadiness: vi.fn(),
+    getSignInSettings: vi.fn(),
     listPlatformPermissions: vi.fn(),
     listPlatformRoles: vi.fn(),
     revokeCurrentPlatformSession: vi.fn(),
     revokeOtherCurrentPlatformSessions: vi.fn(),
+    updateSignInPolicy: vi.fn(),
+    updateSignInProvider: vi.fn(),
   };
 });
+vi.mock("@/access/platform-step-up", () => ({ verifyPlatformAction: vi.fn() }));
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -62,17 +77,37 @@ beforeEach(async () => {
   await i18n.changeLanguage("en-US");
   vi.mocked(getCurrentPlatformTeamIdentity).mockResolvedValue({
     delegablePermissions: [],
-    effectivePermissions: [
-      "platform:access-team:read",
-      "platform:access-roles:read",
-      "platform:access-mfa:reset",
-    ],
-    isInstanceOwner: false,
-    operatorId: "operator-1",
-    operatorRevision: 1,
-    operatorStatus: "active",
+    effectivePermissions: [],
+    isInstanceOwner: true,
+    operatorId: null,
+    operatorRevision: null,
+    operatorStatus: null,
     userId: "user-1",
   });
+  vi.mocked(getCurrentPlatformActorProfile).mockResolvedValue({
+    avatarUrl: null,
+    email: "operator@example.test",
+    username: "operator",
+  });
+  vi.mocked(getCurrentSessions).mockResolvedValue([]);
+  vi.mocked(getSignInSettings).mockResolvedValue(signInSettings());
+  vi.mocked(getCurrentMfaReadiness).mockResolvedValue({
+    availableRecoveryCodeCount: null,
+    methods: [
+      {
+        kind: "webauthn",
+        label: "Office passkey",
+        lastUsedAt: "2026-08-02T01:00:00.000Z",
+        methodId: "method-1",
+        verifiedAt: "2026-08-01T01:00:00.000Z",
+      },
+    ],
+    ready: true,
+    userId: "user-1",
+  });
+  vi.mocked(verifyPlatformAction).mockResolvedValue("step-up-proof");
+  vi.mocked(updateSignInPolicy).mockResolvedValue(signInSettings());
+  vi.mocked(updateSignInProvider).mockResolvedValue(signInSettings());
 });
 
 afterEach(() => {
@@ -107,53 +142,139 @@ describe("Platform Access & Security pages", () => {
     render(<PlatformRolesPage />);
 
     expect(await screen.findByText("Platform operator")).toBeVisible();
-    expect(screen.getByText("Review Platform team")).toBeVisible();
+    await userEvent.setup().click(screen.getByRole("tab", { name: "Permission catalog" }));
+    expect(screen.getByText("View the Platform team")).toBeVisible();
     expect(
       screen.queryByText(/until their reviewed workflow is available/i),
     ).not.toBeInTheDocument();
   });
 
-  it("renders registration and provider readiness from the Platform SDK", async () => {
-    vi.mocked(getSignInReadiness).mockResolvedValue({
-      providers: [
-        { configured: true, enabled: true, installed: true, key: "google", label: "Google" },
-      ],
-      registration: {
-        emailDomainsAllowlist: ["example.com"],
-        publicRegistrationEnabled: false,
-        requireEmail: true,
-        requireEmailVerification: true,
-      },
-    });
+  it("keeps deployment policy and OAuth configuration on the sign-in page", async () => {
+    const user = userEvent.setup();
+    render(<PlatformSignInSettingsPage />);
 
-    render(<PlatformSignInReadinessPage />);
+    expect(await screen.findByRole("checkbox", { name: "Public registration" })).toBeEnabled();
+    const heading = screen.getByRole("heading", { name: "Sign-in & verification" });
+    const pageHeader = heading.closest("header");
+    expect(pageHeader).not.toBeNull();
+    expect(within(pageHeader!).getByRole("button", { name: "Save changes" })).toBeVisible();
+    expect(
+      document.querySelector("#platform-sign-in-policy-form button[type='submit']"),
+    ).not.toBeInTheDocument();
 
-    expect(await screen.findByText("Google")).toBeVisible();
-    expect(screen.getByText("Ready for sign-in")).toBeVisible();
-    expect(screen.getByText("example.com")).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "OAuth sign-in" }));
+    expect(screen.getByRole("button", { name: "Edit sign-in service" })).toBeVisible();
+
+    expect(
+      screen.queryByRole("tab", { name: "Multi-factor verification" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows only safe local MFA readiness facts and recovery-code availability", async () => {
-    vi.mocked(getCurrentMfaReadiness).mockResolvedValue({
-      availableRecoveryCodeCount: 6,
-      methods: [
-        {
-          kind: "webauthn",
-          label: "Office passkey",
-          lastUsedAt: "2026-08-02T01:00:00.000Z",
-          methodId: "method-1",
-          verifiedAt: "2026-08-01T01:00:00.000Z",
-        },
-      ],
-      ready: true,
-      userId: "user-1",
+  it("moves current-account MFA management into account settings", async () => {
+    const user = userEvent.setup();
+    renderAccountSettings();
+
+    await user.click(await screen.findByRole("button", { name: "Security" }));
+    expect(screen.getByRole("button", { name: "Add authenticator app" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add security key or passkey" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Replace" })).toBeVisible();
+  });
+
+  it("updates the sign-in and registration policy with action-bound verification", async () => {
+    vi.mocked(updateSignInPolicy).mockResolvedValueOnce({
+      ...signInSettings(),
+      registration: {
+        ...signInSettings().registration,
+        emailDomainsAllowlist: ["example.org", "example.net"],
+        publicRegistrationEnabled: true,
+      },
+      revision: 8,
     });
+    const user = userEvent.setup();
+    render(<PlatformSignInSettingsPage />);
 
-    render(<PlatformMfaPage />);
+    await user.click(await screen.findByRole("checkbox", { name: "Public registration" }));
+    await user.clear(screen.getByLabelText("Allowed email domains"));
+    await user.type(screen.getByLabelText("Allowed email domains"), " example.org\nexample.net ");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(await screen.findByText("Office passkey")).toBeVisible();
-    expect(screen.getByText("Security verification is ready")).toBeVisible();
-    expect(screen.getByText("6 recovery codes remaining")).toBeVisible();
+    await waitFor(() => expect(updateSignInPolicy).toHaveBeenCalledOnce());
+    expect(verifyPlatformAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionCode: "platform.access.change_sign_in_settings",
+        expectedRevision: 7,
+        scope: { operation: "update_policy" },
+      }),
+    );
+    expect(updateSignInPolicy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        emailDomainsAllowlist: ["example.org", "example.net"],
+        expectedRevision: 7,
+        publicRegistrationEnabled: true,
+        stepUpProof: "step-up-proof",
+      }),
+    );
+    expect(toast.success).toHaveBeenCalledWith("Sign-in and registration settings were saved.");
+    expect(getSignInSettings).toHaveBeenCalledOnce();
+  });
+
+  it("does not misreport a step-up policy error as a settings revision conflict", async () => {
+    vi.mocked(updateSignInPolicy).mockRejectedValueOnce(
+      new PlatformAccessApiError("PLATFORM_STEP_UP_POLICY_UNAVAILABLE", 409),
+    );
+    const user = userEvent.setup();
+    render(<PlatformSignInSettingsPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("The change could not be completed", {
+        description:
+          "This deployment's security verification policy is not ready. No settings were changed. Complete the deployment update and try again.",
+      }),
+    );
+    expect(toast.error).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        description:
+          "The settings changed while you were editing. Refresh the page and review them again.",
+      }),
+    );
+  });
+
+  it("edits an OAuth provider without returning the existing write-only secret", async () => {
+    vi.mocked(updateSignInProvider).mockResolvedValueOnce({
+      ...signInSettings(),
+      providers: [{ ...signInSettings().providers[0]!, clientId: "new-client-id" }],
+      revision: 8,
+    });
+    const user = userEvent.setup();
+    render(<PlatformSignInSettingsPage />);
+
+    await user.click(await screen.findByRole("tab", { name: "OAuth sign-in" }));
+    await user.click(screen.getByRole("button", { name: "Edit sign-in service" }));
+    const dialog = screen.getByRole("dialog");
+    await user.clear(within(dialog).getByLabelText("Client ID"));
+    await user.type(within(dialog).getByLabelText("Client ID"), "new-client-id");
+    await user.click(within(dialog).getByRole("button", { name: "Verify and save" }));
+
+    await waitFor(() => expect(updateSignInProvider).toHaveBeenCalledOnce());
+    expect(updateSignInProvider).toHaveBeenCalledWith(
+      "google",
+      expect.objectContaining({
+        clientId: "new-client-id",
+        clientSecret: null,
+        clearClientSecret: false,
+        enabled: true,
+        expectedRevision: 7,
+        stepUpProof: "step-up-proof",
+      }),
+    );
+    expect(toast.success).toHaveBeenCalledWith(
+      "The OAuth sign-in service configuration was saved.",
+    );
+    expect(await screen.findByText("new-client-id")).toBeVisible();
+    expect(getSignInSettings).toHaveBeenCalledOnce();
   });
 
   it("renders the authenticated actor's device sessions without a deferred-workflow notice", async () => {
@@ -177,7 +298,8 @@ describe("Platform Access & Security pages", () => {
       },
     ]);
 
-    render(<PlatformSessionsPage />);
+    renderAccountSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Signed-in devices" }));
 
     expect(await screen.findByText("MacBook Pro")).toBeVisible();
     expect(screen.getByText("This device")).toBeVisible();
@@ -208,9 +330,10 @@ describe("Platform Access & Security pages", () => {
       ]);
     const user = userEvent.setup();
 
-    render(<PlatformSessionsPage />);
+    renderAccountSettings();
 
     await user.click(await screen.findByRole("button", { name: "Try again" }));
+    await user.click(await screen.findByRole("button", { name: "Signed-in devices" }));
 
     expect(await screen.findByText("Recovered session inventory")).toBeVisible();
     await waitFor(() => expect(getCurrentSessions).toHaveBeenCalledTimes(2));
@@ -236,7 +359,8 @@ describe("Platform Access & Security pages", () => {
       });
     const user = userEvent.setup();
 
-    render(<PlatformSessionsPage />);
+    renderAccountSettings();
+    await user.click(await screen.findByRole("button", { name: "Signed-in devices" }));
 
     await user.click(await screen.findByRole("button", { name: "Revoke session" }));
     await user.click(
@@ -244,7 +368,7 @@ describe("Platform Access & Security pages", () => {
     );
 
     expect(await screen.findByText("The device session could not be revoked")).toBeVisible();
-    expect(screen.getByText("PLATFORM_SESSION_REVISION_STALE")).toBeVisible();
+    expect(screen.queryByText("PLATFORM_SESSION_REVISION_STALE")).not.toBeInTheDocument();
     const firstRequest = vi.mocked(revokeCurrentPlatformSession).mock.calls[0]?.[1];
     await user.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Revoke session" }),
@@ -260,7 +384,9 @@ describe("Platform Access & Security pages", () => {
       ),
     );
     expect(vi.mocked(revokeCurrentPlatformSession).mock.calls[1]?.[1]).toEqual(firstRequest);
-    expect(await screen.findByText("The device session was revoked")).toBeVisible();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("The device session was revoked"),
+    );
     await waitFor(() => expect(getCurrentSessions).toHaveBeenCalledTimes(2));
     expect(await screen.findByText("Current device")).toBeVisible();
     expect(screen.queryByText("Other device")).not.toBeInTheDocument();
@@ -284,7 +410,8 @@ describe("Platform Access & Security pages", () => {
     window.localStorage.setItem("arclayer:platform:session", "stored-platform-session");
     const user = userEvent.setup();
 
-    render(<PlatformSessionsPage />);
+    renderAccountSettings();
+    await user.click(await screen.findByRole("button", { name: "Signed-in devices" }));
 
     await user.click(await screen.findByRole("button", { name: "Sign out this device" }));
     await user.click(
@@ -314,7 +441,8 @@ describe("Platform Access & Security pages", () => {
     });
     const user = userEvent.setup();
 
-    render(<PlatformSessionsPage />);
+    renderAccountSettings();
+    await user.click(await screen.findByRole("button", { name: "Signed-in devices" }));
 
     await user.click(await screen.findByRole("button", { name: "Revoke other sessions" }));
     await user.click(
@@ -322,14 +450,16 @@ describe("Platform Access & Security pages", () => {
     );
 
     await waitFor(() => expect(revokeOtherCurrentPlatformSessions).toHaveBeenCalledOnce());
-    expect(await screen.findByText("The other device sessions were revoked")).toBeVisible();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("The other device sessions were revoked"),
+    );
     expect(await screen.findByText("Current device")).toBeVisible();
     expect(screen.queryByText("Other device")).not.toBeInTheDocument();
   });
 
   it("declares each canonical Access peer route without changing the generated route tree", async () => {
     const routes = await Promise.all(
-      ["roles", "sign-in", "mfa", "sessions"].map((name) =>
+      ["roles", "sign-in"].map((name) =>
         readFile(
           path.join(root, `apps/platform/src/routes/_authenticated/access/${name}.tsx`),
           "utf8",
@@ -339,7 +469,53 @@ describe("Platform Access & Security pages", () => {
 
     expect(routes[0]).toContain('createFileRoute("/_authenticated/access/roles")');
     expect(routes[1]).toContain('createFileRoute("/_authenticated/access/sign-in")');
-    expect(routes[2]).toContain('createFileRoute("/_authenticated/access/mfa")');
-    expect(routes[3]).toContain('createFileRoute("/_authenticated/access/sessions")');
+    const routeTree = await readFile(path.join(root, "apps/platform/src/routeTree.gen.ts"), "utf8");
+    expect(routeTree).not.toContain("/access/mfa");
+    expect(routeTree).not.toContain("/access/sessions");
+    await expect(
+      readFile(path.join(root, "apps/platform/src/routes/_authenticated/access/mfa.tsx"), "utf8"),
+    ).rejects.toThrow();
+    await expect(
+      readFile(
+        path.join(root, "apps/platform/src/routes/_authenticated/access/sessions.tsx"),
+        "utf8",
+      ),
+    ).rejects.toThrow();
   });
 });
+
+function renderAccountSettings() {
+  return render(
+    <PlatformPreferencesProvider>
+      <PlatformAccountSettings
+        onOpenChange={() => undefined}
+        onSessionEnded={() => undefined}
+        open
+      />
+    </PlatformPreferencesProvider>,
+  );
+}
+
+function signInSettings() {
+  return {
+    providers: [
+      {
+        clientId: "client-id",
+        configured: true,
+        enabled: true,
+        hasClientSecret: true,
+        installed: true,
+        key: "google",
+        label: "Google",
+      },
+    ],
+    provisioning: { autoAcceptEmailInvites: false, autoProvisionEnabled: true },
+    registration: {
+      emailDomainsAllowlist: ["example.com"],
+      publicRegistrationEnabled: false,
+      requireEmail: true,
+      requireEmailVerification: true,
+    },
+    revision: 7,
+  };
+}

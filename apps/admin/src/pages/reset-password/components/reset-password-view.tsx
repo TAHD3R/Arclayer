@@ -6,23 +6,25 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
+import { AuthInputControl, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
-import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
+import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
+import { getPasswordRequirementStates, PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import type { ResetPasswordFormValues, ResetPasswordViewProps } from "../types";
 import {
   AUTH_FIELD_CLASS,
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_STACK_CLASS,
-  AuthPaneHeader,
-  AuthPaneTitleRow,
+  AUTH_PANE_ROOT_CLASS,
+  AUTH_PILL_BUTTON_CLASS,
+  AUTH_PILL_INPUT_CLASS,
+  AUTH_PILL_INPUT_GROUP_CLASS,
+  AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AuthPaneLegal,
 } from "@/pages/login/components/auth-pane-primitives";
+import { AuthEntryHeader } from "@/pages/login/components/login-brand-slogan";
 
 function createResetPasswordSchema(t: (key: string) => string) {
   return z
@@ -45,7 +47,6 @@ function createResetPasswordSchema(t: (key: string) => string) {
 }
 
 function ResetPasswordField(props: {
-  title: string;
   error?: string;
   variants: Variants | {};
   children: ReactNode;
@@ -53,8 +54,7 @@ function ResetPasswordField(props: {
   return (
     <motion.div variants={props.variants}>
       <Field className={AUTH_FIELD_CLASS}>
-        <FieldContent className="gap-2.5">
-          <AuthPaneTitleRow title={props.title} />
+        <FieldContent className="gap-2">
           {props.children}
           <FieldError>{props.error}</FieldError>
         </FieldContent>
@@ -83,6 +83,10 @@ export function ResetPasswordView({
     mode: "onSubmit",
   });
   const newPasswordValue = form.watch("newPassword");
+  const passwordRequirements = useMemo(
+    () => getPasswordRequirementStates(newPasswordValue, t),
+    [newPasswordValue, t],
+  );
   const showResetTokenField = !initialToken;
 
   return (
@@ -92,12 +96,9 @@ export function ResetPasswordView({
       animate="show"
       variants={{ show: reducedMotion ? {} : { transition: { staggerChildren: 0.05 } } }}
     >
-      <div className={AUTH_PANE_STACK_CLASS}>
-        <AuthPaneHeader
-          titleKey="auth:RESET_PASSWORD_PAGE_TITLE"
-          subtitleKey="auth:RESET_PASSWORD_PAGE_SUBTITLE"
-          variants={variants}
-        />
+      <div className={AUTH_PANE_ROOT_CLASS}>
+        <AuthEntryHeader subtitleKey="auth:RESET_PASSWORD_PAGE_SUBTITLE" variants={variants} />
+        <h2 className="sr-only">{t("auth:RESET_PASSWORD_PAGE_TITLE")}</h2>
 
         <form
           className="grid gap-4"
@@ -108,7 +109,6 @@ export function ResetPasswordView({
         >
           {showResetTokenField ? (
             <ResetPasswordField
-              title={t("auth:FIELD_RESET_TOKEN_LABEL")}
               error={
                 form.formState.errors.resetToken?.message
                   ? String(form.formState.errors.resetToken.message)
@@ -120,8 +120,8 @@ export function ResetPasswordView({
                 autoComplete="one-time-code"
                 aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
                 aria-invalid={form.formState.errors.resetToken ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
+                className={AUTH_PILL_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_PILL_INPUT_CLASS}
                 placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
                 startIcon={<KeyRound size={16} />}
                 disabled={loading}
@@ -136,7 +136,6 @@ export function ResetPasswordView({
           )}
 
           <ResetPasswordField
-            title={t("auth:FIELD_NEW_PASSWORD_LABEL")}
             error={
               form.formState.errors.newPassword?.message
                 ? String(form.formState.errors.newPassword.message)
@@ -144,28 +143,22 @@ export function ResetPasswordView({
             }
             variants={variants}
           >
-            <AuthPasswordControl
-              autoComplete="new-password"
-              aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
-              aria-invalid={form.formState.errors.newPassword ? true : undefined}
-              className={AUTH_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_INPUT_CLASS}
-              placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
-              startIcon={<Lock size={16} />}
-              disabled={loading}
-              {...form.register("newPassword")}
-            />
-            <PasswordRequirementChecklist
-              password={newPasswordValue}
-              active={
-                Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
-              }
-              t={t}
-            />
+            <PasswordRulesPopover password={newPasswordValue} requirements={passwordRequirements}>
+              <AuthPasswordControl
+                autoComplete="new-password"
+                aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
+                aria-invalid={form.formState.errors.newPassword ? true : undefined}
+                className={AUTH_PILL_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_PILL_INPUT_CLASS}
+                placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
+                startIcon={<Lock size={16} />}
+                disabled={loading}
+                {...form.register("newPassword")}
+              />
+            </PasswordRulesPopover>
           </ResetPasswordField>
 
           <ResetPasswordField
-            title={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
             error={
               form.formState.errors.confirmPassword?.message
                 ? String(form.formState.errors.confirmPassword.message)
@@ -177,8 +170,8 @@ export function ResetPasswordView({
               autoComplete="new-password"
               aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
               aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
-              className={AUTH_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_INPUT_CLASS}
+              className={AUTH_PILL_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_PILL_INPUT_CLASS}
               placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
               startIcon={<Lock size={16} />}
               disabled={loading}
@@ -186,18 +179,23 @@ export function ResetPasswordView({
             />
           </ResetPasswordField>
 
-          <motion.div variants={variants} className="grid gap-3 pt-1.5">
-            <Button className="w-full" type="submit" size="lg" loading={loading}>
+          <motion.div variants={variants} className="grid gap-4 pt-1">
+            <Button className={AUTH_PILL_BUTTON_CLASS} type="submit" size="lg" loading={loading}>
               {t("auth:RESET_PASSWORD_BUTTON")}
             </Button>
 
-            <div className="text-center">
-              <AuthLinkButton onClick={onBackToLogin} type="button">
-                {t("auth:BACK_TO_LOGIN")}
-              </AuthLinkButton>
-            </div>
+            <Button
+              className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+              onClick={onBackToLogin}
+              type="button"
+              size="lg"
+              variant="outline"
+            >
+              {t("auth:BACK_TO_LOGIN")}
+            </Button>
           </motion.div>
         </form>
+        <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={variants} />
       </div>
     </motion.div>
   );

@@ -2,24 +2,30 @@ import { CheckCircle2, Circle, CircleAlert } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "@arclayer/lib/utils";
-import { getPasswordRequirementStates } from "@/lib/auth/form-feedback";
+import {
+  getPasswordRequirementStates,
+  type PasswordRequirementState,
+} from "@/lib/auth/form-feedback";
 
 type PasswordRequirementChecklistProps = {
   password: string;
   t: (key: string) => string;
   active?: boolean;
   className?: string;
+  requirements?: PasswordRequirementState[];
+  collapseWhenComplete?: boolean;
 };
 
 export function PasswordRequirementChecklist(props: PasswordRequirementChecklistProps) {
-  const requirements = getPasswordRequirementStates(props.password, props.t);
+  const requirements = props.requirements ?? getPasswordRequirementStates(props.password, props.t);
   const hasValue = props.password.length > 0;
   const allMet = requirements.every((requirement) => requirement.met);
+  const collapseWhenComplete = props.collapseWhenComplete ?? true;
 
   return (
     <AnimatePresence initial={false} mode="wait">
       {props.active ? (
-        allMet ? (
+        allMet && collapseWhenComplete ? (
           <motion.div
             key="password-requirements-met"
             initial={{ opacity: 0, y: -6 }}

@@ -80,6 +80,7 @@ from src.modules.jobs.execution_registry import (
 )
 from src.modules.jobs.execution_schema import JobExecutionLease, JobProgressUpdate
 from src.modules.jobs.hashing import hash_json
+from src.modules.system.ai_providers.configuration import resolve_default_system_model
 from src.settings.runtime import get_core_settings_value_cached
 
 _RUN_PROGRESS_TOTAL = 3
@@ -290,9 +291,7 @@ class AgentRunJobHandler:
             registration=AgentRunExecutionEffectRegistration(
                 run_id=state.run_id,
                 effect_key=("agent-provider-resume" if state.resume_input is not None else "agent-provider-execute"),
-                request_hash=hash_json(
-                    cast(JsonObject, execution_request.model_dump(mode="json", by_alias=True))
-                ),
+                request_hash=hash_json(cast(JsonObject, execution_request.model_dump(mode="json", by_alias=True))),
             ),
         )
         if effect.disposition == AgentRunExecutionEffectDisposition.COMMITTED:
@@ -775,9 +774,7 @@ class AgentRunJobHandler:
                 "sourceJobId": str(recovery.source_job_id),
                 "recoveryJobId": str(state.job_id),
                 "sourceEffectId": str(source_effect.id) if source_effect is not None else None,
-                "sourceEffectDisposition": (
-                    str(source_effect.disposition) if source_effect is not None else None
-                ),
+                "sourceEffectDisposition": (str(source_effect.disposition) if source_effect is not None else None),
             },
         )
         try:
@@ -925,15 +922,16 @@ class AgentRunJobHandler:
             ) from error
 
     async def _model(self) -> str:
-        core = await get_core_settings_value_cached(self._settings)
-        ai_agents = core.get("ai_agents") if isinstance(core, dict) else None
-        agent_settings = cast(dict[str, object], ai_agents) if isinstance(ai_agents, dict) else None
-        configured = agent_settings.get("default_model") if agent_settings is not None else None
-        return (
-            configured.strip()
-            if isinstance(configured, str) and configured.strip()
-            else self._settings.ai.default_model
-        )
+        if self._settings.ai.mock_enabled:
+            return "mock"
+        configured = await resolve_default_system_model()
+        if configured is None:
+            raise PermanentJobExecutionError(
+                code=AGENT_RUN_JOB_FAILURE_CODE,
+                safe_message=t("errors", "PROVIDER_MODEL_UNAVAILABLE"),
+                metadata=self._failure_metadata("PROVIDER_MODEL_UNAVAILABLE"),
+            )
+        return configured.public_model
 
     @staticmethod
     def _progress(*, phase: str, completed: int) -> JobProgressUpdate:

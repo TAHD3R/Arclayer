@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,12 +7,14 @@ import { listAIModels } from "@/api/ai";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
 import {
   AUTO_AI_CHAT_MODEL,
-  DEFAULT_AI_CHAT_MODEL,
   DEFAULT_AI_COMPOSER_MODE,
   DEFAULT_AI_REASONING_EFFORT,
   useAiChatStore,
 } from "@/stores/use-ai-chat-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+
+const i18nState = vi.hoisted(() => ({ language: "en-US" }));
 
 vi.mock("@assistant-ui/react", () => ({
   useAssistantRuntime: () => null,
@@ -24,6 +26,14 @@ vi.mock("@/api/ai", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
+    i18n: {
+      get language() {
+        return i18nState.language;
+      },
+      get resolvedLanguage() {
+        return i18nState.language;
+      },
+    },
     t: (key: string) => {
       const labels: Record<string, string> = {
         "ai:AI_CHAT_MODEL_SELECT": "Select model",
@@ -57,6 +67,7 @@ function renderSelector() {
 describe("AIModelSelector", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    i18nState.language = "en-US";
     localStorage.clear();
     useWorkspaceStore.setState({
       currentWorkspaceId: "workspace-1",
@@ -65,13 +76,14 @@ describe("AIModelSelector", () => {
       lastProjectId: null,
     });
     useAiChatStore.setState({
-      selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModel: AUTO_AI_CHAT_MODEL,
       selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
       selectedReasoningEffortSource: "default",
       composerMode: DEFAULT_AI_COMPOSER_MODE,
       composerModeSource: "default",
     });
+    usePreferencesStore.setState({ themeMode: "light", themePreference: "light" });
     vi.mocked(listAIModels).mockResolvedValue({
       defaultModel: "deepseek-v4-pro",
       defaultMode: "build",
@@ -81,18 +93,22 @@ describe("AIModelSelector", () => {
           id: "deepseek-v4-pro",
           provider: "deepseek",
           label: "DeepSeek V4 Pro",
-          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          labelI18n: { "zh-CN": "DeepSeek V4 专业版" },
           description: "DeepSeek model",
-          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          descriptionI18n: { "zh-CN": "DeepSeek 模型" },
+          providerIcon: {
+            lightUrl: "/provider-icons/deepseek-light.svg",
+            darkUrl: "/provider-icons/deepseek-dark.svg",
+          },
           available: true,
         },
         {
           id: "gpt-4o-mini",
           provider: "openai",
           label: "GPT-4o mini",
-          labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
+          labelI18n: {},
           description: "Fast model",
-          descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
+          descriptionI18n: {},
           available: true,
         },
       ],
@@ -114,6 +130,72 @@ describe("AIModelSelector", () => {
     await waitFor(() => {
       expect(useAiChatStore.getState().selectedModel).toBe("gpt-4o-mini");
     });
+  });
+
+  it("uses the provider icon from the catalog and switches it with the resolved theme", async () => {
+    renderSelector();
+
+    const trigger = await screen.findByRole("button", { name: "Select model" });
+    await waitFor(() => {
+      expect(trigger.querySelector("img")).toHaveAttribute(
+        "src",
+        "/provider-icons/deepseek-light.svg",
+      );
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ themeMode: "dark", themePreference: "dark" });
+    });
+
+    expect(trigger.querySelector("img")).toHaveAttribute(
+      "src",
+      "/provider-icons/deepseek-dark.svg",
+    );
+  });
+
+  it("uses configured localized model copy for the current product language", async () => {
+    i18nState.language = "zh-CN";
+    const user = userEvent.setup();
+    renderSelector();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Select model" })).toHaveTextContent(
+        "DeepSeek V4 专业版",
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: "Select model" }));
+
+    expect(screen.getAllByText("DeepSeek V4 专业版")).toHaveLength(2);
+    expect(screen.getByText("DeepSeek 模型")).toBeInTheDocument();
+  });
+
+  it("renders base model copy when cached catalog data has no localization maps", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listAIModels).mockResolvedValue({
+      defaultModel: "gpt-5.6-test",
+      defaultMode: "build",
+      reasoningEffort: "medium",
+      models: [
+        {
+          id: "gpt-5.6-test",
+          provider: "openai",
+          label: "GPT-5.6 Test",
+          description: "Configured test model",
+          available: true,
+        },
+      ],
+    } as never);
+
+    renderSelector();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select model" })).toHaveTextContent(
+        "GPT-5.6 Test",
+      );
+    });
+    await user.click(screen.getByRole("button", { name: "Select model" }));
+
+    expect(screen.getByText("Configured test model")).toBeInTheDocument();
   });
 
   it("disables manual model selection only while automatic selection is enabled", async () => {
@@ -150,18 +232,18 @@ describe("AIModelSelector", () => {
           id: "deepseek-v4-pro",
           provider: "deepseek",
           label: "DeepSeek V4 Pro",
-          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          labelI18n: {},
           description: "DeepSeek model",
-          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          descriptionI18n: {},
           available: true,
         },
         {
           id: "gpt-4o-mini",
           provider: "openai",
           label: "GPT-4o mini",
-          labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
+          labelI18n: {},
           description: "Fast model",
-          descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
+          descriptionI18n: {},
           available: true,
         },
       ],
@@ -205,6 +287,57 @@ describe("AIModelSelector", () => {
     expect(screen.getAllByText("No models configured").length).toBeGreaterThan(0);
   });
 
+  it("does not infer the first catalog model when no default is configured", async () => {
+    vi.mocked(listAIModels).mockResolvedValue({
+      defaultModel: null,
+      defaultMode: "build",
+      reasoningEffort: "medium",
+      models: [
+        {
+          id: "deepseek-v4-pro",
+          provider: "deepseek",
+          label: "DeepSeek V4 Pro",
+          labelI18n: {},
+          description: "DeepSeek model",
+          descriptionI18n: {},
+          available: true,
+        },
+        {
+          id: "gpt-4o-mini",
+          provider: "openai",
+          label: "GPT-4o mini",
+          labelI18n: {},
+          description: "Fast model",
+          descriptionI18n: {},
+          available: true,
+        },
+      ],
+    });
+    const user = userEvent.setup();
+
+    renderSelector();
+
+    await waitFor(() => {
+      expect(useAiChatStore.getState()).toMatchObject({
+        selectedModel: AUTO_AI_CHAT_MODEL,
+        selectedModelSource: "default",
+      });
+    });
+    await user.click(screen.getByRole("button", { name: "Select model" }));
+
+    expect(screen.getByRole("switch", { name: "Auto select" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: /DeepSeek V4 Pro/ })).not.toHaveAttribute(
+      "data-disabled",
+    );
+
+    await user.click(screen.getByRole("menuitem", { name: /GPT-4o mini/ }));
+
+    expect(useAiChatStore.getState()).toMatchObject({
+      selectedModel: "gpt-4o-mini",
+      selectedModelSource: "user",
+    });
+  });
+
   it("keeps explicit model and mode choices while applying backend reasoning defaults", async () => {
     useAiChatStore.setState({
       selectedModel: "deepseek-v4-pro",
@@ -223,18 +356,18 @@ describe("AIModelSelector", () => {
           id: "deepseek-v4-pro",
           provider: "deepseek",
           label: "DeepSeek V4 Pro",
-          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          labelI18n: {},
           description: "DeepSeek model",
-          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          descriptionI18n: {},
           available: true,
         },
         {
           id: "gpt-4o-mini",
           provider: "openai",
           label: "GPT-4o mini",
-          labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
+          labelI18n: {},
           description: "Fast model",
-          descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
+          descriptionI18n: {},
           available: true,
         },
       ],

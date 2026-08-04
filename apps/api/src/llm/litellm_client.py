@@ -58,6 +58,7 @@ class LiteLLMClient(BaseLLMProvider):
         provider_model: str,
         provider_api_key: str,
         api_base: str | None = None,
+        extra_headers: dict[str, str] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Register or update a LiteLLM proxy model from a Provider API key."""
@@ -68,6 +69,8 @@ class LiteLLMClient(BaseLLMProvider):
         }
         if api_base:
             litellm_params["api_base"] = api_base
+        if extra_headers:
+            litellm_params["extra_headers"] = extra_headers
 
         payload: dict[str, Any] = {
             "model_name": model_name,
@@ -84,6 +87,27 @@ class LiteLLMClient(BaseLLMProvider):
             )
             response.raise_for_status()
             return response.json()
+
+    async def list_model_info(self, *, master_key: str) -> dict[str, Any]:
+        """List configured LiteLLM model deployments with management metadata."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(f"{self._base_url}/model/info", headers=headers)
+            response.raise_for_status()
+            return response.json()
+
+    async def delete_model(self, *, master_key: str, model_id: str) -> dict[str, Any]:
+        """Delete one LiteLLM model deployment by its management id."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/model/delete",
+                json={"id": model_id},
+                headers=headers,
+            )
+            if response.status_code != 404:
+                response.raise_for_status()
+            return response.json() if response.content else {}
 
     async def generate_key(
         self,
@@ -106,6 +130,19 @@ class LiteLLMClient(BaseLLMProvider):
             )
             response.raise_for_status()
             return response.json()
+
+    async def delete_key(self, *, master_key: str, key: str) -> dict[str, Any]:
+        """Delete one LiteLLM virtual key."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/key/delete",
+                json={"keys": [key]},
+                headers=headers,
+            )
+            if response.status_code != 404:
+                response.raise_for_status()
+            return response.json() if response.content else {}
 
     async def chat(
         self,

@@ -94,7 +94,7 @@ describe("Platform role dialogs", () => {
 
     await user.type(screen.getByLabelText("Role name"), "Workspace investigator");
     await user.type(screen.getByLabelText("Role identifier"), "workspace-investigator");
-    await user.click(screen.getByRole("checkbox", { name: /Review tenant workspaces/ }));
+    await user.click(screen.getByRole("checkbox", { name: /View tenant workspaces/ }));
     await user.click(screen.getByRole("button", { name: "Verify and create role" }));
     expect(await screen.findByText("The change could not be completed")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Verify and create role" }));

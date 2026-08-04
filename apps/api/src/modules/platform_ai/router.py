@@ -23,6 +23,7 @@ from src.modules.platform_ai.service import PlatformAIOperationsService
 from src.modules.platform_identity.http import require_platform_permission
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.ai_providers.service import SystemAIProviderService
 
 router = APIRouter(tags=["platform.ai-services"])
 
@@ -30,7 +31,10 @@ router = APIRouter(tags=["platform.ai-services"])
 def get_platform_ai_service(
     settings: Settings = Depends(get_settings),
 ) -> PlatformAIOperationsService:
-    return PlatformAIOperationsService(settings)
+    return PlatformAIOperationsService(
+        settings,
+        provider_reader=SystemAIProviderService(settings),
+    )
 
 
 @router.get(
@@ -117,9 +121,8 @@ async def reconcile_platform_ai_task(
 )
 async def get_platform_ai_provider_readiness(
     service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
-    settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PlatformAIProviderReadinessOut]:
-    return ApiResponse.success(data=await service.provider_readiness(settings=settings))
+    return ApiResponse.success(data=await service.provider_readiness())
 
 
 def _recovery_command(

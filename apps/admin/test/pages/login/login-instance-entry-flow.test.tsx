@@ -4,7 +4,9 @@ import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { STORAGE_KEYS } from "@/constants/storage";
 import { LoginPage } from "@/pages/login/page";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 
 type RuntimeState = {
   runtime: Record<string, unknown> | null;
@@ -152,6 +154,8 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  document.head.innerHTML =
+    '<link rel="icon" type="image/svg+xml" href="/logo.svg" data-theme-favicon />';
   Object.defineProperty(window, "matchMedia", {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
@@ -188,6 +192,31 @@ beforeEach(() => {
     workspaceId: null,
     projectId: null,
     onboardingRequired: false,
+  });
+});
+
+describe("LoginPage theme", () => {
+  it("forces dark mode and restores the saved theme after unmount", () => {
+    document.documentElement.dataset.theme = "light";
+    window.localStorage.setItem(STORAGE_KEYS.themeMode, "light");
+    usePreferencesStore.setState({ themeMode: "light", themePreference: "light" });
+
+    const { unmount } = renderPage();
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(usePreferencesStore.getState()).toMatchObject({
+      themeMode: "dark",
+      themePreference: "light",
+    });
+    expect(window.localStorage.getItem(STORAGE_KEYS.themeMode)).toBe("light");
+
+    unmount();
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(usePreferencesStore.getState()).toMatchObject({
+      themeMode: "light",
+      themePreference: "light",
+    });
   });
 });
 

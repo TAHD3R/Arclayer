@@ -13,13 +13,15 @@ import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import {
   AUTH_FIELD_CLASS,
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_STACK_CLASS,
+  AUTH_PANE_ROOT_CLASS,
+  AUTH_PILL_BUTTON_CLASS,
+  AUTH_PILL_INPUT_CLASS,
+  AUTH_PILL_INPUT_GROUP_CLASS,
+  AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
-  AuthPaneHeader,
-  AuthPaneTitleRow,
+  AuthPaneLegal,
 } from "./auth-pane-primitives";
+import { AuthEntryHeader } from "./login-brand-slogan";
 
 type ForgotPasswordPaneProps = {
   onSubmit: (email: string) => Promise<void>;
@@ -73,14 +75,16 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
 
   if (step === "success") {
     return (
-      <div className={AUTH_PANE_STACK_CLASS}>
-        <AuthPaneHeader
-          titleKey="auth:FORGOT_PASSWORD_SUCCESS_TITLE"
-          subtitleKey="auth:FORGOT_PASSWORD_SUCCESS_DESC"
-          variants={variants}
-        />
-        <motion.div variants={variants} className="grid gap-3 pt-1.5">
-          <Button className="w-full" type="button" size="lg" onClick={props.onBackToLogin}>
+      <div className={AUTH_PANE_ROOT_CLASS}>
+        <AuthEntryHeader subtitleKey="auth:FORGOT_PASSWORD_SUCCESS_DESC" variants={variants} />
+        <motion.div variants={variants} className="grid gap-4 pt-1.5">
+          <Button
+            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            type="button"
+            size="lg"
+            variant="outline"
+            onClick={props.onBackToLogin}
+          >
             {t("auth:BACK_TO_LOGIN")}
           </Button>
           <div className="text-center">
@@ -89,28 +93,24 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
             </AuthLinkButton>
           </div>
         </motion.div>
+        <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={variants} />
       </div>
     );
   }
 
   return (
-    <div className={AUTH_PANE_STACK_CLASS}>
-      <AuthPaneHeader
-        titleKey="auth:FORGOT_PASSWORD_MODAL_TITLE"
-        subtitleKey="auth:FORGOT_PASSWORD_MODAL_DESC"
-        variants={variants}
-      />
+    <div className={AUTH_PANE_ROOT_CLASS}>
+      <AuthEntryHeader subtitleKey="auth:FORGOT_PASSWORD_MODAL_DESC" variants={variants} />
       <form className="grid gap-4" autoComplete="on" onSubmit={handleSubmit}>
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
-            <FieldContent className="gap-2.5">
-              <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
+            <FieldContent className="gap-2">
               <AuthInputControl
                 autoComplete="email"
                 aria-label={t("auth:FIELD_EMAIL_LABEL")}
                 aria-invalid={form.formState.errors.email ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
+                className={AUTH_PILL_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_PILL_INPUT_CLASS}
                 placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
                 startIcon={<Mail size={16} />}
                 disabled={props.loading}
@@ -126,22 +126,33 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
           </Field>
         </motion.div>
 
-        <motion.div variants={variants} className="grid gap-3 pt-1">
-          <Button className="w-full" type="submit" size="lg" loading={props.loading}>
+        <motion.div variants={variants} className="grid gap-4 pt-1">
+          <Button
+            className={AUTH_PILL_BUTTON_CLASS}
+            type="submit"
+            size="lg"
+            loading={props.loading}
+          >
             <AuthButtonLabel>{t("auth:FORGOT_PASSWORD_SUBMIT_BUTTON")}</AuthButtonLabel>
           </Button>
-          <div className="text-center">
+          <Button
+            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            type="button"
+            size="lg"
+            variant="outline"
+            disabled={props.loading}
+            onClick={props.onBackToLogin}
+          >
+            {t("auth:BACK_TO_LOGIN")}
+          </Button>
+          <div className="pt-1 text-center">
             <AuthLinkButton onClick={goToReset} type="button">
               {t("auth:FORGOT_PASSWORD_MODAL_HAVE_TOKEN")}
             </AuthLinkButton>
           </div>
-          <div className="text-center">
-            <AuthLinkButton onClick={props.onBackToLogin} type="button">
-              {t("auth:BACK_TO_LOGIN")}
-            </AuthLinkButton>
-          </div>
         </motion.div>
       </form>
+      <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={variants} />
     </div>
   );
 }

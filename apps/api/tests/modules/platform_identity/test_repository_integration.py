@@ -16,7 +16,17 @@ from src.models.platform_identity.identity import (
     PlatformOperatorSetupReason,
     PlatformOperatorStatus,
 )
-from src.models.platform_identity.mfa import PlatformMfaMethod, PlatformMfaMethodKind, PlatformMfaMethodStatus
+from src.models.platform_identity.mfa import (
+    PlatformMfaMethod,
+    PlatformMfaMethodKind,
+    PlatformMfaMethodStatus,
+    PlatformMfaRecoveryCode,
+)
+from src.models.platform_identity.operations import (
+    PlatformActionPolicy,
+    PlatformSession,
+    PlatformVerificationAssurance,
+)
 from src.models.platform_identity.roles import (
     PlatformOperatorRoleAssignment,
     PlatformPermission,
@@ -94,6 +104,28 @@ async def _activate_operator(*, user_id: UUID, role: PlatformRoleBinding) -> Pla
     return operator
 
 
+async def _create_test_role(*, label: str) -> PlatformRoleBinding:
+    permission = await PlatformPermission.create(
+        code=f"platform:test-role-{label}-{uuid4().hex[:8]}",
+        owner_domain="access",
+        name_i18n="Test role permission",
+        description_i18n="Test role permission",
+        is_delegable=True,
+    )
+    role = await PlatformRole.create(
+        code=f"platform-test-role-{label}-{uuid4().hex[:8]}",
+        kind=PlatformRoleKind.CUSTOM,
+        name=f"Test role {label}",
+    )
+    revision = await PlatformRoleRevision.create(role_id=role.id, sequence=1, is_current=True)
+    await PlatformRoleRevisionPermission.create(role_revision_id=revision.id, permission_id=permission.id)
+    return PlatformRoleBinding(
+        role_id=role.id,
+        role_revision_id=revision.id,
+        permission_codes=frozenset({permission.code}),
+    )
+
+
 def _invitation_command(
     *, inviter_user_id: UUID, recipient_user_id: UUID, role: PlatformRoleBinding
 ) -> PlatformOperatorInvitationCommand:
@@ -115,6 +147,32 @@ def _audit(*, event_name: str, actor_user_id: UUID, correlation_id: UUID, idempo
         correlation_id=correlation_id,
         idempotency_key=idempotency_key,
     )
+
+
+async def test_locked_action_policy_loads_permission_without_locking_an_outer_join(db_schema) -> None:
+    _ = db_schema
+    repository = PlatformIdentityRepository()
+    permission = await PlatformPermission.create(
+        code=f"platform:test-step-up-{uuid4().hex[:8]}",
+        owner_domain="access",
+        name_i18n="Step-up test permission",
+        description_i18n="Step-up test permission",
+        is_delegable=False,
+    )
+    policy = await PlatformActionPolicy.create(
+        code=f"platform.test.step-up.{uuid4().hex[:8]}",
+        permission_id=permission.id,
+        requires_step_up=True,
+        required_assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
+        freshness_seconds=300,
+    )
+
+    async with repository.transaction() as conn:
+        locked = await repository.get_action_policy(action_code=policy.code, conn=conn, for_update=True)
+
+    assert locked is not None
+    assert locked.id == policy.id
+    assert locked.permission.code == permission.code
 
 
 async def test_concurrent_invitation_retries_return_one_durable_receipt(db_schema) -> None:
@@ -165,6 +223,197 @@ async def test_concurrent_invitation_retries_return_one_durable_receipt(db_schem
                 idempotency_key=conflicting.idempotency_key,
             ),
         )
+
+
+async def test_role_replacement_adds_removes_and_can_clear_the_complete_assignment_set(db_schema) -> None:
+    _ = db_schema
+    repository = PlatformIdentityRepository()
+    owner = await _create_user("replace-role-owner")
+    operator_user = await _create_user("replace-role-operator")
+    await PlatformInstanceOwnership.create(owner_user_id=owner.id, singleton_key="instance", revision=1)
+    previous_role = await _create_test_role(label="previous")
+    replacement_role = await _create_test_role(label="replacement")
+    operator = await _activate_operator(user_id=operator_user.id, role=previous_role)
+
+    replaced = await repository.replace_operator_roles(
+        actor_user_id=owner.id,
+        target_user_id=operator_user.id,
+        expected_operator_revision=operator.revision,
+        role_ids=frozenset({replacement_role.role_id}),
+        idempotency_key=f"replace-roles-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+
+    active_after_replace = await repository.list_active_role_assignments(
+        operator_id=operator.id,
+        at=datetime.now(UTC),
+    )
+    assert replaced.mutation == "replace_platform_roles"
+    assert {UUID(str(item.role_id)) for item in active_after_replace} == {replacement_role.role_id}
+    await operator.refresh_from_db()
+    assert operator.revision == 2
+
+    cleared = await repository.replace_operator_roles(
+        actor_user_id=owner.id,
+        target_user_id=operator_user.id,
+        expected_operator_revision=operator.revision,
+        role_ids=frozenset(),
+        idempotency_key=f"clear-roles-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+
+    active_after_clear = await repository.list_active_role_assignments(
+        operator_id=operator.id,
+        at=datetime.now(UTC),
+    )
+    assert cleared.mutation == "replace_platform_roles"
+    assert active_after_clear == []
+    await operator.refresh_from_db()
+    assert operator.revision == 3
+
+
+async def test_current_actor_security_mutations_do_not_require_administrative_permissions(db_schema) -> None:
+    _ = db_schema
+    repository = PlatformIdentityRepository()
+    owner = await _create_user("self-security-owner")
+    operator_user = await _create_user("self-security-operator")
+    await PlatformInstanceOwnership.create(owner_user_id=owner.id, singleton_key="instance", revision=1)
+    role = await _create_test_role(label="self-security")
+    operator = await _activate_operator(user_id=operator_user.id, role=role)
+    now = datetime.now(UTC)
+    current_session = await PlatformSession.create(
+        actor_user_id=operator_user.id,
+        operator_id=operator.id,
+        session_identifier_hash=f"current-{uuid4().hex}",
+        recent_activity_at=now,
+        inactivity_expires_at=now + timedelta(hours=1),
+        absolute_expires_at=now + timedelta(hours=8),
+        policy_revision=1,
+        assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
+    )
+    other_session = await PlatformSession.create(
+        actor_user_id=operator_user.id,
+        operator_id=operator.id,
+        session_identifier_hash=f"other-{uuid4().hex}",
+        recent_activity_at=now,
+        inactivity_expires_at=now + timedelta(hours=1),
+        absolute_expires_at=now + timedelta(hours=8),
+        policy_revision=1,
+        assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
+    )
+    first_method = await PlatformMfaMethod.create(
+        user_id=operator_user.id,
+        kind=PlatformMfaMethodKind.TOTP,
+        status=PlatformMfaMethodStatus.VERIFIED,
+        totp_secret_enc="encrypted-one",
+        verified_at=now,
+    )
+    await PlatformMfaMethod.create(
+        user_id=operator_user.id,
+        kind=PlatformMfaMethodKind.TOTP,
+        status=PlatformMfaMethodStatus.VERIFIED,
+        totp_secret_enc="encrypted-two",
+        verified_at=now,
+    )
+
+    session_receipt = await repository.revoke_current_actor_sessions(
+        actor_user_id=operator_user.id,
+        current_session_id=current_session.id,
+        session_id=other_session.id,
+        all_other=False,
+        idempotency_key=f"self-session-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+    method_receipt = await repository.remove_current_actor_mfa_method(
+        actor_user_id=operator_user.id,
+        method_id=first_method.id,
+        idempotency_key=f"self-mfa-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+
+    await other_session.refresh_from_db()
+    await first_method.refresh_from_db()
+    assert session_receipt.mutation == "revoke_platform_session"
+    assert other_session.revoked_at is not None
+    assert method_receipt.mutation == "remove_platform_mfa_method"
+    assert first_method.status == PlatformMfaMethodStatus.REVOKED
+
+
+async def test_operator_security_management_revokes_sessions_and_starts_mfa_recovery(db_schema) -> None:
+    _ = db_schema
+    repository = PlatformIdentityRepository()
+    owner = await _create_user("managed-security-owner")
+    operator_user = await _create_user("managed-security-operator")
+    await PlatformInstanceOwnership.create(owner_user_id=owner.id, singleton_key="instance", revision=1)
+    role = await _create_test_role(label="managed-security")
+    operator = await _activate_operator(user_id=operator_user.id, role=role)
+    now = datetime.now(UTC)
+    first_session = await PlatformSession.create(
+        actor_user_id=operator_user.id,
+        operator_id=operator.id,
+        session_identifier_hash=f"managed-one-{uuid4().hex}",
+        recent_activity_at=now,
+        inactivity_expires_at=now + timedelta(hours=1),
+        absolute_expires_at=now + timedelta(hours=8),
+        policy_revision=1,
+        assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
+    )
+    second_session = await PlatformSession.create(
+        actor_user_id=operator_user.id,
+        operator_id=operator.id,
+        session_identifier_hash=f"managed-two-{uuid4().hex}",
+        recent_activity_at=now,
+        inactivity_expires_at=now + timedelta(hours=1),
+        absolute_expires_at=now + timedelta(hours=8),
+        policy_revision=1,
+        assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
+    )
+    method = await PlatformMfaMethod.create(
+        user_id=operator_user.id,
+        kind=PlatformMfaMethodKind.WEBAUTHN,
+        status=PlatformMfaMethodStatus.VERIFIED,
+        credential_id=f"managed-credential-{uuid4().hex}",
+        credential_public_key="public-key",
+        relying_party_id="platform.example.test",
+        verified_at=now,
+    )
+    recovery_code = await PlatformMfaRecoveryCode.create(
+        operator_id=operator.id,
+        salt="salt",
+        code_hash="hash",
+    )
+
+    assert len(await repository.list_active_sessions_for_operator(operator_id=operator.id)) == 2
+    revoke_receipt = await repository.revoke_operator_session(
+        actor_user_id=owner.id,
+        operator_id=operator.id,
+        session_id=first_session.id,
+        idempotency_key=f"managed-revoke-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+    reset_receipt = await repository.reset_operator_mfa(
+        actor_user_id=owner.id,
+        operator_id=operator.id,
+        expected_operator_revision=operator.revision,
+        reason="Operator lost every trusted device",
+        idempotency_key=f"managed-reset-{uuid4().hex}",
+        correlation_id=uuid4(),
+    )
+
+    await first_session.refresh_from_db()
+    await second_session.refresh_from_db()
+    await method.refresh_from_db()
+    await recovery_code.refresh_from_db()
+    await operator.refresh_from_db()
+    assert revoke_receipt.mutation == "revoke_operator_platform_session"
+    assert first_session.revoked_at is not None
+    assert reset_receipt.mutation == "reset_platform_operator_mfa"
+    assert second_session.revoked_at is not None
+    assert method.status == PlatformMfaMethodStatus.REVOKED
+    assert recovery_code.invalidated_at is not None
+    assert operator.status == PlatformOperatorStatus.MFA_SETUP_REQUIRED
+    assert operator.setup_reason == PlatformOperatorSetupReason.RECOVERY
+    assert operator.revision == 2
 
 
 async def test_invitation_acceptance_revalidates_revoked_inviter_authority(db_schema) -> None:

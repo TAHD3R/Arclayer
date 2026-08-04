@@ -1,4 +1,4 @@
-import { Lock, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -8,7 +8,6 @@ import { z } from "zod";
 import { ApiError } from "@/lib/http";
 import { notifySuccessText } from "@/lib/notifications";
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { AuthLinkButton, AuthInputControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
@@ -21,15 +20,15 @@ import type {
 } from "../types";
 import {
   AUTH_FIELD_CLASS,
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_STACK_CLASS,
+  AUTH_PANE_ROOT_CLASS,
+  AUTH_PILL_BUTTON_CLASS,
+  AUTH_PILL_INPUT_CLASS,
+  AUTH_PILL_INPUT_GROUP_CLASS,
   AuthButtonLabel,
-  AuthInlineNotice,
   AuthOtpInput,
-  AuthPaneHeader,
-  AuthPaneTitleRow,
+  AuthPaneLegal,
 } from "./auth-pane-primitives";
+import { AuthEntryHeader } from "./login-brand-slogan";
 
 const OTP_LENGTH = 6;
 
@@ -264,27 +263,18 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     }
   };
   const canSubmitVerification = codeValue.trim().length === OTP_LENGTH;
+  const showBackButton = props.seed?.passwordLoginAvailable !== false;
 
   return (
-    <div className={AUTH_PANE_STACK_CLASS}>
-      <AuthPaneHeader
-        titleKey={
-          step === "verify" ? "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE" : "auth:LOGIN_EMAIL_CODE_TITLE"
-        }
-        subtitleKey={
+    <div className={AUTH_PANE_ROOT_CLASS}>
+      <AuthEntryHeader
+        subtitle={
           step === "verify"
-            ? "auth:LOGIN_EMAIL_CODE_VERIFY_SUBTITLE"
-            : "auth:LOGIN_EMAIL_CODE_SUBTITLE"
+            ? t("auth:LOGIN_EMAIL_CODE_SENT_HINT", { email: form.getValues("email") })
+            : t("auth:LOGIN_EMAIL_CODE_SUBTITLE")
         }
         variants={variants}
       />
-      {step === "verify" ? (
-        <AuthInlineNotice variants={variants}>
-          {t("auth:LOGIN_EMAIL_CODE_SENT_HINT", {
-            email: form.getValues("email"),
-          })}
-        </AuthInlineNotice>
-      ) : null}
       <form
         className="grid gap-4"
         autoComplete="on"
@@ -300,14 +290,13 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
         {step === "request" ? (
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2.5">
-                <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
+              <FieldContent className="gap-2">
                 <AuthInputControl
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
                   aria-invalid={form.formState.errors.email || requestError ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
+                  className={AUTH_PILL_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_PILL_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
                   disabled={props.requestLoading}
@@ -325,8 +314,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
         ) : (
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2.5">
-                <AuthPaneTitleRow title={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")} />
+              <FieldContent className="gap-2">
                 <AuthOtpInput
                   value={codeValue}
                   onChange={(value) => {
@@ -356,9 +344,9 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
           </motion.div>
         )}
 
-        <motion.div variants={variants} className="grid gap-3 pt-1">
+        <motion.div variants={variants} className="grid gap-4 pt-1">
           <Button
-            className="w-full"
+            className={AUTH_PILL_BUTTON_CLASS}
             type="submit"
             size="lg"
             loading={step === "request" ? props.requestLoading : props.verifyLoading}
@@ -368,10 +356,18 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
               {step === "request" ? t("auth:LOGIN_EMAIL_CODE_SEND_BUTTON") : t("auth:LOGIN_BUTTON")}
             </AuthButtonLabel>
           </Button>
-        </motion.div>
-        {step === "verify" ? (
-          <motion.div variants={variants} className="grid gap-2 text-center text-footnote">
-            <div className="text-label-secondary">
+          {showBackButton ? (
+            <AuthLinkButton
+              className="mx-auto px-2 font-semibold text-label-secondary"
+              type="button"
+              disabled={props.requestLoading || props.verifyLoading}
+              onClick={() => props.onBackToPassword(form.getValues("email"))}
+            >
+              {t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD")}
+            </AuthLinkButton>
+          ) : null}
+          {step === "verify" ? (
+            <div className="pt-1 text-center text-footnote text-label-secondary">
               <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
               <AuthLinkButton
                 disabled={props.requestLoading || retryAfter > 0}
@@ -385,25 +381,10 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                   : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
               </AuthLinkButton>
             </div>
-          </motion.div>
-        ) : null}
-        {props.seed?.passwordLoginAvailable === false ? null : (
-          <motion.div variants={variants} className="pt-1.5 empty:hidden">
-            <AuthOauthButtons
-              disabled={props.requestLoading || props.verifyLoading}
-              showProviders={false}
-              leadingActions={[
-                {
-                  key: "password-login",
-                  label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
-                  icon: <Lock className="size-4" />,
-                  onClick: () => props.onBackToPassword(form.getValues("email")),
-                },
-              ]}
-            />
-          </motion.div>
-        )}
+          ) : null}
+        </motion.div>
       </form>
+      <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={variants} />
     </div>
   );
 }

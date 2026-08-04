@@ -20,6 +20,7 @@ from src.models.platform_identity.operations import (
     PlatformStepUpProofStatus,
     PlatformVerificationAssurance,
 )
+from src.modules.platform_identity.permissions import PlatformActionCode
 from src.modules.platform_identity.step_up_schema import (
     PlatformStepUpConsumeResult,
     PlatformStepUpProofConsumeRequest,
@@ -165,6 +166,8 @@ class PlatformStepUpService(BaseService):
         now: datetime,
         conn: BaseDBAsyncClient,
     ) -> None:
+        if self._is_current_actor_mfa_action(request=request):
+            return
         if not await self._repository.actor_has_permission(
             actor_user_id=request.actor_user_id,
             permission_code=policy.permission.code,
@@ -172,6 +175,18 @@ class PlatformStepUpService(BaseService):
             conn=conn,
         ):
             raise Forbidden(error="PLATFORM_PERMISSION_DENIED")
+
+    @staticmethod
+    def _is_current_actor_mfa_action(*, request: PlatformStepUpProofIssueRequest) -> bool:
+        return (
+            request.action_code
+            in {
+                PlatformActionCode.MANAGE_CURRENT_MFA,
+                PlatformActionCode.RESET_OPERATOR_MFA,
+            }
+            and request.target_type == "platform_mfa_actor"
+            and request.target_id == request.actor_user_id
+        )
 
     @staticmethod
     def _require_session_actor(*, session: PlatformSession, actor_user_id: UUID) -> None:

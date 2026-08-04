@@ -50,7 +50,10 @@ function ThemeOptionContent(props: { value: ThemePreference; label: string }) {
   );
 }
 
-export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
+export function AuthPreferencesBar(props: {
+  trailing?: ReactNode;
+  placement?: "footer" | "header";
+}) {
   const { t } = useTranslation("account");
   const locale = usePreferencesStore((s) => s.locale);
   const localePreference = usePreferencesStore((s) => s.localePreference);
@@ -73,16 +76,25 @@ export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
   const selectedThemeOption = themeOptions.find((option) => option.value === themePreference);
   const languageLabel = t("ACCOUNT_SETTINGS_LANGUAGE_LABEL");
   const themeLabel = t("ACCOUNT_SETTINGS_THEME_LABEL");
+  const placement = props.placement ?? "footer";
+  const isHeader = placement === "header";
 
   return (
     <div
       data-testid="auth-preferences-bar"
       className={cn(
-        "flex shrink-0 justify-center bg-background px-4",
-        "pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+        "flex shrink-0 justify-center",
+        isHeader
+          ? "bg-transparent p-0"
+          : "bg-background px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
       )}
     >
-      <div className="flex w-full min-w-0 flex-nowrap items-center justify-center gap-x-2 overflow-hidden whitespace-nowrap text-callout text-label-secondary">
+      <div
+        className={cn(
+          "flex min-w-0 flex-nowrap items-center justify-center whitespace-nowrap text-callout text-label-secondary",
+          isHeader ? "w-auto gap-x-1 overflow-visible" : "w-full gap-x-2 overflow-hidden",
+        )}
+      >
         <Select
           value={languageValue}
           onValueChange={(value) =>
@@ -94,15 +106,32 @@ export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
         >
           <SelectTrigger
             aria-label={languageLabel}
-            className="h-8 min-w-0 max-w-[10rem] shrink border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
+            showIndicator={!isHeader}
+            className={cn(
+              "shrink border-transparent bg-transparent !text-callout text-label-primary shadow-none hover:bg-muted/60",
+              isHeader
+                ? "size-8 min-w-8 justify-center rounded-full p-0"
+                : "h-8 min-w-0 max-w-[10rem] px-2",
+            )}
             size="sm"
           >
             <SelectValue>
               {selectedLocaleOption ? (
-                <LocaleOptionContent
-                  value={selectedLocaleOption.value}
-                  label={selectedLocaleOption.label}
-                />
+                isHeader ? (
+                  selectedLocaleOption.value === "browser" ? (
+                    <Languages className="size-4" aria-hidden="true" />
+                  ) : (
+                    <LocaleFlag
+                      locale={selectedLocaleOption.value}
+                      className="shrink-0 text-body"
+                    />
+                  )
+                ) : (
+                  <LocaleOptionContent
+                    value={selectedLocaleOption.value}
+                    label={selectedLocaleOption.label}
+                  />
+                )
               ) : null}
             </SelectValue>
           </SelectTrigger>
@@ -114,7 +143,7 @@ export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
             ))}
           </SelectContent>
         </Select>
-        <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+        {isHeader ? null : <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />}
         <Select
           value={themePreference}
           onValueChange={(value) => {
@@ -123,15 +152,25 @@ export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
         >
           <SelectTrigger
             aria-label={themeLabel}
-            className="h-8 min-w-0 max-w-[10rem] shrink border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
+            showIndicator={!isHeader}
+            className={cn(
+              "shrink border-transparent bg-transparent !text-callout text-label-primary shadow-none hover:bg-muted/60",
+              isHeader
+                ? "size-8 min-w-8 justify-center rounded-full p-0"
+                : "h-8 min-w-0 max-w-[10rem] px-2",
+            )}
             size="sm"
           >
             <SelectValue>
               {selectedThemeOption ? (
-                <ThemeOptionContent
-                  value={selectedThemeOption.value}
-                  label={selectedThemeOption.label}
-                />
+                isHeader ? (
+                  getThemeIcon(selectedThemeOption.value)
+                ) : (
+                  <ThemeOptionContent
+                    value={selectedThemeOption.value}
+                    label={selectedThemeOption.label}
+                  />
+                )
               ) : null}
             </SelectValue>
           </SelectTrigger>

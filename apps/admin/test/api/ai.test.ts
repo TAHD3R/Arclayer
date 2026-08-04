@@ -115,7 +115,13 @@ describe("AI agent API", () => {
           id: "deepseek-v4-pro",
           provider: "deepseek",
           label: "DeepSeek V4 Pro",
-          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          labelI18n: { "zh-CN": "DeepSeek V4 专业版" },
+          description: "Configured model description",
+          descriptionI18n: { "zh-CN": "已配置的模型介绍" },
+          providerIcon: {
+            lightUrl: "/provider-icons/deepseek.svg",
+            darkUrl: "/provider-icons/deepseek.svg",
+          },
           available: true,
         },
       ],
@@ -128,6 +134,34 @@ describe("AI agent API", () => {
     expect(catalog.defaultMode).toBe("build");
     expect(catalog.reasoningEffort).toBe("medium");
     expect(catalog.models[0]?.id).toBe("deepseek-v4-pro");
+    expect(catalog.models[0]?.providerIcon).toEqual({
+      lightUrl: "/provider-icons/deepseek.svg",
+      darkUrl: "/provider-icons/deepseek.svg",
+    });
+  });
+
+  it("normalizes catalog entries created before localized model copy was added", async () => {
+    apiGetMock.mockResolvedValue({
+      defaultModel: "gpt-5.6-test",
+      defaultMode: "build",
+      reasoningEffort: "medium",
+      models: [
+        {
+          id: "gpt-5.6-test",
+          provider: "openai",
+          label: "GPT-5.6 Test",
+          description: "Configured test model",
+          available: true,
+        },
+      ],
+    });
+
+    const catalog = await listAIModels({ workspaceId: "workspace-1" });
+
+    expect(catalog.models[0]).toMatchObject({
+      labelI18n: {},
+      descriptionI18n: {},
+    });
   });
 
   it("loads workspace monthly AI usage from the backend rollup", async () => {

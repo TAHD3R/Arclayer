@@ -73,9 +73,11 @@ function SelectTrigger({
   size = "default",
   children,
   asChild = false,
+  showIndicator = true,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
+  showIndicator?: boolean;
 }) {
   const portalContext = React.useContext(SelectPortalContext);
   const handleTriggerRef = React.useCallback(
@@ -112,9 +114,11 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
-      </SelectPrimitive.Icon>
+      {showIndicator ? (
+        <SelectPrimitive.Icon asChild>
+          <ChevronDownIcon className="size-4 opacity-50" />
+        </SelectPrimitive.Icon>
+      ) : null}
     </SelectPrimitive.Trigger>
   );
 }

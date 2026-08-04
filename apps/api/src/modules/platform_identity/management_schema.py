@@ -59,6 +59,17 @@ class PlatformOperatorOffboardingRequest(BaseSchema):
     reason: str = Field(min_length=1, max_length=512)
     idempotency_key: str = Field(min_length=1, max_length=128)
     correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformOperatorMfaResetRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    expected_operator_revision: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=512)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
 
 
 class PlatformOwnershipTransferNominationRequest(BaseSchema):
@@ -245,11 +256,11 @@ class PlatformCustomRoleApplyRequest(BaseSchema):
     step_up_proof: str = Field(min_length=1)
 
 
-class PlatformRoleAssignmentRequest(BaseSchema):
+class PlatformRoleAssignmentReplaceRequest(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
     expected_operator_revision: int = Field(ge=1)
-    role_ids: frozenset[UUID] = Field(min_length=1)
+    role_ids: frozenset[UUID] = Field(default_factory=lambda: frozenset[UUID]())
     idempotency_key: str = Field(min_length=1, max_length=128)
     correlation_id: UUID
     step_up_proof: str = Field(min_length=1)
@@ -328,6 +339,7 @@ class PlatformMfaTotpBeginRequest(BaseSchema):
 
     issuer: str = Field(min_length=1, max_length=128)
     account_label: str = Field(min_length=1, max_length=256)
+    replace_method_id: UUID | None = None
     idempotency_key: str = Field(min_length=1, max_length=128)
     correlation_id: UUID
     step_up_proof: str = Field(min_length=1)
@@ -375,6 +387,11 @@ class PlatformStepUpWebAuthnCompleteRequest(PlatformStepUpProofIssueRequest):
     credential: PlatformWebAuthnAuthenticationCredential
 
 
+class PlatformStepUpTotpCompleteRequest(PlatformStepUpProofIssueRequest):
+    method_id: UUID
+    code: str = Field(min_length=6, max_length=12)
+
+
 PlatformStepUpProofOut = PlatformStepUpProofIssueResult
 
 
@@ -395,29 +412,3 @@ class PlatformMfaReadinessOut(BaseSchema):
     ready: bool
     methods: tuple[PlatformMfaMethodReadinessOut, ...]
     available_recovery_code_count: int | None
-
-
-class PlatformRegistrationReadinessOut(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    public_registration_enabled: bool
-    require_email: bool
-    require_email_verification: bool
-    email_domains_allowlist: tuple[str, ...]
-
-
-class PlatformSignInProviderReadinessOut(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    key: str
-    label: str
-    installed: bool
-    enabled: bool
-    configured: bool
-
-
-class PlatformSignInReadinessOut(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    registration: PlatformRegistrationReadinessOut
-    providers: tuple[PlatformSignInProviderReadinessOut, ...]

@@ -19,9 +19,11 @@ export type AiModelCatalogItem = {
      */
     description?: string | null;
     /**
-     * Descriptionkey
+     * Descriptioni18N
      */
-    descriptionKey?: string | null;
+    descriptionI18n?: {
+        [key: string]: string;
+    };
     /**
      * Id
      */
@@ -31,13 +33,16 @@ export type AiModelCatalogItem = {
      */
     label: string;
     /**
-     * Labelkey
+     * Labeli18N
      */
-    labelKey?: string | null;
+    labelI18n?: {
+        [key: string]: string;
+    };
     /**
      * Provider
      */
     provider: string;
+    providerIcon?: AiProviderIcon | null;
 };
 
 /**
@@ -105,6 +110,22 @@ export type AiObservabilitySummaryOut = {
      * Totaltokens
      */
     totalTokens: number;
+};
+
+/**
+ * AIProviderIcon
+ *
+ * Theme-aware provider icon shared by Platform and Product APIs.
+ */
+export type AiProviderIcon = {
+    /**
+     * Darkurl
+     */
+    darkUrl: string;
+    /**
+     * Lighturl
+     */
+    lightUrl: string;
 };
 
 /**

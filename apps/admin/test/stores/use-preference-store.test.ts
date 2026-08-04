@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import {
+  activateThemeModeOverride,
   initializePreferences,
   teardownPreferences,
   usePreferencesStore,
@@ -11,8 +12,33 @@ describe("usePreferencesStore layout width preferences", () => {
   beforeEach(() => {
     document.head.innerHTML =
       '<link rel="icon" type="image/svg+xml" href="/logo.svg" data-theme-favicon />';
+    document.documentElement.dataset.theme = "light";
     window.localStorage.clear();
     teardownPreferences();
+  });
+
+  it("temporarily overrides the runtime theme without changing the persisted preference", async () => {
+    window.localStorage.setItem(STORAGE_KEYS.themeMode, "light");
+    initializePreferences();
+
+    const releaseOverride = activateThemeModeOverride("dark");
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(usePreferencesStore.getState()).toMatchObject({
+      themeMode: "dark",
+      themePreference: "light",
+    });
+
+    await Promise.resolve();
+    expect(window.localStorage.getItem(STORAGE_KEYS.themeMode)).toBe("light");
+
+    releaseOverride();
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(usePreferencesStore.getState()).toMatchObject({
+      themeMode: "light",
+      themePreference: "light",
+    });
   });
 
   it("initializes sidebar width from localStorage and falls back to 220px when absent", () => {

@@ -65,7 +65,7 @@ All frontend routes use stable non-localized path segments. No Platform route us
 | Messages & Feedback / 消息与反馈 | `/messages/feedback` | `/messages/deliveries`, `/messages/campaigns`, `/messages/templates`, `/messages/email` |
 | Extensions / 扩展 | `/extensions/installed` | `/extensions/catalog`, `/extensions/connections`, `/extensions/history`, route-backed detail |
 | Plans & Billing / 套餐与计费 | `/billing/subscriptions` | `/billing/plans`, `/billing/payments`, `/billing/credits`, `/billing/configuration` |
-| Access & Security / 访问与安全 | `/access/team` | `/access/roles`, `/access/sign-in`, `/access/mfa`, `/access/sessions` |
+| Access & Security / 访问与安全 | `/access/team` | `/access/roles`, `/access/sign-in` |
 | Monitoring & Audit / 监控与审计 | `/monitoring/requests` | `/monitoring/performance`, `/monitoring/ai-usage`, `/monitoring/activity`, `/monitoring/audit` |
 
 Overview is first. Enabled and authorized domains follow in the order above. Only the active domain expands by default. Sidebar, mobile navigation, breadcrumbs, and command search derive from one capability- and permission-aware projection.
@@ -162,7 +162,7 @@ Desktop directories use route-backed master-detail or dedicated detail routes. A
 | Billing configuration | configure provider readiness and mappings; verify webhooks and credentials without disclosure; test; rotate; diagnose; recover; review changes and affected scope |
 | Platform team | invite intended identity and roles; resend or revoke; accept with current-authority revalidation and MFA enrollment; inspect active operators; preview and apply offboarding; preserve operation and Audit attribution |
 | Roles & permissions | inspect built-in roles; create or copy a custom role; preview permission, operator, invitation, and self-impact; apply revision atomically; assign additive roles; retire eligible custom roles; never use direct per-user grants or denies |
-| Sign-in, MFA, and Sessions | configure sign-in and identity providers; verify readiness; enroll and manage supported local methods; protect last method; perform bounded recovery; inspect and revoke device Sessions; apply current action-bound Step-up requirements; review evidence |
+| Sign-in and account security | configure deployment sign-in and identity providers on `/access/sign-in`; from the Sidebar account settings overlay, enroll and manage the current actor's supported local methods, protect the last method, inspect and revoke device Sessions, apply current action-bound Step-up requirements, and review account security evidence |
 | Monitoring & Audit | investigate requests and errors; correlate objects, actors, Workspaces, changes, and operations; inspect trends with exact-value alternatives; save authorized views; export according to policy; review immutable Audit evidence; deep-link to owning-domain actions without duplicating them |
 
 Every omitted lifecycle action must be forbidden by an explicit domain rule, not absent implementation. A retained page without its required jobs is removed from navigation and routing until the complete vertical exists.

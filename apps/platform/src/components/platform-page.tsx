@@ -7,13 +7,17 @@ function classes(base: string, className?: string): string {
 export function PlatformPage({
   title,
   description,
-  actions,
+  primaryAction,
+  secondaryActions,
+  extra,
   children,
   className,
 }: Readonly<{
   title: string;
   description: string;
-  actions?: ReactNode;
+  primaryAction?: ReactNode;
+  secondaryActions?: ReactNode;
+  extra?: ReactNode;
   children: ReactNode;
   className?: string;
 }>) {
@@ -24,14 +28,20 @@ export function PlatformPage({
         className,
       )}
     >
-      <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <h1 className="text-2xl1 font-semibold tracking-tight text-foreground">{title}</h1>
+      <header className="space-y-4 border-b pb-5">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl1 font-semibold tracking-tight text-foreground">{title}</h1>
+            {primaryAction || secondaryActions ? (
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {secondaryActions}
+                {primaryAction}
+              </div>
+            ) : null}
+          </div>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
-        {actions ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
-        ) : null}
+        {extra ? <div>{extra}</div> : null}
       </header>
       {children}
     </div>

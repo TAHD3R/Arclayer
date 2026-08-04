@@ -131,11 +131,13 @@ PlatformMutationName = Literal[
     "create_custom_role",
     "copy_custom_role",
     "apply_custom_role_revision",
-    "assign_platform_roles",
+    "replace_platform_roles",
     "retire_custom_role",
     "revoke_platform_session",
     "revoke_other_platform_sessions",
+    "revoke_operator_platform_session",
     "remove_platform_mfa_method",
+    "reset_platform_operator_mfa",
 ]
 
 

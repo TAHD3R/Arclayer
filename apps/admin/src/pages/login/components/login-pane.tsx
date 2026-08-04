@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
+import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
+import type { PasswordRequirementState } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
@@ -16,14 +17,15 @@ import { useEmailVerificationCountdown } from "../hooks/use-email-verification-c
 import type { LoginEmailLookupResult, LoginFormValues, LoginPaneSeed } from "../types";
 import {
   AUTH_FIELD_CLASS,
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_META_CLASS,
   AUTH_PANE_ROOT_CLASS,
+  AUTH_PILL_BUTTON_CLASS,
+  AUTH_PILL_INPUT_CLASS,
+  AUTH_PILL_INPUT_GROUP_CLASS,
+  AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
-  AuthPaneHeader,
-  AuthPaneTitleRow,
+  AuthPaneLegal,
 } from "./auth-pane-primitives";
+import { AuthEntryHeader } from "./login-brand-slogan";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
 
@@ -39,9 +41,6 @@ type LoginPaneProps = {
   resendLoading: boolean;
   loginSeed?: LoginPaneSeed | null;
   emailLocked?: boolean;
-  redirect?: string;
-  pendingOAuthProvider?: string | null;
-  onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
   onForgotPassword: (email?: string) => void;
   onSwitchToEmailCode: (
     email?: string,
@@ -49,6 +48,8 @@ type LoginPaneProps = {
     passwordLoginAvailable?: boolean,
   ) => void;
   onSwitchToRegister: (email?: string, step?: "details") => void;
+  onBackToMethods?: () => void;
+  oauthUnavailable?: boolean;
   publicRegisterEnabled: boolean;
   reducedMotion: boolean;
   itemVariants: Variants;
@@ -104,6 +105,24 @@ export function LoginPane(props: LoginPaneProps) {
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
   const emailFieldError = emailError ? String(emailError) : null;
+  const passwordValue = form.watch("password");
+  const passwordRequirements: PasswordRequirementState[] = [
+    {
+      key: "length",
+      label: t("auth:PASSWORD_REQUIREMENT_LENGTH"),
+      met: passwordValue.length >= 8 && passwordValue.length <= 128,
+    },
+    {
+      key: "letter",
+      label: t("auth:LOGIN_PASSWORD_REQUIREMENT_LETTER"),
+      met: /[A-Za-z]/.test(passwordValue),
+    },
+    {
+      key: "number",
+      label: t("auth:PASSWORD_REQUIREMENT_NUMBER"),
+      met: /\d/.test(passwordValue),
+    },
+  ];
 
   const submitLogin = async () => {
     if (isVerificationPending) {
@@ -126,7 +145,7 @@ export function LoginPane(props: LoginPaneProps) {
       return;
     }
     if (!PASSWORD_PATTERN.test(password)) {
-      form.setError("password", { message: t("auth:PASSWORD_INVALID") });
+      form.setError("password", { message: t("auth:LOGIN_PASSWORD_INVALID") });
       return;
     }
 
@@ -155,49 +174,36 @@ export function LoginPane(props: LoginPaneProps) {
     void submitLogin();
   };
   const inactiveControlDisabled = busy || isVerificationPending;
+  const showBackButton = Boolean(props.onBackToMethods) && !isVerificationPending;
 
   return (
     <div className={AUTH_PANE_ROOT_CLASS}>
-      <AuthPaneHeader titleKey="auth:LOGIN_PAGE_TITLE" variants={variants} />
-      <div className="grid gap-5">
-        <motion.div variants={variants} className="empty:hidden">
-          <AuthOauthButtons
-            disabled={inactiveControlDisabled}
-            redirect={props.redirect}
-            dividerPlacement="after"
-            loadingProvider={props.pendingOAuthProvider}
-            onProviderStart={
-              props.onStartOAuth && !isVerificationPending
-                ? ({ provider, startUrl }) =>
-                    props.onStartOAuth?.({ provider, startUrl, keepSession: true })
-                : undefined
-            }
-          />
-        </motion.div>
-        <form onSubmit={handleSubmit} className="grid gap-5" autoComplete="on">
+      <AuthEntryHeader
+        mode="login"
+        onSwitch={props.publicRegisterEnabled ? () => props.onSwitchToRegister() : undefined}
+        disabled={isVerificationPending ? false : inactiveControlDisabled}
+        variants={variants}
+      />
+      <div className="grid gap-6">
+        {props.oauthUnavailable ? (
+          <motion.p
+            variants={variants}
+            role="alert"
+            className="text-center text-footnote text-label-secondary"
+          >
+            {t("auth:SSO_UNAVAILABLE")}
+          </motion.p>
+        ) : null}
+        <form onSubmit={handleSubmit} className="grid gap-4" autoComplete="on">
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2.5">
-                <AuthPaneTitleRow
-                  title={t("auth:FIELD_EMAIL_LABEL")}
-                  action={
-                    isVerificationPending ? null : (
-                      <AuthLinkButton
-                        disabled={inactiveControlDisabled}
-                        onClick={() => props.onSwitchToEmailCode(form.getValues("email"), true)}
-                        type="button"
-                      >
-                        {t("auth:LOGIN_EMAIL_CODE_ACTION")}
-                      </AuthLinkButton>
-                    )
-                  }
-                />
+              <FieldContent className="gap-2">
                 <AuthInputControl
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
                   aria-invalid={emailError ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
+                  className={AUTH_PILL_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_PILL_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
                   disabled={inactiveControlDisabled || props.emailLocked}
@@ -219,39 +225,41 @@ export function LoginPane(props: LoginPaneProps) {
           {isVerificationPending ? null : (
             <motion.div variants={variants}>
               <Field className={AUTH_FIELD_CLASS}>
-                <FieldContent className="gap-2.5">
-                  <AuthPaneTitleRow
-                    title={t("auth:FIELD_PASSWORD_LABEL")}
-                    action={
-                      <AuthLinkButton
-                        disabled={inactiveControlDisabled}
-                        onClick={() => props.onForgotPassword(form.getValues("email"))}
-                        type="button"
-                      >
-                        {t("auth:FORGOT_PASSWORD")}
-                      </AuthLinkButton>
-                    }
-                  />
-                  <AuthPasswordControl
-                    autoComplete="current-password"
-                    aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                    aria-invalid={passwordError ? true : undefined}
-                    className={AUTH_INPUT_GROUP_CLASS}
-                    inputClassName={AUTH_INPUT_CLASS}
-                    placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                    startIcon={<Lock size={16} />}
-                    disabled={props.loading}
-                    {...form.register("password")}
-                  />
+                <FieldContent className="gap-2">
+                  <PasswordRulesPopover
+                    password={passwordValue}
+                    requirements={passwordRequirements}
+                  >
+                    <AuthPasswordControl
+                      autoComplete="current-password"
+                      aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                      aria-invalid={passwordError ? true : undefined}
+                      className={AUTH_PILL_INPUT_GROUP_CLASS}
+                      inputClassName={AUTH_PILL_INPUT_CLASS}
+                      placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                      startIcon={<Lock size={16} />}
+                      disabled={props.loading}
+                      {...form.register("password")}
+                    />
+                  </PasswordRulesPopover>
                   <FieldError>{passwordError ? String(passwordError) : undefined}</FieldError>
+                  <div className="flex justify-end px-1 pt-1">
+                    <AuthLinkButton
+                      disabled={inactiveControlDisabled}
+                      onClick={() => props.onForgotPassword(form.getValues("email"))}
+                      type="button"
+                    >
+                      {t("auth:FORGOT_PASSWORD")}
+                    </AuthLinkButton>
+                  </div>
                 </FieldContent>
               </Field>
             </motion.div>
           )}
 
-          <motion.div variants={variants} className="grid gap-3 pt-1">
+          <motion.div variants={variants} className="grid gap-4 pt-1">
             <Button
-              className="w-full"
+              className={AUTH_PILL_BUTTON_CLASS}
               type="submit"
               size="lg"
               loading={busy && (!isVerificationPending || props.resendLoading)}
@@ -265,25 +273,31 @@ export function LoginPane(props: LoginPaneProps) {
                   : t("auth:LOGIN_BUTTON")}
               </AuthButtonLabel>
             </Button>
+            {showBackButton ? (
+              <Button
+                className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+                type="button"
+                size="lg"
+                variant="outline"
+                disabled={inactiveControlDisabled}
+                onClick={props.onBackToMethods}
+              >
+                {t("auth:LOGIN_BACK_TO_METHODS")}
+              </Button>
+            ) : null}
+            {isVerificationPending ? null : (
+              <AuthLinkButton
+                className="mx-auto px-2 font-semibold text-label-secondary"
+                disabled={inactiveControlDisabled}
+                onClick={() => props.onSwitchToEmailCode(form.getValues("email"), true)}
+                type="button"
+              >
+                {t("auth:LOGIN_EMAIL_CODE_ACTION")}
+              </AuthLinkButton>
+            )}
           </motion.div>
         </form>
-        {props.publicRegisterEnabled ? (
-          <div className="grid gap-2">
-            <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-              <div className="text-callout text-label-secondary">
-                <span>{t("auth:NO_ACCOUNT")} </span>
-                <AuthLinkButton
-                  className="!px-1 !text-callout font-normal"
-                  disabled={isVerificationPending ? false : inactiveControlDisabled}
-                  onClick={() => props.onSwitchToRegister()}
-                  type="button"
-                >
-                  {t("auth:CREATE_ACCOUNT")}
-                </AuthLinkButton>
-              </div>
-            </motion.div>
-          </div>
-        ) : null}
+        <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={variants} />
       </div>
     </div>
   );

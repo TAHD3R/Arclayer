@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.audit import write_required_activity_event
@@ -64,7 +63,7 @@ async def create_system_ai_provider(
     dependencies=[require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE)],
 )
 async def update_system_ai_provider(
-    provider_id: UUID,
+    provider_id: PublicUUID,
     payload: SystemAIProviderUpdateRequest,
     principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE),
     service: SystemAIProviderService = Depends(get_system_ai_provider_service),
@@ -77,11 +76,11 @@ async def update_system_ai_provider(
 @router.delete(
     "/providers/{provider_id}",
     response_model=ResponseModel[None],
-    summary="Disable a system AI provider",
+    summary="Delete a system AI provider",
     dependencies=[require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE)],
 )
 async def delete_system_ai_provider(
-    provider_id: UUID,
+    provider_id: PublicUUID,
     principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE),
     service: SystemAIProviderService = Depends(get_system_ai_provider_service),
 ) -> ResponseModel[None]:
@@ -96,7 +95,7 @@ async def delete_system_ai_provider(
     dependencies=[require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE)],
 )
 async def preview_system_ai_provider_availability(
-    provider_id: UUID,
+    provider_id: PublicUUID,
     payload: SystemAIProviderAvailabilityPreviewRequest,
     service: SystemAIProviderService = Depends(get_system_ai_provider_service),
 ) -> ResponseModel[SystemAIProviderAvailabilityPreviewOut]:
@@ -111,7 +110,7 @@ async def preview_system_ai_provider_availability(
     summary="Apply AI provider availability from a current impact preview",
 )
 async def apply_system_ai_provider_availability(
-    provider_id: UUID,
+    provider_id: PublicUUID,
     payload: SystemAIProviderAvailabilityApplyRequest,
     principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE),
     service: SystemAIProviderService = Depends(get_system_ai_provider_service),
@@ -132,7 +131,7 @@ async def apply_system_ai_provider_availability(
     summary="Execute a non-disclosing AI provider readiness test",
 )
 async def test_system_ai_provider_readiness(
-    provider_id: UUID,
+    provider_id: PublicUUID,
     principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_PROVIDERS_MANAGE),
     service: SystemAIProviderService = Depends(get_system_ai_provider_service),
 ) -> ResponseModel[SystemAIProviderReadinessTestOut]:

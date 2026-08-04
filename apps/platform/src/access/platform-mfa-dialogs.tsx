@@ -14,18 +14,27 @@ import {
   PlatformAccessApiError,
   removeCurrentPlatformMfaMethod,
 } from "@/access/access-api";
-import { verifyPlatformAction } from "@/access/platform-step-up";
+import { verifyPlatformAction, verifyPlatformTotpAction } from "@/access/platform-step-up";
 import { createPlatformSecurityKey } from "@/auth/webauthn";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SettingDialog } from "@/components/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
 
 type DialogProps = Readonly<{
   open: boolean;
+  methods: readonly PlatformMfaMethodReadinessOut[];
   onOpenChange: (open: boolean) => void;
   onCompleted: (messageKey: string) => void;
+  replaceMethod?: PlatformMfaMethodReadinessOut | null;
   userId: string;
 }>;
 
@@ -56,7 +65,13 @@ function mutationAttempt(
 function errorKey(error: unknown): string {
   if (!(error instanceof PlatformAccessApiError)) return "ACTION_ERROR";
   if (error.message === "PLATFORM_WEBAUTHN_CANCELLED") return "SECURITY_KEY_CANCELLED";
-  if (error.message === "PLATFORM_WEBAUTHN_UNAVAILABLE") return "SECURITY_KEY_UNAVAILABLE";
+  if (
+    error.message === "PLATFORM_WEBAUTHN_NOT_CONFIGURED" ||
+    error.message === "PLATFORM_WEBAUTHN_UNAVAILABLE"
+  )
+    return "SECURITY_KEY_UNAVAILABLE";
+  if (error.message === "PLATFORM_WEBAUTHN_METHOD_REQUIRED")
+    return "SECURITY_KEY_ACTION_SETUP_REQUIRED";
   if (error.status === 401 || error.status === 403) return "ACTION_PERMISSION_ERROR";
   if (error.status === 409) return "ACTION_CONFLICT_ERROR";
   if (error.status === 422) return "ACTION_VALIDATION_ERROR";
@@ -73,24 +88,129 @@ function MutationError({ messageKey }: Readonly<{ messageKey: string }>) {
   );
 }
 
-async function mfaProof(
-  userId: string,
-  idempotencyKey: string,
-  scope: Record<string, string | null>,
-) {
-  return verifyPlatformAction({
-    actionCode: "platform.access.reset_operator_mfa",
+type VerificationChoice = "webauthn" | `totp:${string}`;
+
+function defaultVerificationChoice(
+  methods: readonly PlatformMfaMethodReadinessOut[],
+): VerificationChoice {
+  if (methods.some((method) => method.kind === "webauthn")) return "webauthn";
+  const totp = methods.find((method) => method.kind === "totp");
+  return totp ? `totp:${totp.methodId}` : "webauthn";
+}
+
+function actionCode(replaceMethod?: PlatformMfaMethodReadinessOut | null) {
+  return replaceMethod?.kind === "webauthn"
+    ? "platform.access.reset_operator_mfa"
+    : "platform.access.manage_current_mfa";
+}
+
+function requiresAuthenticatorCode(action: string, choice: VerificationChoice) {
+  return action === "platform.access.manage_current_mfa" && choice.startsWith("totp:");
+}
+
+async function mfaProof({
+  action,
+  choice,
+  code,
+  idempotencyKey,
+  scope,
+  userId,
+}: Readonly<{
+  action: string;
+  choice: VerificationChoice;
+  code: string;
+  idempotencyKey: string;
+  scope: Record<string, string | null>;
+  userId: string;
+}>) {
+  const context = {
+    actionCode: action,
     idempotencyKey,
     scope,
     targetId: userId,
     targetType: "platform_mfa_actor",
-  });
+  };
+  if (!requiresAuthenticatorCode(action, choice)) return verifyPlatformAction(context);
+  return verifyPlatformTotpAction(context, choice.slice("totp:".length), code.replace(/\s+/gu, ""));
+}
+
+function CurrentVerificationFields({
+  choice,
+  code,
+  idPrefix,
+  methods,
+  onChoiceChange,
+  onCodeChange,
+}: Readonly<{
+  choice: VerificationChoice;
+  code: string;
+  idPrefix: string;
+  methods: readonly PlatformMfaMethodReadinessOut[];
+  onChoiceChange: (choice: VerificationChoice) => void;
+  onCodeChange: (code: string) => void;
+}>) {
+  const { t } = useTranslation("access");
+  const choices = [
+    ...(methods.some((method) => method.kind === "webauthn")
+      ? [{ label: t("SECURITY_KEY_OR_PASSKEY"), value: "webauthn" as const }]
+      : []),
+    ...methods
+      .filter((method) => method.kind === "totp")
+      .map((method) => ({
+        label: method.label ?? t("AUTHENTICATOR_APP"),
+        value: `totp:${method.methodId}` as const,
+      })),
+  ];
+  return (
+    <SettingDialogFields>
+      <SettingDialogField
+        title={t("CURRENT_VERIFICATION_TITLE")}
+        description={t("CURRENT_VERIFICATION_DESCRIPTION")}
+      >
+        <Select
+          value={choice}
+          onValueChange={(value) => onChoiceChange(value as VerificationChoice)}
+        >
+          <SelectTrigger aria-label={t("VERIFICATION_METHOD")} id={`${idPrefix}-method`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {choices.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingDialogField>
+      {choice.startsWith("totp:") ? (
+        <SettingDialogField
+          title={<label htmlFor={`${idPrefix}-code`}>{t("CURRENT_VERIFICATION_CODE")}</label>}
+          description={t("CURRENT_VERIFICATION_CODE_DESCRIPTION")}
+        >
+          <Input
+            autoComplete="one-time-code"
+            id={`${idPrefix}-code`}
+            inputMode="numeric"
+            value={code}
+            onChange={(event) => onCodeChange(event.target.value)}
+          />
+        </SettingDialogField>
+      ) : null}
+    </SettingDialogFields>
+  );
 }
 
 export function AddAuthenticatorAppDialog(props: DialogProps) {
   const { t } = useTranslation("access");
+  const replacing = Boolean(props.replaceMethod);
+  const action = actionCode(props.replaceMethod);
   const [setup, setSetup] = useState<PlatformTotpSetup | null>(null);
   const [code, setCode] = useState("");
+  const [currentCode, setCurrentCode] = useState("");
+  const [verificationChoice, setVerificationChoice] = useState<VerificationChoice>(() =>
+    defaultVerificationChoice(props.methods),
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const beginAttempt = useRef<MutationAttempt | null>(null);
@@ -98,14 +218,28 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
 
   const begin = async () => {
     const accountLabel = t("AUTHENTICATOR_ACCOUNT_LABEL");
-    const fingerprint = JSON.stringify([props.userId, "totp_enrollment", "Arclayer", accountLabel]);
+    const fingerprint = JSON.stringify([
+      props.userId,
+      "totp_enrollment",
+      "Arclayer",
+      accountLabel,
+      props.replaceMethod?.methodId ?? null,
+    ]);
     let attempt = mutationAttempt(beginAttempt, fingerprint);
     setPending(true);
     setError(null);
     try {
       if (!attempt.stepUpProof) {
-        const stepUpProof = await mfaProof(props.userId, attempt.idempotencyKey, {
-          operation: "totp_enrollment",
+        const stepUpProof = await mfaProof({
+          action,
+          choice: verificationChoice,
+          code: currentCode,
+          idempotencyKey: attempt.idempotencyKey,
+          scope: {
+            operation: "totp_enrollment",
+            replace_method_id: props.replaceMethod?.methodId ?? null,
+          },
+          userId: props.userId,
         });
         attempt = { ...attempt, stepUpProof };
         beginAttempt.current = attempt;
@@ -117,10 +251,12 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
         correlationId: attempt.correlationId,
         idempotencyKey: attempt.idempotencyKey,
         issuer: "Arclayer",
+        replaceMethodId: props.replaceMethod?.methodId ?? null,
         stepUpProof,
       });
       if (beginAttempt.current === attempt) beginAttempt.current = null;
       setSetup(nextSetup);
+      setCurrentCode("");
     } catch (caught) {
       setError(errorKey(caught));
     } finally {
@@ -132,14 +268,27 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
     event.preventDefault();
     const normalizedCode = code.replace(/\s+/gu, "");
     if (!setup || !normalizedCode) return;
-    const fingerprint = JSON.stringify([props.userId, setup.methodId, normalizedCode, null]);
+    const fingerprint = JSON.stringify([
+      props.userId,
+      setup.methodId,
+      normalizedCode,
+      props.replaceMethod?.methodId ?? null,
+    ]);
     let attempt = mutationAttempt(confirmAttempt, fingerprint);
     setPending(true);
     setError(null);
     try {
       if (!attempt.stepUpProof) {
-        const stepUpProof = await mfaProof(props.userId, attempt.idempotencyKey, {
-          operation: "totp_enrollment",
+        const stepUpProof = await mfaProof({
+          action,
+          choice: verificationChoice,
+          code: currentCode,
+          idempotencyKey: attempt.idempotencyKey,
+          scope: {
+            operation: "totp_enrollment",
+            replace_method_id: props.replaceMethod?.methodId ?? null,
+          },
+          userId: props.userId,
         });
         attempt = { ...attempt, stepUpProof };
         confirmAttempt.current = attempt;
@@ -151,11 +300,11 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
         correlationId: attempt.correlationId,
         idempotencyKey: attempt.idempotencyKey,
         methodId: setup.methodId,
-        replaceMethodId: null,
+        replaceMethodId: props.replaceMethod?.methodId ?? null,
         stepUpProof,
       });
       if (confirmAttempt.current === attempt) confirmAttempt.current = null;
-      props.onCompleted("AUTHENTICATOR_APP_ADDED");
+      props.onCompleted(replacing ? "AUTHENTICATOR_APP_REPLACED" : "AUTHENTICATOR_APP_ADDED");
       props.onOpenChange(false);
     } catch (caught) {
       setError(errorKey(caught));
@@ -168,19 +317,37 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
     <SettingDialog
       open={props.open}
       onOpenChange={(open) => !pending && props.onOpenChange(open)}
-      title={t("ADD_AUTHENTICATOR_APP")}
-      description={t("ADD_AUTHENTICATOR_APP_DESCRIPTION")}
+      title={t(replacing ? "REPLACE_AUTHENTICATOR_APP" : "ADD_AUTHENTICATOR_APP")}
+      description={t(
+        replacing ? "REPLACE_AUTHENTICATOR_APP_DESCRIPTION" : "ADD_AUTHENTICATOR_APP_DESCRIPTION",
+      )}
       footer={
         <>
           <Button disabled={pending} variant="outline" onClick={() => props.onOpenChange(false)}>
             {t("CANCEL")}
           </Button>
           {setup ? (
-            <Button disabled={pending || !code.trim()} form="confirm-platform-totp" type="submit">
-              {pending ? t("VERIFYING") : t("VERIFY_AND_ADD_METHOD")}
+            <Button
+              disabled={
+                pending ||
+                !code.trim() ||
+                (requiresAuthenticatorCode(action, verificationChoice) && !currentCode.trim())
+              }
+              form="confirm-platform-totp"
+              type="submit"
+            >
+              {pending
+                ? t("VERIFYING")
+                : t(replacing ? "VERIFY_AND_REPLACE_METHOD" : "VERIFY_AND_ADD_METHOD")}
             </Button>
           ) : (
-            <Button disabled={pending} onClick={begin}>
+            <Button
+              disabled={
+                pending ||
+                (requiresAuthenticatorCode(action, verificationChoice) && !currentCode.trim())
+              }
+              onClick={begin}
+            >
               {pending ? t("VERIFYING") : t("VERIFY_AND_START_SETUP")}
             </Button>
           )}
@@ -188,6 +355,21 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
       }
     >
       {error ? <MutationError messageKey={error} /> : null}
+      {action === "platform.access.reset_operator_mfa" ? (
+        <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
+      ) : (
+        <CurrentVerificationFields
+          choice={verificationChoice}
+          code={currentCode}
+          idPrefix="platform-current-totp"
+          methods={props.methods}
+          onChoiceChange={(choice) => {
+            setVerificationChoice(choice);
+            setCurrentCode("");
+          }}
+          onCodeChange={setCurrentCode}
+        />
+      )}
       {setup ? (
         <form id="confirm-platform-totp" onSubmit={confirm}>
           <SettingDialogFields>
@@ -212,21 +394,28 @@ export function AddAuthenticatorAppDialog(props: DialogProps) {
             </SettingDialogField>
           </SettingDialogFields>
         </form>
-      ) : (
-        <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
-      )}
+      ) : null}
     </SettingDialog>
   );
 }
 
 export function AddSecurityKeyDialog(props: DialogProps) {
   const { t } = useTranslation("access");
+  const replacing = Boolean(props.replaceMethod);
+  const action = actionCode(props.replaceMethod);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentCode, setCurrentCode] = useState("");
+  const [verificationChoice, setVerificationChoice] = useState<VerificationChoice>(() =>
+    defaultVerificationChoice(props.methods),
+  );
   const request = useRef<WebAuthnRegistrationAttempt | null>(null);
 
   const add = async () => {
-    const scope = { operation: "webauthn_enrollment", replace_method_id: null };
+    const scope = {
+      operation: "webauthn_enrollment",
+      replace_method_id: props.replaceMethod?.methodId ?? null,
+    };
     let attempt: WebAuthnRegistrationAttempt = mutationAttempt(
       request,
       JSON.stringify([props.userId, scope]),
@@ -235,7 +424,14 @@ export function AddSecurityKeyDialog(props: DialogProps) {
     setError(null);
     try {
       if (!attempt.stepUpProof) {
-        const stepUpProof = await mfaProof(props.userId, attempt.idempotencyKey, scope);
+        const stepUpProof = await mfaProof({
+          action,
+          choice: verificationChoice,
+          code: currentCode,
+          idempotencyKey: attempt.idempotencyKey,
+          scope,
+          userId: props.userId,
+        });
         attempt = { ...attempt, stepUpProof };
         request.current = attempt;
       }
@@ -245,7 +441,7 @@ export function AddSecurityKeyDialog(props: DialogProps) {
         const registration = await beginCurrentPlatformWebauthnMethod({
           correlationId: attempt.correlationId,
           idempotencyKey: attempt.idempotencyKey,
-          replaceMethodId: null,
+          replaceMethodId: props.replaceMethod?.methodId ?? null,
           stepUpProof,
         });
         const credential = await createPlatformSecurityKey(registration.options);
@@ -256,7 +452,7 @@ export function AddSecurityKeyDialog(props: DialogProps) {
             correlationId: attempt.correlationId,
             credential,
             idempotencyKey: attempt.idempotencyKey,
-            replaceMethodId: null,
+            replaceMethodId: props.replaceMethod?.methodId ?? null,
             stepUpProof,
           },
         };
@@ -266,7 +462,7 @@ export function AddSecurityKeyDialog(props: DialogProps) {
       if (!completeRequest) throw new Error("PLATFORM_WEBAUTHN_COMPLETE_REQUEST_REQUIRED");
       await completeCurrentPlatformWebauthnMethod(completeRequest);
       if (request.current === attempt) request.current = null;
-      props.onCompleted("SECURITY_KEY_ADDED");
+      props.onCompleted(replacing ? "SECURITY_KEY_REPLACED" : "SECURITY_KEY_ADDED");
       props.onOpenChange(false);
     } catch (caught) {
       setError(errorKey(caught));
@@ -279,21 +475,45 @@ export function AddSecurityKeyDialog(props: DialogProps) {
     <SettingDialog
       open={props.open}
       onOpenChange={(open) => !pending && props.onOpenChange(open)}
-      title={t("ADD_SECURITY_KEY")}
-      description={t("ADD_SECURITY_KEY_DESCRIPTION")}
+      title={t(replacing ? "REPLACE_SECURITY_KEY" : "ADD_SECURITY_KEY")}
+      description={t(
+        replacing ? "REPLACE_SECURITY_KEY_DESCRIPTION" : "ADD_SECURITY_KEY_DESCRIPTION",
+      )}
       footer={
         <>
           <Button disabled={pending} variant="outline" onClick={() => props.onOpenChange(false)}>
             {t("CANCEL")}
           </Button>
-          <Button disabled={pending} onClick={add}>
-            {pending ? t("VERIFYING") : t("VERIFY_AND_ADD_SECURITY_KEY")}
+          <Button
+            disabled={
+              pending ||
+              (requiresAuthenticatorCode(action, verificationChoice) && !currentCode.trim())
+            }
+            onClick={add}
+          >
+            {pending
+              ? t("VERIFYING")
+              : t(replacing ? "VERIFY_AND_REPLACE_METHOD" : "VERIFY_AND_ADD_SECURITY_KEY")}
           </Button>
         </>
       }
     >
       {error ? <MutationError messageKey={error} /> : null}
-      <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
+      {action === "platform.access.reset_operator_mfa" ? (
+        <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
+      ) : (
+        <CurrentVerificationFields
+          choice={verificationChoice}
+          code={currentCode}
+          idPrefix="platform-current-webauthn"
+          methods={props.methods}
+          onChoiceChange={(choice) => {
+            setVerificationChoice(choice);
+            setCurrentCode("");
+          }}
+          onCodeChange={setCurrentCode}
+        />
+      )}
     </SettingDialog>
   );
 }
@@ -302,8 +522,13 @@ type RemoveMethodDialogProps = DialogProps & Readonly<{ method: PlatformMfaMetho
 
 export function RemoveMfaMethodDialog(props: RemoveMethodDialogProps) {
   const { t } = useTranslation("access");
+  const action = actionCode(props.method);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentCode, setCurrentCode] = useState("");
+  const [verificationChoice, setVerificationChoice] = useState<VerificationChoice>(() =>
+    defaultVerificationChoice(props.methods),
+  );
   const request = useRef<MutationAttempt | null>(null);
 
   const remove = async () => {
@@ -312,12 +537,13 @@ export function RemoveMfaMethodDialog(props: RemoveMethodDialogProps) {
     setError(null);
     try {
       if (!attempt.stepUpProof) {
-        const stepUpProof = await verifyPlatformAction({
-          actionCode: "platform.access.reset_operator_mfa",
+        const stepUpProof = await mfaProof({
+          action,
+          choice: verificationChoice,
+          code: currentCode,
           idempotencyKey: attempt.idempotencyKey,
-          scope: {},
-          targetId: props.method.methodId,
-          targetType: "platform_mfa_method",
+          scope: { method_id: props.method.methodId, operation: "remove_method" },
+          userId: props.userId,
         });
         attempt = { ...attempt, stepUpProof };
         request.current = attempt;
@@ -352,13 +578,33 @@ export function RemoveMfaMethodDialog(props: RemoveMethodDialogProps) {
           <Button disabled={pending} variant="outline" onClick={() => props.onOpenChange(false)}>
             {t("CANCEL")}
           </Button>
-          <Button disabled={pending} variant="destructive" onClick={remove}>
+          <Button
+            disabled={
+              pending ||
+              (requiresAuthenticatorCode(action, verificationChoice) && !currentCode.trim())
+            }
+            variant="destructive"
+            onClick={remove}
+          >
             {pending ? t("VERIFYING") : t("VERIFY_AND_REMOVE_METHOD")}
           </Button>
         </>
       }
     >
       {error ? <MutationError messageKey={error} /> : null}
+      {action === "platform.access.reset_operator_mfa" ? null : (
+        <CurrentVerificationFields
+          choice={verificationChoice}
+          code={currentCode}
+          idPrefix="platform-current-remove"
+          methods={props.methods}
+          onChoiceChange={(choice) => {
+            setVerificationChoice(choice);
+            setCurrentCode("");
+          }}
+          onCodeChange={setCurrentCode}
+        />
+      )}
       <p className="text-sm text-muted-foreground">{t("REMOVE_MFA_METHOD_CONSEQUENCE")}</p>
     </SettingDialog>
   );

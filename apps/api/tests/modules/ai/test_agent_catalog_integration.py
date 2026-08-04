@@ -122,16 +122,18 @@ async def test_official_catalog_is_versioned_assigned_and_deterministic(prepared
 
 
 @pytest.mark.asyncio
-async def test_product_catalog_enforces_not_available_rollout_without_creating_assignments(prepared_db) -> None:
+async def test_product_catalog_defaults_to_all_eligible_without_rollout_record(prepared_db) -> None:
     _ = prepared_db
     await WorkspaceCapabilityRollout.filter(capability_id="ai-services").delete()
     workspace, project, _owner_user_id = await _scope(enable_rollout=False)
 
-    with pytest.raises(Conflict) as denied:
-        await AgentCatalogService(get_settings()).list_available(workspace_id=workspace.id, project_id=project.id)
+    catalog = await AgentCatalogService(get_settings()).list_available(
+        workspace_id=workspace.id,
+        project_id=project.id,
+    )
 
-    assert denied.value.error == "WORKSPACE_CAPABILITY_ROLLOUT_NOT_AVAILABLE"
-    assert not await AgentAssignmentRecord.filter(workspace_id=workspace.id).exists()
+    assert len(catalog.agents) == 6
+    assert await AgentAssignmentRecord.filter(workspace_id=workspace.id).count() == 6
 
 
 @pytest.mark.asyncio

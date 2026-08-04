@@ -1,7 +1,8 @@
 """AI API key model — virtual keys and bring-your-own-key.
 
 R3 audit requirement:
-    - Keys are stored with hashed values only.
+    - Virtual keys retain a hash for lookup and encrypted ciphertext for runtime use.
+    - Upstream provider credentials are stored only as encrypted ciphertext.
     - LiteLLM key IDs stored for virtual key management.
     - Key lifecycle tracked via is_active and timestamps.
 """
@@ -41,6 +42,9 @@ class AIAPIKey(BaseModel):
 
     # Encrypted virtual key value (Fernet-encrypted, base64-encoded).
     virtual_key_enc = fields.TextField(null=True)
+    # Encrypted upstream provider credential. The plaintext value is write-only
+    # and is never returned by provider APIs.
+    provider_api_key_enc = fields.TextField(null=True)
     # Arbitrary metadata for LiteLLM proxy tagging (workspace_id, owner_user_id, grant_id).
     metadata_json = fields.JSONField(null=True, default=None)
 

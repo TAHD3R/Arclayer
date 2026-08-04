@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AnchorHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { LoginPane } from "@/pages/login/components/login-pane";
@@ -15,31 +15,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/components/ui/oauth-buttons", () => ({
-  AuthOauthButtons: ({
-    dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
-    leadingActions = [],
-  }: {
-    dividerLabelKey?: string;
-    leadingActions?: Array<{
-      key: string;
-      label: string;
-      icon?: ReactNode;
-      onClick: () => void;
-    }>;
-  }) => (
-    <div data-testid="oauth-actions">
-      <span>{dividerLabelKey}</span>
-      {leadingActions.map((action) => (
-        <button key={action.key} type="button" onClick={action.onClick}>
-          {action.icon}
-          {action.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -47,9 +22,9 @@ vi.mock("react-i18next", () => ({
   Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
 }));
 
-describe("LoginPane oauth section", () => {
-  it("renders one-step login with top auth methods", () => {
-    const { container } = render(
+describe("LoginPane email form", () => {
+  it("renders the password form without duplicating the login-method picker", () => {
+    render(
       <LoginPane
         onEmailSubmit={async () => ({
           exists: true,
@@ -70,19 +45,54 @@ describe("LoginPane oauth section", () => {
       />,
     );
 
-    const oauthWrapper = container.querySelector(".empty\\:hidden");
-    const contentGroup = oauthWrapper?.parentElement;
-    expect(oauthWrapper).toHaveClass("empty:hidden");
-    expect(contentGroup).toHaveClass("grid", "gap-5");
-    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
-    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
-    expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
+    const slogan = screen.getByTestId("login-brand-slogan");
+    expect(slogan).toHaveClass("gap-6");
+    const title = slogan.querySelector("h1");
+    expect(title).toHaveClass(
+      "gap-1.5",
+      "text-[32px]",
+      "leading-9",
+      "font-medium",
+      "tracking-[-1px]",
+    );
+    const promise = screen.getByText("auth:LOGIN_SLOGAN_PROMISE");
+    expect(promise.style.getPropertyValue("--auth-shiny-color")).toBe(
+      "var(--color-label-secondary)",
+    );
+    expect(promise.style.getPropertyValue("--auth-shiny-highlight")).toBe(
+      "color-mix(in oklab, var(--color-label-secondary) 55%, var(--color-label-primary))",
+    );
+    expect(slogan.parentElement?.parentElement).toHaveClass("max-w-[25.875rem]", "gap-6");
+    expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_EMAIL_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:OAUTH_ACCOUNT_DIVIDER")).not.toBeInTheDocument();
+    const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
+    const password = screen.getByLabelText("auth:FIELD_PASSWORD_LABEL");
+    expect(email.closest("[data-slot='input-group']")).toHaveClass("h-14!", "rounded-full!");
+    expect(password.closest("[data-slot='input-group']")).toHaveClass("h-14!", "rounded-full!");
+    expect(password.closest("[data-slot='input-group']")).toHaveClass(
+      "[&>[data-align=inline-end]]:mr-0!",
+      "[&>[data-align=inline-end]]:pr-4!",
+    );
     expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "auth:KEEP_SESSION" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("oauth-actions").querySelector("button")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" })).toHaveAttribute(
+      "data-variant",
+      "ghost",
+    );
+    expect(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" })).toHaveClass(
+      "text-footnote",
+      "font-semibold",
+      "text-label-secondary",
+    );
+    expect(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" })).toHaveAttribute(
+      "data-size",
+      "inline",
+    );
     expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toHaveAttribute(
       "data-variant",
@@ -92,19 +102,67 @@ describe("LoginPane oauth section", () => {
       "text-label-secondary",
       "hover:bg-transparent",
     );
-    expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" }).parentElement).toHaveClass(
+      "justify-end",
+    );
+    expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toHaveClass(
+      "h-14!",
+      "w-full",
+      "rounded-full!",
+    );
     expect(
       screen.queryByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }),
     ).not.toBeInTheDocument();
     expect(
-      screen
-        .getByTestId("oauth-actions")
-        .compareDocumentPosition(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      screen.queryByRole("button", { name: "auth:LOGIN_BACK_TO_METHODS" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-account-switch")).toContainElement(
+      screen.getByRole("button", { name: "auth:CREATE_ACCOUNT" }),
+    );
+    expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
   });
 
-  it("shows email code action in the email title row", async () => {
+  it("returns to the login-method picker when a back action is provided", async () => {
+    const onBackToMethods = vi.fn();
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
+        emailCheckLoading={false}
+        loading={false}
+        resendLoading={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        onBackToMethods={onBackToMethods}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "auth:LOGIN_BACK_TO_METHODS" })).toHaveClass(
+      "h-14!",
+      "w-full",
+      "rounded-full!",
+    );
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }).querySelector("svg"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_BACK_TO_METHODS" }).querySelector("svg"),
+    ).toBeNull();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "auth:LOGIN_BACK_TO_METHODS" }));
+
+    expect(onBackToMethods).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows email code action below the primary action", async () => {
     const onSwitchToEmailCode = vi.fn();
 
     render(
@@ -135,12 +193,58 @@ describe("LoginPane oauth section", () => {
     await user.click(emailCodeButton);
 
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true);
-    expect(screen.getByTestId("oauth-actions")).toBeInTheDocument();
     expect(emailCodeButton.querySelector("svg")).toBeNull();
     expect(
-      screen.getByText("auth:FIELD_EMAIL_LABEL").compareDocumentPosition(emailCodeButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      screen
+        .getByRole("button", { name: "auth:LOGIN_BUTTON" })
+        .compareDocumentPosition(emailCodeButton) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("shows live login password rules in a floating popover while the field is focused", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
+        emailCheckLoading={false}
+        loading={false}
+        resendLoading={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const password = screen.getByLabelText("auth:FIELD_PASSWORD_LABEL");
+    await user.click(password);
+
+    expect(await screen.findByText("auth:PASSWORD_REQUIREMENTS_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LENGTH")).toBeInTheDocument();
+    expect(screen.getByText("auth:LOGIN_PASSWORD_REQUIREMENT_LETTER")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_NUMBER")).toBeInTheDocument();
+
+    await user.type(password, "secret123");
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LENGTH").closest("li")).toHaveClass(
+      "text-success",
+    );
+    expect(screen.getByText("auth:LOGIN_PASSWORD_REQUIREMENT_LETTER").closest("li")).toHaveClass(
+      "text-success",
+    );
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_NUMBER").closest("li")).toHaveClass(
+      "text-success",
+    );
+
+    await user.click(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"));
+    await waitFor(() => {
+      expect(screen.queryByText("auth:PASSWORD_REQUIREMENTS_TITLE")).not.toBeInTheDocument();
+    });
   });
 
   it("routes passwordless accounts into email-code flow from the email step", async () => {
@@ -277,7 +381,7 @@ describe("LoginPane oauth section", () => {
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("", true);
   });
 
-  it("renders the primary action without a trailing icon", () => {
+  it("renders the primary action without a direction icon", () => {
     render(
       <LoginPane
         onEmailSubmit={async () => ({
@@ -331,7 +435,8 @@ describe("LoginPane oauth section", () => {
 
     expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeDisabled();
     expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("demo@example.com");
-    expect(screen.getByTestId("oauth-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("login-brand-slogan")).toBeInTheDocument();
+    expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
     ).not.toBeInTheDocument();

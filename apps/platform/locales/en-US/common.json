@@ -22,5 +22,7 @@
   "TABS_SCROLL_LEFT": "Scroll tabs left",
   "TABS_SCROLL_RIGHT": "Scroll tabs right",
   "TRY_AGAIN": "Try again",
-  "LOADING": "Loading…"
+  "LOADING": "Loading…",
+  "CLOSE": "Close",
+  "TOAST_NOTIFICATIONS": "Notifications"
 }

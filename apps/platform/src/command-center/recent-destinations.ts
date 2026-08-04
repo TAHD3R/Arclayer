@@ -1,4 +1,10 @@
-import type { PlatformDestination, PlatformDestinationId } from "@/capabilities/module-registry";
+import {
+  NEEDS_ATTENTION_DESTINATION,
+  OVERVIEW_DESTINATION,
+  PLATFORM_CAPABILITY_MODULES,
+  type PlatformDestination,
+  type PlatformDestinationId,
+} from "@/capabilities/module-registry";
 
 export type RecentDestination = Readonly<{
   destinationId: PlatformDestinationId;
@@ -8,15 +14,11 @@ export type RecentDestination = Readonly<{
 const RECENT_DESTINATIONS_KEY = "arclayer:platform:recent-destinations";
 const RECENT_DESTINATION_LIMIT = 8;
 const TRUSTED_DESTINATION_IDS: ReadonlySet<string> = new Set<PlatformDestinationId>([
-  "overview",
-  "needs-attention",
-  "access-team",
-  "workspace-workspaces",
-  "monitoring-requests",
-  "monitoring-performance",
-  "monitoring-ai-usage",
-  "monitoring-activity",
-  "monitoring-audit",
+  OVERVIEW_DESTINATION.id,
+  NEEDS_ATTENTION_DESTINATION.id,
+  ...Object.values(PLATFORM_CAPABILITY_MODULES).flatMap(({ destinations }) =>
+    destinations.map(({ id }) => id),
+  ),
 ]);
 
 function isRecentDestination(value: unknown): value is RecentDestination {

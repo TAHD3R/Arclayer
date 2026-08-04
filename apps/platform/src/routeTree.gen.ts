@@ -48,9 +48,7 @@ import { Route as AuthenticatedAiPoliciesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAiAssistantsRouteImport } from './routes/_authenticated/ai/assistants'
 import { Route as AuthenticatedAccessTeamRouteImport } from './routes/_authenticated/access/team'
 import { Route as AuthenticatedAccessSignInRouteImport } from './routes/_authenticated/access/sign-in'
-import { Route as AuthenticatedAccessSessionsRouteImport } from './routes/_authenticated/access/sessions'
 import { Route as AuthenticatedAccessRolesRouteImport } from './routes/_authenticated/access/roles'
-import { Route as AuthenticatedAccessMfaRouteImport } from './routes/_authenticated/access/mfa'
 import { Route as AuthenticatedAccessTeamInvitationsInvitationIdRouteImport } from './routes/_authenticated/access/team/invitations/$invitationId'
 
 const SignInRoute = SignInRouteImport.update({
@@ -276,23 +274,12 @@ const AuthenticatedAccessSignInRoute =
     path: '/access/sign-in',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAccessSessionsRoute =
-  AuthenticatedAccessSessionsRouteImport.update({
-    id: '/access/sessions',
-    path: '/access/sessions',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedAccessRolesRoute =
   AuthenticatedAccessRolesRouteImport.update({
     id: '/access/roles',
     path: '/access/roles',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAccessMfaRoute = AuthenticatedAccessMfaRouteImport.update({
-  id: '/access/mfa',
-  path: '/access/mfa',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedAccessTeamInvitationsInvitationIdRoute =
   AuthenticatedAccessTeamInvitationsInvitationIdRouteImport.update({
     id: '/invitations/$invitationId',
@@ -307,9 +294,7 @@ export interface FileRoutesByFullPath {
   '/attention': typeof AuthenticatedAttentionRouteWithChildren
   '/projects': typeof AuthenticatedProjectsRoute
   '/users': typeof AuthenticatedUsersRoute
-  '/access/mfa': typeof AuthenticatedAccessMfaRoute
   '/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
   '/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
   '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
@@ -351,9 +336,7 @@ export interface FileRoutesByTo {
   '/projects': typeof AuthenticatedProjectsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/': typeof AuthenticatedIndexRoute
-  '/access/mfa': typeof AuthenticatedAccessMfaRoute
   '/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
   '/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
   '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
@@ -397,9 +380,7 @@ export interface FileRoutesById {
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/access/mfa': typeof AuthenticatedAccessMfaRoute
   '/_authenticated/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/_authenticated/access/sessions': typeof AuthenticatedAccessSessionsRoute
   '/_authenticated/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/_authenticated/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
   '/_authenticated/ai/assistants': typeof AuthenticatedAiAssistantsRoute
@@ -443,9 +424,7 @@ export interface FileRouteTypes {
     | '/attention'
     | '/projects'
     | '/users'
-    | '/access/mfa'
     | '/access/roles'
-    | '/access/sessions'
     | '/access/sign-in'
     | '/access/team'
     | '/ai/assistants'
@@ -487,9 +466,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/users'
     | '/'
-    | '/access/mfa'
     | '/access/roles'
-    | '/access/sessions'
     | '/access/sign-in'
     | '/access/team'
     | '/ai/assistants'
@@ -532,9 +509,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects'
     | '/_authenticated/users'
     | '/_authenticated/'
-    | '/_authenticated/access/mfa'
     | '/_authenticated/access/roles'
-    | '/_authenticated/access/sessions'
     | '/_authenticated/access/sign-in'
     | '/_authenticated/access/team'
     | '/_authenticated/ai/assistants'
@@ -851,25 +826,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessSignInRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/access/sessions': {
-      id: '/_authenticated/access/sessions'
-      path: '/access/sessions'
-      fullPath: '/access/sessions'
-      preLoaderRoute: typeof AuthenticatedAccessSessionsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/access/roles': {
       id: '/_authenticated/access/roles'
       path: '/access/roles'
       fullPath: '/access/roles'
       preLoaderRoute: typeof AuthenticatedAccessRolesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/access/mfa': {
-      id: '/_authenticated/access/mfa'
-      path: '/access/mfa'
-      fullPath: '/access/mfa'
-      preLoaderRoute: typeof AuthenticatedAccessMfaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/access/team/invitations/$invitationId': {
@@ -916,9 +877,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAccessMfaRoute: typeof AuthenticatedAccessMfaRoute
   AuthenticatedAccessRolesRoute: typeof AuthenticatedAccessRolesRoute
-  AuthenticatedAccessSessionsRoute: typeof AuthenticatedAccessSessionsRoute
   AuthenticatedAccessSignInRoute: typeof AuthenticatedAccessSignInRoute
   AuthenticatedAccessTeamRoute: typeof AuthenticatedAccessTeamRouteWithChildren
   AuthenticatedAiAssistantsRoute: typeof AuthenticatedAiAssistantsRoute
@@ -957,9 +916,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAccessMfaRoute: AuthenticatedAccessMfaRoute,
   AuthenticatedAccessRolesRoute: AuthenticatedAccessRolesRoute,
-  AuthenticatedAccessSessionsRoute: AuthenticatedAccessSessionsRoute,
   AuthenticatedAccessSignInRoute: AuthenticatedAccessSignInRoute,
   AuthenticatedAccessTeamRoute: AuthenticatedAccessTeamRouteWithChildren,
   AuthenticatedAiAssistantsRoute: AuthenticatedAiAssistantsRoute,

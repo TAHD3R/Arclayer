@@ -12,9 +12,13 @@ export interface AIModelCatalogItem {
   id: string;
   provider: string;
   label: string;
-  labelKey?: string | null;
+  labelI18n: Record<string, string>;
   description?: string | null;
-  descriptionKey?: string | null;
+  descriptionI18n: Record<string, string>;
+  providerIcon?: {
+    lightUrl: string;
+    darkUrl: string;
+  } | null;
   available: boolean;
 }
 
@@ -24,6 +28,15 @@ export interface AIModelCatalogResponse {
   reasoningEffort: AIReasoningEffort;
   models: AIModelCatalogItem[];
 }
+
+type AIModelCatalogItemPayload = Omit<AIModelCatalogItem, "labelI18n" | "descriptionI18n"> & {
+  labelI18n?: Record<string, string>;
+  descriptionI18n?: Record<string, string>;
+};
+
+type AIModelCatalogResponsePayload = Omit<AIModelCatalogResponse, "models"> & {
+  models: AIModelCatalogItemPayload[];
+};
 
 export type AIWorkspaceActionKind =
   | "create_project"
@@ -518,10 +531,18 @@ export async function listAIModels(options: {
   signal?: AbortSignal;
 }): Promise<AIModelCatalogResponse> {
   const query = new URLSearchParams({ workspaceId: options.workspaceId });
-  return api.get<AIModelCatalogResponse>(
+  const catalog = await api.get<AIModelCatalogResponsePayload>(
     `/chat/models?${query.toString()}`,
     options?.signal ? { signal: options.signal } : undefined,
   );
+  return {
+    ...catalog,
+    models: catalog.models.map((model) => ({
+      ...model,
+      labelI18n: model.labelI18n ?? {},
+      descriptionI18n: model.descriptionI18n ?? {},
+    })),
+  };
 }
 
 export async function getAIMonthlyUsageSummary(options: {

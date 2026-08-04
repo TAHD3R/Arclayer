@@ -7,7 +7,6 @@ import { resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
 import { notifyErrorText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { Button } from "@arclayer/ui/button";
-import { Separator } from "@arclayer/ui/separator";
 import { cn } from "@arclayer/lib/utils";
 
 export interface AuthOauthButtonsProps {
@@ -15,6 +14,7 @@ export interface AuthOauthButtonsProps {
   redirect?: string | undefined;
   dividerLabelKey?: string;
   dividerPlacement?: "before" | "after";
+  providerLayout?: "stacked" | "primary-plus-grid";
   showProviders?: boolean;
   loadingProvider?: string | null;
   onProviderStart?: (input: { provider: string; startUrl: string }) => void;
@@ -28,12 +28,35 @@ export interface AuthOauthButtonsProps {
 }
 
 const FULL_WIDTH_LEADING_ACTION_KEYS = new Set(["email-code", "password-login"]);
+const AUTH_DIVIDER_SEGMENTS = Array.from({ length: 5 }, (_, index) => index);
+
+function AuthDividerLine() {
+  return (
+    <span
+      data-testid="oauth-divider-line"
+      aria-hidden="true"
+      className="flex min-w-0 flex-1 items-center justify-center gap-4 overflow-hidden"
+    >
+      {AUTH_DIVIDER_SEGMENTS.map((segment) => (
+        <span
+          key={segment}
+          data-testid="oauth-divider-segment"
+          className={cn(
+            "h-px w-4 shrink-0 bg-foreground/25",
+            segment === AUTH_DIVIDER_SEGMENTS.length - 1 ? "max-[359px]:hidden" : undefined,
+          )}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function AuthOauthButtons({
   disabled = false,
   redirect,
   dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
   dividerPlacement = "before",
+  providerLayout = "stacked",
   showProviders = true,
   loadingProvider = null,
   onProviderStart,
@@ -103,11 +126,12 @@ export function AuthOauthButtons({
   const dividerSpacingClassName = dividerPlacement === "after" ? "pt-3" : "py-2";
   const divider = (
     <div
+      data-testid="oauth-divider"
       className={`flex items-center gap-3 text-footnote text-label-secondary ${dividerSpacingClassName}`}
     >
-      <Separator className="flex-1" />
+      <AuthDividerLine />
       <span className="shrink-0 select-none">{t(dividerLabelKey)}</span>
-      <Separator className="flex-1" />
+      <AuthDividerLine />
     </div>
   );
 
@@ -188,7 +212,43 @@ export function AuthOauthButtons({
           ))}
         </div>
       ) : null}
-      {providerActions.length > 0 ? (
+      {providerActions.length > 0 && providerLayout === "primary-plus-grid" ? (
+        <div className="grid gap-3" data-testid="oauth-primary-plus-grid">
+          {providerActions.slice(0, 1).map((action) => (
+            <Button
+              key={action.key}
+              className="h-14! w-full justify-center rounded-full! border-transparent! bg-foreground! px-4 text-background! hover:bg-foreground/90! hover:text-background!"
+              variant="outline"
+              size="lg"
+              disabled={isBusy || action.isLoading}
+              loading={action.isLoading}
+              aria-label={action.fullLabel}
+              onClick={action.onClick}
+            >
+              {renderProviderContent(action, action.fullLabel)}
+            </Button>
+          ))}
+          {providerActions.length > 1 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {providerActions.slice(1).map((action) => (
+                <Button
+                  key={action.key}
+                  className="h-14! w-full justify-center rounded-full! border-border/80! bg-card! px-3 hover:bg-accent!"
+                  variant="outline"
+                  size="lg"
+                  disabled={isBusy || action.isLoading}
+                  loading={action.isLoading}
+                  aria-label={action.fullLabel}
+                  onClick={action.onClick}
+                >
+                  {action.isLoading ? null : action.icon}
+                  <span className="sr-only">{action.fullLabel}</span>
+                </Button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : providerActions.length > 0 ? (
         <div className="grid gap-2.5">
           {providerActions.map((action) => (
             <Button

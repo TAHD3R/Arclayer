@@ -32,18 +32,21 @@ export interface AIChatState {
   toggleDrawer: () => void;
 }
 
-export const DEFAULT_AI_CHAT_MODEL = "deepseek-v4-pro";
 export const AUTO_AI_CHAT_MODEL = "__auto__";
 export const DEFAULT_AI_REASONING_EFFORT: AIReasoningEffort = "medium";
 export const DEFAULT_AI_COMPOSER_MODE: AIComposerMode = "build";
 export const DEFAULT_AI_AGENT_ID: null = null;
 
-const AI_CHAT_PERSIST_VERSION = 8;
+const AI_CHAT_PERSIST_VERSION = 9;
+
+export function resolveAIRequestModel(model: string): string | undefined {
+  return model === AUTO_AI_CHAT_MODEL ? undefined : model;
+}
 
 export const useAiChatStore = create<AIChatState>()(
   persist(
     (set) => ({
-      selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModel: AUTO_AI_CHAT_MODEL,
       selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
       selectedReasoningEffortSource: "default",
@@ -104,10 +107,12 @@ export const useAiChatStore = create<AIChatState>()(
       migrate: (persisted) => {
         const state = persisted as Partial<AIChatState>;
         const composerMode: AIComposerMode = state.composerMode === "plan" ? "plan" : "build";
+        const persistedModel =
+          typeof state.selectedModel === "string" ? state.selectedModel.trim() : "";
+        const hasExplicitModel = state.selectedModelSource === "user" && Boolean(persistedModel);
         return {
-          selectedModel: state.selectedModel ?? DEFAULT_AI_CHAT_MODEL,
-          selectedModelSource:
-            state.selectedModelSource ?? (state.selectedModel ? "user" : "default"),
+          selectedModel: hasExplicitModel ? persistedModel : AUTO_AI_CHAT_MODEL,
+          selectedModelSource: hasExplicitModel ? ("user" as const) : ("default" as const),
           selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
           selectedReasoningEffortSource: "default" as const,
           composerMode,

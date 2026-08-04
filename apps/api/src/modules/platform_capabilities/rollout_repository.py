@@ -34,7 +34,7 @@ class TortoiseWorkspaceCapabilityRolloutRepository:
     ) -> WorkspaceCapabilityRolloutPolicy:
         await WorkspaceCapabilityRollout.get_or_create(
             capability_id=capability_id,
-            defaults={"stage": ModelRolloutStage.NOT_AVAILABLE, "revision": 0, "selection_revision": 0},
+            defaults={"stage": ModelRolloutStage.ALL_ELIGIBLE, "revision": 0, "selection_revision": 0},
             using_db=conn,
         )
         rollout = await (

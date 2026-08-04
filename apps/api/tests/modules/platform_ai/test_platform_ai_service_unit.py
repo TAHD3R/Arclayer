@@ -22,7 +22,12 @@ from src.modules.ai.runtime_platform_recovery_schema import (
 from src.modules.platform_ai.router import retry_platform_ai_task
 from src.modules.platform_ai.schema import PlatformAITaskActionRequest
 from src.modules.platform_ai.service import PlatformAIOperationsService
-from src.modules.system.ai_providers.schema import SystemAIProviderOut
+from src.modules.system.ai_providers.schema import (
+    SystemAIProviderBillingConfig,
+    SystemAIProviderModelMapping,
+    SystemAIProviderOut,
+    SystemAIProviderTestConfig,
+)
 
 
 def _run(*, status: AgentRunStatusV1, job_id=None) -> SimpleNamespace:
@@ -257,10 +262,21 @@ def test_provider_projection_hides_internal_litellm_key_id() -> None:
         provider="deepseek",
         label="DeepSeek",
         compatibility="deepseek",
+        auth_header="Authorization",
         is_active=True,
+        is_archived=False,
+        cleanup_required=False,
         has_virtual_key=True,
         litellm_key_id="internal-key-id",
-        request_model="deepseek-v4-pro",
+        model_mappings=[
+            SystemAIProviderModelMapping(
+                public_model="deepseek-v4-pro",
+                provider_model="deepseek-chat",
+            )
+        ],
+        default_model="deepseek-v4-pro",
+        test_config=SystemAIProviderTestConfig(),
+        billing_config=SystemAIProviderBillingConfig(),
         created_at=now,
         updated_at=now,
         readiness_status="healthy",
@@ -271,5 +287,99 @@ def test_provider_projection_hides_internal_litellm_key_id() -> None:
 
     assert projection.routable
     assert "internal-key-id" not in projection.model_dump_json()
-    unavailable = {item.action: item.reason_code for item in projection.actions if not item.available}
-    assert unavailable["rotate_credentials"] == "AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE"
+    available = {item.action for item in projection.actions if item.available}
+    assert "rotate_credentials" in available
+
+
+def test_provider_projection_distinguishes_response_mismatch_from_unreachable() -> None:
+    now = datetime.now(UTC)
+    provider = SystemAIProviderOut(
+        id=uuid4(),
+        provider="deepseek",
+        label="DeepSeek",
+        compatibility="deepseek",
+        auth_header="Authorization",
+        is_active=True,
+        is_archived=False,
+        cleanup_required=False,
+        has_virtual_key=True,
+        default_model="deepseek-v4-pro",
+        test_config=SystemAIProviderTestConfig(),
+        billing_config=SystemAIProviderBillingConfig(),
+        created_at=now,
+        updated_at=now,
+        readiness_status="unhealthy",
+        readiness_checked_at=now,
+        readiness_failure_code="AI_PROVIDER_READINESS_RESPONSE_MISMATCH",
+    )
+
+    projection = PlatformAIOperationsService._to_provider_out(provider=provider, now=now)
+
+    assert projection.reachable is True
+    assert projection.health == "unhealthy"
+    assert not projection.routable
+    assert projection.health_failure_code == "AI_PROVIDER_READINESS_RESPONSE_MISMATCH"
+
+
+async def test_provider_readiness_uses_the_injected_provider_reader() -> None:
+    now = datetime.now(UTC)
+    provider = SystemAIProviderOut(
+        id=uuid4(),
+        provider="deepseek",
+        label="DeepSeek",
+        compatibility="deepseek",
+        auth_header="Authorization",
+        is_active=True,
+        is_archived=False,
+        cleanup_required=False,
+        has_virtual_key=True,
+        default_model="deepseek-v4-pro",
+        test_config=SystemAIProviderTestConfig(),
+        billing_config=SystemAIProviderBillingConfig(),
+        created_at=now,
+        updated_at=now,
+        readiness_status="healthy",
+        readiness_checked_at=now,
+    )
+    reader = SimpleNamespace(list_providers=AsyncMock(return_value=[provider]))
+    service = PlatformAIOperationsService(provider_reader=reader)
+
+    readiness = await service.provider_readiness()
+
+    assert readiness.items[0].routable
+    assert readiness.missing_prerequisite_codes == ()
+    reader.list_providers.assert_awaited_once_with()
+
+
+@pytest.mark.parametrize(
+    ("is_archived", "cleanup_required"),
+    [(True, False), (False, True)],
+)
+def test_provider_projection_excludes_archived_or_cleanup_pending_services(
+    is_archived: bool,
+    cleanup_required: bool,
+) -> None:
+    now = datetime.now(UTC)
+    provider = SystemAIProviderOut(
+        id=uuid4(),
+        provider="deepseek",
+        label="DeepSeek",
+        compatibility="deepseek",
+        auth_header="Authorization",
+        is_active=True,
+        is_archived=is_archived,
+        cleanup_required=cleanup_required,
+        has_virtual_key=True,
+        default_model="deepseek-v4-pro",
+        test_config=SystemAIProviderTestConfig(),
+        billing_config=SystemAIProviderBillingConfig(),
+        created_at=now,
+        updated_at=now,
+        readiness_status="healthy",
+        readiness_checked_at=now,
+    )
+
+    projection = PlatformAIOperationsService._to_provider_out(provider=provider, now=now)
+
+    assert not projection.permitted
+    assert not projection.routable

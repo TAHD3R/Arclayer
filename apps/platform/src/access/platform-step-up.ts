@@ -3,6 +3,7 @@ import type { PlatformStepUpProofIssueRequest } from "@arclayer/platform-openapi
 import {
   beginPlatformStepUp,
   completePlatformStepUp,
+  completePlatformTotpStepUp,
   PlatformAccessApiError,
 } from "@/access/access-api";
 import { getPlatformSecurityKey } from "@/auth/webauthn";
@@ -40,4 +41,22 @@ export async function verifyPlatformAction(context: PlatformStepUpContext): Prom
     }
     throw error;
   }
+}
+
+export async function verifyPlatformTotpAction(
+  context: PlatformStepUpContext,
+  methodId: string,
+  code: string,
+): Promise<string> {
+  const session = readPlatformSession();
+  if (!session) throw new PlatformAccessApiError("PLATFORM_SESSION_REQUIRED", 401);
+
+  const result = await completePlatformTotpStepUp({
+    ...context,
+    actorUserId: session.principal.actorId,
+    code,
+    methodId,
+    sessionId: session.principal.sessionId,
+  });
+  return result.proof;
 }

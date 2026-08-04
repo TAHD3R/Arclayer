@@ -19,6 +19,36 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("shared Select", () => {
+  it("can hide the default trigger indicator without changing the default contract", () => {
+    render(
+      <div>
+        <Select value="one" onValueChange={() => undefined}>
+          <SelectTrigger aria-label="With indicator">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="one">One</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value="one" onValueChange={() => undefined}>
+          <SelectTrigger aria-label="Without indicator" showIndicator={false}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="one">One</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>,
+    );
+
+    expect(
+      screen.getByRole("combobox", { name: "With indicator" }).querySelector("svg"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Without indicator" }).querySelector("svg"),
+    ).not.toBeInTheDocument();
+  });
+
   it("uses popper positioning by default so content opens beside the trigger", async () => {
     const user = userEvent.setup();
 

@@ -1,6 +1,16 @@
-import { Pencil, Plus } from "lucide-react";
+import {
+  Activity,
+  Archive,
+  Copy,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type {
   PageDataPlatformAiTaskOut,
   PlatformAiProviderReadinessOut,
@@ -10,16 +20,23 @@ import type {
   SystemAiProviderAvailabilityPreviewOut,
   SystemAiProviderListOut,
   SystemAiProviderOut,
+  WorkspaceCapabilityRolloutPreview,
 } from "@arclayer/platform-openapi";
 
+import { ProviderIconImage } from "@/ai/ai-provider-icon";
 import {
   applyAiProviderAvailability,
+  applyAiServicesWorkspaceRollout,
+  deleteAiProvider,
   executeAiTaskAction,
   getAiProviderReadiness,
   listAiProviders,
   listAiTasks,
+  PlatformAiServicesApiError,
   previewAiProviderAvailability,
+  previewAiServicesWorkspaceRollout,
   testAiProviderReadiness,
+  updateAiProvider,
 } from "@/ai/ai-services-api";
 import { AiProviderEditorDialog } from "@/ai/ai-provider-dialogs";
 import { AiAssistantEditorDialog, AiAssistantVersionDialog } from "@/ai/ai-assistant-dialogs";
@@ -31,7 +48,16 @@ import {
 } from "@/ai/ai-assistants-api";
 import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +70,14 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
   Table,
   TableBody,
   TableCell,
@@ -54,9 +88,13 @@ import {
 
 type QueryState<T> = { status: string; data?: T };
 type TaskAction = "retry" | "cancel" | "reconcile";
-type TaskActionResult = Readonly<{ action: TaskAction; task: PlatformAiTaskOut }>;
-type TaskActionFailure = Readonly<{ action: TaskAction; code: string }>;
 type TaskActionReason = Readonly<{ copyKey: string; reasonCode: string | null }>;
+type ProviderLifecycleContinuation = "none" | "archive" | "delete";
+type ProviderAvailabilityFlow = Readonly<{
+  preview: SystemAiProviderAvailabilityPreviewOut;
+  provider: SystemAiProviderOut;
+  continuation: ProviderLifecycleContinuation;
+}>;
 
 const taskActionReasonCopyKeys: Readonly<Record<string, string>> = {
   AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE: "ACTION_RETRY_PORT_UNAVAILABLE",
@@ -67,9 +105,24 @@ const taskActionReasonCopyKeys: Readonly<Record<string, string>> = {
   AI_PLATFORM_TASK_RECONCILE_NOT_ELIGIBLE: "ACTION_RECONCILE_NOT_ELIGIBLE",
 };
 
-function AiPage(props: Readonly<{ title: string; description: string; children: ReactNode }>) {
+function AiPage(
+  props: Readonly<{
+    title: string;
+    description: string;
+    primaryAction?: ReactNode;
+    secondaryActions?: ReactNode;
+    extra?: ReactNode;
+    children: ReactNode;
+  }>,
+) {
   return (
-    <PlatformPage description={props.description} title={props.title}>
+    <PlatformPage
+      description={props.description}
+      extra={props.extra}
+      primaryAction={props.primaryAction}
+      secondaryActions={props.secondaryActions}
+      title={props.title}
+    >
       {props.children}
     </PlatformPage>
   );
@@ -150,56 +203,39 @@ function taskActionErrorCode(error: unknown): string {
 }
 
 export function AiTasksPage() {
-  const { t } = useTranslation("ai");
+  const { t, i18n } = useTranslation(["ai", "errors"]);
   const load = useCallback(() => listAiTasks({ page: 1, size: 50 }), []);
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
-  const [failure, setFailure] = useState<TaskActionFailure | null>(null);
-  const [result, setResult] = useState<TaskActionResult | null>(null);
   const idempotencyKeys = useRef<Map<string, string>>(new Map());
   const execute = async (task: PlatformAiTaskOut, action: TaskAction) => {
     const operationKey = `${task.id}:${action}`;
     const idempotencyKey = idempotencyKeys.current.get(operationKey) ?? crypto.randomUUID();
     idempotencyKeys.current.set(operationKey, idempotencyKey);
     setPending(operationKey);
-    setFailure(null);
-    setResult(null);
     try {
       const currentTask = await executeAiTaskAction(task.id, action, { idempotencyKey });
       idempotencyKeys.current.delete(operationKey);
-      setResult({ action, task: currentTask });
+      toast.success(t("ai:TASK_ACTION_RESULT_TITLE"), {
+        description: t("ai:TASK_ACTION_RESULT_DESCRIPTION", {
+          action: t(`ai:ACTION_${action.toUpperCase()}`),
+          outcome: t(`ai:OUTCOME_${currentTask.outcome.toUpperCase()}`),
+        }),
+      });
       retry();
     } catch (error) {
-      setFailure({ action, code: taskActionErrorCode(error) });
+      const code = taskActionErrorCode(error);
+      toast.error(t("ai:TASK_ACTION_UNCONFIRMED"), {
+        description: i18n.exists(`errors:${code}`)
+          ? `${t(`errors:${code}`)} · ${code}`
+          : `${t("ai:TASK_ACTION_UNCONFIRMED_DESCRIPTION")} · ${code}`,
+      });
     } finally {
       setPending(null);
     }
   };
   return (
     <AiPage description={t("TASKS_DESCRIPTION")} title={t("TASKS_TITLE")}>
-      {result ? (
-        <Alert>
-          <AlertTitle>{t("TASK_ACTION_RESULT_TITLE")}</AlertTitle>
-          <AlertDescription className="space-y-1">
-            <p>
-              {t("TASK_ACTION_RESULT_DESCRIPTION", {
-                action: t(`ACTION_${result.action.toUpperCase()}`),
-                outcome: t(`OUTCOME_${result.task.outcome.toUpperCase()}`),
-              })}
-            </p>
-            <p>{t("TASK_ACTION_RESULT_SEQUENCE", { sequence: result.task.lastSequence })}</p>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {failure ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("TASK_ACTION_UNCONFIRMED")}</AlertTitle>
-          <AlertDescription className="space-y-1">
-            <p>{t("TASK_ACTION_UNCONFIRMED_DESCRIPTION")}</p>
-            <code>{failure.code}</code>
-          </AlertDescription>
-        </Alert>
-      ) : null}
       <AiState
         empty={(data: PageDataPlatformAiTaskOut) => !data.items?.length}
         retry={retry}
@@ -295,6 +331,25 @@ type ProviderData = Readonly<{
   providers: SystemAiProviderListOut;
 }>;
 
+type ProviderFilter = "all" | "active" | "archived";
+
+const providerEmptyCopy: Readonly<
+  Record<ProviderFilter, Readonly<{ title: string; description: string }>>
+> = {
+  all: {
+    title: "PROVIDER_EMPTY_ALL_TITLE",
+    description: "PROVIDER_EMPTY_ALL_DESCRIPTION",
+  },
+  active: {
+    title: "PROVIDER_EMPTY_ACTIVE_TITLE",
+    description: "PROVIDER_EMPTY_ACTIVE_DESCRIPTION",
+  },
+  archived: {
+    title: "PROVIDER_EMPTY_ARCHIVED_TITLE",
+    description: "PROVIDER_EMPTY_ARCHIVED_DESCRIPTION",
+  },
+};
+
 export function AiProvidersPage() {
   const { t } = useTranslation("ai");
   const load = useCallback(
@@ -305,183 +360,562 @@ export function AiProvidersPage() {
     [],
   );
   const { state, retry } = useMonitoringQuery(load, []);
+  const [editor, setEditor] = useState<{ provider?: SystemAiProviderOut; copy?: boolean } | null>(
+    null,
+  );
+  const [filter, setFilter] = useState<ProviderFilter>("all");
   return (
-    <AiPage description={t("PROVIDERS_DESCRIPTION")} title={t("PROVIDERS_TITLE")}>
+    <AiPage
+      description={t("PROVIDERS_DESCRIPTION")}
+      extra={
+        <Tabs onValueChange={(value) => setFilter(value as typeof filter)} value={filter}>
+          <TabsList>
+            <TabsTrigger value="all">{t("FILTER_ALL")}</TabsTrigger>
+            <TabsTrigger value="active">{t("FILTER_ACTIVE")}</TabsTrigger>
+            <TabsTrigger value="archived">{t("FILTER_ARCHIVED")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      }
+      primaryAction={
+        <Button onClick={() => setEditor({})}>
+          <Plus aria-hidden="true" />
+          {t("ADD_PROVIDER")}
+        </Button>
+      }
+      title={t("PROVIDERS_TITLE")}
+    >
       <AiState empty={() => false} retry={retry} state={state}>
-        {(data) => <ProviderConsole data={data} onRefresh={retry} />}
+        {(data) => (
+          <ProviderConsole
+            data={data}
+            filter={filter}
+            onCopy={(provider) => setEditor({ provider, copy: true })}
+            onEdit={(provider) => setEditor({ provider })}
+            onRefresh={retry}
+          />
+        )}
       </AiState>
+      {editor ? (
+        <AiProviderEditorDialog
+          copy={editor.copy}
+          onCompleted={(messageKey) => {
+            toast.success(t(messageKey));
+            retry();
+          }}
+          onOpenChange={(open) => !open && setEditor(null)}
+          open
+          provider={editor.provider}
+        />
+      ) : null}
     </AiPage>
   );
 }
 
-function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => void }>) {
-  const { t } = useTranslation("ai");
-  const [preview, setPreview] = useState<SystemAiProviderAvailabilityPreviewOut | null>(null);
+function ProviderConsole(
+  props: Readonly<{
+    data: ProviderData;
+    filter: ProviderFilter;
+    onRefresh: () => void;
+    onEdit: (provider: SystemAiProviderOut) => void;
+    onCopy: (provider: SystemAiProviderOut) => void;
+  }>,
+) {
+  const { t, i18n } = useTranslation(["ai", "errors"]);
+  const [availabilityFlow, setAvailabilityFlow] = useState<ProviderAvailabilityFlow | null>(null);
+  const [rolloutPreview, setRolloutPreview] = useState<WorkspaceCapabilityRolloutPreview | null>(
+    null,
+  );
   const [pending, setPending] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [successKey, setSuccessKey] = useState<string | null>(null);
-  const [providerEditor, setProviderEditor] = useState<"create" | SystemAiProviderOut | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SystemAiProviderOut | null>(null);
   const readinessById = new Map(props.data.readiness.items.map((item) => [item.id, item]));
-  const doAction = async (key: string, operation: () => Promise<unknown>) => {
+  const allProviders = props.data.providers.providers ?? [];
+  const providers = allProviders.filter((provider) => {
+    if (props.filter === "active") return provider.isActive && !provider.isArchived;
+    if (props.filter === "archived") return provider.isArchived;
+    return true;
+  });
+  const activeCount = allProviders.filter(
+    (provider) => provider.isActive && !provider.isArchived,
+  ).length;
+  const routableCount = props.data.readiness.items.filter((item) => item.routable).length;
+  const pendingTestCount = props.data.readiness.items.filter(
+    (item) => !item.archived && item.health === "unknown",
+  ).length;
+  const publicModelCounts = new Map<string, number>();
+  for (const provider of allProviders) {
+    for (const mapping of provider.modelMappings ?? []) {
+      publicModelCounts.set(
+        mapping.publicModel,
+        (publicModelCounts.get(mapping.publicModel) ?? 0) + 1,
+      );
+    }
+  }
+  const emptyCopy = providerEmptyCopy[props.filter];
+  const doAction = async (
+    key: string,
+    operation: () => Promise<unknown>,
+    refreshAfter = true,
+    successKey?: string,
+  ) => {
     setPending(key);
-    setMessage(null);
     try {
       await operation();
-      props.onRefresh();
+      if (successKey) toast.success(t(`ai:${successKey}`));
+      if (refreshAfter) props.onRefresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("ACTION_FAILED"));
+      const apiError = error instanceof PlatformAiServicesApiError ? error : null;
+      const code = error instanceof Error ? error.message : null;
+      const codeKey = apiError ? `errors:${apiError.message}` : null;
+      toast.error(t("ai:ACTION_FAILED"), {
+        description:
+          codeKey && i18n.exists(codeKey)
+            ? `${t(codeKey)}${code ? ` · ${code}` : ""}`
+            : (code ?? t("ai:ACTION_FAILED")),
+      });
     } finally {
       setPending(null);
     }
   };
+  const requestAvailabilityPreview = async (
+    provider: SystemAiProviderOut,
+    desiredIsActive: boolean,
+    continuation: ProviderLifecycleContinuation,
+  ) => {
+    const preview = await previewAiProviderAvailability(provider.id, desiredIsActive);
+    setAvailabilityFlow({ preview, provider, continuation });
+  };
+  const applyAvailabilityFlow = async () => {
+    if (!availabilityFlow) return;
+    const { preview, provider, continuation } = availabilityFlow;
+    await applyAiProviderAvailability(preview.id, preview.desiredIsActive, preview.revision);
+    setAvailabilityFlow(null);
+    if (continuation === "archive") {
+      await updateAiProvider(provider.id, { isArchived: true });
+    }
+    if (continuation === "delete") {
+      setDeleteTarget({ ...provider, isActive: false });
+    }
+  };
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
-        <Button onClick={() => setProviderEditor("create")}>
-          <Plus aria-hidden="true" />
-          {t("ADD_PROVIDER")}
-        </Button>
-      </div>
-      {successKey ? (
-        <Alert>
-          <AlertDescription>{t(successKey)}</AlertDescription>
-        </Alert>
-      ) : null}
-      {message ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
+      {allProviders.length ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["PROVIDER_METRIC_TOTAL", allProviders.length],
+            ["PROVIDER_METRIC_ACTIVE", activeCount],
+            ["PROVIDER_METRIC_ROUTABLE", routableCount],
+            ["PROVIDER_METRIC_PENDING_TEST", pendingTestCount],
+          ].map(([label, value]) => (
+            <Card key={label}>
+              <CardContent className="px-5 py-4">
+                <p className="text-sm text-muted-foreground">{t(String(label))}</p>
+                <p className="mt-1 text-2xl font-semibold">{value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : null}
       <Card>
-        <CardHeader>
-          <CardTitle>{t("PROVIDER_READINESS")}</CardTitle>
-          <CardDescription>
-            {props.data.readiness.missingPrerequisiteCodes.length
-              ? t("PROVIDER_MISSING")
-              : t("PROVIDER_READY")}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <CardTitle>{t("WORKSPACE_AI_ROLLOUT_TITLE")}</CardTitle>
+            <CardDescription>{t("WORKSPACE_AI_ROLLOUT_DESCRIPTION")}</CardDescription>
+          </div>
+          <Button
+            disabled={pending !== null}
+            onClick={() =>
+              void doAction(
+                "workspace-rollout-preview",
+                async () => setRolloutPreview(await previewAiServicesWorkspaceRollout()),
+                false,
+              )
+            }
+            variant="outline"
+          >
+            {t("REVIEW_WORKSPACE_AI_ROLLOUT")}
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {props.data.providers.providers?.map((provider) => {
-            const readiness = readinessById.get(provider.id);
-            const ready = readiness?.routable && readiness.health === "healthy";
-            const test = readiness?.actions.find((action) => action.action === "test_readiness");
-            const availability = readiness?.actions.find(
-              (action) => action.action === (provider.isActive ? "disable" : "enable"),
-            );
-            return (
-              <div className="border-t py-3" key={provider.id}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{provider.label}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {provider.provider} · {provider.requestModel}
-                    </p>
-                  </div>
-                  <Badge variant={ready ? "secondary" : "outline"}>
-                    {ready ? t("READY") : t("NOT_READY")}
-                  </Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    disabled={!test?.available || pending === `test:${provider.id}`}
-                    onClick={() =>
-                      void doAction(`test:${provider.id}`, () =>
-                        testAiProviderReadiness(provider.id),
-                      )
-                    }
-                    size="sm"
-                    variant="outline"
-                  >
-                    {t("TEST_READINESS")}
-                  </Button>
-                  <Button
-                    disabled={!availability?.available || pending === `preview:${provider.id}`}
-                    onClick={() =>
-                      void doAction(`preview:${provider.id}`, async () =>
-                        setPreview(
-                          await previewAiProviderAvailability(provider.id, !provider.isActive),
-                        ),
-                      )
-                    }
-                    size="sm"
-                    variant="outline"
-                  >
-                    {provider.isActive ? t("DISABLE") : t("ENABLE")}
-                  </Button>
-                  <Button
-                    disabled={pending === `edit:${provider.id}`}
-                    onClick={() => setProviderEditor(provider)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Pencil aria-hidden="true" />
-                    {t("EDIT_PROVIDER")}
-                  </Button>
-                  {readiness?.actions
-                    .filter(
-                      (action) =>
-                        ["rotate_credentials", "remove_credentials"].includes(action.action) &&
-                        !action.available,
-                    )
-                    .map((action) => (
-                      <span
-                        className="self-center text-xs text-muted-foreground"
-                        key={action.action}
-                      >
-                        {t(`UNAVAILABLE_${action.action.toUpperCase()}`)}: {action.reasonCode}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            );
-          })}
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("PROVIDER_DIRECTORY")}</CardTitle>
+          <CardDescription>{t("PROVIDER_DIRECTORY_DESCRIPTION")}</CardDescription>
+        </CardHeader>
+        <CardContent className={providers.length ? "overflow-x-auto px-0" : undefined}>
+          {providers.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("PROVIDER_SERVICE")}</TableHead>
+                  <TableHead>{t("DEFAULT_MODEL")}</TableHead>
+                  <TableHead>{t("STATUS")}</TableHead>
+                  <TableHead>{t("LAST_CHECK")}</TableHead>
+                  <TableHead className="text-right">{t("ACTIONS")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {providers.map((provider) => {
+                  const readiness = readinessById.get(provider.id);
+                  const ready = readiness?.routable && readiness.health === "healthy";
+                  const responseMismatch =
+                    readiness?.healthFailureCode === "AI_PROVIDER_READINESS_RESPONSE_MISMATCH";
+                  const test = readiness?.actions.find(
+                    (action) => action.action === "test_readiness",
+                  );
+                  const availability = readiness?.actions.find(
+                    (action) => action.action === (provider.isActive ? "disable" : "enable"),
+                  );
+                  const hasAliasConflict = (provider.modelMappings ?? []).some(
+                    (mapping) => (publicModelCounts.get(mapping.publicModel) ?? 0) > 1,
+                  );
+                  return (
+                    <TableRow key={provider.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {provider.icon ? (
+                            <span className="flex size-9 items-center justify-center rounded-md border p-1">
+                              <ProviderIconImage className="size-7" icon={provider.icon} />
+                            </span>
+                          ) : (
+                            <div className="flex size-9 items-center justify-center rounded-md border bg-muted text-xs font-medium">
+                              {provider.label.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{provider.label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {provider.provider}
+                              {provider.note ? ` · ${provider.note}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-mono text-xs">{provider.defaultModel}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {t("MODEL_COUNT", { count: provider.modelMappings?.length ?? 0 })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="space-x-2">
+                        <Badge
+                          variant={
+                            readiness?.health === "unhealthy" && !responseMismatch
+                              ? "destructive"
+                              : ready
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {t(
+                            provider.isArchived
+                              ? "ARCHIVED"
+                              : !provider.isActive
+                                ? "PROVIDER_STATUS_DISABLED"
+                                : responseMismatch
+                                  ? "PROVIDER_STATUS_RESPONSE_MISMATCH"
+                                  : readiness?.health === "unhealthy"
+                                    ? "PROVIDER_STATUS_CONNECTION_ERROR"
+                                    : readiness?.health === "unknown"
+                                      ? "PROVIDER_STATUS_PENDING_TEST"
+                                      : ready
+                                        ? "READY"
+                                        : "NOT_READY",
+                          )}
+                        </Badge>
+                        {provider.cleanupRequired ? (
+                          <Badge variant="destructive">{t("CLEANUP_REQUIRED")}</Badge>
+                        ) : null}
+                        {hasAliasConflict ? (
+                          <Badge variant="destructive">{t("PUBLIC_MODEL_CONFLICT")}</Badge>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {provider.readinessCheckedAt
+                          ? new Date(provider.readinessCheckedAt).toLocaleString()
+                          : t("NEVER_TESTED")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-label={t("PROVIDER_ACTIONS", { name: provider.label })}
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => props.onEdit(provider)}>
+                              <Pencil />
+                              {t("EDIT_PROVIDER")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => props.onCopy(provider)}>
+                              <Copy />
+                              {t("COPY_PROVIDER")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={!test?.available || pending === `test:${provider.id}`}
+                              title={!test?.available ? t("TEST_UNAVAILABLE_ARCHIVED") : undefined}
+                              onSelect={() =>
+                                void doAction(
+                                  `test:${provider.id}`,
+                                  () => testAiProviderReadiness(provider.id),
+                                  true,
+                                  "PROVIDER_TEST_COMPLETED",
+                                )
+                              }
+                            >
+                              <Activity />
+                              {t("TEST_READINESS")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`/monitoring/ai-usage?provider=${encodeURIComponent(provider.id)}`}
+                              >
+                                <Activity />
+                                {t("VIEW_USAGE")}
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                !availability?.available || pending === `preview:${provider.id}`
+                              }
+                              title={
+                                !availability?.available
+                                  ? t("AVAILABILITY_ACTION_UNAVAILABLE")
+                                  : undefined
+                              }
+                              onSelect={() =>
+                                void doAction(
+                                  `preview:${provider.id}`,
+                                  async () =>
+                                    requestAvailabilityPreview(
+                                      provider,
+                                      !provider.isActive,
+                                      "none",
+                                    ),
+                                  false,
+                                )
+                              }
+                            >
+                              <RotateCcw />
+                              {provider.isActive ? t("DISABLE") : t("ENABLE")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              disabled={pending !== null}
+                              title={
+                                provider.isActive && !provider.isArchived
+                                  ? t("ARCHIVE_WILL_DISABLE")
+                                  : undefined
+                              }
+                              onSelect={() =>
+                                void doAction(
+                                  `archive:${provider.id}`,
+                                  async () => {
+                                    if (provider.isArchived) {
+                                      await updateAiProvider(provider.id, { isArchived: false });
+                                    } else if (provider.isActive) {
+                                      await requestAvailabilityPreview(provider, false, "archive");
+                                    } else {
+                                      await updateAiProvider(provider.id, { isArchived: true });
+                                    }
+                                  },
+                                  !provider.isActive,
+                                )
+                              }
+                            >
+                              {provider.isArchived ? <RotateCcw /> : <Archive />}
+                              {provider.isArchived ? t("RESTORE") : t("ARCHIVE")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              disabled={pending !== null}
+                              title={
+                                provider.cleanupRequired
+                                  ? t("DELETE_RETRIES_CLEANUP")
+                                  : provider.isActive || !provider.isArchived
+                                    ? t("DELETE_WILL_PREPARE")
+                                    : undefined
+                              }
+                              onSelect={() => {
+                                if (provider.isActive) {
+                                  void doAction(
+                                    `preview-delete:${provider.id}`,
+                                    () => requestAvailabilityPreview(provider, false, "delete"),
+                                    false,
+                                  );
+                                } else {
+                                  setDeleteTarget(provider);
+                                }
+                              }}
+                            >
+                              <Trash2 />
+                              {t("DELETE")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <Empty className="min-h-64 border-0">
+              <EmptyHeader>
+                <EmptyTitle>{t(emptyCopy.title)}</EmptyTitle>
+                <EmptyDescription>{t(emptyCopy.description)}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
         </CardContent>
       </Card>
-      {preview ? (
-        <Alert>
-          <AlertTitle>{t("AVAILABILITY_PREVIEW")}</AlertTitle>
-          <AlertDescription className="space-y-3">
-            <p>
-              {preview.wouldLeaveNoRoutableProvider
-                ? t("NO_ROUTABLE_PROVIDER_WARNING")
-                : t("ROUTABLE_PROVIDER_COUNT", { count: preview.routableProviderCountAfter })}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                disabled={pending === `apply:${preview.id}`}
-                onClick={() =>
-                  void doAction(`apply:${preview.id}`, () =>
-                    applyAiProviderAvailability(
-                      preview.id,
-                      preview.desiredIsActive,
-                      preview.revision,
-                    ).then(() => setPreview(null)),
-                  )
-                }
-                size="sm"
-              >
-                {t("CONFIRM")}
-              </Button>
-              <Button onClick={() => setPreview(null)} size="sm" variant="outline">
-                {t("CANCEL")}
-              </Button>
+      <AlertDialog
+        onOpenChange={(open) => !open && pending === null && setRolloutPreview(null)}
+        open={Boolean(rolloutPreview)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("WORKSPACE_AI_ROLLOUT_CONFIRM_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("WORKSPACE_AI_ROLLOUT_CONFIRM_DESCRIPTION", {
+                count: rolloutPreview?.summary.newlyAvailableWorkspaceIds.length ?? 0,
+                eligible: rolloutPreview?.summary.eligibleWorkspaceCount ?? 0,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-muted-foreground">{t("CURRENT_ROLLOUT_STAGE")}</p>
+              <p className="font-medium">
+                {t(`ROLLOUT_STAGE_${rolloutPreview?.sourcePolicy.stage.toUpperCase()}`)}
+              </p>
             </div>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {providerEditor ? (
-        <AiProviderEditorDialog
-          open
-          onCompleted={(key) => {
-            setSuccessKey(key);
-            props.onRefresh();
-          }}
-          onOpenChange={(open) => !open && setProviderEditor(null)}
-          provider={providerEditor === "create" ? undefined : providerEditor}
-        />
-      ) : null}
+            <div>
+              <p className="text-muted-foreground">{t("AFFECTED_WORKSPACES")}</p>
+              <p className="font-medium">{rolloutPreview?.summary.affectedWorkspaceCount ?? 0}</p>
+            </div>
+          </div>
+          {rolloutPreview?.operationalConsequences.length ? (
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              {rolloutPreview.operationalConsequences.map((consequence) => (
+                <li key={consequence.code}>{t(consequence.code, consequence.params)}</li>
+              ))}
+            </ul>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending === "workspace-rollout-apply"}>
+              {t("CANCEL")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending === "workspace-rollout-apply"}
+              onClick={(event) => {
+                event.preventDefault();
+                const preview = rolloutPreview;
+                if (!preview) return;
+                void doAction(
+                  "workspace-rollout-apply",
+                  async () => {
+                    await applyAiServicesWorkspaceRollout(
+                      preview.id,
+                      t("WORKSPACE_AI_ROLLOUT_REASON"),
+                      crypto.randomUUID(),
+                    );
+                    setRolloutPreview(null);
+                  },
+                  false,
+                  "WORKSPACE_AI_ROLLOUT_APPLIED",
+                );
+              }}
+            >
+              {t("ENABLE_FOR_ELIGIBLE_WORKSPACES")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        onOpenChange={(open) => !open && pending === null && setAvailabilityFlow(null)}
+        open={Boolean(availabilityFlow)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t(
+                availabilityFlow?.continuation === "archive"
+                  ? "DISABLE_AND_ARCHIVE"
+                  : availabilityFlow?.continuation === "delete"
+                    ? "DISABLE_BEFORE_DELETE"
+                    : "AVAILABILITY_PREVIEW",
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {availabilityFlow?.preview.wouldLeaveNoRoutableProvider
+                ? t("NO_ROUTABLE_PROVIDER_WARNING")
+                : t("ROUTABLE_PROVIDER_COUNT", {
+                    count: availabilityFlow?.preview.routableProviderCountAfter ?? 0,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending?.startsWith("apply:") === true}>
+              {t("CANCEL")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending?.startsWith("apply:") === true}
+              onClick={(event) => {
+                event.preventDefault();
+                const previewId = availabilityFlow?.preview.id;
+                if (previewId) {
+                  void doAction(
+                    `apply:${previewId}`,
+                    applyAvailabilityFlow,
+                    availabilityFlow?.continuation !== "delete",
+                  );
+                }
+              }}
+            >
+              {t("CONFIRM")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        onOpenChange={(open) => !open && pending === null && setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("DELETE_PROVIDER_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("DELETE_PROVIDER_DESCRIPTION", { name: deleteTarget?.label })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending?.startsWith("delete:") === true}>
+              {t("CANCEL")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending?.startsWith("delete:") === true}
+              onClick={(event) => {
+                event.preventDefault();
+                const target = deleteTarget;
+                if (!target) return;
+                void doAction(`delete:${target.id}`, async () => {
+                  if (!target.isArchived) {
+                    await updateAiProvider(target.id, { isArchived: true });
+                  }
+                  await deleteAiProvider(target.id);
+                  setDeleteTarget(null);
+                });
+              }}
+            >
+              {t("DELETE")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -499,20 +933,19 @@ export function AiAssistantsPage() {
   const [pending, setPending] = useState<string | null>(null);
   const [editor, setEditor] = useState<"create" | SystemAgentDefinitionSummaryOut | null>(null);
   const [versionEditor, setVersionEditor] = useState<SystemAgentDefinitionSummaryOut | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const changeLifecycle = async (
     assistant: SystemAgentDefinitionSummaryOut,
     lifecycleState: "active" | "disabled" | "archived",
   ) => {
     setPending(`assistant:${assistant.id}`);
-    setError(null);
     try {
       await updateAiAssistant(assistant.id, { lifecycleState });
-      setMessage(t("ASSISTANT_UPDATED"));
+      toast.success(t("ASSISTANT_UPDATED"));
       retry();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
+      toast.error(t("ACTION_FAILED"), {
+        description: cause instanceof Error ? cause.message : t("ACTION_FAILED"),
+      });
     } finally {
       setPending(null);
     }
@@ -524,32 +957,22 @@ export function AiAssistantsPage() {
     const version = assistant.latestVersion;
     if (!version) return;
     setPending(`version:${version.id}`);
-    setError(null);
     try {
       await retireAiAssistantVersion(assistant.id, version.id, { state });
-      setMessage(
+      toast.success(
         t(state === "published" ? "ASSISTANT_VERSION_PUBLISHED" : "ASSISTANT_VERSION_RETIRED"),
       );
       retry();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
+      toast.error(t("ACTION_FAILED"), {
+        description: cause instanceof Error ? cause.message : t("ACTION_FAILED"),
+      });
     } finally {
       setPending(null);
     }
   };
   return (
     <AiPage description={t("ASSISTANTS_DESCRIPTION")} title={t("ASSISTANTS_TITLE")}>
-      {message ? (
-        <Alert>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      ) : null}
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
       <AiState empty={() => false} retry={retry} state={state}>
         {(data) => {
           const approvalProfiles = assistantApprovalProfiles(data.capabilities);
@@ -566,12 +989,14 @@ export function AiAssistantsPage() {
                 </Button>
               </div>
               {!publicationAvailable ? (
-                <Alert>
-                  <AlertTitle>{t("ASSISTANT_PUBLICATION_UNAVAILABLE_TITLE")}</AlertTitle>
-                  <AlertDescription>
-                    {t("ASSISTANT_PUBLICATION_UNAVAILABLE_DESCRIPTION")}
-                  </AlertDescription>
-                </Alert>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("ASSISTANT_PUBLICATION_UNAVAILABLE_TITLE")}</CardTitle>
+                    <CardDescription>
+                      {t("ASSISTANT_PUBLICATION_UNAVAILABLE_DESCRIPTION")}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
               ) : null}
               {data.catalog.items?.length ? (
                 <Card>
@@ -697,7 +1122,9 @@ export function AiAssistantsPage() {
                   approvalProfiles={approvalProfiles}
                   assistant={editor === "create" ? undefined : editor}
                   onCompleted={() => {
-                    setMessage(t(editor === "create" ? "ASSISTANT_CREATED" : "ASSISTANT_UPDATED"));
+                    toast.success(
+                      t(editor === "create" ? "ASSISTANT_CREATED" : "ASSISTANT_UPDATED"),
+                    );
                     retry();
                   }}
                   onOpenChange={(open) => !open && setEditor(null)}
@@ -710,7 +1137,7 @@ export function AiAssistantsPage() {
                   approvalProfiles={approvalProfiles}
                   assistant={versionEditor}
                   onCompleted={() => {
-                    setMessage(t("ASSISTANT_VERSION_CREATED"));
+                    toast.success(t("ASSISTANT_VERSION_CREATED"));
                     retry();
                   }}
                   onOpenChange={(open) => !open && setVersionEditor(null)}

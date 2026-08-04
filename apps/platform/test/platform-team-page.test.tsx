@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -65,12 +66,17 @@ describe("Platform team page", () => {
   });
 
   it("exposes the available safe team-management actions when the current operator is authorized", async () => {
+    const user = userEvent.setup();
     vi.mocked(getCurrentPlatformTeamIdentity).mockResolvedValue({
       delegablePermissions: [],
       effectivePermissions: [
         "platform:access-team:read",
         "platform:access-team:invite",
+        "platform:access-team:remove",
         "platform:access-roles:manage",
+        "platform:access-sessions:read",
+        "platform:access-sessions:revoke",
+        "platform:access-mfa:reset",
       ],
       isInstanceOwner: true,
       operatorId: null,
@@ -105,8 +111,11 @@ describe("Platform team page", () => {
 
     expect(await screen.findByText("Owner")).toBeVisible();
     expect(screen.getByRole("button", { name: "Invite operator" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Add roles" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Remove operator" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Manage Operator" }));
+    expect(screen.getByRole("menuitem", { name: "Manage roles" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "View login devices" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Start verification recovery" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Remove Platform access" })).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Transfer instance ownership" }),
     ).not.toBeInTheDocument();

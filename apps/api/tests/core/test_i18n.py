@@ -42,17 +42,19 @@ async def test_get_request_locale_priority() -> None:
 
 
 def test_t_fallback_and_translate() -> None:
-    assert t("auth", "LOGIN_SUCCESS", locale="en-US") == "Login succeeded"
-    assert t("auth:LOGIN_SUCCESS", {"lng": "en-US"}) == "Login succeeded"
-    assert t("LOGIN_SUCCESS", {"ns": "auth", "lng": "en-US"}) == "Login succeeded"
+    assert t("auth", "LOGIN_SUCCESS", locale="en-US") == "Signed in"
+    assert t("auth:LOGIN_SUCCESS", {"lng": "en-US"}) == "Signed in"
+    assert t("LOGIN_SUCCESS", {"ns": "auth", "lng": "en-US"}) == "Signed in"
     assert t("auth", "UNKNOWN_KEY", locale="en-US", default="Fallback") == "Fallback"
     assert t("auth:UNKNOWN_KEY", {"lng": "en-US", "defaultValue": "Fallback"}) == "Fallback"
     assert t("auth", "UNKNOWN_KEY", locale="en-US") == "UNKNOWN_KEY"
 
 
 def test_localize_message() -> None:
-    assert localize_message("Denied", error="FORBIDDEN", locale="en-US") == "Forbidden"
-    assert localize_message("Denied", error="FORBIDDEN", locale="zh-CN") == "权限不足"
+    assert localize_message("Denied", error="FORBIDDEN", locale="en-US") == (
+        "You do not have permission to perform this action."
+    )
+    assert localize_message("Denied", error="FORBIDDEN", locale="zh-CN") == "你没有执行此操作的权限。"
 
 
 def test_register_locale_path_merges(tmp_path: Path) -> None:

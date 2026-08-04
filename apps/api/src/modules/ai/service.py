@@ -18,6 +18,10 @@ from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, comp
 from src.models.ai.ai_budget import AIBudget
 from src.modules.ai.schema import AIReasoningEffort
 from src.modules.commerce.credits import CreditsExceededError, CreditsUnavailableError
+from src.modules.system.ai_providers.configuration import (
+    resolve_active_system_model,
+    resolve_default_system_model,
+)
 from src.settings.runtime import get_core_settings_value_cached
 
 logger = structlog.get_logger("arclayer.ai.service")
@@ -127,7 +131,7 @@ class AIChatService(BaseService):
         When budget_id is provided, budget is reserved before the call
         and committed/released based on outcome.
         """
-        resolved_model = model or self._settings.ai.default_model
+        resolved_model = await self._resolve_model(model)
         resolved_provider_params = _chat_provider_params(
             resolved_model,
             reasoning_effort,
@@ -284,7 +288,7 @@ class AIChatService(BaseService):
             {"event": "message.completed", "data": {...}}
             {"event": "error", "data": {"code": "...", "message": "..."}}
         """
-        resolved_model = model or self._settings.ai.default_model
+        resolved_model = await self._resolve_model(model)
         await self._check_rate_limit(str(context.workspace_id))
 
         # Resolve workspace budget for non-mock calls.
@@ -373,7 +377,21 @@ class AIChatService(BaseService):
                             usage = chunk.get("usage", {})
                             prompt_tokens = usage.get("prompt_tokens", 0)
                             completion_tokens = usage.get("completion_tokens", 0)
-                            actual_cost = compute_cost_micros(resolved_model, prompt_tokens, completion_tokens)
+                            configured_model = await resolve_active_system_model(resolved_model)
+                            pricing = (
+                                (
+                                    configured_model.billing.input_cost_micros_per_million_tokens,
+                                    configured_model.billing.output_cost_micros_per_million_tokens,
+                                )
+                                if configured_model is not None and configured_model.billing is not None
+                                else None
+                            )
+                            actual_cost = compute_cost_micros(
+                                resolved_model,
+                                prompt_tokens,
+                                completion_tokens,
+                                pricing=pricing,
+                            )
 
                             span_metrics.prompt_tokens = prompt_tokens
                             span_metrics.completion_tokens = completion_tokens
@@ -433,6 +451,23 @@ class AIChatService(BaseService):
                         ),
                         status_code=500,
                     )
+
+    async def _resolve_model(self, model: str | None) -> str:
+        if isinstance(model, str) and model.strip():
+            return model.strip()
+        if self._settings.ai.mock_enabled:
+            return "mock"
+        configured = await resolve_default_system_model()
+        if configured is not None:
+            return configured.public_model
+        raise LLMRuntimeError(
+            code=LLMErrorCode.PROVIDER_MODEL_UNAVAILABLE,
+            message=_llm_error_message(
+                LLMErrorCode.PROVIDER_MODEL_UNAVAILABLE,
+                default="No default AI service model is configured",
+            ),
+            status_code=400,
+        )
 
     async def _check_rate_limit(self, key: str) -> None:
         """Check rate limit before processing a request. No-op if limiter is disabled."""

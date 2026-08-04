@@ -9,7 +9,6 @@ import {
   CreditCard,
   FileSearch,
   Files,
-  Fingerprint,
   Globe2,
   HardDrive,
   History,
@@ -46,8 +45,6 @@ export type TrustedNavigationRouteTarget =
   | TrustedCapabilityRouteTarget
   | "access.roles"
   | "access.sign-in"
-  | "access.mfa"
-  | "access.sessions"
   | "tenants.users"
   | "tenants.projects"
   | "ai.providers"
@@ -78,8 +75,6 @@ export type PlatformDestinationId =
   | "access-team"
   | "access-roles"
   | "access-sign-in"
-  | "access-mfa"
-  | "access-sessions"
   | "workspace-workspaces"
   | "workspace-users"
   | "workspace-projects"
@@ -119,8 +114,6 @@ export type PlatformDestination = Readonly<{
     | "/access/team"
     | "/access/roles"
     | "/access/sign-in"
-    | "/access/mfa"
-    | "/access/sessions"
     | "/workspaces"
     | "/users"
     | "/projects"
@@ -221,20 +214,6 @@ export const PLATFORM_CAPABILITY_MODULES: Readonly<
         path: "/access/sign-in",
         labelKey: "navigation:ACCESS_SIGN_IN",
         icon: KeyRound,
-      },
-      {
-        id: "access-mfa",
-        routeTarget: "access.mfa",
-        path: "/access/mfa",
-        labelKey: "navigation:ACCESS_MFA",
-        icon: Fingerprint,
-      },
-      {
-        id: "access-sessions",
-        routeTarget: "access.sessions",
-        path: "/access/sessions",
-        labelKey: "navigation:ACCESS_SESSIONS",
-        icon: UsersRound,
       },
     ],
   },

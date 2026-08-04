@@ -1,32 +1,40 @@
 import {
   platformApplyPlatformCustomRoleRevision,
-  platformAssignPlatformOperatorRoles,
   platformBeginCurrentPlatformTotpMethod,
   platformBeginCurrentPlatformWebauthnMethod,
   platformBeginPlatformStepUpWebauthn,
   platformCompleteCurrentPlatformWebauthnMethod,
+  platformCompletePlatformStepUpTotp,
   platformCompletePlatformStepUpWebauthn,
   platformConfirmCurrentPlatformTotpMethod,
   platformCopyPlatformCustomRole,
   platformCreatePlatformCustomRole,
+  platformDeletePlatformSignInProvider,
   platformGetCurrentPlatformMfaReadiness,
   platformGetCurrentPlatformActorProfile,
   platformGetPlatformInvitationOptions,
   platformGetCurrentTeamIdentity,
   platformGetPlatformInvitation,
-  platformGetPlatformSignInReadiness,
+  platformGetPlatformSignInSettings,
   platformListCurrentPlatformSessions,
+  platformListPlatformOperatorSessions,
   platformListPlatformInvitations,
   platformListPlatformPermissions,
   platformListPlatformRoles,
   platformListPlatformTeam,
   platformInvitePlatformOperator,
+  platformOffboardPlatformOperator,
   platformPreviewPlatformCustomRoleRevision,
+  platformReplacePlatformOperatorRoles,
   platformRemoveCurrentPlatformMfaMethod,
   platformRetirePlatformCustomRole,
   platformRevokeCurrentPlatformSession,
   platformRevokeOtherCurrentPlatformSessions,
   platformRevokePlatformOperatorInvitation,
+  platformRevokePlatformOperatorSession,
+  platformResetPlatformOperatorMfa,
+  platformUpdatePlatformSignInPolicy,
+  platformUpdatePlatformSignInProvider,
   type PlatformCustomRoleApplyRequest,
   type PlatformCustomRoleCopyRequest,
   type PlatformCustomRoleCreateRequest,
@@ -45,14 +53,20 @@ import {
   type PlatformMfaWebAuthnBeginRequest,
   type PlatformMfaWebAuthnCompleteRequest,
   type PlatformMfaWebAuthnRegistrationOut,
+  type PlatformOperatorOffboardingRequest,
+  type PlatformOperatorMfaResetRequest,
   type PlatformPermissionCatalogItemOut,
-  type PlatformRoleAssignmentRequest,
+  type PlatformRoleAssignmentReplaceRequest,
   type PlatformRoleCatalogItemOut,
   type PlatformSessionInventoryItemOut,
   type PlatformSessionRevokeRequest,
-  type PlatformSignInReadinessOut,
+  type PlatformSignInPolicyUpdateRequest,
+  type PlatformSignInProviderDeleteRequest,
+  type PlatformSignInProviderUpdateRequest,
+  type PlatformSignInSettingsOut,
   type PlatformStepUpProofIssueRequest,
   type PlatformStepUpProofIssueResult,
+  type PlatformStepUpTotpCompleteRequest,
   type PlatformStepUpWebAuthnCompleteRequest,
   type PlatformStepUpWebAuthnOptionsOut,
   type PlatformMutationReceipt,
@@ -78,9 +92,26 @@ export class PlatformAccessApiError extends Error {
 
 function errorCode(value: unknown): string | null {
   if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const code = errorCode(item);
+      if (code) return code;
+    }
+    return null;
+  }
   if (!value || typeof value !== "object") return null;
-  const candidate = value as { error?: unknown; code?: unknown; message?: unknown };
-  return errorCode(candidate.error) ?? errorCode(candidate.code) ?? errorCode(candidate.message);
+  const candidate = value as {
+    error?: unknown;
+    code?: unknown;
+    detail?: unknown;
+    message?: unknown;
+  };
+  return (
+    errorCode(candidate.error) ??
+    errorCode(candidate.code) ??
+    errorCode(candidate.detail) ??
+    errorCode(candidate.message)
+  );
 }
 
 function unwrap<T>(result: SdkResult<T>): T {
@@ -128,8 +159,34 @@ export const listPlatformRoles = async (): Promise<PlatformRoleCatalogItemOut[]>
   unwrap(await platformListPlatformRoles({ client: platformApiClient }));
 export const listPlatformPermissions = async (): Promise<PlatformPermissionCatalogItemOut[]> =>
   unwrap(await platformListPlatformPermissions({ client: platformApiClient }));
-export const getSignInReadiness = async (): Promise<PlatformSignInReadinessOut> =>
-  unwrap(await platformGetPlatformSignInReadiness({ client: platformApiClient }));
+export const getSignInSettings = async (): Promise<PlatformSignInSettingsOut> =>
+  unwrap(await platformGetPlatformSignInSettings({ client: platformApiClient }));
+export const updateSignInPolicy = async (
+  body: PlatformSignInPolicyUpdateRequest,
+): Promise<PlatformSignInSettingsOut> =>
+  unwrap(await platformUpdatePlatformSignInPolicy({ body, client: platformApiClient }));
+export const updateSignInProvider = async (
+  providerKey: string,
+  body: PlatformSignInProviderUpdateRequest,
+): Promise<PlatformSignInSettingsOut> =>
+  unwrap(
+    await platformUpdatePlatformSignInProvider({
+      body,
+      client: platformApiClient,
+      path: { provider_key: providerKey },
+    }),
+  );
+export const deleteSignInProvider = async (
+  providerKey: string,
+  body: PlatformSignInProviderDeleteRequest,
+): Promise<PlatformSignInSettingsOut> =>
+  unwrap(
+    await platformDeletePlatformSignInProvider({
+      body,
+      client: platformApiClient,
+      path: { provider_key: providerKey },
+    }),
+  );
 export const getCurrentSessions = async (): Promise<PlatformSessionInventoryItemOut[]> =>
   unwrap(await platformListCurrentPlatformSessions({ client: platformApiClient }));
 export const revokeCurrentPlatformSession = async (
@@ -162,15 +219,62 @@ export const revokePlatformInvitation = async (
     }),
   );
 
-export const assignPlatformOperatorRoles = async (
+export const offboardPlatformOperator = async (
   targetUserId: string,
-  body: PlatformRoleAssignmentRequest,
+  body: PlatformOperatorOffboardingRequest,
 ): Promise<PlatformMutationReceipt> =>
   unwrap(
-    await platformAssignPlatformOperatorRoles({
+    await platformOffboardPlatformOperator({
       body,
       client: platformApiClient,
       path: { target_user_id: targetUserId },
+    }),
+  );
+
+export const replacePlatformOperatorRoles = async (
+  targetUserId: string,
+  body: PlatformRoleAssignmentReplaceRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformReplacePlatformOperatorRoles({
+      body,
+      client: platformApiClient,
+      path: { target_user_id: targetUserId },
+    }),
+  );
+
+export const listPlatformOperatorSessions = async (
+  operatorId: string,
+): Promise<PlatformSessionInventoryItemOut[]> =>
+  unwrap(
+    await platformListPlatformOperatorSessions({
+      client: platformApiClient,
+      path: { operator_id: operatorId },
+    }),
+  );
+
+export const revokePlatformOperatorSession = async (
+  operatorId: string,
+  sessionId: string,
+  body: PlatformSessionRevokeRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformRevokePlatformOperatorSession({
+      body,
+      client: platformApiClient,
+      path: { operator_id: operatorId, session_id: sessionId },
+    }),
+  );
+
+export const resetPlatformOperatorMfa = async (
+  operatorId: string,
+  body: PlatformOperatorMfaResetRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformResetPlatformOperatorMfa({
+      body,
+      client: platformApiClient,
+      path: { operator_id: operatorId },
     }),
   );
 
@@ -222,6 +326,11 @@ export const completePlatformStepUp = async (
   body: PlatformStepUpWebAuthnCompleteRequest,
 ): Promise<PlatformStepUpProofIssueResult> =>
   unwrap(await platformCompletePlatformStepUpWebauthn({ body, client: platformApiClient }));
+
+export const completePlatformTotpStepUp = async (
+  body: PlatformStepUpTotpCompleteRequest,
+): Promise<PlatformStepUpProofIssueResult> =>
+  unwrap(await platformCompletePlatformStepUpTotp({ body, client: platformApiClient }));
 
 export const removeCurrentPlatformMfaMethod = async (
   methodId: string,

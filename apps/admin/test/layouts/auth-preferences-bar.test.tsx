@@ -63,6 +63,16 @@ describe("AuthPreferencesBar", () => {
     expect(
       screen.getByRole("combobox", { name: "ACCOUNT_SETTINGS_THEME_LABEL" }).querySelector("svg"),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("combobox", { name: "ACCOUNT_SETTINGS_LANGUAGE_LABEL" })
+        .querySelector(".lucide-chevron-down"),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("combobox", { name: "ACCOUNT_SETTINGS_THEME_LABEL" })
+        .querySelector(".lucide-chevron-down"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
   });
 
@@ -70,6 +80,28 @@ describe("AuthPreferencesBar", () => {
     render(<AuthPreferencesBar />);
 
     expect(screen.queryByRole("button", { name: "Sign Out" })).not.toBeInTheDocument();
+  });
+
+  it("renders compact icon-only controls in the auth header", () => {
+    render(<AuthPreferencesBar placement="header" />);
+
+    const bar = screen.getByTestId("auth-preferences-bar");
+    const content = bar.firstElementChild as HTMLElement;
+    const language = screen.getByRole("combobox", {
+      name: "ACCOUNT_SETTINGS_LANGUAGE_LABEL",
+    });
+    const theme = screen.getByRole("combobox", { name: "ACCOUNT_SETTINGS_THEME_LABEL" });
+
+    expect(bar).toHaveClass("bg-transparent", "p-0");
+    expect(bar).not.toHaveClass("bg-background");
+    expect(content).toHaveClass("w-auto", "gap-x-1", "overflow-visible");
+    expect(language).toHaveClass("size-8", "min-w-8", "rounded-full", "p-0");
+    expect(theme).toHaveClass("size-8", "min-w-8", "rounded-full", "p-0");
+    expect(language.querySelector(".lucide-chevron-down")).not.toBeInTheDocument();
+    expect(theme.querySelector(".lucide-chevron-down")).not.toBeInTheDocument();
+    expect(language.querySelectorAll("svg")).toHaveLength(0);
+    expect(theme.querySelectorAll("svg")).toHaveLength(1);
+    expect(content.querySelector(".w-px")).not.toBeInTheDocument();
   });
 
   it("uses auth language options and writes through the preference store", async () => {

@@ -316,6 +316,8 @@ function renderPage(options?: { strictMode?: boolean }) {
 }
 
 beforeEach(() => {
+  document.head.innerHTML =
+    '<link rel="icon" type="image/svg+xml" href="/logo.svg" data-theme-favicon />';
   window.history.replaceState({}, "", "http://localhost:3000/login?mode=login");
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -444,11 +446,7 @@ describe("LoginPage two-factor challenge flow", () => {
       expect(useAuthChallengeStore.getState().twoFactorToken).toBe("challenge-1");
       expect(useAuthChallengeStore.getState().source).toBe("password");
     });
-    expect(
-      await screen.findByRole("heading", {
-        name: "auth:LOGIN_TWO_FACTOR_TITLE",
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("auth:LOGIN_TWO_FACTOR_SUBTITLE")).toBeInTheDocument();
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
     expect(notifyErrorMock).not.toHaveBeenCalled();
     expect(authState.applyLogin).not.toHaveBeenCalled();
@@ -563,9 +561,7 @@ describe("LoginPage two-factor challenge flow", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "auth:LOGIN_TWO_FACTOR_TITLE" }),
-      ).toBeInTheDocument();
+      expect(screen.getByText("auth:LOGIN_TWO_FACTOR_SUBTITLE")).toBeInTheDocument();
     });
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
   });
@@ -620,11 +616,7 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
 
-    expect(
-      await screen.findByRole("heading", {
-        name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE",
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("auth:LOGIN_EMAIL_CODE_SENT_HINT")).toBeInTheDocument();
     expect(requestLoginEmailCodeMock).toHaveBeenCalledTimes(1);
     expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({
       email: "demo@example.com",
@@ -656,11 +648,7 @@ describe("LoginPage two-factor challenge flow", () => {
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
-    expect(
-      await screen.findByRole("heading", {
-        name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE",
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("auth:LOGIN_EMAIL_CODE_SENT_HINT")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({
@@ -694,11 +682,7 @@ describe("LoginPage two-factor challenge flow", () => {
         code: "123456",
       });
     });
-    expect(
-      await screen.findByRole("heading", {
-        name: "auth:LOGIN_TWO_FACTOR_TITLE",
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("auth:LOGIN_TWO_FACTOR_SUBTITLE")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "auth:TWO_FACTOR_BACK_TO_EMAIL_CODE",

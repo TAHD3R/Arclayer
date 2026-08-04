@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listProjects } from "@/api/projects";
 import { HomePage } from "@/pages/home/page";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
-import { DEFAULT_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
+import { AUTO_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
@@ -234,7 +234,9 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
 }));
 
 vi.mock("@/components/Aurora", () => ({
-  default: () => <div data-testid="aurora-canvas" />,
+  default: ({ colorStops }: { colorStops: [string, string, string] }) => (
+    <div data-testid="aurora-canvas" data-color-stops={JSON.stringify(colorStops)} />
+  ),
 }));
 
 vi.mock("@/components/layout/admin-logo", () => ({
@@ -416,7 +418,7 @@ describe("HomePage", () => {
       directivesByScope: { thread: [], home: [] },
     });
     useAiChatStore.setState({
-      selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModel: AUTO_AI_CHAT_MODEL,
       selectedReasoningEffort: "medium",
       composerMode: "build",
       selectedAgentId: COORDINATOR_AGENT_ID,
@@ -463,6 +465,10 @@ describe("HomePage", () => {
     expect(aurora.querySelector('[data-slot="home-aurora-canvas"]')).toHaveClass(
       "bottom-0",
       "h-[clamp(16rem,42svh,28rem)]",
+    );
+    expect(screen.getByTestId("aurora-canvas")).toHaveAttribute(
+      "data-color-stops",
+      JSON.stringify(["#339cff", "#526477", "#339cff"]),
     );
     const composerShell = screen
       .getByRole("textbox", { name: "询问 AI…" })

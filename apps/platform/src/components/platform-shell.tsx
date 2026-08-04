@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
 
 function PlatformHeader(props: { state: ResolvedCapabilityState; pathname: string }) {
   const { t } = useTranslation(["common", "navigation"]);
@@ -129,6 +130,7 @@ export function PlatformShell() {
         <PlatformHeader pathname={pathname} state={state} />
         <PlatformContent pathname={pathname} state={state} />
       </SidebarInset>
+      <Toaster />
     </SidebarProvider>
   );
 }

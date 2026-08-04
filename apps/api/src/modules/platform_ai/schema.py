@@ -66,7 +66,16 @@ class PlatformAITaskOut(BaseSchema):
 
 
 class PlatformAIProviderActionAvailabilityOut(BaseSchema):
-    action: Literal["test_readiness", "enable", "disable", "rotate_credentials", "remove_credentials"]
+    action: Literal[
+        "test_readiness",
+        "enable",
+        "disable",
+        "rotate_credentials",
+        "remove_credentials",
+        "archive",
+        "restore",
+        "delete",
+    ]
     available: bool
     reason_code: str | None = None
 
@@ -75,8 +84,10 @@ class PlatformAIProviderOut(BaseSchema):
     id: PublicUUID
     provider: str
     label: str
-    request_model: str
+    default_model: str
     desired_is_active: bool
+    archived: bool
+    cleanup_required: bool
     configured: bool
     reachable: bool | None
     permitted: bool

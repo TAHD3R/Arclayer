@@ -62,8 +62,8 @@ class _TestRuntime(LLMRuntime):
         model: str,
         max_tokens: int | None,
         provider_params: dict[str, Any] | None,
-    ) -> tuple[str, int, int, int, dict[str, Any]]:
-        return "virtual-key", 4, 100, 64, {}
+    ) -> tuple[str, int, int, int, dict[str, Any], tuple[int, int] | None]:
+        return "virtual-key", 4, 100, 64, {}, None
 
 
 def _runtime(chunks: list[dict[str, Any]]) -> LLMRuntime:
@@ -106,6 +106,10 @@ async def test_deepseek_tool_request_reservation_covers_observed_style_guide_usa
         patch("src.llm.policy.resolve_model_policy", new=AsyncMock(return_value=SimpleNamespace())),
         patch("src.llm.policy.enforce_model_policy"),
         patch("src.llm.policy.resolve_provider_retention_params", return_value={}),
+        patch(
+            "src.modules.system.ai_providers.configuration.resolve_active_system_model",
+            new=AsyncMock(return_value=None),
+        ),
     ):
         (
             _virtual_key,
@@ -113,6 +117,7 @@ async def test_deepseek_tool_request_reservation_covers_observed_style_guide_usa
             estimated_cost,
             effective_max_tokens,
             _merged_params,
+            _pricing,
         ) = await runtime._resolve_call_context(
             messages,
             context=LLMRequestContext(workspace_id=uuid4()),

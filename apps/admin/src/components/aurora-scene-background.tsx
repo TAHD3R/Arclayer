@@ -1,10 +1,7 @@
 import Aurora from "@/components/Aurora";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
-const AURORA_COLOR_STOPS = {
-  light: ["#238bff", "#8ba4c7", "#238bff"],
-  dark: ["#339cff", "#526477", "#339cff"],
-} satisfies Record<"light" | "dark", [string, string, string]>;
+const AURORA_COLOR_STOPS: [string, string, string] = ["#339cff", "#526477", "#339cff"];
 
 type AuroraSceneBackgroundProps = {
   testId?: string;
@@ -19,7 +16,7 @@ export function AuroraSceneBackground({ testId }: AuroraSceneBackgroundProps) {
       className="h-1/2 w-full opacity-30 [mask-image:linear-gradient(to_bottom,black,transparent)]"
     >
       <Aurora
-        colorStops={AURORA_COLOR_STOPS[themeMode]}
+        colorStops={AURORA_COLOR_STOPS}
         amplitude={0.8}
         blend={0.75}
         speed={0.35}

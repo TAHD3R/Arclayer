@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PlatformInvitationCandidateOut,
   PlatformInvitationDetailOut,
   PlatformRoleCatalogItemOut,
+  PlatformSessionInventoryItemOut,
   PlatformTeamOperatorOut,
 } from "@arclayer/platform-openapi";
 
 import {
-  assignPlatformOperatorRoles,
   invitePlatformOperator,
   getPlatformInvitationOptions,
+  listPlatformOperatorSessions,
+  offboardPlatformOperator,
   PlatformAccessApiError,
+  replacePlatformOperatorRoles,
+  resetPlatformOperatorMfa,
   revokePlatformInvitation,
+  revokePlatformOperatorSession,
 } from "@/access/access-api";
 import { verifyPlatformAction } from "@/access/platform-step-up";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
@@ -20,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -29,6 +35,9 @@ import {
 } from "@/components/ui/select";
 import { SettingDialog } from "@/components/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
+import { SettingDrawer } from "@/components/setting-drawer";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDateTime } from "@/monitoring/format";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -44,7 +53,7 @@ type InvitationAttempt = MutationAttempt &
     invitationId: string;
   }>;
 
-type RoleAssignmentAttempt = MutationAttempt & Readonly<{ stepUpProof?: string }>;
+type StepUpAttempt = MutationAttempt & Readonly<{ stepUpProof?: string }>;
 
 function createMutationAttempt(fingerprint: string): MutationAttempt {
   return {
@@ -253,32 +262,34 @@ type OperatorDialogProps = DialogBaseProps &
     roles: readonly PlatformRoleCatalogItemOut[];
   }>;
 
-export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
+export function ManageOperatorRolesDialog(props: OperatorDialogProps) {
   const { t } = useTranslation("access");
-  const assigned = new Set(props.operator.roles.map((role) => role.roleId));
-  const availableRoles = props.roles.filter((role) => !assigned.has(role.roleId));
-  const [roleIds, setRoleIds] = useState<ReadonlySet<string>>(new Set());
+  const initialRoleIds = useMemo(
+    () => props.operator.roles.map((role) => role.roleId).sort(),
+    [props.operator.roles],
+  );
+  const [roleIds, setRoleIds] = useState<ReadonlySet<string>>(() => new Set(initialRoleIds));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const assignmentAttempt = useRef<RoleAssignmentAttempt | null>(null);
+  const assignmentAttempt = useRef<StepUpAttempt | null>(null);
 
   useEffect(() => {
     if (props.open) return;
-    setRoleIds(new Set());
+    setRoleIds(new Set(initialRoleIds));
     setError(null);
     assignmentAttempt.current = null;
-  }, [props.open]);
+  }, [initialRoleIds, props.open]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const selectedRoleIds = [...roleIds].sort();
-    if (!selectedRoleIds.length) return;
+    if (JSON.stringify(selectedRoleIds) === JSON.stringify(initialRoleIds)) return;
     const fingerprint = JSON.stringify([
       props.operator.user.userId,
       props.operator.revision,
       selectedRoleIds,
     ]);
-    let attempt: RoleAssignmentAttempt =
+    let attempt: StepUpAttempt =
       assignmentAttempt.current?.fingerprint === fingerprint
         ? assignmentAttempt.current
         : createMutationAttempt(fingerprint);
@@ -303,7 +314,7 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
       }
       const stepUpProof = attempt.stepUpProof;
       if (!stepUpProof) throw new Error("PLATFORM_STEP_UP_PROOF_REQUIRED");
-      await assignPlatformOperatorRoles(props.operator.user.userId, {
+      await replacePlatformOperatorRoles(props.operator.user.userId, {
         correlationId: attempt.correlationId,
         expectedOperatorRevision: props.operator.revision,
         idempotencyKey: attempt.idempotencyKey,
@@ -311,7 +322,7 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
         stepUpProof,
       });
       if (assignmentAttempt.current === attempt) assignmentAttempt.current = null;
-      props.onCompleted("ROLES_ASSIGNED");
+      props.onCompleted("ROLES_UPDATED");
       props.onOpenChange(false);
     } catch (caught) {
       setError(errorKey(caught));
@@ -324,8 +335,8 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
     <SettingDialog
       open={props.open}
       onOpenChange={(open) => !pending && props.onOpenChange(open)}
-      title={t("ADD_ROLES")}
-      description={t("ADD_ROLES_DESCRIPTION", {
+      title={t("MANAGE_ROLES")}
+      description={t("MANAGE_ROLES_DESCRIPTION", {
         name: userLabel(props.operator.user),
       })}
       footer={
@@ -334,11 +345,13 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
             {t("CANCEL")}
           </Button>
           <Button
-            disabled={pending || roleIds.size === 0}
+            disabled={
+              pending || JSON.stringify([...roleIds].sort()) === JSON.stringify(initialRoleIds)
+            }
             form="assign-platform-operator-roles"
             type="submit"
           >
-            {pending ? t("VERIFYING") : t("VERIFY_AND_ADD_ROLES")}
+            {pending ? t("VERIFYING") : t("VERIFY_AND_SAVE_ROLES")}
           </Button>
         </>
       }
@@ -346,10 +359,10 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
       <form id="assign-platform-operator-roles" onSubmit={submit}>
         <SettingDialogFields>
           {error ? <MutationError message={t(error)} /> : null}
-          <SettingDialogField title={t("ROLES")} description={t("ADD_ROLES_HELP")}>
-            {availableRoles.length ? (
+          <SettingDialogField title={t("ROLES")} description={t("MANAGE_ROLES_HELP")}>
+            {props.roles.length ? (
               <div className="space-y-2 rounded-lg border p-3">
-                {availableRoles.map((role) => (
+                {props.roles.map((role) => (
                   <label key={role.roleId} className="flex items-start gap-3">
                     <Checkbox
                       checked={roleIds.has(role.roleId)}
@@ -374,10 +387,380 @@ export function AssignOperatorRolesDialog(props: OperatorDialogProps) {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">{t("NO_ASSIGNABLE_ROLES")}</p>
+              <p className="text-sm text-muted-foreground">{t("NO_ROLES_AVAILABLE")}</p>
             )}
           </SettingDialogField>
           <p className="text-sm text-muted-foreground">{t("SECURITY_KEY_REQUIRED")}</p>
+        </SettingDialogFields>
+      </form>
+    </SettingDialog>
+  );
+}
+
+type OperatorSecurityDialogProps = DialogBaseProps &
+  Readonly<{ operator: PlatformTeamOperatorOut }>;
+
+export function OperatorSessionsDrawer(
+  props: OperatorSecurityDialogProps & Readonly<{ canRevoke: boolean }>,
+) {
+  const { t } = useTranslation("access");
+  const load = useCallback(
+    () => listPlatformOperatorSessions(props.operator.operatorId),
+    [props.operator.operatorId],
+  );
+  const { retry, state } = useMonitoringQuery(load, [props.operator.operatorId, props.open]);
+  const [selected, setSelected] = useState<PlatformSessionInventoryItemOut | null>(null);
+
+  return (
+    <>
+      <SettingDrawer
+        description={t("OPERATOR_SESSIONS_DESCRIPTION", {
+          name: userLabel(props.operator.user),
+        })}
+        footer={
+          <Button onClick={() => props.onOpenChange(false)} variant="outline">
+            {t("CLOSE")}
+          </Button>
+        }
+        onOpenChange={props.onOpenChange}
+        open={props.open}
+        title={t("OPERATOR_SESSIONS_TITLE")}
+      >
+        {state.status === "loading" ? (
+          <div aria-label={t("LOADING")} className="space-y-3" role="status">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        ) : state.status === "error" ? (
+          <div className="space-y-3">
+            <MutationError message={t(errorKey(state.error))} />
+            <Button onClick={retry} variant="outline">
+              {t("RETRY")}
+            </Button>
+          </div>
+        ) : state.data.length ? (
+          <div className="space-y-3">
+            {state.data.map((session) => (
+              <article className="rounded-lg border p-4" key={session.sessionId}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{session.deviceLabel ?? t("UNRECOGNIZED_DEVICE")}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("LAST_ACTIVE", { date: formatDateTime(session.recentActivityAt) })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("EXPIRES", { date: formatDateTime(session.absoluteExpiresAt) })}
+                    </p>
+                  </div>
+                  {props.canRevoke ? (
+                    <Button onClick={() => setSelected(session)} size="sm" variant="outline">
+                      {t("REVOKE_SESSION")}
+                    </Button>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-lg border p-5 text-sm text-muted-foreground">
+            {t("OPERATOR_SESSIONS_EMPTY")}
+          </p>
+        )}
+      </SettingDrawer>
+      {selected ? (
+        <RevokeOperatorSessionDialog
+          onCompleted={(messageKey) => {
+            props.onCompleted(messageKey);
+            retry();
+          }}
+          onOpenChange={(open) => !open && setSelected(null)}
+          open
+          operator={props.operator}
+          session={selected}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function RevokeOperatorSessionDialog(
+  props: OperatorSecurityDialogProps & Readonly<{ session: PlatformSessionInventoryItemOut }>,
+) {
+  const { t } = useTranslation("access");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef<MutationAttempt | null>(null);
+
+  const revoke = async () => {
+    const fingerprint = JSON.stringify([props.operator.operatorId, props.session.sessionId]);
+    const attempt =
+      request.current?.fingerprint === fingerprint
+        ? request.current
+        : createMutationAttempt(fingerprint);
+    request.current = attempt;
+    setPending(true);
+    setError(null);
+    try {
+      await revokePlatformOperatorSession(props.operator.operatorId, props.session.sessionId, {
+        correlationId: attempt.correlationId,
+        idempotencyKey: attempt.idempotencyKey,
+      });
+      request.current = null;
+      props.onCompleted("OPERATOR_SESSION_REVOKED");
+      props.onOpenChange(false);
+    } catch (caught) {
+      setError(errorKey(caught));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingDialog
+      description={t("REVOKE_OPERATOR_SESSION_DESCRIPTION", {
+        device: props.session.deviceLabel ?? t("UNRECOGNIZED_DEVICE"),
+        name: userLabel(props.operator.user),
+      })}
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => props.onOpenChange(false)} variant="outline">
+            {t("CANCEL")}
+          </Button>
+          <Button loading={pending} onClick={() => void revoke()} variant="destructive">
+            {t("CONFIRM_SESSION_REVOKE")}
+          </Button>
+        </>
+      }
+      onOpenChange={(open) => !pending && props.onOpenChange(open)}
+      open={props.open}
+      title={t("REVOKE_OPERATOR_SESSION_TITLE")}
+    >
+      {error ? <MutationError message={t(error)} /> : null}
+      <p className="text-sm text-muted-foreground">{t("REVOKE_OPERATOR_SESSION_CONSEQUENCE")}</p>
+    </SettingDialog>
+  );
+}
+
+export function ResetOperatorMfaDialog(props: OperatorSecurityDialogProps) {
+  const { t } = useTranslation("access");
+  const [reason, setReason] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef<StepUpAttempt | null>(null);
+
+  const reset = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) return;
+    const fingerprint = JSON.stringify([
+      props.operator.operatorId,
+      props.operator.revision,
+      trimmedReason,
+    ]);
+    let attempt: StepUpAttempt =
+      request.current?.fingerprint === fingerprint
+        ? request.current
+        : createMutationAttempt(fingerprint);
+    request.current = attempt;
+    const scope = {
+      expected_operator_revision: props.operator.revision,
+      reason: trimmedReason,
+    };
+    setPending(true);
+    setError(null);
+    try {
+      if (!attempt.stepUpProof) {
+        const stepUpProof = await verifyPlatformAction({
+          actionCode: "platform.access.reset_operator_mfa",
+          idempotencyKey: attempt.idempotencyKey,
+          scope,
+          targetId: props.operator.operatorId,
+          targetType: "platform_operator",
+        });
+        attempt = { ...attempt, stepUpProof };
+        request.current = attempt;
+      }
+      if (!attempt.stepUpProof) throw new Error("PLATFORM_STEP_UP_PROOF_REQUIRED");
+      await resetPlatformOperatorMfa(props.operator.operatorId, {
+        correlationId: attempt.correlationId,
+        expectedOperatorRevision: props.operator.revision,
+        idempotencyKey: attempt.idempotencyKey,
+        reason: trimmedReason,
+        stepUpProof: attempt.stepUpProof,
+      });
+      request.current = null;
+      props.onCompleted("OPERATOR_MFA_RESET");
+      props.onOpenChange(false);
+    } catch (caught) {
+      setError(errorKey(caught));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingDialog
+      description={t("RESET_OPERATOR_MFA_DESCRIPTION", {
+        name: userLabel(props.operator.user),
+      })}
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => props.onOpenChange(false)} variant="outline">
+            {t("CANCEL")}
+          </Button>
+          <Button
+            disabled={pending || !reason.trim()}
+            form="reset-platform-operator-mfa"
+            type="submit"
+            variant="destructive"
+          >
+            {pending ? t("VERIFYING") : t("VERIFY_AND_RESET_MFA")}
+          </Button>
+        </>
+      }
+      onOpenChange={(open) => !pending && props.onOpenChange(open)}
+      open={props.open}
+      title={t("RESET_OPERATOR_MFA_TITLE")}
+    >
+      <form id="reset-platform-operator-mfa" onSubmit={reset}>
+        <SettingDialogFields>
+          {error ? <MutationError message={t(error)} /> : null}
+          <Alert>
+            <AlertTitle>{t("RESET_OPERATOR_MFA_IMPACT_TITLE")}</AlertTitle>
+            <AlertDescription>
+              {t("RESET_OPERATOR_MFA_IMPACT", {
+                methodCount: props.operator.mfa.verifiedMethodCount,
+                sessionCount: props.operator.sessions.activeSessionCount,
+              })}
+            </AlertDescription>
+          </Alert>
+          <SettingDialogField
+            description={t("RESET_OPERATOR_MFA_REASON_HELP")}
+            title={<label htmlFor="operator-mfa-reset-reason">{t("REASON")}</label>}
+          >
+            <Textarea
+              id="operator-mfa-reset-reason"
+              onChange={(event) => setReason(event.target.value)}
+              value={reason}
+            />
+          </SettingDialogField>
+          <p className="text-sm text-muted-foreground">{t("RESET_OPERATOR_MFA_CONSEQUENCE")}</p>
+        </SettingDialogFields>
+      </form>
+    </SettingDialog>
+  );
+}
+
+export function OffboardOperatorDialog(props: OperatorDialogProps) {
+  const { t } = useTranslation("access");
+  const [reason, setReason] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef<StepUpAttempt | null>(null);
+
+  useEffect(() => {
+    if (props.open) return;
+    setReason("");
+    setError(null);
+    request.current = null;
+  }, [props.open]);
+
+  const offboard = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) return;
+    const fingerprint = JSON.stringify([
+      props.operator.user.userId,
+      props.operator.revision,
+      trimmedReason,
+    ]);
+    let attempt: StepUpAttempt =
+      request.current?.fingerprint === fingerprint
+        ? request.current
+        : createMutationAttempt(fingerprint);
+    request.current = attempt;
+    setPending(true);
+    setError(null);
+    try {
+      const scope = {
+        expected_operator_revision: props.operator.revision,
+        reason: trimmedReason,
+      };
+      if (!attempt.stepUpProof) {
+        const stepUpProof = await verifyPlatformAction({
+          actionCode: "platform.access.remove_operator",
+          idempotencyKey: attempt.idempotencyKey,
+          scope,
+          targetId: props.operator.user.userId,
+          targetType: "platform_operator",
+        });
+        attempt = { ...attempt, stepUpProof };
+        request.current = attempt;
+      }
+      const stepUpProof = attempt.stepUpProof;
+      if (!stepUpProof) throw new Error("PLATFORM_STEP_UP_PROOF_REQUIRED");
+      await offboardPlatformOperator(props.operator.user.userId, {
+        correlationId: attempt.correlationId,
+        expectedOperatorRevision: props.operator.revision,
+        idempotencyKey: attempt.idempotencyKey,
+        reason: trimmedReason,
+        stepUpProof,
+      });
+      if (request.current === attempt) request.current = null;
+      props.onCompleted("OPERATOR_ACCESS_REMOVED");
+      props.onOpenChange(false);
+    } catch (caught) {
+      setError(errorKey(caught));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingDialog
+      description={t("REMOVE_OPERATOR_DESCRIPTION", { name: userLabel(props.operator.user) })}
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => props.onOpenChange(false)} variant="outline">
+            {t("CANCEL")}
+          </Button>
+          <Button
+            disabled={pending || !reason.trim()}
+            form="offboard-platform-operator"
+            type="submit"
+            variant="destructive"
+          >
+            {pending ? t("REMOVING_ACCESS") : t("CONFIRM_REMOVE_OPERATOR")}
+          </Button>
+        </>
+      }
+      onOpenChange={(open) => !pending && props.onOpenChange(open)}
+      open={props.open}
+      title={t("REMOVE_OPERATOR_TITLE")}
+    >
+      <form id="offboard-platform-operator" onSubmit={offboard}>
+        <SettingDialogFields>
+          {error ? <MutationError message={t(error)} /> : null}
+          <Alert>
+            <AlertTitle>{t("REMOVE_OPERATOR_IMPACT_TITLE")}</AlertTitle>
+            <AlertDescription>
+              {t("REMOVE_OPERATOR_IMPACT", {
+                roleCount: props.operator.roles.length,
+                sessionCount: props.operator.sessions.activeSessionCount,
+              })}
+            </AlertDescription>
+          </Alert>
+          <SettingDialogField
+            description={t("REMOVE_OPERATOR_REASON_HELP")}
+            title={<label htmlFor="offboard-reason">{t("REMOVE_OPERATOR_REASON")}</label>}
+          >
+            <Textarea
+              id="offboard-reason"
+              onChange={(event) => setReason(event.target.value)}
+              value={reason}
+            />
+          </SettingDialogField>
+          <p className="text-sm text-muted-foreground">{t("REMOVE_OPERATOR_CONSEQUENCE")}</p>
         </SettingDialogFields>
       </form>
     </SettingDialog>

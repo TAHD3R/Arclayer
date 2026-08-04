@@ -17,9 +17,9 @@ from src.models.system.plugin_installation import PluginOperationKind
 from src.modules.commerce.platform_operations import build_platform_commerce_operations_service
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.platform_identity.http import require_platform_permission
-from src.modules.platform_identity.management_service import PlatformIdentityManagementService
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.platform_identity.sign_in_settings_service import PlatformSignInSettingsService
 from src.modules.system.mail.profile_service import MailServiceProfileService
 from src.modules.system.plugins.artifact_service import PluginArtifactService
 from src.modules.system.plugins.catalog import (
@@ -107,7 +107,7 @@ def get_extension_connection_readiness_service(
 ) -> ExtensionConnectionReadinessService:
     connectors = manager.registry.connectors
     return ExtensionConnectionReadinessService(
-        platform_sign_in=PlatformIdentityManagementService(
+        platform_sign_in=PlatformSignInSettingsService(
             settings=settings,
             connector_registry=connectors,
         ),
@@ -172,9 +172,7 @@ async def list_installed_extensions(
 )
 async def list_extension_connections(
     manager: ExtensionManager = Depends(get_extension_manager),
-    readiness_service: ExtensionConnectionReadinessService = Depends(
-        get_extension_connection_readiness_service
-    ),
+    readiness_service: ExtensionConnectionReadinessService = Depends(get_extension_connection_readiness_service),
 ) -> ResponseModel[ExtensionConnectionListOut]:
     items: list[ExtensionConnectionOut] = []
     for instance in manager.list_instances():

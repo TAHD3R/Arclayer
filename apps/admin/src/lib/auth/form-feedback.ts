@@ -45,7 +45,7 @@ export function useUsernameAvailability(username: string, enabled: boolean) {
   };
 }
 
-export type PasswordRequirementKey = "length" | "lowercase" | "uppercase" | "number";
+export type PasswordRequirementKey = "length" | "letter" | "lowercase" | "uppercase" | "number";
 
 export type PasswordRequirementState = {
   key: PasswordRequirementKey;

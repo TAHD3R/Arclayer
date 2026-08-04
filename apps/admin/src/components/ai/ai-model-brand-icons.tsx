@@ -1,17 +1,36 @@
-import { ImageIcon, RouteIcon } from "lucide-react";
+import { BoxesIcon, ImageIcon, RouteIcon } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+
+type ProviderIcon = Readonly<{
+  lightUrl: string;
+  darkUrl: string;
+}>;
 
 type AIModelBrandIconProps = {
   provider?: string | null;
   modelId?: string | null;
+  providerIcon?: ProviderIcon | null;
   auto?: boolean;
   className?: string;
 };
 
-export function AIModelBrandIcon({ provider, modelId, auto, className }: AIModelBrandIconProps) {
+export function AIModelBrandIcon({
+  provider,
+  modelId,
+  providerIcon,
+  auto,
+  className,
+}: AIModelBrandIconProps) {
+  const themeMode = usePreferencesStore((state) => state.themeMode);
   const brand = auto ? "auto" : resolveModelBrand(provider, modelId);
   const iconClassName = "size-full";
+  const iconUrl = providerIcon
+    ? themeMode === "dark"
+      ? providerIcon.darkUrl
+      : providerIcon.lightUrl
+    : null;
 
   return (
     <span
@@ -21,7 +40,9 @@ export function AIModelBrandIcon({ provider, modelId, auto, className }: AIModel
       )}
       aria-hidden="true"
     >
-      {brand === "auto" ? (
+      {iconUrl ? (
+        <img alt="" className={iconClassName} src={iconUrl} />
+      ) : brand === "auto" ? (
         <RouteIcon className={iconClassName} />
       ) : brand === "deepseek" ? (
         <DeepSeekIcon className={iconClassName} />
@@ -33,8 +54,10 @@ export function AIModelBrandIcon({ provider, modelId, auto, className }: AIModel
         <GLMIcon className={iconClassName} />
       ) : brand === "gpt-image" ? (
         <GPTImageIcon className={iconClassName} />
-      ) : (
+      ) : brand === "openai" ? (
         <OpenAIIcon className={iconClassName} />
+      ) : (
+        <BoxesIcon className={iconClassName} />
       )}
     </span>
   );
@@ -51,7 +74,8 @@ function resolveModelBrand(provider?: string | null, modelId?: string | null) {
   }
   if (value.includes("deepseek")) return "deepseek";
   if (value.includes("anthropic") || value.includes("claude")) return "anthropic";
-  return "openai";
+  if (value.includes("openai") || value.includes("gpt")) return "openai";
+  return "generic";
 }
 
 function OpenAIIcon({ className }: { className?: string }) {

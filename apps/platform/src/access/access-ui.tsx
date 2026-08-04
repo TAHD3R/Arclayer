@@ -40,10 +40,23 @@ export function useAccessQuery<T>(load: () => Promise<T>, dependencies: readonly
 export function AccessPage({
   title,
   description,
+  primaryAction,
+  extra,
   children,
-}: Readonly<{ title: string; description: string; children: ReactNode }>) {
+}: Readonly<{
+  title: string;
+  description: string;
+  primaryAction?: ReactNode;
+  extra?: ReactNode;
+  children: ReactNode;
+}>) {
   return (
-    <PlatformPage description={description} title={title}>
+    <PlatformPage
+      description={description}
+      extra={extra}
+      primaryAction={primaryAction}
+      title={title}
+    >
       {children}
     </PlatformPage>
   );

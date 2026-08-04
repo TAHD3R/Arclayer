@@ -46,14 +46,16 @@ from src.models.ai.user_key_grant import (
 )
 from src.modules.ai.model_catalog import (
     AI_MODEL_CATALOG_MASTER_KEY_REQUIRED,
+    AI_MODEL_CATALOG_PROVIDER_CONFLICT,
     AIModelCatalogUnavailableError,
-    _system_provider_set,
     list_ai_model_catalog,
 )
+from src.modules.ai.provider_icon import AIProviderIcon
 from src.modules.ai.router import router as ai_router
 from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
 from src.modules.ai.service import AIChatService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.system.ai_providers.configuration import configured_models_from_records
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -717,10 +719,8 @@ class TestSchemaContracts:
 
     def test_ai_settings_defaults(self, monkeypatch) -> None:
         """Verify AISettings loads with expected defaults."""
-        monkeypatch.delenv("AI__DEFAULT_MODEL", raising=False)
         ai = AISettings()
         assert ai.litellm_base_url == "http://localhost:4000"
-        assert ai.default_model == "gpt-4o-mini"
         assert ai.default_max_tokens == 4096
         assert ai.default_monthly_limit_micros == 100_000_000
         assert ai.reservation_ttl_seconds == 300
@@ -820,31 +820,47 @@ class TestSchemaContracts:
 class TestAIModelCatalog:
     """Verify the Admin model selector catalog is loaded from backend configuration."""
 
-    def test_platform_catalog_uses_only_system_provider_records(self) -> None:
-        providers = _system_provider_set(
+    def test_platform_catalog_uses_only_explicit_system_model_mappings(self) -> None:
+        provider_id = uuid4()
+        models = configured_models_from_records(
             [
                 {
+                    "id": provider_id,
                     "provider": "deepseek",
-                    "metadata_json": {"source": "system.ai_providers"},
+                    "metadata_json": {
+                        "source": "system.ai_providers",
+                        "model_mappings": [
+                            {
+                                "public_model": "deepseek-v4-pro",
+                                "provider_model": "deepseek-chat",
+                                "label": "DeepSeek V4 Pro",
+                                "description": "Configured model description",
+                                "label_i18n": {"zh-CN": "DeepSeek V4 专业版"},
+                                "description_i18n": {"zh-CN": "已配置的模型介绍"},
+                            }
+                        ],
+                        "default_model": "deepseek-v4-pro",
+                    },
                 },
                 {
+                    "id": uuid4(),
                     "provider": "openai",
                     "metadata_json": {"source": "legacy.platform_key"},
-                },
-                {
-                    "provider": "anthropic",
-                    "metadata_json": {},
                 },
             ],
         )
 
-        assert providers == {"deepseek"}
+        assert [(item.provider, item.public_model, item.is_default) for item in models] == [
+            ("deepseek", "deepseek-v4-pro", True)
+        ]
+        assert models[0].label == "DeepSeek V4 Pro"
+        assert models[0].description == "Configured model description"
+        assert models[0].label_i18n == {"zh-CN": "DeepSeek V4 专业版"}
 
     async def test_catalog_loads_litellm_models_and_filters_mock(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
             update={
-                "default_model": "deepseek-v4-pro",
                 "litellm_master_key": "master-key",
                 "mock_enabled": False,
             },
@@ -864,8 +880,24 @@ class TestAIModelCatalog:
                 ),
             ),
             patch(
-                "src.modules.ai.model_catalog._list_available_providers",
-                new=AsyncMock(return_value={"deepseek"}),
+                "src.modules.ai.model_catalog.list_active_system_models",
+                new=AsyncMock(
+                    return_value=[
+                        SimpleNamespace(
+                            public_model="deepseek-v4-pro",
+                            provider="deepseek",
+                            label="DeepSeek V4 Pro Custom",
+                            description="Configured model description",
+                            label_i18n={"zh-CN": "DeepSeek V4 自定义版"},
+                            description_i18n={"zh-CN": "配置的模型介绍"},
+                            is_default=True,
+                            provider_icon=AIProviderIcon(
+                                light_url="/provider-icons/deepseek-light.svg",
+                                dark_url="/provider-icons/deepseek-dark.svg",
+                            ),
+                        )
+                    ]
+                ),
             ),
         ):
             catalog = await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
@@ -873,7 +905,13 @@ class TestAIModelCatalog:
         assert catalog.default_model == "deepseek-v4-pro"
         assert [model.id for model in catalog.models] == ["deepseek-v4-pro"]
         assert catalog.models[0].provider == "deepseek"
-        assert catalog.models[0].label_key == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
+        assert catalog.models[0].label == "DeepSeek V4 Pro Custom"
+        assert catalog.models[0].description == "Configured model description"
+        assert catalog.models[0].label_i18n == {"zh-CN": "DeepSeek V4 自定义版"}
+        assert catalog.models[0].provider_icon == AIProviderIcon(
+            light_url="/provider-icons/deepseek-light.svg",
+            dark_url="/provider-icons/deepseek-dark.svg",
+        )
 
     async def test_catalog_uses_error_code_when_master_key_missing(self) -> None:
         settings = get_settings()
@@ -890,6 +928,49 @@ class TestAIModelCatalog:
         assert exc_info.value.code == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
         assert str(exc_info.value) == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
 
+    async def test_catalog_rejects_duplicate_public_models_instead_of_silently_hiding_one(self) -> None:
+        settings = get_settings()
+        settings.ai = settings.ai.model_copy(
+            update={"litellm_master_key": "master-key", "mock_enabled": False},
+        )
+        duplicate_models = [
+            SimpleNamespace(
+                public_model="shared-model",
+                provider="deepseek",
+                label="Shared DeepSeek",
+                description=None,
+                label_i18n={},
+                description_i18n={},
+                is_default=True,
+                provider_icon=None,
+            ),
+            SimpleNamespace(
+                public_model="shared-model",
+                provider="openai",
+                label="Shared OpenAI",
+                description=None,
+                label_i18n={},
+                description_i18n={},
+                is_default=True,
+                provider_icon=None,
+            ),
+        ]
+
+        with (
+            patch(
+                "src.modules.ai.model_catalog.LiteLLMClient.list_models",
+                new=AsyncMock(return_value={"data": [{"id": "shared-model"}]}),
+            ),
+            patch(
+                "src.modules.ai.model_catalog.list_active_system_models",
+                new=AsyncMock(return_value=duplicate_models),
+            ),
+            pytest.raises(AIModelCatalogUnavailableError) as exc_info,
+        ):
+            await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
+
+        assert exc_info.value.code == AI_MODEL_CATALOG_PROVIDER_CONFLICT
+
     async def test_catalog_returns_empty_payload_when_no_selectable_models_exist(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
@@ -905,8 +986,8 @@ class TestAIModelCatalog:
                 new=AsyncMock(return_value={"data": [{"id": "deepseek-v4-pro"}]}),
             ),
             patch(
-                "src.modules.ai.model_catalog._list_available_providers",
-                new=AsyncMock(return_value=set()),
+                "src.modules.ai.model_catalog.list_active_system_models",
+                new=AsyncMock(return_value=[]),
             ),
         ):
             catalog = await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
@@ -914,11 +995,10 @@ class TestAIModelCatalog:
         assert catalog.default_model is None
         assert catalog.models == []
 
-    async def test_catalog_prefers_visible_core_default_model(self) -> None:
+    async def test_catalog_uses_visible_configured_provider_default_model(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
             update={
-                "default_model": "deepseek-v4-pro",
                 "litellm_master_key": "master-key",
                 "mock_enabled": False,
             },
@@ -937,29 +1017,50 @@ class TestAIModelCatalog:
                 ),
             ),
             patch(
-                "src.modules.ai.model_catalog._list_available_providers",
-                new=AsyncMock(return_value={"deepseek", "openai"}),
+                "src.modules.ai.model_catalog.list_active_system_models",
+                new=AsyncMock(
+                    return_value=[
+                        SimpleNamespace(
+                            public_model="deepseek-v4-pro",
+                            provider="deepseek",
+                            label="DeepSeek",
+                            description=None,
+                            label_i18n={},
+                            description_i18n={},
+                            is_default=True,
+                            provider_icon=None,
+                        ),
+                        SimpleNamespace(
+                            public_model="gpt-4o",
+                            provider="openai",
+                            label="GPT",
+                            description=None,
+                            label_i18n={},
+                            description_i18n={},
+                            is_default=False,
+                            provider_icon=None,
+                        ),
+                    ]
+                ),
             ),
         ):
             catalog = await list_ai_model_catalog(
                 settings,
                 workspace_id=uuid4(),
                 user_id=uuid4(),
-                default_model="gpt-4o",
                 default_mode="plan",
                 reasoning_effort="high",
             )
 
-        assert catalog.default_model == "gpt-4o"
+        assert catalog.default_model == "deepseek-v4-pro"
         assert catalog.default_mode == "plan"
         assert catalog.reasoning_effort == "high"
         assert [model.id for model in catalog.models] == ["deepseek-v4-pro", "gpt-4o"]
 
-    async def test_catalog_ignores_unavailable_core_default_model(self) -> None:
+    async def test_catalog_does_not_invent_default_when_configured_default_is_unavailable(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
             update={
-                "default_model": "deepseek-v4-pro",
                 "litellm_master_key": "master-key",
                 "mock_enabled": False,
             },
@@ -978,18 +1079,36 @@ class TestAIModelCatalog:
                 ),
             ),
             patch(
-                "src.modules.ai.model_catalog._list_available_providers",
-                new=AsyncMock(return_value={"deepseek", "openai"}),
+                "src.modules.ai.model_catalog.list_active_system_models",
+                new=AsyncMock(
+                    return_value=[
+                        SimpleNamespace(
+                            public_model="claude-sonnet-4-6",
+                            provider="deepseek",
+                            label="Unavailable default",
+                            description=None,
+                            label_i18n={},
+                            description_i18n={},
+                            is_default=True,
+                            provider_icon=None,
+                        ),
+                        SimpleNamespace(
+                            public_model="gpt-4o",
+                            provider="openai",
+                            label="GPT",
+                            description=None,
+                            label_i18n={},
+                            description_i18n={},
+                            is_default=False,
+                            provider_icon=None,
+                        ),
+                    ]
+                ),
             ),
         ):
-            catalog = await list_ai_model_catalog(
-                settings,
-                workspace_id=uuid4(),
-                user_id=uuid4(),
-                default_model="claude-sonnet-4-6",
-            )
+            catalog = await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
 
-        assert catalog.default_model == "deepseek-v4-pro"
+        assert catalog.default_model is None
 
 
 # ── 6. End-to-End Chat Flow (mock-based) ──────────────────────────────
@@ -1027,7 +1146,13 @@ class TestModelCatalogEndpoint:
                     id="deepseek-v4-pro",
                     provider="deepseek",
                     label="DeepSeek V4 Pro",
-                    label_key="ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+                    label_i18n={"zh-CN": "DeepSeek V4 专业版"},
+                    description="Configured description",
+                    description_i18n={"zh-CN": "配置的介绍"},
+                    provider_icon=AIProviderIcon(
+                        light_url="/provider-icons/deepseek-light.svg",
+                        dark_url="/provider-icons/deepseek-dark.svg",
+                    ),
                 )
             ],
         )
@@ -1040,7 +1165,6 @@ class TestModelCatalogEndpoint:
             _ = ttl_seconds
             return {
                 "ai_agents": {
-                    "default_model": "gpt-4o",
                     "default_mode": "plan",
                     "reasoning_effort": "high",
                 }
@@ -1062,7 +1186,6 @@ class TestModelCatalogEndpoint:
             settings,
             workspace_id=workspace_id,
             user_id=user_id,
-            default_model="gpt-4o",
             default_mode="plan",
             reasoning_effort="high",
         )
@@ -1071,7 +1194,12 @@ class TestModelCatalogEndpoint:
         assert data["defaultMode"] == "build"
         assert data["reasoningEffort"] == "medium"
         assert data["models"][0]["id"] == "deepseek-v4-pro"
-        assert data["models"][0]["labelKey"] == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
+        assert data["models"][0]["label"] == "DeepSeek V4 Pro"
+        assert data["models"][0]["labelI18n"] == {"zh-CN": "DeepSeek V4 专业版"}
+        assert data["models"][0]["providerIcon"] == {
+            "lightUrl": "/provider-icons/deepseek-light.svg",
+            "darkUrl": "/provider-icons/deepseek-dark.svg",
+        }
 
     async def test_model_catalog_endpoint_returns_empty_catalog(self) -> None:
         user_id = uuid4()

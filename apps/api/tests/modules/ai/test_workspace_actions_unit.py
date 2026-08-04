@@ -844,7 +844,7 @@ def test_planner_messages_include_recent_conversation_context() -> None:
 
 
 @pytest.mark.asyncio
-async def test_workspace_action_planner_exposes_provider_rejection() -> None:
+async def test_workspace_action_planner_exposes_provider_rejection(monkeypatch) -> None:
     class RejectingRuntime:
         async def chat(self, *args, **kwargs):
             request = httpx.Request("POST", "http://litellm.local/v1/chat/completions")
@@ -855,6 +855,10 @@ async def test_workspace_action_planner_exposes_provider_rejection() -> None:
             )
             raise httpx.HTTPStatusError("bad request", request=request, response=response)
 
+    async def resolve_default_model():
+        return SimpleNamespace(public_model="configured-model")
+
+    monkeypatch.setattr(workspace_actions, "resolve_default_system_model", resolve_default_model)
     planner = workspace_actions.WorkspaceActionPlanner(Settings(), runtime=cast(LLMRuntime, RejectingRuntime()))
 
     with pytest.raises(workspace_actions.APIError) as exc_info:
@@ -870,6 +874,28 @@ async def test_workspace_action_planner_exposes_provider_rejection() -> None:
     assert exc_info.value.error == "AI_WORKSPACE_ACTION_PLANNER_PROVIDER_REJECTED"
     assert exc_info.value.status_code == 400
     assert "Thinking mode does not support this tool_choice" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_workspace_action_planner_requires_configured_default_model(monkeypatch) -> None:
+    async def resolve_default_model():
+        return None
+
+    monkeypatch.setattr(workspace_actions, "resolve_default_system_model", resolve_default_model)
+    planner = workspace_actions.WorkspaceActionPlanner(Settings(), runtime=cast(LLMRuntime, object()))
+
+    with pytest.raises(workspace_actions.APIError) as exc_info:
+        await planner.plan(
+            payload=WorkspaceAIActionRequest(
+                workspace_id=uuid4(),
+                message="帮我创建一个 SaaS 落地页",
+                mode=AgentConversationMode.BUILD,
+            ),
+            user_id=uuid4(),
+        )
+
+    assert exc_info.value.error == "PROVIDER_MODEL_UNAVAILABLE"
+    assert exc_info.value.status_code == 400
 
 
 @pytest.mark.asyncio

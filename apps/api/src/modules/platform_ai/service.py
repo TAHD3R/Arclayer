@@ -11,7 +11,7 @@ from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
-from src.core.services import BaseService
+from src.core.services import BaseService, ServiceContractError
 from src.models.agents.runtime_recovery_v1 import (
     AgentRunExecutionEffectDisposition,
     AgentRunExecutionEffectRecord,
@@ -40,7 +40,6 @@ from src.modules.platform_ai.schema import (
     PlatformAITaskOut,
 )
 from src.modules.system.ai_providers.schema import SystemAIProviderOut
-from src.modules.system.ai_providers.service import SystemAIProviderService
 
 _ACTIONABLE_STATUSES: Final[tuple[AgentRunStatusV1, ...]] = (
     AgentRunStatusV1.CREATED,
@@ -70,6 +69,10 @@ class PlatformAIRecoveryPort(Protocol):
     async def execute(self, *, command: PlatformAIRecoveryCommand) -> PlatformAIRecoveryReceipt: ...
 
 
+class SystemAIProviderReader(Protocol):
+    async def list_providers(self) -> list[SystemAIProviderOut]: ...
+
+
 class PlatformAIOperationsService(BaseService):
     """Safe Platform projections over durable AI Run and Job facts.
 
@@ -81,9 +84,11 @@ class PlatformAIOperationsService(BaseService):
         self,
         settings: Settings | None = None,
         *,
+        provider_reader: SystemAIProviderReader | None = None,
         recovery_port: PlatformAIRecoveryPort | None = None,
     ) -> None:
         super().__init__(settings=settings)
+        self._provider_reader = provider_reader
         self._recovery_port = recovery_port or AgentRunPlatformRecoveryPort(self.settings)
 
     async def list_tasks(
@@ -146,8 +151,10 @@ class PlatformAIOperationsService(BaseService):
             waiting_for_workspace_approval=waiting_for_workspace_approval,
         )
 
-    async def provider_readiness(self, *, settings: Settings) -> PlatformAIProviderReadinessOut:
-        providers = await SystemAIProviderService(settings).list_providers()
+    async def provider_readiness(self) -> PlatformAIProviderReadinessOut:
+        if self._provider_reader is None:
+            raise ServiceContractError("AI provider readiness requires a provider reader")
+        providers = await self._provider_reader.list_providers()
         now = datetime.now(UTC)
         items = tuple(self._to_provider_out(provider=provider, now=now) for provider in providers)
         missing = () if any(item.routable for item in items) else ("AI_PROVIDER_ROUTABLE",)
@@ -211,16 +218,30 @@ class PlatformAIOperationsService(BaseService):
 
     @staticmethod
     def _to_provider_out(*, provider: SystemAIProviderOut, now: datetime) -> PlatformAIProviderOut:
-        permitted = provider.is_active and (provider.expires_at is None or provider.expires_at > now)
-        reachable = {"healthy": True, "unhealthy": False}.get(provider.readiness_status)
-        routable = provider.has_virtual_key and permitted and reachable is True
+        permitted = (
+            provider.is_active
+            and not provider.is_archived
+            and not provider.cleanup_required
+            and (provider.expires_at is None or provider.expires_at > now)
+        )
+        response_mismatch = provider.readiness_failure_code == "AI_PROVIDER_READINESS_RESPONSE_MISMATCH"
+        reachable = (
+            True
+            if provider.readiness_status == "healthy" or response_mismatch
+            else False
+            if provider.readiness_status == "unhealthy"
+            else None
+        )
+        routable = provider.has_virtual_key and permitted and provider.readiness_status == "healthy"
         credential_port_unavailable = "AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE"
         return PlatformAIProviderOut(
             id=provider.id,
             provider=provider.provider,
             label=provider.label,
-            request_model=provider.request_model,
+            default_model=provider.default_model,
             desired_is_active=provider.is_active,
+            archived=provider.is_archived,
+            cleanup_required=provider.cleanup_required,
             configured=provider.has_virtual_key,
             reachable=reachable,
             permitted=permitted,
@@ -231,14 +252,34 @@ class PlatformAIOperationsService(BaseService):
             expires_at=provider.expires_at,
             last_used_at=provider.last_used_at,
             actions=(
-                PlatformAIProviderActionAvailabilityOut(action="test_readiness", available=provider.has_virtual_key),
-                PlatformAIProviderActionAvailabilityOut(action="enable", available=not provider.is_active),
+                PlatformAIProviderActionAvailabilityOut(
+                    action="test_readiness",
+                    available=provider.has_virtual_key and not provider.is_archived,
+                ),
+                PlatformAIProviderActionAvailabilityOut(
+                    action="enable",
+                    available=not provider.is_active and not provider.is_archived,
+                ),
                 PlatformAIProviderActionAvailabilityOut(action="disable", available=provider.is_active),
                 PlatformAIProviderActionAvailabilityOut(
-                    action="rotate_credentials", available=False, reason_code=credential_port_unavailable
+                    action="rotate_credentials",
+                    available=provider.has_virtual_key and not provider.is_archived,
                 ),
                 PlatformAIProviderActionAvailabilityOut(
                     action="remove_credentials", available=False, reason_code=credential_port_unavailable
+                ),
+                PlatformAIProviderActionAvailabilityOut(
+                    action="archive",
+                    available=not provider.is_active and not provider.is_archived,
+                ),
+                PlatformAIProviderActionAvailabilityOut(
+                    action="restore",
+                    available=provider.is_archived,
+                ),
+                PlatformAIProviderActionAvailabilityOut(
+                    action="delete",
+                    available=(provider.is_archived and not provider.is_active and not provider.cleanup_required),
+                    reason_code=("AI_PROVIDER_LITELLM_CLEANUP_REQUIRED" if provider.cleanup_required else None),
                 ),
             ),
         )
@@ -287,7 +328,9 @@ def _task_actions(
     latest_attempt: JobAttemptRecord | None,
 ) -> tuple[PlatformAITaskActionAvailabilityOut, ...]:
     retry_eligible = (
-        run.status == AgentRunStatusV1.FAILED and job is not None and job.internal_status in _FAILED_JOB_STATUSES
+        run.status == AgentRunStatusV1.FAILED
+        and job is not None
+        and job.internal_status in _FAILED_JOB_STATUSES
         and execution_effect is None
         and latest_attempt is not None
         and latest_attempt.failure_classification in _RETRYABLE_FAILURES
@@ -352,10 +395,7 @@ async def _recovery_evidence_by_job(
     if not job_ids:
         return {}, {}
     effects = await (
-        AgentRunExecutionEffectRecord
-        .filter(job_id__in=job_ids)
-        .order_by("job_id", "-registered_at", "-id")
-        .all()
+        AgentRunExecutionEffectRecord.filter(job_id__in=job_ids).order_by("job_id", "-registered_at", "-id").all()
     )
     attempts = await JobAttemptRecord.filter(job_id__in=job_ids).order_by("job_id", "-attempt_number").all()
     latest_effects: dict[UUID, AgentRunExecutionEffectRecord] = {}

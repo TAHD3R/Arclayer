@@ -285,16 +285,6 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 required_view_permissions=(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
-            PlatformCapabilityNavigationRegistration(
-                route_target=PlatformCapabilityRouteTarget.ACCESS_MFA,
-                required_view_permissions=(PlatformPermissionCode.ACCESS_TEAM_READ,),
-                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
-            ),
-            PlatformCapabilityNavigationRegistration(
-                route_target=PlatformCapabilityRouteTarget.ACCESS_SESSIONS,
-                required_view_permissions=(PlatformPermissionCode.ACCESS_SESSIONS_READ,),
-                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
-            ),
         ),
         required_view_permissions=(PlatformPermissionCode.ACCESS_TEAM_READ,),
         view_permission_match=PlatformCapabilityPermissionMatch.ALL,

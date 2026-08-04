@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
@@ -36,7 +37,7 @@ describe("AuthOauthButtons", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    render(
+    return render(
       <QueryClientProvider client={queryClient}>
         <AuthOauthButtons {...props} />
       </QueryClientProvider>,
@@ -58,6 +59,15 @@ describe("AuthOauthButtons", () => {
       "text-footnote",
     );
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toHaveClass("select-none");
+    const dividerLines = screen.getAllByTestId("oauth-divider-line");
+    expect(dividerLines).toHaveLength(2);
+    dividerLines.forEach((line) => {
+      expect(line).toHaveClass("justify-center", "gap-4", "overflow-hidden");
+      expect(line.children).toHaveLength(5);
+      Array.from(line.children).forEach((segment) => {
+        expect(segment).toHaveClass("h-px", "w-4", "shrink-0", "bg-foreground/25");
+      });
+    });
   });
 
   it("renders the divider before oauth providers by default", async () => {
@@ -250,6 +260,57 @@ describe("AuthOauthButtons", () => {
     expect(discordButton).toHaveClass("w-full");
     expect(discordButton.parentElement).not.toHaveClass("grid-cols-4");
     expect(screen.getByText("auth:OAUTH_DISCORD")).toBeInTheDocument();
+  });
+
+  it("renders the first provider as a pill and the remaining providers as an icon grid", async () => {
+    const onProviderStart = vi.fn();
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [
+        { provider: "google", label: "Google", start_url: "/oauth/google" },
+        { provider: "github", label: "GitHub", start_url: "/oauth/github" },
+        { provider: "microsoft", label: "Microsoft", start_url: "/oauth/microsoft" },
+        { provider: "discord", label: "Discord", start_url: "/oauth/discord" },
+      ],
+    });
+
+    renderButtons({ providerLayout: "primary-plus-grid", onProviderStart });
+
+    const googleButton = await screen.findByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const githubButton = screen.getByRole("button", { name: "auth:OAUTH_GITHUB" });
+    const microsoftButton = screen.getByRole("button", { name: "auth:OAUTH_MICROSOFT" });
+    const discordButton = screen.getByRole("button", { name: "auth:OAUTH_DISCORD" });
+
+    expect(screen.getByTestId("oauth-primary-plus-grid")).toBeInTheDocument();
+    expect(googleButton).toHaveClass(
+      "h-14!",
+      "w-full",
+      "rounded-full!",
+      "bg-foreground!",
+      "text-background!",
+    );
+    expect(screen.getByText("auth:OAUTH_GOOGLE")).not.toHaveClass("sr-only");
+    expect(githubButton.parentElement).toHaveClass("grid-cols-3");
+    expect(microsoftButton.parentElement).toBe(githubButton.parentElement);
+    expect(discordButton.parentElement).toBe(githubButton.parentElement);
+    expect(githubButton).toHaveClass("h-14!", "rounded-full!", "bg-card!");
+    expect(screen.getByText("auth:OAUTH_GITHUB")).toHaveClass("sr-only");
+
+    await userEvent.setup().click(githubButton);
+
+    expect(onProviderStart).toHaveBeenCalledWith({
+      provider: "github",
+      startUrl: "/oauth/github",
+    });
+  });
+
+  it("renders no actions or divider when no oauth provider is configured", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({ providers: [] });
+
+    const { container } = renderButtons({ providerLayout: "primary-plus-grid" });
+
+    await waitFor(() => expect(listSSOProvidersMock).toHaveBeenCalledTimes(1));
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText("auth:OAUTH_ACCOUNT_DIVIDER")).not.toBeInTheDocument();
   });
 
   it("renders the password-login action on its own full-width row", async () => {

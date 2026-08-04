@@ -11,7 +11,7 @@ import {
   type AgentContentModelDraftProposalResponse,
 } from "@/api/ai";
 import { aiAgentUnavailableReasonKey } from "@/components/ai/ai-agent-availability";
-import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { resolveAIRequestModel, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -56,7 +56,7 @@ export function AIContentModelProposalCard({
         payload: {
           targetId: modelId,
           instruction: input.instruction,
-          model: selectedModel,
+          model: resolveAIRequestModel(selectedModel),
           reasoningEffort: selectedReasoningEffort,
         },
       }),

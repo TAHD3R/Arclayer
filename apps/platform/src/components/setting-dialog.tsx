@@ -52,7 +52,11 @@ export function SettingDialog({
       >
         <DialogHeader className="min-w-0 space-y-2 border-b px-6 py-5 text-left">
           <DialogTitle className={cn("text-lg font-semibold", titleClassName)}>{title}</DialogTitle>
-          {description ? <DialogDescription asChild>{description}</DialogDescription> : null}
+          {description ? (
+            <DialogDescription asChild>
+              <div className="text-sm text-muted-foreground">{description}</div>
+            </DialogDescription>
+          ) : null}
         </DialogHeader>
         <div
           className={cn(
