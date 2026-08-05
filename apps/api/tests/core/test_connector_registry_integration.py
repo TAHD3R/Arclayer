@@ -206,6 +206,35 @@ async def test_official_stripe_extension_registers_typed_billing_connector(
     get_settings.cache_clear()
 
 
+async def test_official_simulated_billing_extension_registers_separately_from_stripe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("BILLING__PROVIDER", "simulated")
+    monkeypatch.setenv("BILLING__SIMULATED_SIGNING_SECRET", "simulated-registry-secret")
+    get_settings.cache_clear()
+
+    project_root = Path(__file__).resolve().parents[4]
+    manager = ExtensionManager(project_root)
+    await manager.load_extension(project_root / "plugins" / "arclayer-simulated-billing")
+    await manager.register_all(app=None)
+
+    registration = manager.registry.connectors.resolve("billing.simulated")
+    assert registration is not None
+    assert registration.extension == "arclayer-simulated-billing"
+    assert registration.definition.kind is ConnectorKind.BILLING
+    assert registration.definition.trust_level is ConnectorTrustLevel.OFFICIAL
+    assert registration.definition.capabilities == ("subscription_webhook",)
+    assert registration.definition.webhook_events == ()
+    assert registration.definition.admin is not None
+    assert registration.definition.admin.settings_section == "billing"
+    connector = registration.factory()
+    assert isinstance(connector, BillingConnector)
+    assert connector.provider_mode == "test"
+
+    get_settings.cache_clear()
+
+
 async def test_official_oauth_extension_registers_provider_connectors() -> None:
     project_root = Path(__file__).resolve().parents[4]
     manager = ExtensionManager(project_root)

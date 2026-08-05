@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.1 provider contract, environment gate, and readiness foundation.
+Current active part: M2.2 durable simulated checkout and explicit outcome command.
 
 Repository baseline:
 
@@ -350,13 +350,13 @@ Repository baseline:
 
 M2 execution parts:
 
-1. M2.1 provider contract, environment gate, and readiness foundation. — Active
+1. M2.1 provider contract, environment gate, and readiness foundation. — Complete
    - Add `simulated` as a first-class Billing Provider only for `development` and `test`; production configuration must fail explicitly during settings validation or startup.
    - Register a separate `billing.simulated` connector/plugin without Stripe credentials, Stripe endpoints, or Stripe identity.
    - Make Billing readiness and event-acceptance prerequisites Provider-neutral while retaining all current Stripe requirements and error behavior.
    - Define explicit simulator signing configuration and capabilities. Do not add outcome commands or simulated success behavior in this part.
    - Verify configuration rejection, registry ownership, connector resolution, readiness, and unchanged Stripe behavior with focused tests.
-2. M2.2 durable simulated checkout and explicit outcome command. — Pending
+2. M2.2 durable simulated checkout and explicit outcome command. — Active
    - Persist every simulated checkout as a real `CommerceCheckoutSession` with actor, exact Plan Revision Price, Provider mode/account, idempotency identity, expiry, and visible simulated state.
    - Expose an authorized development/test-only simulator command that requires an explicit actor-selected outcome or deterministic test command.
    - Generate a signed Provider event envelope and submit it through the canonical event-acceptance service; the command itself never updates Subscription, access, invoice, transaction, or Credits.
@@ -387,11 +387,30 @@ M2.1 acceptance criteria:
 - No simulated outcome can report success or mutate commercial state during M2.1.
 - No Stripe route, connector key, production setting, Checkout/Portal behavior, or webhook contract is removed or silently redirected.
 
+M2.1 implementation evidence:
+
+- Added `simulated` to the typed Billing Provider setting with a dedicated signing secret. `Settings` now rejects `BILLING__PROVIDER=simulated` immediately when `APP_ENV=production`; development and test remain explicit supported environments.
+- Added the independent official `arclayer-simulated-billing` extension and `billing.simulated` Connector registration. It has its own manifest, identity, signing secret, test mode, readiness metadata, and Connector factory and never registers under or imports Stripe.
+- The M2.1 Connector verifies HMAC signatures and strict simulated event envelopes but declares no accepted lifecycle events yet. Checkout, Customer Portal, and event normalization fail with explicit unavailable errors, so this foundation cannot manufacture a successful commercial outcome.
+- Generalized Billing settings readiness into Provider and webhook-secret facts. Stripe still requires both its API secret and webhook secret; simulated requires only its dedicated signing secret and registered Connector.
+- Bound `/commerce/webhooks/stripe` explicitly to `provider_name = "stripe"`. Selecting simulated can no longer cause the stable Stripe endpoint to resolve or invoke `billing.simulated`.
+- Generalized the event-acceptance builder to an explicit `stripe | simulated` Provider identity while preserving signature verification before persistence, Connector version pinning, encrypted inbox, Job construction, and existing Provider-not-configured/unsupported/invalid errors.
+
+M2.1 validation:
+
+- Targeted Ruff formatting/checks and targeted `ty` checks across all changed API, plugin, and focused test files passed with zero diagnostics.
+- Focused M2.1 settings, readiness, Connector registry, Stripe-route isolation, and simulated Connector tests passed `32` tests.
+- Existing Stripe Connector, Billing service, event-acceptance, and plugin-readiness regression passed `23` tests with `4` database integration tests skipped because integration mode was not enabled.
+- `pnpm api:check`: API lint passed, format check passed for all `1844` files, and the M2.1 targeted type surface remained green. The broad API typecheck still failed on existing Design System publication/content-route diagnostics outside M2.1; Turbo interrupted the broad test task before collection completed.
+- Final staged GitNexus detection reported `LOW` risk across `39` indexed symbols and no affected execution flow.
+- Code Review Engine reported zero blocking findings. Eight report-only i18n findings are pre-existing errors in the already changed Platform Commerce operations file. The single new prototype lifecycle finding conflicts with the canonical extension contract: Connector-only extensions register capabilities through `arclayer_register`, while bootstrap/ready/destroy hooks are optional; the new plugin follows the same lifecycle shape as the existing Stripe Connector.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
+- The M2.1 `pnpm api:check` run still fails on existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
 - Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.4.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
 - Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
@@ -494,3 +513,12 @@ M2.1 acceptance criteria:
 - Marked M1 and M4 complete after checking their accepted API, Plan & Usage, People Usage, member-limit, ChromeTab, and Workspace setting boundaries.
 - Mapped the existing Stripe connector, typed registry, Stripe-specific configuration/readiness assumptions, durable encrypted webhook inbox, pinned Job application pipeline, and currently unpopulated payment projection models.
 - Split M2 into six recoverable implementation parts and selected M2.1 provider contract, environment gate, and readiness foundation as the only active part before changing code.
+
+### 2026-08-05 — M2.1 simulated Provider foundation
+
+- Added the development/test-only Billing Provider gate and dedicated simulated signing configuration, including explicit production rejection.
+- Registered `billing.simulated` as a separate official Connector and kept all Checkout, Portal, and lifecycle application paths explicitly unavailable until their durable M2.2/M2.3 implementations exist.
+- Made Provider readiness and webhook enablement Provider-neutral without weakening Stripe credentials or signature requirements.
+- Fixed the stable Stripe webhook route to resolve only `billing.stripe`; it cannot dispatch to the active simulated Provider.
+- Verified `32` focused M2.1 tests and `23` Stripe/Billing regressions, plus targeted Ruff and `ty`; recorded the existing broad API typecheck blockers without adding fallback behavior.
+- Advanced the only active implementation part to M2.2 durable simulated checkout and explicit outcome command.

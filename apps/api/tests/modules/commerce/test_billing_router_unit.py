@@ -129,3 +129,24 @@ async def test_stripe_webhook_reports_provider_not_configured(
 
     assert response.status_code == 503
     assert response.json()["error"] == "BILLING_PROVIDER_NOT_CONFIGURED"
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_never_dispatches_to_the_simulated_connector(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _configure_env(monkeypatch, tmp_path, provider="simulated")
+    monkeypatch.setenv("BILLING__SIMULATED_SIGNING_SECRET", "simulated-router-secret")
+    get_settings.cache_clear()
+    payload = _event_payload()
+
+    async with asgi_client(create_app()) as client:
+        response = await client.post(
+            "/api/v1/commerce/webhooks/stripe",
+            content=payload,
+            headers={"Content-Type": "application/json", "Stripe-Signature": _signature(payload)},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"] == "BILLING_PROVIDER_NOT_CONFIGURED"

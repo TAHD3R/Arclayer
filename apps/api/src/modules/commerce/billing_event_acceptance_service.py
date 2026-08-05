@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
+from typing import Literal
 
 from pydantic import ConfigDict
 from tortoise.exceptions import IntegrityError
@@ -156,11 +157,15 @@ class BillingEventAcceptanceService(BaseService):
 def build_billing_event_acceptance_service(
     settings: Settings,
     connector_registry: ConnectorRegistry,
+    *,
+    provider_name: Literal["stripe", "simulated"],
 ) -> BillingEventAcceptanceService:
     billing = settings.billing
+    if billing.provider != provider_name:
+        raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
     if not billing.webhook_enabled:
         raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
-    connector_key = f"billing.{billing.provider}"
+    connector_key = f"billing.{provider_name}"
     registration = connector_registry.resolve(connector_key)
     if registration is None:
         raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_SUPPORTED")
@@ -169,7 +174,7 @@ def build_billing_event_acceptance_service(
         raise ServiceUnavailable(error="BILLING_CONNECTOR_INVALID")
     return BillingEventAcceptanceService(
         settings=settings,
-        provider_name=billing.provider,
+        provider_name=provider_name,
         connector_key=registration.definition.key,
         connector_version=registration.definition.version,
         webhook_events=registration.definition.webhook_events,

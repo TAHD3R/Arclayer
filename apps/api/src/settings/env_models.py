@@ -638,10 +638,11 @@ class BillingSettings(BaseSettings):
         validate_default=True,
     )
 
-    provider: Literal["disabled", "stripe"] = Field(default="disabled")
+    provider: Literal["disabled", "stripe", "simulated"] = Field(default="disabled")
     stripe_secret_key: SecretStr = Field(default=SecretStr(""))
     stripe_webhook_secret: SecretStr = Field(default=SecretStr(""))
     stripe_api_base_url: str = Field(default="https://api.stripe.com/v1")
+    simulated_signing_secret: SecretStr = Field(default=SecretStr(""))
     webhook_tolerance_seconds: int = Field(default=300, ge=30, le=3_600)
     webhook_event_retention_days: int = Field(
         default=30,
@@ -652,7 +653,21 @@ class BillingSettings(BaseSettings):
 
     @property
     def webhook_enabled(self) -> bool:
-        return self._stripe_configured and bool(self.stripe_webhook_secret.get_secret_value())
+        return self.provider_configured and self.webhook_secret_configured
+
+    @property
+    def provider_configured(self) -> bool:
+        if self.provider == "stripe":
+            return self._stripe_configured
+        return self.provider == "simulated"
+
+    @property
+    def webhook_secret_configured(self) -> bool:
+        if self.provider == "stripe":
+            return bool(self.stripe_webhook_secret.get_secret_value())
+        if self.provider == "simulated":
+            return bool(self.simulated_signing_secret.get_secret_value())
+        return False
 
     @property
     def _stripe_configured(self) -> bool:

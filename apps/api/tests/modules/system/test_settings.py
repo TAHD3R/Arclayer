@@ -1,3 +1,5 @@
+import pytest
+
 from src.config import ApplicationSettings, Settings, get_settings
 
 
@@ -83,3 +85,27 @@ def test_settings_dotenv_mail_alias_loads_email_settings(tmp_path) -> None:
     assert settings.email.port == 1025
     assert settings.email.starttls is False
     assert settings.email.use_credentials is False
+
+
+@pytest.mark.parametrize("app_env", ("development", "test"))
+def test_simulated_billing_provider_is_ready_only_with_its_signing_secret(monkeypatch, app_env: str) -> None:
+    monkeypatch.setenv("APP_ENV", app_env)
+    monkeypatch.setenv("BILLING__PROVIDER", "simulated")
+    monkeypatch.setenv("BILLING__SIMULATED_SIGNING_SECRET", "simulated-signing-secret")
+
+    settings = get_settings()
+
+    assert settings.billing.provider == "simulated"
+    assert settings.billing.provider_configured is True
+    assert settings.billing.webhook_secret_configured is True
+    assert settings.billing.webhook_enabled is True
+
+
+def test_simulated_billing_provider_is_rejected_in_production(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
+    monkeypatch.setenv("BILLING__PROVIDER", "simulated")
+    monkeypatch.setenv("BILLING__SIMULATED_SIGNING_SECRET", "simulated-signing-secret")
+
+    with pytest.raises(ValueError, match="BILLING__PROVIDER=simulated is not allowed"):
+        get_settings()

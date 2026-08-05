@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
+from src.config import Settings
+from src.core.connectors import ConnectorDefinition, ConnectorKind, ConnectorTrustLevel
 from src.core.exceptions import ServiceUnavailable
+from src.core.registries import ConnectorRegistry
 from src.models.connectors.inbox import ConnectorEventInboxStatus
 from src.modules.commerce.platform_operations import PlatformCommerceOperationsService
 from src.modules.commerce.platform_operations_schema import (
@@ -21,6 +25,23 @@ class _Connectors:
         return None
 
 
+class _RegisteredConnectors:
+    def __init__(self, *, key: str, capabilities: tuple[str, ...]) -> None:
+        self._key = key
+        self._registration = SimpleNamespace(
+            definition=ConnectorDefinition(
+                key=key,
+                kind=ConnectorKind.BILLING,
+                version="1.0.0",
+                trust_level=ConnectorTrustLevel.OFFICIAL,
+                capabilities=capabilities,
+            )
+        )
+
+    def resolve(self, key: str):  # type: ignore[no-untyped-def]
+        return self._registration if key == self._key else None
+
+
 def _settings(*, provider: str = "disabled") -> SimpleNamespace:
     return SimpleNamespace(
         billing=SimpleNamespace(
@@ -29,6 +50,60 @@ def _settings(*, provider: str = "disabled") -> SimpleNamespace:
             webhook_enabled=False,
         )
     )
+
+
+def _simulated_settings(*, signing_secret_configured: bool) -> SimpleNamespace:
+    return SimpleNamespace(
+        billing=SimpleNamespace(
+            provider="simulated",
+            provider_configured=True,
+            webhook_secret_configured=signing_secret_configured,
+            webhook_enabled=signing_secret_configured,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_simulated_provider_readiness_never_requires_a_provider_secret() -> None:
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _simulated_settings(signing_secret_configured=True)),
+        connectors=cast(
+            ConnectorRegistry,
+            _RegisteredConnectors(
+                key="billing.simulated",
+                capabilities=("subscription_webhook",),
+            ),
+        ),
+    )
+
+    readiness = await service.provider_readiness()
+
+    assert readiness.provider == "simulated"
+    assert readiness.configured is True
+    assert readiness.webhook_ready is True
+    assert readiness.connector_registered is True
+    assert readiness.supported_capabilities == ("subscription_webhook",)
+    assert readiness.missing_prerequisites == ()
+
+
+@pytest.mark.asyncio
+async def test_simulated_provider_readiness_requires_its_signing_secret() -> None:
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _simulated_settings(signing_secret_configured=False)),
+        connectors=cast(
+            ConnectorRegistry,
+            _RegisteredConnectors(
+                key="billing.simulated",
+                capabilities=("subscription_webhook",),
+            ),
+        ),
+    )
+
+    readiness = await service.provider_readiness()
+
+    assert readiness.configured is False
+    assert readiness.webhook_ready is False
+    assert readiness.missing_prerequisites == ("webhook_secret",)
 
 
 @pytest.mark.asyncio

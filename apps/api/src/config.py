@@ -924,6 +924,9 @@ class Settings(BaseSettings):
         super().__init__(**data)
         self._apply_test_mode_overrides()
 
+        if self.app_env == "production" and self.billing.provider == "simulated":
+            raise ValueError("BILLING__PROVIDER=simulated is not allowed when APP_ENV=production")
+
         # In production, default to a hard cut-over: accept only public ids as inputs
         # unless explicitly enabled by environment configuration.
         if self.app_env == "production" and "accept_raw_uuid_input" not in self.public_id.model_fields_set:

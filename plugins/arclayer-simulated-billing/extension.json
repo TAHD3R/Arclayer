@@ -1,0 +1,28 @@
+{
+  "name": "arclayer-simulated-billing",
+  "version": "1.0.0",
+  "entry": "src/plugin.py",
+  "requires": {
+    "platform": ">=1.0.0",
+    "python": ">=3.12"
+  },
+  "provides": {
+    "services": [],
+    "middlewares": [],
+    "providers": [],
+    "connectors": ["billing.simulated"],
+    "content_types": []
+  },
+  "permissions": ["commerce:billing"],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "webhookToleranceSeconds": { "type": "integer", "minimum": 30, "maximum": 3600 }
+    },
+    "additionalProperties": false
+  },
+  "admin": {
+    "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_SIMULATED_BILLING_NAME",
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_SIMULATED_BILLING_DESC"
+  }
+}

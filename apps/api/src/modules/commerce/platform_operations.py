@@ -97,9 +97,9 @@ class PlatformCommerceOperationsService(BaseService):
             )
         registration = self._connectors.resolve(f"billing.{billing.provider}")
         missing = []
-        if not billing._stripe_configured:
+        if not billing.provider_configured:
             missing.append("provider_secret")
-        if not billing.webhook_enabled:
+        if not billing.webhook_secret_configured:
             missing.append("webhook_secret")
         if registration is None:
             missing.append("billing_connector")

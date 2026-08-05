@@ -23,7 +23,11 @@ async def receive_stripe_webhook(
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[None]:
     payload = await request.body()
-    await build_billing_event_acceptance_service(settings, connector_registry).accept(
+    await build_billing_event_acceptance_service(
+        settings,
+        connector_registry,
+        provider_name="stripe",
+    ).accept(
         payload=payload,
         signature=stripe_signature,
     )
