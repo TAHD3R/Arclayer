@@ -13,6 +13,8 @@ from src.modules.projects.assets.usages_router import router as asset_usages_rou
 from src.modules.projects.automation.router import router as project_automation_router
 from src.modules.projects.databases.router import router as project_databases_router
 from src.modules.projects.environments.router import router as project_environments_router
+from src.modules.sites.preview.tokens.router import router as site_preview_tokens_router
+from src.modules.sites.settings.router import router as site_settings_router
 from src.modules.workspaces.design_systems.router import router as design_systems_router
 from src.modules.workspaces.knowledge.router import router as knowledge_router
 from src.modules.workspaces.skills.router import router as skills_router
@@ -294,5 +296,20 @@ def test_legacy_project_agent_effects_cannot_bypass_commercial_state() -> None:
             ("/projects/{project_id}/agents/runs/{run_id}/resume", "POST"): metered_effect,
             ("/projects/{project_id}/agents/runs/stream", "POST"): metered_effect,
             ("/projects/{project_id}/agents/runs/{run_id}/cancel", "POST"): None,
+        },
+    )
+
+
+def test_direct_site_mutations_resolve_workspace_commercial_effects() -> None:
+    _assert_classified_mutations(
+        site_settings_router,
+        {
+            ("/sites/{site_id}/settings", "PUT"): RestrictedRecoveryEffect.CONTENT_MUTATION,
+        },
+    )
+    _assert_classified_mutations(
+        site_preview_tokens_router,
+        {
+            ("/sites/{site_id}/preview-tokens", "POST"): RestrictedRecoveryEffect.ACCESS_EXPANSION,
         },
     )

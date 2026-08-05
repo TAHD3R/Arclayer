@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3b.3 Restricted Recovery denial projection and closure.
+Current active part: M2.3b.3c withheld period Credits and immutable handoff evidence.
 
 Repository baseline:
 
@@ -529,14 +529,14 @@ M2.3a.2 validation:
      - M2.3b.3a Payment Grace metered-effect denial and Job terminal contract. — Complete
        - Keep ordinary Product content mutation available during Grace while rejecting every newly dispatched metered external-cost effect with an explicit 402 recovery error and Provider recovery deadline.
        - Project the same denial into permanent Job failure metadata so retry, schedule, Agent, and Job paths cannot reinterpret the payment state as transient.
-     - M2.3b.3b Product API/automation denial matrix closure. — Active
+    - M2.3b.3b Product API/automation denial matrix closure. — Complete
        - Close unguarded Product HTTP and event-driven execution paths while preserving payment recovery, cancellation, revocation, deletion, and other reducing actions.
        - M2.3b.3b.1 Product HTTP command matrix. — Complete
          - Classify every reachable Product mutation route by its actual commercial effect, including storage, AI runtime, legacy Agent, environment, database, API-key, Automation configuration, Knowledge, Skill, and Design System surfaces.
          - Keep abort, cancel, reject, revoke, rotate, delete, and other reducing or safety actions available during recovery.
        - M2.3b.3b.2 Event-driven Automation execution preflight. — Complete
          - Pre-authorize every distinct operation effect before creating an Automation run or dispatching any operation so mixed flows cannot partially execute under Grace or Restricted access.
-       - M2.3b.3b.3 Remaining reachable Site mutation closure. — Active
+      - M2.3b.3b.3 Remaining reachable Site mutation closure. — Complete
          - Verify Site settings and preview-token write paths against the same Product commercial-effect contract, and exclude unreachable legacy routers with registration evidence instead of manufacturing a false closure.
      - M2.3b.3c withheld period Credits and immutable handoff evidence. — Pending
        - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
@@ -626,6 +626,21 @@ M2.3b.3b.2 validation:
 - `pnpm api:check` passed API lint and formatting. Broad typecheck remains blocked by the same `289` existing diagnostics, after which Turbo canceled broad pytest; no targeted Automation type diagnostic remains.
 - Changed-scope Code Review Engine exited successfully with zero blocking findings. Its sole report-only finding is the existing `AUTOMATION_NOTIFICATION_TARGET_INVALID` localization prototype issue outside this change.
 - GitNexus could not resolve the Automation service/runtime symbols because the index reported an existing ScopeExtractor failure for `service.py`; no High/Critical result was returned, and the live production construction chain was verified directly as `core/runtime_init.py -> AutomationRuntime -> ProjectAutomationService`.
+
+M2.3b.3b.3 implementation evidence:
+
+- Added Site-scoped commercial-effect dependencies that resolve the durable Site before authorizing its owning Workspace through the canonical Restricted Recovery policy.
+- Site setting upserts retain mandatory preview-token validation before Workspace resolution and commercial authorization, then classify the write as `CONTENT_MUTATION`.
+- Preview-token issuance classifies the temporary access credential as `ACCESS_EXPANSION`; the existing identity-authorization boundary remains unchanged in this slice.
+- Product composition evidence confirms that the settings and preview-token routes are reachable while the legacy Site pattern collection/item routers are not registered. Unreachable handlers were excluded instead of being presented as protected Product surfaces.
+
+M2.3b.3b.3 validation:
+
+- Focused Site route/helper/composition coverage passed `13` tests; targeted Ruff lint/format and `ty` passed across all changed Site production and test files.
+- Expanded Restricted Recovery, command-policy, Product route, Automation service/runtime, Site helper, and Product composition regression passed `52` tests.
+- Changed-scope Code Review Engine reported zero findings across all `41` rules.
+- GitNexus was refreshed successfully to `102188` symbols and `300` execution flows after the index became stale; its existing ScopeExtractor failures remain visible and did not hide a High/Critical Site impact result.
+- M2.3b.3b is complete. The only active part is M2.3b.3c withheld period Credits and immutable handoff evidence.
 
 ## Known unrelated repository failures
 
@@ -820,3 +835,11 @@ M2.3b.3b.2 validation:
 - Pre-authorized every distinct operation effect before run creation or operation dispatch, including mixed read/content/metered flows and unknown-operation rejection.
 - Verified `44` combined Restricted Recovery/route/Automation tests, `20` final Automation tests, `8` core i18n tests, targeted static checks, and a zero-blocker changed-scope review.
 - Recorded the unchanged `289` broad API type diagnostics and selected M2.3b.3b.3 remaining reachable Site mutation closure as the only active part.
+
+### 2026-08-05 — M2.3b.3b.3 reachable Site mutation closure
+
+- Added canonical Workspace commercial-effect resolution to the reachable Site settings and preview-token mutations.
+- Preserved preview-token validation before the settings write authorization, classified settings as content mutation, and classified token issuance as access expansion.
+- Proved through Product composition tests that the legacy Site pattern routers are unreachable and excluded them from the denial matrix without manufacturing coverage.
+- Verified `13` focused Site tests, `52` expanded Restricted Recovery/Automation/Site regressions, targeted Ruff/format/`ty`, and a zero-finding changed-scope review.
+- Completed M2.3b.3b and selected M2.3b.3c withheld period Credits and immutable handoff evidence as the only active part.

@@ -23,6 +23,10 @@ def test_product_api_exposes_only_product_routes() -> None:
     assert app.title == "Arclayer API"
     assert "/api/v1/projects" in paths
     assert "/api/v1/runtime" in paths
+    assert "/api/v1/sites/{site_id}/settings" in paths
+    assert "/api/v1/sites/{site_id}/preview-tokens" in paths
+    assert "/api/v1/sites/{site_id}/patterns" not in paths
+    assert "/api/v1/sites/{site_id}/patterns/{pattern_id}" not in paths
     assert "/api/v1/system/runtime" not in paths
     assert "/api/v1/system/settings" not in paths
     assert "/api/v1/system/commerce/plans" not in paths

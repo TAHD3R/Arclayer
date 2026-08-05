@@ -7,6 +7,8 @@ from fastapi import APIRouter, Body, Depends, status
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.middleware.guard_decorators import guard_rate_limit
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.sites.http.router_helpers import require_site_commercial_effect
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
@@ -22,6 +24,7 @@ PREVIEW_TOKEN_CREATE_RATE_LIMIT = (10, 60)
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a preview token (stub)",
+    dependencies=[require_site_commercial_effect(RestrictedRecoveryEffect.ACCESS_EXPANSION)],
 )
 async def create_preview_token(
     site_id: PublicUUID,
