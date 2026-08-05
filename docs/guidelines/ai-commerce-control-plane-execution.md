@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4 transaction, invoice, top-up, and refund projection.
+Current active part: M2.4a.2 Stripe invoice normalization and projection.
 
 Repository baseline:
 
@@ -372,6 +372,9 @@ M2 execution parts:
    - Add one canonical payment projection service over the existing payment models with transactional Provider-event idempotency and audit evidence.
    - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
+   - M2.4a.1 Provider-neutral and simulated invoice/transaction projection. — Complete
+   - M2.4a.2 Stripe invoice normalization and projection. — Active
+   - M2.4b purchased top-up, refund, and correction projection. — Pending
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
@@ -682,6 +685,22 @@ M2.3c validation:
 - Final staged GitNexus detection reported `LOW` risk across `22` files and `102` indexed symbols with no affected execution flow.
 - M2.3 is complete. The only active part is M2.4 canonical transaction, invoice, top-up, and refund projection.
 
+M2.4a.1 implementation evidence:
+
+- Added one Provider-neutral payment projection service inside the existing Provider Subscription application transaction. It binds the Workspace, Subscription, Plan Revision, Provider/mode/account/event, current invoice and transaction projections, payload SHA-256, signature reference, and a canonical payment fingerprint.
+- Extended strict normalized Subscription events with optional invoice and exact transaction facts. The simulated Provider now emits these facts only through its signed `subscription.lifecycle` event and the accepted encrypted-inbox/pinned-Job chain.
+- Added durable application and transaction snapshot models plus migration `0126_commerce_provider_payment_projections`. Exact application replay creates no duplicate projection; later legal states advance current projections; delayed invoice events persist `stale_ignored` evidence without regressing current state.
+- Corrected transaction ordering to compare Provider event occurrence times rather than mixing transaction occurrence time with event time. A later event can therefore advance the same transaction from `pending` to `succeeded` while genuinely delayed events remain stale.
+- Removed the obsolete Job-handler unit test that invoked the deleted `_apply_credit_account` implementation detail instead of restoring a compatibility path.
+
+M2.4a.1 validation:
+
+- Focused Provider payment, simulated/Stripe Connector, Job, and migration unit regression passed `36` tests. Real PostgreSQL lifecycle and independent `0126` migration validation passed `15` tests.
+- Targeted Ruff, format, and `ty` checks passed. The active database reports no migrations to apply, and `db:migrate` reports `No changes detected`.
+- `pnpm api:check` passed Ruff and format across `1866` files. Broad typecheck remains blocked by `289` existing Design System/content and unrelated test diagnostics; Turbo interrupted broad pytest after that failure.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `26` report-only findings are existing localization prototypes plus the known simulated Connector lifecycle report.
+- M2.4a.1 is complete. The only active part is M2.4a.2 real Stripe invoice normalization and projection; production Stripe remains independent from simulated event shapes and must use exact Provider transaction identities.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
@@ -902,3 +921,12 @@ M2.3c validation:
 - Verified `43` focused unit tests and `20` PostgreSQL lifecycle/Provider/migration tests plus targeted lint, format, type, and Product locale checks. The package gate retains the existing `290` unrelated type diagnostics.
 - Changed-scope review completed with zero blockers; staged GitNexus detection reported `LOW` risk and no affected execution flow.
 - Completed M2.3 and selected M2.4 transaction, invoice, top-up, and refund projection as the only active part.
+
+### 2026-08-05 — M2.4a.1 Provider-neutral simulated payment projection
+
+- Added canonical invoice and transaction projection inside the atomic Provider application transaction, with exact Workspace/Subscription/Revision/Provider identity and durable payload, signature, and payment-fingerprint evidence.
+- Routed simulated payment facts through signature verification, encrypted inbox, pinned Job, normalization, Provider application, current projections, and durable event snapshots; exact replay and delayed-event convergence remain explicit.
+- Added and applied `0126_commerce_provider_payment_projections`, confirmed no pending upgrade and no generated migration drift, and removed one obsolete private-method test rather than restoring dead compatibility.
+- Corrected transaction update ordering to use Provider event time and covered pending-to-succeeded advancement with a focused regression.
+- Verified `36` focused unit/Connector/Job/migration tests, `15` PostgreSQL lifecycle/migration tests, targeted lint/format/type checks, and a zero-blocker changed-scope review. The package gate retains `289` unrelated broad type diagnostics.
+- Completed M2.4a.1 and selected M2.4a.2 real Stripe invoice normalization and projection as the only active part.

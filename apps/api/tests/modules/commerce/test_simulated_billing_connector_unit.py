@@ -71,6 +71,7 @@ def _subscription_payload(
     plan_revision_id: str,
     checkout_activation: dict[str, str] | None = None,
     dunning: dict[str, object] | None = None,
+    payment: dict[str, object] | None = None,
     status: str = "active",
 ) -> bytes:
     data: dict[str, object] = {
@@ -91,6 +92,8 @@ def _subscription_payload(
         data["checkout_activation"] = checkout_activation
     if dunning is not None:
         data["dunning"] = dunning
+    if payment is not None:
+        data["payment"] = payment
     return json.dumps(
         {
             "id": "sim_evt_subscription123",
@@ -294,6 +297,61 @@ async def test_simulated_connector_normalizes_checkout_activation_correlation() 
     assert subscription.checkout_activation.external_session_id == "sim_cs_activation123"
     assert subscription.checkout_activation.checkout_outcome_event_id == "sim_evt_checkoutactivation123"
     assert int(subscription.checkout_activation.occurred_at.timestamp()) == timestamp
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_normalizes_invoice_and_transaction_projection() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    period_end = timestamp + 2_592_000
+    payload = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        payment={
+            "amount_due_micros": 9_000_000,
+            "amount_paid_micros": 9_000_000,
+            "external_invoice_id": "sim_in_unit123",
+            "hosted_invoice_url": "https://billing.example.test/invoices/sim_in_unit123",
+            "issued_at": timestamp,
+            "paid_at": timestamp,
+            "period_end": period_end,
+            "period_start": timestamp,
+            "status": "paid",
+            "transactions": [
+                {
+                    "amount_micros": 9_000_000,
+                    "external_transaction_id": "sim_tx_unit123",
+                    "kind": "renewal",
+                    "occurred_at": timestamp,
+                    "status": "succeeded",
+                }
+            ],
+        },
+    )
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert subscription is not None
+    assert subscription.payment is not None
+    assert subscription.payment.external_invoice_id == "sim_in_unit123"
+    assert subscription.payment.status == "paid"
+    assert subscription.payment.amount_due_micros == 9_000_000
+    assert subscription.payment.amount_paid_micros == 9_000_000
+    assert subscription.payment.period_end is not None
+    assert int(subscription.payment.period_end.timestamp()) == period_end
+    assert subscription.payment.hosted_invoice_url == "https://billing.example.test/invoices/sim_in_unit123"
+    assert len(subscription.payment.transactions) == 1
+    transaction = subscription.payment.transactions[0]
+    assert transaction.external_transaction_id == "sim_tx_unit123"
+    assert transaction.kind == "renewal"
+    assert transaction.status == "succeeded"
+    assert transaction.amount_micros == 9_000_000
 
 
 @pytest.mark.asyncio

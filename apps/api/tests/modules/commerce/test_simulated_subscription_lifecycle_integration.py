@@ -56,6 +56,10 @@ from src.models.commerce.payments import (
     CommerceCheckoutOutcomeCommand,
     CommerceCheckoutSession,
     CommerceCheckoutStatus,
+    CommerceInvoice,
+    CommerceProviderPaymentProjection,
+    CommerceProviderPaymentTransactionProjection,
+    CommerceTransaction,
 )
 from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
 from src.models.jobs.background_job import BackgroundJobRecord, JobDispatchOutboxRecord
@@ -185,6 +189,7 @@ def _payload(
     period_end: datetime,
     status: str = "active",
     dunning: dict[str, object] | None = None,
+    payment: dict[str, object] | None = None,
 ) -> bytes:
     data: dict[str, object] = {
         "billing_cycle": "monthly",
@@ -202,6 +207,8 @@ def _payload(
     }
     if dunning is not None:
         data["dunning"] = dunning
+    if payment is not None:
+        data["payment"] = payment
     return json.dumps(
         {
             "id": event_id,
@@ -518,6 +525,26 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
         event_timestamp=event_timestamp,
         period_start=event_time,
         period_end=period_end,
+        payment={
+            "amount_due_micros": 9_000_000,
+            "amount_paid_micros": 9_000_000,
+            "external_invoice_id": "sim_in_subscriptionintegration",
+            "hosted_invoice_url": "https://billing.example.test/invoices/sim_in_subscriptionintegration",
+            "issued_at": event_timestamp,
+            "paid_at": event_timestamp,
+            "period_end": int(period_end.timestamp()),
+            "period_start": event_timestamp,
+            "status": "paid",
+            "transactions": [
+                {
+                    "amount_micros": 9_000_000,
+                    "external_transaction_id": "sim_tx_subscriptionintegration",
+                    "kind": "renewal",
+                    "occurred_at": event_timestamp,
+                    "status": "succeeded",
+                }
+            ],
+        },
     )
     signature = _signature(payload, timestamp=event_timestamp, secret=secret)
 
@@ -540,6 +567,13 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     await fixture.account.refresh_from_db()
     inbox = await ConnectorEventInbox.get(id=inbox.id)
     application = await CommerceProviderEventApplication.get(provider_event_id="sim_evt_subscriptionintegration")
+    payment_projection = await CommerceProviderPaymentProjection.get(application_id=application.id)
+    invoice = await CommerceInvoice.get(id=payment_projection.invoice_id)
+    transaction = await CommerceTransaction.get(invoice_id=invoice.id)
+    transaction_projection = await CommerceProviderPaymentTransactionProjection.get(
+        payment_projection_id=payment_projection.id,
+        transaction_id=transaction.id,
+    )
     grant = await CommercePlanPeriodGrant.get(application_id=application.id)
     lot = await WorkspaceCreditGrantLot.get(id=grant.grant_lot_id)
     ledger = await WorkspaceCreditLedger.get(id=grant.ledger_entry_id)
@@ -568,9 +602,93 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     assert ledger.balance_after_credits == 100
     assert application.result_code == "applied"
     assert application.applied_at is not None
+    assert payment_projection.provider_account_id == "platform"
+    assert payment_projection.provider_event_id == "sim_evt_subscriptionintegration"
+    assert payment_projection.invoice_status == "paid"
+    assert payment_projection.amount_due_micros == 9_000_000
+    assert payment_projection.amount_paid_micros == 9_000_000
+    assert payment_projection.result_code == "applied"
+    assert invoice.workspace_id == fixture.workspace.id
+    assert invoice.subscription_id == fixture.subscription.id
+    assert invoice.external_invoice_id == "sim_in_subscriptionintegration"
+    assert invoice.status == "paid"
+    assert invoice.amount_due_micros == 9_000_000
+    assert invoice.amount_paid_micros == 9_000_000
+    assert invoice.period_start == event_time
+    assert invoice.period_end == period_end
+    assert transaction.external_transaction_id == "sim_tx_subscriptionintegration"
+    assert transaction.kind == "renewal"
+    assert transaction.status == "succeeded"
+    assert transaction.amount_micros == 9_000_000
+    assert transaction.provider_event_id == "sim_evt_subscriptionintegration"
+    assert transaction_projection.status == "succeeded"
+    assert transaction_projection.amount_micros == 9_000_000
     assert await CommerceProviderEventApplication.all().count() == 1
+    assert await CommerceProviderPaymentProjection.all().count() == 1
+    assert await CommerceProviderPaymentTransactionProjection.all().count() == 1
+    assert await CommerceInvoice.all().count() == 1
+    assert await CommerceTransaction.all().count() == 1
     assert await BackgroundJobRecord.all().count() == 1
     assert await JobDispatchOutboxRecord.all().count() == 1
+
+    normalized = await connector.subscription_from_event(
+        payload=payload,
+        envelope=connector.verify_webhook(payload=payload, signature=signature),
+    )
+    assert normalized is not None
+    await BillingProviderSubscriptionApplicationService(settings=settings).apply_provider_subscription(
+        subscription=normalized,
+        provider="simulated",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=VerifiedBillingProviderEvent(
+            provider_event_id=normalized.event_id,
+            payload_sha256=payment_projection.payload_sha256,
+            signature_reference=payment_projection.signature_reference,
+        ),
+    )
+    assert await CommerceProviderPaymentProjection.all().count() == 1
+    assert await CommerceProviderPaymentTransactionProjection.all().count() == 1
+    assert await CommerceInvoice.all().count() == 1
+    assert await CommerceTransaction.all().count() == 1
+
+    older_payment_time = event_time - timedelta(seconds=1)
+    older_payment_event_id = "sim_evt_subscriptionpaymentolder"
+    older_payment_payload = _payload(
+        fixture=fixture,
+        event_id=older_payment_event_id,
+        event_timestamp=int(older_payment_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        payment={
+            "amount_due_micros": 9_000_000,
+            "amount_paid_micros": 0,
+            "external_invoice_id": "sim_in_subscriptionintegration",
+            "hosted_invoice_url": "https://billing.example.test/invoices/sim_in_subscriptionintegration",
+            "issued_at": event_timestamp,
+            "period_end": int(period_end.timestamp()),
+            "period_start": event_timestamp,
+            "status": "open",
+            "transactions": [],
+        },
+    )
+    older_payment_acceptance = await acceptance.accept(
+        payload=older_payment_payload,
+        signature=_signature(
+            older_payment_payload,
+            timestamp=int(older_payment_time.timestamp()),
+            secret=secret,
+        ),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=older_payment_acceptance.inbox_id)))
+    await invoice.refresh_from_db()
+    older_payment_application = await CommerceProviderEventApplication.get(provider_event_id=older_payment_event_id)
+    older_payment_projection = await CommerceProviderPaymentProjection.get(application_id=older_payment_application.id)
+    assert older_payment_projection.result_code == "stale_ignored"
+    assert older_payment_projection.invoice_status == "open"
+    assert invoice.status == "paid"
+    assert invoice.amount_paid_micros == 9_000_000
+    assert await CommerceTransaction.all().count() == 1
 
     stale_payload = _payload(
         fixture=fixture,
@@ -595,7 +713,7 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     assert stale_inbox.status == ConnectorEventInboxStatus.FAILED
     assert fixture.subscription.current_period_start == event_time
     assert fixture.subscription.current_period_end == period_end
-    assert await CommerceProviderEventApplication.all().count() == 1
+    assert await CommerceProviderEventApplication.all().count() == 2
 
     top_up_ledger = await WorkspaceCreditLedger.create(
         workspace_id=fixture.workspace.id,

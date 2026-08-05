@@ -47,6 +47,11 @@ from src.modules.commerce.checkout_activation_repository import (
 from src.modules.commerce.convergence.composition import build_plan_access_convergence_service
 from src.modules.commerce.convergence.schema import ProviderConfirmedConvergenceApplication
 from src.modules.commerce.convergence.service import PlanAccessConvergenceService
+from src.modules.commerce.provider_payment_projection import (
+    ProviderPaymentProjectionCommand,
+    ProviderPaymentProjectionService,
+    build_provider_payment_projection_service,
+)
 from src.modules.commerce.provider_period_credit_grant import (
     ProviderPeriodCreditCommand,
     ProviderPeriodCreditGrantService,
@@ -121,6 +126,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         checkout_activation: TortoiseCheckoutActivationRepository | None = None,
         dunning_policy: DunningPolicyResolver | None = None,
         period_credits: ProviderPeriodCreditGrantService | None = None,
+        payments: ProviderPaymentProjectionService | None = None,
     ) -> None:
         super().__init__(settings)
         self._access_state = access_state or build_commercial_access_state_composition(settings=self.settings)
@@ -129,6 +135,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         self._checkout_activation = checkout_activation or TortoiseCheckoutActivationRepository()
         self._dunning_policy = dunning_policy or TortoiseDunningPolicyResolver()
         self._period_credits = period_credits or build_provider_period_credit_grant_service(settings=self.settings)
+        self._payments = payments or build_provider_payment_projection_service(settings=self.settings)
 
     async def apply_provider_subscription(
         self,
@@ -165,6 +172,23 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                 provider_account_id=provider_account_id,
                 conn=conn,
             )
+            if subscription.payment is not None:
+                await self._payments.apply(
+                    command=ProviderPaymentProjectionCommand(
+                        workspace_id=subscription.workspace_id,
+                        subscription_id=UUID(str(workspace_subscription.id)),
+                        plan_revision_id=subscription.plan_revision_id,
+                        application_id=UUID(str(application.id)),
+                        provider=provider,
+                        provider_mode=mode,
+                        provider_account_id=provider_account_id,
+                        provider_event_id=verified_event.provider_event_id,
+                        payload_sha256=verified_event.payload_sha256,
+                        signature_reference=verified_event.signature_reference,
+                    ),
+                    payment=subscription.payment,
+                    conn=conn,
+                )
             activation: CheckoutActivationRecord | None = None
             try:
                 activation = await self._resolve_checkout_activation(

@@ -19,7 +19,6 @@ from src.models.commerce.billing import (
     BillingCycle,
     BillingProviderMode,
     SubscriptionStatus,
-    WorkspaceCreditAccount,
 )
 from src.models.commerce.payments import CommerceCheckoutStatus
 from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
@@ -333,30 +332,6 @@ async def test_worker_treats_provider_revision_or_price_mismatch_as_terminal(tmp
         await handler.execute(context=_context(inbox))
 
     assert captured.value.code == BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE
-
-
-def test_provider_application_keeps_credit_account_pinned_to_event_revision() -> None:
-    subscription = _subscription(event_id="evt_account123")
-    account = cast(
-        WorkspaceCreditAccount,
-        SimpleNamespace(
-            plan_revision_id=uuid4(),
-            period_start=datetime.now(UTC),
-            period_end=datetime.now(UTC),
-            period_identity="free:before",
-        ),
-    )
-
-    BillingProviderSubscriptionApplicationService._apply_credit_account(
-        account=account,
-        incoming=subscription,
-        provider="stripe",
-    )
-
-    assert account.plan_revision_id == subscription.plan_revision_id
-    assert account.period_start == subscription.current_period_start
-    assert account.period_end == subscription.current_period_end
-    assert str(subscription.plan_revision_id) in account.period_identity
 
 
 @pytest.mark.asyncio

@@ -291,6 +291,95 @@ class CommerceTransaction(BaseModel):
         indexes = (("workspace_id", "occurred_at"), ("status", "occurred_at"))
 
 
+class CommerceProviderPaymentProjection(BaseModel):
+    """Immutable Provider-event evidence for one current invoice projection."""
+
+    application = fields.OneToOneField(
+        "models.CommerceProviderEventApplication",
+        related_name="payment_projection",
+        on_delete=fields.RESTRICT,
+    )
+    workspace = fields.ForeignKeyField(
+        "models.Workspace",
+        related_name="commerce_provider_payment_projections",
+        on_delete=fields.RESTRICT,
+    )
+    subscription = fields.ForeignKeyField(
+        "models.WorkspaceSubscription",
+        related_name="provider_payment_projections",
+        on_delete=fields.RESTRICT,
+    )
+    plan_revision = fields.ForeignKeyField(
+        "models.CommercePlanRevision",
+        related_name="provider_payment_projections",
+        on_delete=fields.RESTRICT,
+    )
+    invoice = fields.ForeignKeyField(
+        "models.CommerceInvoice",
+        related_name="provider_event_projections",
+        on_delete=fields.RESTRICT,
+    )
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharEnumField(BillingProviderMode)
+    provider_account_id = fields.CharField(max_length=255)
+    provider_event_id = fields.CharField(max_length=255)
+    provider_event_occurred_at = fields.DatetimeField(db_index=True)
+    payload_sha256 = fields.CharField(max_length=64)
+    signature_reference = fields.CharField(max_length=255)
+    payment_fingerprint = fields.CharField(max_length=64)
+    invoice_status = fields.CharEnumField(CommerceInvoiceStatus)
+    amount_due_micros = fields.BigIntField()
+    amount_paid_micros = fields.BigIntField()
+    amount_refunded_micros = fields.BigIntField()
+    result_code = fields.CharField(max_length=64)
+
+    if TYPE_CHECKING:
+        application_id: UUID
+        workspace_id: UUID
+        subscription_id: UUID
+        plan_revision_id: UUID
+        invoice_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_provider_payment_projections"
+        table_description = "Immutable Provider event evidence for invoice and transaction projections."
+        abstract = False
+        unique_together = (("provider", "provider_mode", "provider_account_id", "provider_event_id"),)
+        indexes = (
+            ("workspace_id", "provider_event_occurred_at"),
+            ("invoice_id", "provider_event_occurred_at"),
+        )
+
+
+class CommerceProviderPaymentTransactionProjection(BaseModel):
+    """Immutable transaction snapshot linked to one Provider payment application."""
+
+    payment_projection = fields.ForeignKeyField(
+        "models.CommerceProviderPaymentProjection",
+        related_name="transaction_projections",
+        on_delete=fields.RESTRICT,
+    )
+    transaction = fields.ForeignKeyField(
+        "models.CommerceTransaction",
+        related_name="provider_event_projections",
+        on_delete=fields.RESTRICT,
+    )
+    status = fields.CharEnumField(CommerceTransactionStatus)
+    amount_micros = fields.BigIntField()
+    provider_event_occurred_at = fields.DatetimeField(db_index=True)
+
+    if TYPE_CHECKING:
+        payment_projection_id: UUID
+        transaction_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_provider_payment_transaction_projections"
+        table_description = "Immutable transaction snapshots for Provider payment applications."
+        abstract = False
+        unique_together = (("payment_projection_id", "transaction_id"),)
+        indexes = (("transaction_id", "provider_event_occurred_at"),)
+
+
 class CommerceRefund(BaseModel):
     """Idempotent refund request and Provider-confirmed outcome."""
 

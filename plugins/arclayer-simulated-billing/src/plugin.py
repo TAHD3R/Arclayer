@@ -21,6 +21,11 @@ from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
 from src.models.commerce.billing import BillingCycle, SubscriptionStatus
+from src.models.commerce.payments import (
+    CommerceInvoiceStatus,
+    CommerceTransactionKind,
+    CommerceTransactionStatus,
+)
 from src.modules.commerce.billing_connector import (
     BillingRedirectSession,
     BillingWebhookEnvelope,
@@ -28,7 +33,9 @@ from src.modules.commerce.billing_connector import (
     ProviderCheckoutActivationEvidence,
     ProviderCheckoutOutcome,
     ProviderDunningEvent,
+    ProviderInvoiceProjection,
     ProviderSubscription,
+    ProviderTransactionProjection,
 )
 
 logger = get_logger(__name__)
@@ -87,6 +94,32 @@ class _SimulatedPaymentRecoveredData(BaseModel):
     provider_period_id: str = Field(..., min_length=1, max_length=255)
 
 
+class _SimulatedTransactionData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    external_transaction_id: str = Field(..., min_length=1, max_length=255)
+    kind: CommerceTransactionKind
+    status: CommerceTransactionStatus
+    amount_micros: int = Field(..., ge=0)
+    occurred_at: int
+
+
+class _SimulatedInvoiceData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    external_invoice_id: str = Field(..., min_length=1, max_length=255)
+    status: CommerceInvoiceStatus
+    amount_due_micros: int = Field(..., ge=0)
+    amount_paid_micros: int = Field(..., ge=0)
+    amount_refunded_micros: int = Field(default=0, ge=0)
+    period_start: int
+    period_end: int
+    issued_at: int
+    paid_at: int | None = None
+    hosted_invoice_url: str | None = Field(default=None, min_length=1)
+    transactions: tuple[_SimulatedTransactionData, ...] = ()
+
+
 _SimulatedDunningData = Annotated[
     _SimulatedPaymentFailureData | _SimulatedPaymentRecoveredData | _SimulatedFinalUnpaidData,
     Field(discriminator="kind"),
@@ -110,6 +143,7 @@ class _SimulatedSubscriptionData(BaseModel):
     cancel_at_period_end: bool = False
     checkout_activation: _SimulatedCheckoutActivationData | None = None
     dunning: _SimulatedDunningData | None = None
+    payment: _SimulatedInvoiceData | None = None
 
     @model_validator(mode="after")
     def validate_period(self) -> "_SimulatedSubscriptionData":
@@ -232,6 +266,11 @@ class SimulatedBillingConnector:
             current_period_end=_provider_timestamp(data.current_period_end),
             cancel_at_period_end=data.cancel_at_period_end,
             dunning_event=_provider_dunning_event(data.dunning, occurred_at=occurred_at),
+            payment=_provider_payment_projection(
+                data.payment,
+                currency=data.currency,
+                occurred_at=occurred_at,
+            ),
             checkout_activation=(
                 ProviderCheckoutActivationEvidence(
                     checkout_session_id=activation.checkout_session_id,
@@ -394,6 +433,44 @@ def _provider_dunning_event(
             provider_period_id=data.provider_period_id,
             occurred_at=occurred_at,
             recovery_deadline=recovery_deadline,
+        )
+    except ValidationError as exc:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+
+
+def _provider_payment_projection(
+    data: _SimulatedInvoiceData | None,
+    *,
+    currency: str,
+    occurred_at: datetime,
+) -> ProviderInvoiceProjection | None:
+    if data is None:
+        return None
+    try:
+        return ProviderInvoiceProjection(
+            external_invoice_id=data.external_invoice_id,
+            status=data.status,
+            currency=currency,
+            amount_due_micros=data.amount_due_micros,
+            amount_paid_micros=data.amount_paid_micros,
+            amount_refunded_micros=data.amount_refunded_micros,
+            period_start=_provider_timestamp(data.period_start),
+            period_end=_provider_timestamp(data.period_end),
+            issued_at=_provider_timestamp(data.issued_at),
+            paid_at=_provider_timestamp(data.paid_at) if data.paid_at is not None else None,
+            hosted_invoice_url=data.hosted_invoice_url,
+            occurred_at=occurred_at,
+            transactions=tuple(
+                ProviderTransactionProjection(
+                    external_transaction_id=transaction.external_transaction_id,
+                    kind=transaction.kind,
+                    status=transaction.status,
+                    currency=currency,
+                    amount_micros=transaction.amount_micros,
+                    occurred_at=_provider_timestamp(transaction.occurred_at),
+                )
+                for transaction in data.transactions
+            ),
         )
     except ValidationError as exc:
         raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
