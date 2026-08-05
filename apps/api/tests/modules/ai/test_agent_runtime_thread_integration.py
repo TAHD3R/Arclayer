@@ -155,6 +155,35 @@ async def test_thread_list_uses_owned_project_filter_and_stable_cursor(prepared_
     )
     assert {item.thread_id for item in global_threads.items} == set(created_ids)
 
+    pinned = await service.update(
+        workspace_id=workspace.id,
+        owner_user_id=owner_user_id,
+        thread_id=created_ids[0],
+        payload=AgentThreadUpdateRequestV1(pinned=True),
+    )
+    assert pinned.pinned is True
+    pinned_page = await service.list(
+        workspace_id=workspace.id,
+        owner_user_id=owner_user_id,
+        project_id=project.id,
+        archived=False,
+        query=None,
+        cursor=None,
+        limit=1,
+    )
+    assert pinned_page.items[0].thread_id == created_ids[0]
+    assert pinned_page.items[0].pinned is True
+    unpinned_page = await service.list(
+        workspace_id=workspace.id,
+        owner_user_id=owner_user_id,
+        project_id=project.id,
+        archived=False,
+        query=None,
+        cursor=pinned_page.next_cursor,
+        limit=1,
+    )
+    assert unpinned_page.items[0].pinned is False
+
 
 @pytest.mark.asyncio
 async def test_thread_history_archive_and_soft_delete_preserve_normalized_rows(prepared_db) -> None:

@@ -520,6 +520,8 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
         await self._create_builder_snapshot(run_id=run.id, command=command, conn=conn)
         await self._create_user_message(run=run, command=command, event=event, conn=conn)
         await self._event_repository.append_first(run=run, event=event, conn=conn)
+        thread.updated_at = event.occurred_at
+        await thread.save(using_db=conn, update_fields=["updated_at"])
         return self.to_head(run)
 
     @staticmethod

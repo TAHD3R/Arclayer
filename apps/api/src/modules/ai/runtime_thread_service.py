@@ -185,6 +185,7 @@ class AgentThreadService(BaseService):
             lead_agent_version_id=record.lead_agent_version_id,
             lead_agent_assignment_id=record.lead_agent_assignment_id,
             title=record.title,
+            pinned=record.is_pinned,
             archived_at=record.archived_at,
             created_at=record.created_at,
             updated_at=record.updated_at,

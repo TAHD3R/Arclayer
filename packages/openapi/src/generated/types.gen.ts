@@ -2397,6 +2397,10 @@ export type AgentThreadDetailV1 = {
      */
     messages: Array<AgentMessageSnapshotV1>;
     /**
+     * Pinned
+     */
+    pinned: boolean;
+    /**
      * Projectid
      */
     projectId: string | null;
@@ -2460,6 +2464,10 @@ export type AgentThreadOutV1 = {
      * Leadagentversionid
      */
     leadAgentVersionId: string;
+    /**
+     * Pinned
+     */
+    pinned: boolean;
     /**
      * Projectid
      */
@@ -2544,6 +2552,10 @@ export type AgentThreadUpdateRequestV1 = {
      * Archived
      */
     archived?: boolean | null;
+    /**
+     * Pinned
+     */
+    pinned?: boolean | null;
     /**
      * Title
      */

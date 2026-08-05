@@ -136,11 +136,15 @@ class AgentThreadRepository(TortoiseORMRepository[AgentThreadV1Record]):
             cursor_record = await queryset.filter(id=cursor).first()
             if cursor_record is None:
                 raise AgentRuntimePersistenceError("AGENT_THREAD_CURSOR_INVALID")
-            queryset = queryset.filter(
+            same_pin_page = Q(is_pinned=cursor_record.is_pinned) & (
                 Q(updated_at__lt=cursor_record.updated_at)
                 | Q(updated_at=cursor_record.updated_at, id__lt=cursor_record.id)
             )
-        records = await queryset.order_by("-updated_at", "-id").limit(limit + 1)
+            cursor_filter = same_pin_page
+            if cursor_record.is_pinned:
+                cursor_filter = cursor_filter | Q(is_pinned=False)
+            queryset = queryset.filter(cursor_filter)
+        records = await queryset.order_by("-is_pinned", "-updated_at", "-id").limit(limit + 1)
         next_cursor = records[limit - 1].id if len(records) > limit else None
         return records[:limit], next_cursor
 
@@ -206,6 +210,8 @@ class AgentThreadRepository(TortoiseORMRepository[AgentThreadV1Record]):
                 fields["title"] = payload.title
             if payload.archived is not None:
                 fields["archived_at"] = now if payload.archived else None
+            if payload.pinned is not None:
+                fields["is_pinned"] = payload.pinned
             fields["updated_at"] = now
             return await self.update_fields(record, fields=fields, conn=conn)
 

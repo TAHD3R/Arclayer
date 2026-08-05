@@ -19,6 +19,7 @@ export interface AgentThreadV1 {
   readonly leadAgentVersionId: string;
   readonly leadAgentAssignmentId: string;
   readonly title: string;
+  readonly pinned: boolean;
   readonly archivedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -106,7 +107,7 @@ export async function getAgentThread(
 export async function updateAgentThread(
   workspaceId: string,
   threadId: string,
-  request: Readonly<{ title?: string; archived?: boolean }>,
+  request: Readonly<{ title?: string; archived?: boolean; pinned?: boolean }>,
   options?: RequestOptions,
 ): Promise<AgentThreadV1> {
   return api.patch<AgentThreadV1>(

@@ -411,6 +411,11 @@ async def test_workspace_thread_endpoints_enforce_rbac_owner_scope_and_soft_dele
             listed = await client.get(base_url, params={"projectId": project_id})
             assert listed.status_code == 200, listed.text
             assert [item["threadId"] for item in listed.json()["data"]["items"]] == [thread_id]
+            assert listed.json()["data"]["items"][0]["pinned"] is False
+
+            pinned = await client.patch(f"{base_url}/{thread_id}", json={"pinned": True})
+            assert pinned.status_code == 200, pinned.text
+            assert pinned.json()["data"]["pinned"] is True
 
             updated = await client.patch(f"{base_url}/{thread_id}", json={"archived": True})
             assert updated.status_code == 200, updated.text

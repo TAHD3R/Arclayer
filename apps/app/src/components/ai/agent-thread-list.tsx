@@ -1,299 +1,280 @@
 "use client";
 
 import {
-  ThreadListItemPrimitive,
+  ThreadListItemByIndexProvider,
   ThreadListPrimitive,
-  useAui,
   useAuiState,
+  type ThreadListItemState,
 } from "@assistant-ui/react";
-import {
-  ArchiveIcon,
-  ArchiveRestoreIcon,
-  CheckIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { ArchiveIcon, MessageCircleIcon } from "lucide-react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import {
+  groupAgentThreadEntries,
+  type AgentThreadGroup,
+  type AgentThreadGroupingMode,
+  type AgentThreadListEntry,
+  type AgentThreadTimeGroupKey,
+} from "@/components/ai/agent-thread-list-groups";
+import { AgentThreadListGroup } from "@/components/ai/agent-thread-list-group";
+import { AgentThreadListItem } from "@/components/ai/agent-thread-list-item";
+import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIconItem,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
-import { Input } from "@arclayer/ui/input";
-import { Separator } from "@arclayer/ui/separator";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
+import { Skeleton } from "@arclayer/ui/skeleton";
 import { Spinner } from "@arclayer/ui/spinner";
+
+export type AgentThreadStatusFilter = "active" | "archived" | "all";
+
+export type AgentThreadProject = Readonly<{
+  projectId: string;
+  name: string;
+}>;
 
 interface AgentThreadListProps {
   readonly className?: string;
+  readonly projects?: readonly AgentThreadProject[];
+  readonly statusFilter?: AgentThreadStatusFilter;
+  readonly groupingMode?: AgentThreadGroupingMode;
   readonly onThreadSelect?: () => void;
 }
 
-interface AgentThreadListItemProps {
-  readonly archived: boolean;
-  readonly onThreadSelect?: () => void;
+type ThreadState = Pick<ThreadListItemState, "id" | "title" | "lastMessageAt" | "custom">;
+
+function readCustomString(custom: Record<string, unknown> | undefined, key: string): string | null {
+  const value = custom?.[key];
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
-function ThreadActionButton(props: {
-  readonly label: string;
-  readonly children: ReactNode;
-  readonly disabled?: boolean;
-  readonly onClick: () => void;
-}) {
+function readThreadTimestamp(item: ThreadState, archived: boolean): Date | null {
+  const archivedAt = archived ? readCustomString(item.custom, "archivedAt") : null;
+  const updatedAt = readCustomString(item.custom, "updatedAt");
+  const candidate = archivedAt ?? updatedAt;
+  if (candidate) {
+    const parsed = new Date(candidate);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return item.lastMessageAt && !Number.isNaN(item.lastMessageAt.getTime())
+    ? item.lastMessageAt
+    : null;
+}
+
+function buildEntries(
+  threadIds: readonly string[],
+  archivedThreadIds: readonly string[],
+  threadItems: readonly ThreadState[],
+  statusFilter: AgentThreadStatusFilter,
+): readonly AgentThreadListEntry[] {
+  const itemsById = new Map(threadItems.map((item) => [item.id, item]));
+  const descriptors = [
+    ...(statusFilter === "archived"
+      ? []
+      : threadIds.map((id, index) => ({ id, index, archived: false }))),
+    ...(statusFilter === "active"
+      ? []
+      : archivedThreadIds.map((id, index) => ({ id, index, archived: true }))),
+  ];
+
+  return descriptors.flatMap((descriptor) => {
+    const item = itemsById.get(descriptor.id);
+    if (!item) return [];
+    const timestamp = readThreadTimestamp(item, descriptor.archived);
+    if (!timestamp) return [];
+    return [
+      {
+        ...descriptor,
+        pinned: item.custom?.pinned === true,
+        projectId: readCustomString(item.custom, "projectId"),
+        timestamp,
+      },
+    ];
+  });
+}
+
+function formatThreadTimestamp(date: Date, nowMs: number, locale: string): string {
+  const sameDay = new Date(nowMs).toDateString() === date.toDateString();
+  return new Intl.DateTimeFormat(
+    locale,
+    sameDay ? { timeStyle: "short" } : { dateStyle: "medium" },
+  ).format(date);
+}
+
+function ThreadListSkeleton({ label }: { readonly label: string }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      aria-label={props.label}
-      title={props.label}
-      disabled={props.disabled}
-      onClick={props.onClick}
-      className="text-label-secondary hover:text-label-primary"
-    >
-      {props.children}
-    </Button>
+    <div role="status" className="space-y-5 px-2 py-3" aria-label={label}>
+      <span className="sr-only">{label}</span>
+      {[0, 1].map((group) => (
+        <div key={group} className="space-y-2">
+          <Skeleton className="h-4 w-28" />
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="flex min-h-11 items-center gap-2 rounded-md px-2 py-2">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="size-8 rounded-md" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
-function AgentThreadListItem({ archived, onThreadSelect }: AgentThreadListItemProps) {
-  const { t } = useTranslation(["ai", "common"]);
-  const api = useAui();
-  const item = useAuiState((state) => state.threadListItem);
-  const [renaming, setRenaming] = useState(false);
-  const [draftTitle, setDraftTitle] = useState(item.title || "");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [mutationPending, setMutationPending] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-
-  const runMutation = async (mutation: () => unknown | Promise<unknown>) => {
-    setMutationPending(true);
-    setMutationError(null);
-    try {
-      await mutation();
-      return true;
-    } catch (error) {
-      console.error("Failed to update Agent conversation", error);
-      setMutationError(t("ai:AI_CHAT_THREAD_UPDATE_FAILED"));
-      return false;
-    } finally {
-      setMutationPending(false);
-    }
-  };
-
-  const threadItem = () => api.threads().item({ id: item.id });
-  const saveTitle = async () => {
-    const title = draftTitle.trim();
-    if (!title) {
-      setMutationError(t("ai:AI_CHAT_THREAD_TITLE_REQUIRED"));
-      return;
-    }
-    if (await runMutation(() => threadItem().rename(title))) setRenaming(false);
-  };
-
-  const archiveThread = () =>
-    void runMutation(() => (archived ? threadItem().unarchive() : threadItem().archive()));
-
-  const deleteThread = async () => {
-    if (await runMutation(() => threadItem().delete())) setConfirmDelete(false);
-  };
-
-  return (
-    <ThreadListItemPrimitive.Root className="group/thread rounded-lg data-[active]:bg-accent">
-      <div className="flex min-h-11 items-center gap-1 px-1.5 py-1">
-        {renaming ? (
-          <form
-            className="flex min-w-0 flex-1 items-center gap-1"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void saveTitle();
-            }}
-          >
-            <Input
-              value={draftTitle}
-              autoFocus
-              aria-label={t("ai:AI_CHAT_THREAD_RENAME_INPUT")}
-              disabled={mutationPending}
-              onChange={(event) => setDraftTitle(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") setRenaming(false);
-              }}
-              className="h-8 min-w-0"
-            />
-            <ThreadActionButton
-              label={t("common:CONFIRM")}
-              disabled={mutationPending}
-              onClick={() => void saveTitle()}
-            >
-              <CheckIcon className="size-4" aria-hidden="true" />
-            </ThreadActionButton>
-            <ThreadActionButton
-              label={t("common:CANCEL")}
-              disabled={mutationPending}
-              onClick={() => setRenaming(false)}
-            >
-              <XIcon className="size-4" aria-hidden="true" />
-            </ThreadActionButton>
-          </form>
-        ) : confirmDelete ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 px-1">
-            <p className="min-w-0 flex-1 truncate text-footnote text-label-primary">
-              {t("ai:AI_CHAT_THREAD_DELETE_CONFIRM", {
-                title: item.title || t("ai:AI_CHAT_NEW_CONVERSATION"),
-              })}
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={mutationPending}
-              onClick={() => setConfirmDelete(false)}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={mutationPending}
-              onClick={() => void deleteThread()}
-            >
-              {t("common:DELETE")}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <ThreadListItemPrimitive.Trigger
-              className="min-w-0 flex-1 rounded-md px-2 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={onThreadSelect}
-            >
-              <span className="block truncate text-footnote font-medium text-label-primary">
-                <ThreadListItemPrimitive.Title fallback={t("ai:AI_CHAT_NEW_CONVERSATION")} />
-              </span>
-            </ThreadListItemPrimitive.Trigger>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t("ai:AI_CHAT_THREAD_MORE")}
-                  className="shrink-0 text-label-secondary opacity-0 transition-opacity duration-100 group-hover/thread:opacity-100 group-focus-within/thread:opacity-100 group-data-[active]/thread:opacity-100 motion-reduce:transition-none hover:text-label-primary"
-                >
-                  <MoreHorizontalIcon className="size-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 rounded-md p-1">
-                <DropdownMenuIconItem
-                  icon={<PencilIcon className="size-4" aria-hidden="true" />}
-                  onSelect={() => {
-                    setDraftTitle(item.title || "");
-                    setRenaming(true);
-                    setConfirmDelete(false);
-                  }}
-                >
-                  {t("ai:AI_CHAT_THREAD_RENAME")}
-                </DropdownMenuIconItem>
-                <DropdownMenuIconItem
-                  icon={
-                    archived ? (
-                      <ArchiveRestoreIcon className="size-4" aria-hidden="true" />
-                    ) : (
-                      <ArchiveIcon className="size-4" aria-hidden="true" />
-                    )
-                  }
-                  disabled={mutationPending}
-                  onSelect={archiveThread}
-                >
-                  {t(archived ? "ai:AI_CHAT_THREAD_UNARCHIVE" : "ai:AI_CHAT_THREAD_ARCHIVE")}
-                </DropdownMenuIconItem>
-                <DropdownMenuIconItem
-                  icon={<Trash2Icon className="size-4" aria-hidden="true" />}
-                  variant="destructive"
-                  onSelect={() => {
-                    setConfirmDelete(true);
-                    setRenaming(false);
-                  }}
-                >
-                  {t("ai:AI_CHAT_THREAD_DELETE")}
-                </DropdownMenuIconItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
-      </div>
-      {mutationError ? (
-        <p role="alert" className="px-3 pb-2 text-caption text-destructive">
-          {mutationError}
-        </p>
-      ) : null}
-    </ThreadListItemPrimitive.Root>
-  );
+function timeGroupLabel(key: AgentThreadTimeGroupKey): string {
+  const keys = {
+    today: "ai:AI_CHAT_THREAD_TIME_TODAY",
+    yesterday: "ai:AI_CHAT_THREAD_TIME_YESTERDAY",
+    "previous-7-days": "ai:AI_CHAT_THREAD_TIME_PREVIOUS_7_DAYS",
+    "previous-30-days": "ai:AI_CHAT_THREAD_TIME_PREVIOUS_30_DAYS",
+    older: "ai:AI_CHAT_THREAD_TIME_OLDER",
+  } as const;
+  return keys[key];
 }
 
-function ThreadCollection(props: {
-  readonly archived: boolean;
-  readonly count: number;
-  readonly onThreadSelect?: () => void;
-}) {
-  const { t } = useTranslation(["ai"]);
-  const label = t(props.archived ? "ai:AI_CHAT_THREAD_ARCHIVED" : "ai:AI_CHAT_THREAD_ACTIVE");
-
-  return (
-    <section aria-label={label}>
-      <div className="flex items-center justify-between px-3 py-2">
-        <h3 className="text-caption font-semibold text-label-secondary">{label}</h3>
-        <span className="text-caption tabular-nums text-label-tertiary">{props.count}</span>
-      </div>
-      {props.count === 0 ? (
-        <p className="px-3 py-3 text-footnote text-label-secondary">
-          {t(
-            props.archived ? "ai:AI_CHAT_THREAD_ARCHIVED_EMPTY" : "ai:AI_CHAT_THREAD_ACTIVE_EMPTY",
-          )}
-        </p>
-      ) : (
-        <ThreadListPrimitive.Items archived={props.archived}>
-          {() => (
-            <AgentThreadListItem archived={props.archived} onThreadSelect={props.onThreadSelect} />
-          )}
-        </ThreadListPrimitive.Items>
-      )}
-    </section>
-  );
+function visibleThreadCount(
+  activeCount: number,
+  archivedCount: number,
+  statusFilter: AgentThreadStatusFilter,
+): number {
+  if (statusFilter === "active") return activeCount;
+  if (statusFilter === "archived") return archivedCount;
+  return activeCount + archivedCount;
 }
 
-export function AgentThreadList({ className, onThreadSelect }: AgentThreadListProps) {
-  const { t } = useTranslation(["ai"]);
-  const isLoading = useAuiState((state) => state.threads.isLoading);
-  const activeCount = useAuiState((state) => state.threads.threadIds.length);
-  const archivedCount = useAuiState((state) => state.threads.archivedThreadIds.length);
+function projectLabel(
+  projectId: string | null,
+  projectNames: ReadonlyMap<string, string>,
+  t: (key: string) => string,
+): string {
+  if (projectId === null) return t("ai:AI_CHAT_THREAD_PROJECT_WORKSPACE");
+  return projectNames.get(projectId) ?? t("ai:AI_CHAT_THREAD_PROJECT_UNAVAILABLE");
+}
 
-  if (isLoading) {
+function groupLabel(
+  group: AgentThreadGroup,
+  projectNames: ReadonlyMap<string, string>,
+  t: (key: string) => string,
+): string {
+  if (group.kind === "pinned") return t("ai:AI_CHAT_THREAD_PINNED");
+  if (group.kind === "time" && group.timeKey) return t(timeGroupLabel(group.timeKey));
+  return projectLabel(group.projectId, projectNames, t);
+}
+
+export function AgentThreadList({
+  className,
+  projects,
+  statusFilter = "all",
+  groupingMode = "time",
+  onThreadSelect,
+}: AgentThreadListProps) {
+  const { t, i18n } = useTranslation(["ai"]);
+  const nowMs = useNowTick(60_000);
+  const threads = useAuiState((state) => state.threads);
+  const projectNames = useMemo(
+    () => new Map((projects ?? []).map((project) => [project.projectId, project.name])),
+    [projects],
+  );
+  const entries = useMemo(
+    () =>
+      buildEntries(threads.threadIds, threads.archivedThreadIds, threads.threadItems, statusFilter),
+    [statusFilter, threads.archivedThreadIds, threads.threadIds, threads.threadItems],
+  );
+  const groups = useMemo(
+    () => groupAgentThreadEntries(entries, new Date(nowMs), groupingMode),
+    [entries, groupingMode, nowMs],
+  );
+
+  if (threads.isLoading) {
+    return <ThreadListSkeleton label={t("ai:AI_CHAT_THREAD_LOADING")} />;
+  }
+
+  const threadCount = visibleThreadCount(
+    threads.threadIds.length,
+    threads.archivedThreadIds.length,
+    statusFilter,
+  );
+  if (threadCount > 0 && entries.length === 0) {
+    return <ThreadListSkeleton label={t("ai:AI_CHAT_THREAD_LOADING")} />;
+  }
+
+  if (entries.length === 0) {
+    const archived = statusFilter === "archived";
     return (
-      <div
-        role="status"
-        className={cn(
-          "flex min-h-28 items-center justify-center gap-2 px-4 text-footnote text-label-secondary",
-          className,
-        )}
-      >
-        <Spinner className="size-4" aria-hidden="true" />
-        <span>{t("ai:AI_CHAT_THREAD_LOADING")}</span>
-      </div>
+      <Empty className={cn("min-h-full gap-0 px-4 py-8", className)}>
+        <EmptyHeader className="max-w-[14rem] gap-0">
+          <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
+            {archived ? (
+              <ArchiveIcon className="size-5" aria-hidden="true" />
+            ) : (
+              <MessageCircleIcon className="size-5" aria-hidden="true" />
+            )}
+          </EmptyMedia>
+          <h3>
+            <EmptyTitle className="text-callout font-semibold text-label-primary">
+              {t(archived ? "ai:AI_CHAT_THREAD_ARCHIVED_EMPTY" : "ai:AI_CHAT_THREAD_ACTIVE_EMPTY")}
+            </EmptyTitle>
+          </h3>
+          <EmptyDescription className="mt-2 text-caption">
+            {t(
+              archived
+                ? "ai:AI_CHAT_THREAD_ARCHIVED_EMPTY_DESCRIPTION"
+                : "ai:AI_CHAT_THREAD_ACTIVE_EMPTY_DESCRIPTION",
+            )}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   return (
-    <div className={cn("min-h-0 overflow-y-auto p-1.5", className)}>
-      <ThreadCollection archived={false} count={activeCount} onThreadSelect={onThreadSelect} />
-      <Separator className="my-1.5" />
-      <ThreadCollection archived count={archivedCount} onThreadSelect={onThreadSelect} />
+    <div className={cn("min-h-0 overflow-y-auto px-1 pb-2 scrollbar-none", className)}>
+      {groups.map((group) => (
+        <AgentThreadListGroup key={group.key} label={groupLabel(group, projectNames, t)}>
+          {group.entries.map((entry) => {
+            const timeText = formatThreadTimestamp(
+              entry.timestamp,
+              nowMs,
+              i18n.resolvedLanguage ?? i18n.language,
+            );
+            const metaText =
+              groupingMode === "time" && projects !== undefined
+                ? `${projectLabel(entry.projectId, projectNames, t)} · ${timeText}`
+                : timeText;
+            return (
+              <ThreadListItemByIndexProvider
+                key={entry.id}
+                index={entry.index}
+                archived={entry.archived}
+              >
+                <AgentThreadListItem
+                  archived={entry.archived}
+                  pinned={entry.pinned}
+                  timeText={metaText}
+                  onThreadSelect={onThreadSelect}
+                />
+              </ThreadListItemByIndexProvider>
+            );
+          })}
+        </AgentThreadListGroup>
+      ))}
+
+      {threads.hasMore ? (
+        <div className="px-2 py-2">
+          <ThreadListPrimitive.LoadMore asChild>
+            <Button type="button" variant="ghost" size="sm" className="w-full">
+              {threads.isLoadingMore ? <Spinner className="size-4" aria-hidden="true" /> : null}
+              {t(
+                threads.isLoadingMore
+                  ? "ai:AI_CHAT_THREAD_LOADING_MORE"
+                  : "ai:AI_CHAT_THREAD_LOAD_MORE",
+              )}
+            </Button>
+          </ThreadListPrimitive.LoadMore>
+        </div>
+      ) : null}
     </div>
   );
 }

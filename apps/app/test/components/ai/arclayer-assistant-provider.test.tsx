@@ -15,6 +15,7 @@ const apiMocks = vi.hoisted(() => ({
   resumeAgentRun: vi.fn(),
   consumeAgentRunStream: vi.fn(),
   initializeThread: vi.fn(),
+  reloadThreads: vi.fn(),
 }));
 
 vi.mock("@assistant-ui/react", async (importOriginal) => ({
@@ -24,6 +25,7 @@ vi.mock("@assistant-ui/react", async (importOriginal) => ({
   useAui: () => ({
     kind: "assistant-client",
     threadListItem: () => ({ initialize: apiMocks.initializeThread }),
+    threads: () => ({ reload: apiMocks.reloadThreads }),
   }),
   useAuiState: (selector: (state: unknown) => unknown) =>
     selector({ threadListItem: { remoteId: runtimeCapture.remoteThreadId } }),
@@ -87,6 +89,7 @@ describe("ArclayerAssistantProvider", () => {
       remoteId: "thread-created",
       externalId: "thread-created",
     });
+    apiMocks.reloadThreads.mockResolvedValue(undefined);
     apiMocks.getAgentRunSnapshot.mockResolvedValue(runSnapshot);
     apiMocks.respondToAgentToolCall.mockResolvedValue({
       responseId: "response-1",
@@ -310,6 +313,7 @@ describe("ArclayerAssistantProvider", () => {
     });
 
     expect(apiMocks.initializeThread).toHaveBeenCalledTimes(1);
+    expect(apiMocks.reloadThreads).toHaveBeenCalledTimes(1);
     expect(apiMocks.createAgentRun).toHaveBeenCalledWith(
       expect.objectContaining({ threadId: "thread-created", message: "First prompt" }),
       expect.any(Object),

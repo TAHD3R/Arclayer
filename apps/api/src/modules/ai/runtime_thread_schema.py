@@ -23,10 +23,11 @@ class AgentThreadUpdateRequestV1(BaseSchema):
 
     title: str | None = Field(default=None, min_length=1, max_length=160)
     archived: bool | None = None
+    pinned: bool | None = None
 
     @model_validator(mode="after")
     def require_change(self) -> Self:
-        if self.title is None and self.archived is None:
+        if self.title is None and self.archived is None and self.pinned is None:
             raise ValueError("At least one Thread field must be changed")
         return self
 
@@ -42,6 +43,7 @@ class AgentThreadOutV1(BaseSchema):
     lead_agent_version_id: PublicUUID
     lead_agent_assignment_id: PublicUUID
     title: str
+    pinned: bool
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime

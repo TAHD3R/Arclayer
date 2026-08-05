@@ -278,6 +278,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
           skipNextThreadHydrationRef.current = true;
           try {
             threadId = (await aui.threadListItem().initialize()).remoteId;
+            await aui.threads().reload();
           } catch (error) {
             skipNextThreadHydrationRef.current = false;
             throw error;

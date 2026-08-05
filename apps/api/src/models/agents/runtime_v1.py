@@ -49,6 +49,7 @@ class AgentThreadV1Record(BaseModel):
     lead_agent_version_id = fields.UUIDField(null=True, db_index=True)
     lead_agent_assignment_id = fields.UUIDField(null=True, db_index=True)
     title = fields.CharField(max_length=160)
+    is_pinned = fields.BooleanField(default=False, db_index=True)
     archived_at = fields.DatetimeField(null=True, db_index=True)
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
@@ -59,7 +60,10 @@ class AgentThreadV1Record(BaseModel):
     class Meta(BaseModel.Meta):
         table = "ai_threads"
         unique_together = (("workspace_id", "owner_user_id", "creation_idempotency_key"),)
-        indexes = (("workspace_id", "owner_user_id", "updated_at"),)
+        indexes = (
+            ("workspace_id", "owner_user_id", "updated_at"),
+            ("workspace_id", "owner_user_id", "is_pinned", "updated_at", "id"),
+        )
         abstract = False
 
 

@@ -436,6 +436,7 @@ function AdminSidebarContentArea(props: {
   assistantAvailable: boolean;
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
+  browseProjects?: readonly SidebarBrowseProject[];
   favoriteWorkspaceBase?: string | null;
   favoriteDynamicLabels?: FavoriteDynamicLabelIndex;
   resolvePermissionName?: (code: string) => string | null;
@@ -485,7 +486,7 @@ function AdminSidebarContentArea(props: {
   );
 
   const chatContent = props.assistantAvailable ? (
-    <AgentThreadSidebar />
+    <AgentThreadSidebar projects={props.browseProjects} />
   ) : (
     <Empty className="min-h-0 flex-1 px-4 py-8">
       <EmptyHeader className="max-w-[14rem] gap-0">
@@ -579,6 +580,7 @@ export function AdminSidebarShell({
         assistantAvailable={assistantAvailable}
         showMenuSkeleton={showMenuSkeleton}
         mainItems={mainItems}
+        browseProjects={browseProjects}
         favoriteWorkspaceBase={favoriteWorkspaceBase}
         favoriteDynamicLabels={favoriteDynamicLabels}
         resolvePermissionName={resolvePermissionName}

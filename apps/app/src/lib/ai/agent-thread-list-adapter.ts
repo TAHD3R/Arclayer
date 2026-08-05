@@ -31,6 +31,7 @@ function toRemoteThread(thread: AgentThreadV1) {
       leadAgentId: thread.leadAgentId,
       leadAgentVersionId: thread.leadAgentVersionId,
       leadAgentAssignmentId: thread.leadAgentAssignmentId,
+      pinned: thread.pinned,
       archivedAt: thread.archivedAt,
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
@@ -67,6 +68,13 @@ export function createAgentThreadListAdapter(
     },
     async rename(remoteId, newTitle) {
       await updateAgentThread(options.workspaceId, remoteId, { title: newTitle });
+    },
+    async updateCustom(remoteId, custom) {
+      const pinned = custom?.pinned;
+      if (typeof pinned !== "boolean") {
+        throw new AgentRuntimeProtocolError("AGENT_THREAD_METADATA_INVALID");
+      }
+      await updateAgentThread(options.workspaceId, remoteId, { pinned });
     },
     async archive(remoteId) {
       await updateAgentThread(options.workspaceId, remoteId, { archived: true });

@@ -42,7 +42,7 @@ describe("Agent Thread v1 canonical Admin API", () => {
       title: "Homepage collaboration",
     });
     await getAgentThread("workspace 1", "thread/1");
-    await updateAgentThread("workspace 1", "thread/1", { archived: true });
+    await updateAgentThread("workspace 1", "thread/1", { archived: true, pinned: true });
     await deleteAgentThread("workspace 1", "thread/1");
 
     expect(apiMock.get).toHaveBeenNthCalledWith(
@@ -66,7 +66,7 @@ describe("Agent Thread v1 canonical Admin API", () => {
     );
     expect(apiMock.patch).toHaveBeenCalledWith(
       "/workspaces/workspace%201/ai/threads/thread%2F1",
-      { archived: true },
+      { archived: true, pinned: true },
       undefined,
     );
     expect(apiMock.delete).toHaveBeenCalledWith(

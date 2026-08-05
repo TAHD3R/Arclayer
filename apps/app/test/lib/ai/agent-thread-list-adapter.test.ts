@@ -19,6 +19,7 @@ const thread = {
   projectId: "project-1",
   leadAgentId: "agent-lead",
   title: "Homepage collaboration",
+  pinned: false,
   archivedAt: null,
   createdAt: "2026-07-19T12:00:00.000Z",
   updatedAt: "2026-07-19T12:01:00.000Z",
@@ -54,7 +55,8 @@ describe("Agent backend RemoteThreadListAdapter", () => {
           externalId: "thread-1",
           status: "regular",
           title: "Homepage collaboration",
-          custom: expect.objectContaining({ leadAgentId: "agent-lead" }),
+          lastMessageAt: new Date("2026-07-19T12:01:00.000Z"),
+          custom: expect.objectContaining({ leadAgentId: "agent-lead", pinned: false }),
         }),
       ],
       nextCursor: "thread-1",
@@ -78,6 +80,7 @@ describe("Agent backend RemoteThreadListAdapter", () => {
 
     await adapter.fetch("thread-1");
     await adapter.rename("thread-1", "Renamed");
+    await adapter.updateCustom?.("thread-1", { pinned: true });
     await adapter.archive("thread-1");
     await adapter.unarchive("thread-1");
     await adapter.delete("thread-1");
@@ -87,9 +90,12 @@ describe("Agent backend RemoteThreadListAdapter", () => {
       title: "Renamed",
     });
     expect(apiMock.updateAgentThread).toHaveBeenNthCalledWith(2, "workspace-1", "thread-1", {
-      archived: true,
+      pinned: true,
     });
     expect(apiMock.updateAgentThread).toHaveBeenNthCalledWith(3, "workspace-1", "thread-1", {
+      archived: true,
+    });
+    expect(apiMock.updateAgentThread).toHaveBeenNthCalledWith(4, "workspace-1", "thread-1", {
       archived: false,
     });
     expect(apiMock.deleteAgentThread).toHaveBeenCalledWith("workspace-1", "thread-1");
