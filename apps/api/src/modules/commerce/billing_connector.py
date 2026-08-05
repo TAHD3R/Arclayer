@@ -97,8 +97,6 @@ class ProviderInvoiceProjection(BaseModel):
             raise ValueError("invoice period boundaries must be both present or both absent")
         if self.period_start is not None and self.period_end is not None and self.period_end <= self.period_start:
             raise ValueError("invoice period end must be later than its start")
-        if self.amount_paid_micros > self.amount_due_micros:
-            raise ValueError("invoice paid amount cannot exceed amount due")
         if self.amount_refunded_micros > self.amount_paid_micros:
             raise ValueError("invoice refunded amount cannot exceed amount paid")
         if self.status == CommerceInvoiceStatus.PAID and self.paid_at is None:
@@ -144,16 +142,18 @@ class ProviderSubscription(BaseModel):
             raise ValueError("subscription and invoice currencies must match")
         if self.payment.period_start is None or self.payment.period_end is None:
             raise ValueError("subscription invoice requires exact period boundaries")
-        if self.payment.period_start != self.current_period_start or self.payment.period_end != self.current_period_end:
-            raise ValueError("invoice and subscription periods must match")
+        if self.checkout_activation is not None and (
+            self.payment.period_start != self.current_period_start or self.payment.period_end != self.current_period_end
+        ):
+            raise ValueError("checkout activation invoice and subscription periods must match")
         if self.dunning_event is not None and self.dunning_event.provider_period_id != self.payment.external_invoice_id:
             raise ValueError("dunning period identity must match the invoice identity")
-        expected_kind = (
-            CommerceTransactionKind.SUBSCRIPTION
+        allowed_kinds = (
+            frozenset({CommerceTransactionKind.SUBSCRIPTION})
             if self.checkout_activation is not None
-            else CommerceTransactionKind.RENEWAL
+            else frozenset({CommerceTransactionKind.SUBSCRIPTION, CommerceTransactionKind.RENEWAL})
         )
-        if any(transaction.kind != expected_kind for transaction in self.payment.transactions):
+        if any(transaction.kind not in allowed_kinds for transaction in self.payment.transactions):
             raise ValueError("invoice transaction kind does not match the subscription lifecycle")
         return self
 

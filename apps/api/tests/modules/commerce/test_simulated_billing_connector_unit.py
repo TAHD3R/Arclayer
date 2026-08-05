@@ -355,6 +355,49 @@ async def test_simulated_connector_normalizes_invoice_and_transaction_projection
 
 
 @pytest.mark.asyncio
+async def test_simulated_checkout_activation_rejects_invoice_period_mismatch() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    payload = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        checkout_activation={
+            "checkout_session_id": str(uuid4()),
+            "external_session_id": "sim_cs_paymentperiod123",
+            "checkout_outcome_event_id": "sim_evt_paymentperiod123",
+        },
+        payment={
+            "amount_due_micros": 9_000_000,
+            "amount_paid_micros": 9_000_000,
+            "external_invoice_id": "sim_in_paymentperiod123",
+            "issued_at": timestamp - 2_592_000,
+            "paid_at": timestamp - 1,
+            "period_end": timestamp,
+            "period_start": timestamp - 2_592_000,
+            "status": "paid",
+            "transactions": [
+                {
+                    "amount_micros": 9_000_000,
+                    "external_transaction_id": "sim_tx_paymentperiod123",
+                    "kind": "subscription",
+                    "occurred_at": timestamp - 1,
+                    "status": "succeeded",
+                }
+            ],
+        },
+    )
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    with pytest.raises(BadRequest, match="BILLING_WEBHOOK_PAYLOAD_INVALID"):
+        await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("status", "dunning", "expected_deadline"),
     (

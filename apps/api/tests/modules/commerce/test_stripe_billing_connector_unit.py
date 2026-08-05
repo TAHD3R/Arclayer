@@ -50,9 +50,12 @@ def test_stripe_registers_invoice_dunning_events_for_durable_acceptance() -> Non
     registration = registry.connectors.resolve("billing.stripe")
     assert registration is not None
     assert {
+        "invoice.overpaid",
+        "invoice.paid",
         "invoice.payment_failed",
         "invoice.payment_succeeded",
         "invoice.marked_uncollectible",
+        "invoice_payment.paid",
     }.issubset(registration.definition.webhook_events)
 
 
@@ -74,6 +77,89 @@ def _signature(payload: bytes) -> str:
         hashlib.sha256,
     ).hexdigest()
     return f"t={timestamp},v1={digest}"
+
+
+def _subscription(
+    *,
+    subscription_id: str,
+    status: str = "active",
+    currency: str = "USD",
+    external_price_id: str = "price_invoiceMonthly",
+    period_start: int = 1_788_000_000,
+    period_end: int = 1_790_678_400,
+) -> dict[str, object]:
+    return {
+        "id": subscription_id,
+        "customer": "cus_invoice123",
+        "status": status,
+        "metadata": {
+            "workspace_id": str(uuid4()),
+            "plan_id": str(uuid4()),
+            "plan_revision_id": str(uuid4()),
+            "external_price_id": external_price_id,
+            "billing_cycle": "monthly",
+            "currency": currency,
+        },
+        "items": {"data": [{"price": {"id": external_price_id, "currency": currency.lower()}}]},
+        "current_period_start": period_start,
+        "current_period_end": period_end,
+        "cancel_at_period_end": False,
+    }
+
+
+def _invoice(
+    *,
+    subscription_id: str,
+    status: str,
+    invoice_id: str = "in_invoice123",
+    currency: str = "usd",
+    amount_due: int = 900,
+    amount_paid: int = 0,
+    billing_reason: str = "subscription_cycle",
+    payments: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    paid_at = 1_790_000_000 if status == "paid" else None
+    return {
+        "object": "invoice",
+        "id": invoice_id,
+        "subscription": subscription_id,
+        "status": status,
+        "currency": currency,
+        "amount_due": amount_due,
+        "amount_paid": amount_paid,
+        "period_start": 1_787_913_600,
+        "period_end": 1_790_505_600,
+        "created": 1_787_900_000,
+        "billing_reason": billing_reason,
+        "hosted_invoice_url": "https://invoice.stripe.test/in_invoice123",
+        "payments": {"data": payments or [], "has_more": False},
+        "attempt_count": 1,
+        "status_transitions": {
+            "finalized_at": 1_787_910_000,
+            "paid_at": paid_at,
+        },
+    }
+
+
+def _paid_invoice_payment(
+    *,
+    currency: str,
+    amount_paid: int,
+    payment_id: str = "inpay_payment123",
+    invoice_id: str = "in_invoice123",
+    amount_requested: int | None = None,
+) -> dict:
+    return {
+        "object": "invoice_payment",
+        "id": payment_id,
+        "invoice": invoice_id,
+        "status": "paid",
+        "amount_requested": amount_paid if amount_requested is None else amount_requested,
+        "amount_paid": amount_paid,
+        "currency": currency,
+        "created": 1_789_999_000,
+        "status_transitions": {"paid_at": 1_790_000_000},
+    }
 
 
 @pytest.mark.asyncio
@@ -397,58 +483,70 @@ async def test_checkout_webhook_verification_defers_subscription_fetch_to_worker
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("event_type", "invoice", "expected_kind"),
+    ("event_type", "invoice_status", "invoice_overrides", "subscription_status", "expected_kind"),
     [
         (
             "invoice.payment_failed",
+            "open",
             {"next_payment_attempt": 1_790_678_400},
+            "past_due",
             "payment_failure",
         ),
         (
             "invoice.payment_succeeded",
-            {"attempt_count": 2, "status_transitions": {"paid_at": 1_790_678_400}},
+            "paid",
+            {
+                "amount_paid": 900,
+                "attempt_count": 2,
+                "payments": {
+                    "data": [
+                        _paid_invoice_payment(
+                            currency="usd",
+                            amount_paid=900,
+                            invoice_id="in_dunning123",
+                        )
+                    ],
+                    "has_more": False,
+                },
+                "status_transitions": {"paid_at": 1_790_678_400},
+            },
+            "active",
             "payment_recovered",
         ),
         (
             "invoice.marked_uncollectible",
+            "uncollectible",
             {"status_transitions": {"marked_uncollectible_at": 1_790_678_400}},
+            "past_due",
             "final_unpaid",
         ),
     ],
 )
 async def test_stripe_invoice_events_emit_only_exact_dunning_facts(
     event_type: str,
-    invoice: dict[str, object],
+    invoice_status: str,
+    invoice_overrides: dict[str, object],
+    subscription_status: str,
     expected_kind: str,
 ) -> None:
-    subscription = {
-        "id": "sub_dunning123",
-        "customer": "cus_dunning123",
-        "status": "past_due",
-        "metadata": {
-            "workspace_id": str(uuid4()),
-            "plan_id": str(uuid4()),
-            "plan_revision_id": str(uuid4()),
-            "external_price_id": "price_dunningMonthly",
-            "billing_cycle": "monthly",
-            "currency": "USD",
-        },
-        "items": {"data": [{"price": {"id": "price_dunningMonthly", "currency": "usd"}}]},
-        "current_period_start": 1_788_000_000,
-        "current_period_end": 1_790_678_400,
-    }
+    subscription = _subscription(
+        subscription_id="sub_dunning123",
+        status=subscription_status,
+        external_price_id="price_dunningMonthly",
+    )
+    invoice = _invoice(
+        subscription_id="sub_dunning123",
+        status=invoice_status,
+        invoice_id="in_dunning123",
+    )
+    invoice.update({key: value for key, value in invoice_overrides.items() if key != "status_transitions"})
+    transitions = cast(dict[str, object], invoice["status_transitions"])
+    transitions.update(cast(dict[str, object], invoice_overrides.get("status_transitions", {})))
     event = {
         "id": "evt_dunning123",
         "type": event_type,
         "created": 1_789_000_000,
-        "data": {
-            "object": {
-                "id": "in_dunning123",
-                "subscription": "sub_dunning123",
-                "attempt_count": 1,
-                **invoice,
-            }
-        },
+        "data": {"object": invoice},
     }
     payload = json.dumps(event, separators=(",", ":")).encode()
     provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json=subscription)))
@@ -460,23 +558,368 @@ async def test_stripe_invoice_events_emit_only_exact_dunning_facts(
     assert result.dunning_event is not None
     assert result.dunning_event.kind == expected_kind
     assert result.dunning_event.provider_period_id == "in_dunning123"
+    assert result.payment is not None
+    assert result.payment.external_invoice_id == "in_dunning123"
 
 
 @pytest.mark.asyncio
 async def test_stripe_payment_failure_rejects_missing_provider_recovery_deadline() -> None:
+    invoice = _invoice(subscription_id="sub_missingdeadline123", status="open")
+    invoice["id"] = "in_missingdeadline123"
     event = {
         "id": "evt_missingdeadline123",
         "type": "invoice.payment_failed",
         "created": 1_789_000_000,
-        "data": {
-            "object": {
-                "id": "in_missingdeadline123",
-                "subscription": "sub_missingdeadline123",
-                "attempt_count": 1,
-            }
-        },
+        "data": {"object": invoice},
     }
     payload = json.dumps(event, separators=(",", ":")).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("currency", "minor_amount", "expected_micros", "billing_reason", "expected_kind"),
+    (
+        ("USD", 900, 9_000_000, "subscription_create", "subscription"),
+        ("JPY", 900, 900_000_000, "subscription_cycle", "renewal"),
+    ),
+)
+async def test_stripe_paid_invoice_projects_exact_invoice_payment_allocation(
+    currency: str,
+    minor_amount: int,
+    expected_micros: int,
+    billing_reason: str,
+    expected_kind: str,
+) -> None:
+    subscription = _subscription(
+        subscription_id="sub_invoice123",
+        currency=currency,
+        external_price_id="price_invoiceCurrency123",
+    )
+    invoice = _invoice(
+        subscription_id="sub_invoice123",
+        status="paid",
+        currency=currency.lower(),
+        amount_due=minor_amount,
+        amount_paid=minor_amount,
+        billing_reason=billing_reason,
+        payments=[_paid_invoice_payment(currency=currency.lower(), amount_paid=minor_amount)],
+    )
+    payload = json.dumps(
+        {
+            "id": "evt_invoicepaid123",
+            "type": "invoice.paid",
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json=subscription)))
+
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert result is not None
+    assert result.payment is not None
+    assert result.payment.currency == currency
+    assert result.payment.amount_due_micros == expected_micros
+    assert result.payment.amount_paid_micros == expected_micros
+    assert result.payment.period_start != result.current_period_start
+    assert len(result.payment.transactions) == 1
+    transaction = result.payment.transactions[0]
+    assert transaction.external_transaction_id == "inpay_payment123"
+    assert transaction.kind == expected_kind
+    assert transaction.status == "succeeded"
+    assert transaction.amount_micros == expected_micros
+
+
+@pytest.mark.asyncio
+async def test_stripe_overpaid_invoice_preserves_amount_above_amount_due() -> None:
+    subscription = _subscription(subscription_id="sub_overpaid123")
+    invoice = _invoice(
+        subscription_id="sub_overpaid123",
+        status="paid",
+        amount_due=900,
+        amount_paid=1_000,
+        payments=[_paid_invoice_payment(currency="usd", amount_paid=1_000)],
+    )
+    payload = json.dumps(
+        {
+            "id": "evt_overpaid123",
+            "type": "invoice.overpaid",
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json=subscription)))
+
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert result is not None
+    assert result.payment is not None
+    assert result.payment.amount_due_micros == 9_000_000
+    assert result.payment.amount_paid_micros == 10_000_000
+
+
+@pytest.mark.asyncio
+async def test_stripe_partial_payment_projects_without_claiming_invoice_paid() -> None:
+    subscription = _subscription(subscription_id="sub_partial123")
+    invoice = _invoice(
+        subscription_id="sub_partial123",
+        status="open",
+        amount_paid=400,
+        payments=[_paid_invoice_payment(currency="usd", amount_paid=400)],
+    )
+    payload = json.dumps(
+        {
+            "id": "evt_partial123",
+            "type": "invoice.payment_succeeded",
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json=subscription)))
+
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert result is not None
+    assert result.dunning_event is None
+    assert result.payment is not None
+    assert result.payment.status == "open"
+    assert result.payment.amount_paid_micros == 4_000_000
+    assert result.payment.transactions[0].external_transaction_id == "inpay_payment123"
+
+
+@pytest.mark.asyncio
+async def test_stripe_invoice_payment_paid_fetches_expanded_invoice_and_projects_allocation() -> None:
+    invoice_id = "in_invoicepayment123"
+    subscription_id = "sub_invoicepayment123"
+    payment = _paid_invoice_payment(
+        currency="usd",
+        amount_paid=400,
+        payment_id="inpay_eventpayment123",
+        invoice_id=invoice_id,
+    )
+    invoice = _invoice(
+        subscription_id=subscription_id,
+        status="open",
+        invoice_id=invoice_id,
+        amount_paid=400,
+        payments=[payment],
+    )
+    subscription = _subscription(subscription_id=subscription_id)
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == f"/v1/invoices/{invoice_id}":
+            assert request.url.params.get("expand[]") == "payments.data"
+            return httpx.Response(200, json=invoice)
+        assert request.url.path == f"/v1/subscriptions/{subscription_id}"
+        return httpx.Response(200, json=subscription)
+
+    payload = json.dumps(
+        {
+            "id": "evt_invoicepaymentpaid123",
+            "type": "invoice_payment.paid",
+            "created": 1_790_000_100,
+            "data": {"object": payment},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(handler))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert result is not None
+    assert result.payment is not None
+    assert result.payment.status == "open"
+    assert result.payment.transactions[0].external_transaction_id == "inpay_eventpayment123"
+    assert [request.url.path for request in requests] == [
+        f"/v1/invoices/{invoice_id}",
+        f"/v1/subscriptions/{subscription_id}",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_stripe_invoice_payment_paid_rejects_event_that_does_not_match_expanded_invoice() -> None:
+    invoice_id = "in_invoicepaymentmismatch123"
+    event_payment = _paid_invoice_payment(
+        currency="usd",
+        amount_paid=400,
+        payment_id="inpay_mismatch123",
+        invoice_id=invoice_id,
+    )
+    invoice_payment = {**event_payment, "amount_paid": 300, "amount_requested": 300}
+    invoice = _invoice(
+        subscription_id="sub_invoicepaymentmismatch123",
+        status="open",
+        invoice_id=invoice_id,
+        amount_paid=300,
+        payments=[invoice_payment],
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/v1/invoices/{invoice_id}"
+        return httpx.Response(200, json=invoice)
+
+    payload = json.dumps(
+        {
+            "id": "evt_invoicepaymentmismatch123",
+            "type": "invoice_payment.paid",
+            "created": 1_790_000_100,
+            "data": {"object": event_payment},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(handler))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payments",
+    (
+        {"data": []},
+        {"has_more": False},
+    ),
+)
+async def test_stripe_invoice_rejects_incomplete_invoice_payment_container(
+    payments: dict[str, object],
+) -> None:
+    invoice = _invoice(subscription_id="sub_missingpaymentfields123", status="open")
+    invoice["payments"] = payments
+    payload = json.dumps(
+        {
+            "id": "evt_missingpaymentfields123",
+            "type": "invoice.payment_succeeded",
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("event_type", "amount_due", "amount_paid", "payment"),
+    (
+        (
+            "invoice.payment_succeeded",
+            900,
+            400,
+            _paid_invoice_payment(currency="usd", amount_paid=500),
+        ),
+        (
+            "invoice.payment_succeeded",
+            900,
+            400,
+            _paid_invoice_payment(currency="usd", amount_paid=400, invoice_id="in_anotherinvoice123"),
+        ),
+        (
+            "invoice.payment_succeeded",
+            900,
+            400,
+            _paid_invoice_payment(currency="usd", amount_paid=400, amount_requested=399),
+        ),
+        (
+            "invoice.overpaid",
+            900,
+            900,
+            _paid_invoice_payment(currency="usd", amount_paid=900),
+        ),
+    ),
+)
+async def test_stripe_invoice_rejects_inconsistent_payment_allocation_facts(
+    event_type: str,
+    amount_due: int,
+    amount_paid: int,
+    payment: dict[str, object],
+) -> None:
+    invoice = _invoice(
+        subscription_id="sub_inconsistentpayment123",
+        status="paid" if event_type == "invoice.overpaid" else "open",
+        amount_due=amount_due,
+        amount_paid=amount_paid,
+        payments=[payment],
+    )
+    payload = json.dumps(
+        {
+            "id": "evt_inconsistentpayment123",
+            "type": event_type,
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_stripe_invoice_rejects_incomplete_invoice_payment_collection() -> None:
+    invoice = _invoice(subscription_id="sub_incompletepayments123", status="paid", amount_paid=900)
+    invoice["payments"] = {
+        "data": [_paid_invoice_payment(currency="usd", amount_paid=900)],
+        "has_more": True,
+    }
+    payload = json.dumps(
+        {
+            "id": "evt_incompletepayments123",
+            "type": "invoice.paid",
+            "created": 1_790_000_100,
+            "data": {"object": invoice},
+        },
+        separators=(",", ":"),
+    ).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_stripe_subscription_rejects_unsupported_trialing_state() -> None:
+    subscription = _subscription(subscription_id="sub_trialing123", status="trialing")
+    payload = json.dumps(
+        {
+            "id": "evt_trialing123",
+            "type": "customer.subscription.updated",
+            "data": {"object": subscription},
+        },
+        separators=(",", ":"),
+    ).encode()
     provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
     envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
 

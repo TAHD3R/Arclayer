@@ -6,10 +6,11 @@ import json
 import re
 import time
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from src.config import get_settings
 from src.core.connectors import (
@@ -22,13 +23,20 @@ from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
 from src.models.commerce.billing import BillingCycle, SubscriptionStatus
+from src.models.commerce.payments import (
+    CommerceInvoiceStatus,
+    CommerceTransactionKind,
+    CommerceTransactionStatus,
+)
 from src.modules.commerce.billing_connector import (
     BillingRedirectSession,
     BillingWebhookEnvelope,
     CheckoutSession,
     ProviderCheckoutOutcome,
     ProviderDunningEvent,
+    ProviderInvoiceProjection,
     ProviderSubscription,
+    ProviderTransactionProjection,
 )
 from src.modules.commerce.subscription_transitions.schema import (
     ProviderConfirmedTransitionEvidence,
@@ -42,8 +50,9 @@ _EXTENSION_NAME = "arclayer-stripe"
 _STRIPE_SUBSCRIPTION_ID_PATTERN = re.compile(r"sub_[A-Za-z0-9]+")
 _STRIPE_PRICE_ID_PATTERN = re.compile(r"price_[A-Za-z0-9]+")
 _PROVIDER_ACCOUNT_ID = "platform"
+_MICROS_PER_MAJOR_UNIT = 1_000_000
+_MICROS_PER_CENT = 10_000
 _STRIPE_STATUS_MAP = {
-    "trialing": SubscriptionStatus.ACTIVE,
     "active": SubscriptionStatus.ACTIVE,
     "past_due": SubscriptionStatus.PAST_DUE,
     "unpaid": SubscriptionStatus.PAST_DUE,
@@ -52,6 +61,48 @@ _STRIPE_STATUS_MAP = {
     "incomplete": SubscriptionStatus.PAST_DUE,
     "incomplete_expired": SubscriptionStatus.CANCELED,
 }
+_STRIPE_INVOICE_EVENT_TYPES = frozenset({
+    "invoice.marked_uncollectible",
+    "invoice.overpaid",
+    "invoice.paid",
+    "invoice.payment_failed",
+    "invoice.payment_succeeded",
+})
+_STRIPE_INVOICE_PAYMENT_EVENT_TYPES = frozenset({"invoice_payment.paid"})
+_STRIPE_INVOICE_STATUS_MAP = {
+    "open": CommerceInvoiceStatus.OPEN,
+    "paid": CommerceInvoiceStatus.PAID,
+    "uncollectible": CommerceInvoiceStatus.UNCOLLECTIBLE,
+}
+_STRIPE_INVOICE_EVENT_STATUSES = {
+    "invoice.marked_uncollectible": frozenset({"uncollectible"}),
+    "invoice.overpaid": frozenset({"paid"}),
+    "invoice.paid": frozenset({"paid"}),
+    "invoice.payment_failed": frozenset({"open"}),
+    "invoice.payment_succeeded": frozenset({"open", "paid"}),
+    "invoice_payment.paid": frozenset({"open", "paid"}),
+}
+_STRIPE_BILLING_REASON_KIND_MAP = {
+    "subscription_create": CommerceTransactionKind.SUBSCRIPTION,
+    "subscription_cycle": CommerceTransactionKind.RENEWAL,
+}
+_STRIPE_ZERO_DECIMAL_PAYMENT_CURRENCIES = frozenset({
+    "BIF",
+    "CLP",
+    "DJF",
+    "GNF",
+    "JPY",
+    "KMF",
+    "KRW",
+    "MGA",
+    "PYG",
+    "RWF",
+    "VND",
+    "VUV",
+    "XAF",
+    "XOF",
+    "XPF",
+})
 
 
 class _StripeWebhookData(BaseModel):
@@ -120,16 +171,65 @@ class _StripeSubscriptionSchedule(BaseModel):
 class _StripeInvoiceStatusTransitions(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    finalized_at: int | None = None
     paid_at: int | None = None
     marked_uncollectible_at: int | None = None
+
+
+class _StripeInvoicePaymentStatusTransitions(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    paid_at: int | None = None
+
+
+class _StripeInvoicePaymentPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    object: Literal["invoice_payment"]
+    id: str = Field(pattern=r"^inpay_[A-Za-z0-9]+$", max_length=255)
+    invoice: str = Field(pattern=r"^in_[A-Za-z0-9]+$", max_length=255)
+    status: Literal["open", "paid", "canceled"]
+    amount_requested: int = Field(ge=0)
+    amount_paid: int | None = Field(default=None, ge=0)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+    created: int
+    status_transitions: _StripeInvoicePaymentStatusTransitions = Field(
+        default_factory=_StripeInvoicePaymentStatusTransitions
+    )
+
+    @model_validator(mode="after")
+    def validate_paid_projection(self) -> "_StripeInvoicePaymentPayload":
+        if self.amount_paid is not None and self.amount_paid > self.amount_requested:
+            raise ValueError("Invoice Payment paid amount cannot exceed amount requested")
+        if self.status == "paid" and (self.amount_paid is None or self.status_transitions.paid_at is None):
+            raise ValueError("paid Invoice Payment requires amount and transition time")
+        return self
+
+
+class _StripeInvoicePayments(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    data: tuple[_StripeInvoicePaymentPayload, ...]
+    has_more: bool
 
 
 class _StripeInvoicePayload(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    object: Literal["invoice"]
     id: str = Field(pattern=r"^in_[A-Za-z0-9]+$", max_length=255)
     subscription: str = Field(pattern=r"^sub_[A-Za-z0-9]+$", max_length=128)
-    attempt_count: int = Field(ge=1)
+    status: Literal["open", "paid", "uncollectible"]
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+    amount_due: int = Field(ge=0)
+    amount_paid: int = Field(ge=0)
+    period_start: int
+    period_end: int
+    created: int
+    billing_reason: Literal["subscription_create", "subscription_cycle"]
+    hosted_invoice_url: str | None = Field(default=None, pattern=r"^https://")
+    payments: _StripeInvoicePayments
+    attempt_count: int = Field(default=0, ge=0)
     next_payment_attempt: int | None = None
     status_transitions: _StripeInvoiceStatusTransitions = Field(default_factory=_StripeInvoiceStatusTransitions)
 
@@ -143,6 +243,109 @@ def _subscription_price_facts(subscription: _StripeSubscriptionPayload) -> tuple
     if currency != matches[0].currency.upper():
         raise ValueError("subscription Provider price currency does not match its metadata")
     return external_price_id, currency
+
+
+def _stripe_amount_to_micros(*, amount: int, currency: str) -> int:
+    scale = _MICROS_PER_MAJOR_UNIT if currency in _STRIPE_ZERO_DECIMAL_PAYMENT_CURRENCIES else _MICROS_PER_CENT
+    return amount * scale
+
+
+def _provider_invoice_projection(
+    *,
+    event: _StripeWebhookEvent,
+    invoice: _StripeInvoicePayload,
+    event_payment: _StripeInvoicePaymentPayload | None = None,
+) -> ProviderInvoiceProjection:
+    expected_statuses = _STRIPE_INVOICE_EVENT_STATUSES.get(event.type)
+    finalized_at = invoice.status_transitions.finalized_at
+    if (
+        event.created is None
+        or expected_statuses is None
+        or invoice.status not in expected_statuses
+        or finalized_at is None
+    ):
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    currency = invoice.currency.upper()
+    paid_payments = _validated_paid_invoice_payments(
+        event=event,
+        invoice=invoice,
+        event_payment=event_payment,
+        currency=currency,
+    )
+    transactions = tuple(
+        _provider_invoice_transaction(
+            payment=payment,
+            currency=currency,
+            kind=_STRIPE_BILLING_REASON_KIND_MAP[invoice.billing_reason],
+        )
+        for payment in paid_payments
+    )
+    try:
+        return ProviderInvoiceProjection(
+            external_invoice_id=invoice.id,
+            status=_STRIPE_INVOICE_STATUS_MAP[invoice.status],
+            currency=currency,
+            amount_due_micros=_stripe_amount_to_micros(amount=invoice.amount_due, currency=currency),
+            amount_paid_micros=_stripe_amount_to_micros(amount=invoice.amount_paid, currency=currency),
+            period_start=_provider_timestamp(invoice.period_start),
+            period_end=_provider_timestamp(invoice.period_end),
+            hosted_invoice_url=invoice.hosted_invoice_url,
+            issued_at=_provider_timestamp(finalized_at),
+            paid_at=(
+                _provider_timestamp(invoice.status_transitions.paid_at)
+                if invoice.status_transitions.paid_at is not None
+                else None
+            ),
+            occurred_at=_provider_timestamp(event.created),
+            transactions=transactions,
+        )
+    except (KeyError, ValidationError, ValueError) as exc:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+
+
+def _validated_paid_invoice_payments(
+    *,
+    event: _StripeWebhookEvent,
+    invoice: _StripeInvoicePayload,
+    event_payment: _StripeInvoicePaymentPayload | None,
+    currency: str,
+) -> tuple[_StripeInvoicePaymentPayload, ...]:
+    payments = invoice.payments.data
+    if (
+        invoice.payments.has_more
+        or (event.type == "invoice.overpaid" and invoice.amount_paid <= invoice.amount_due)
+        or any(payment.invoice != invoice.id or payment.currency.upper() != currency for payment in payments)
+    ):
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    paid_payments = tuple(payment for payment in payments if payment.status == "paid")
+    paid_total = sum(payment.amount_paid or 0 for payment in paid_payments)
+    if paid_total > invoice.amount_paid:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    if event_payment is not None:
+        matches = tuple(payment for payment in payments if payment.id == event_payment.id)
+        if event_payment.status != "paid" or len(matches) != 1 or matches[0] != event_payment:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    return paid_payments
+
+
+def _provider_invoice_transaction(
+    *,
+    payment: _StripeInvoicePaymentPayload,
+    currency: str,
+    kind: CommerceTransactionKind,
+) -> ProviderTransactionProjection:
+    paid_amount = payment.amount_paid
+    paid_at = payment.status_transitions.paid_at
+    if payment.currency.upper() != currency or paid_amount is None or paid_at is None:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    return ProviderTransactionProjection(
+        external_transaction_id=payment.id,
+        kind=kind,
+        status=CommerceTransactionStatus.SUCCEEDED,
+        currency=currency,
+        amount_micros=_stripe_amount_to_micros(amount=paid_amount, currency=currency),
+        occurred_at=_provider_timestamp(paid_at),
+    )
 
 
 class StripeBillingConnector:
@@ -403,9 +606,8 @@ class StripeBillingConnector:
             "checkout.session.completed",
             "customer.subscription.updated",
             "customer.subscription.deleted",
-            "invoice.payment_failed",
-            "invoice.payment_succeeded",
-            "invoice.marked_uncollectible",
+            *_STRIPE_INVOICE_EVENT_TYPES,
+            *_STRIPE_INVOICE_PAYMENT_EVENT_TYPES,
         }:
             return None
         if event.type == "checkout.session.completed":
@@ -417,14 +619,32 @@ class StripeBillingConnector:
                 raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
             subscription = await self._request("GET", f"/subscriptions/{subscription_id}")
             return self._parse_subscription(event_id=event.id, subscription=subscription)
-        if event.type.startswith("invoice."):
+        if event.type in _STRIPE_INVOICE_PAYMENT_EVENT_TYPES:
+            event_payment = self._parse_invoice_payment(event.data.object)
+            invoice = self._parse_invoice(
+                await self._request("GET", f"/invoices/{event_payment.invoice}?expand[]=payments.data")
+            )
+            payment = _provider_invoice_projection(
+                event=event,
+                invoice=invoice,
+                event_payment=event_payment,
+            )
+            subscription = await self._request("GET", f"/subscriptions/{invoice.subscription}")
+            return self._parse_subscription(
+                event_id=event.id,
+                subscription=subscription,
+                payment=payment,
+            )
+        if event.type in _STRIPE_INVOICE_EVENT_TYPES:
             invoice = self._parse_invoice(event.data.object)
             dunning_event = self._invoice_dunning_event(event=event, invoice=invoice)
+            payment = _provider_invoice_projection(event=event, invoice=invoice)
             subscription = await self._request("GET", f"/subscriptions/{invoice.subscription}")
             return self._parse_subscription(
                 event_id=event.id,
                 subscription=subscription,
                 dunning_event=dunning_event,
+                payment=payment,
             )
         else:
             subscription = event.data.object
@@ -454,6 +674,13 @@ class StripeBillingConnector:
     def _parse_invoice(invoice: object) -> _StripeInvoicePayload:
         try:
             return _StripeInvoicePayload.model_validate(invoice)
+        except ValidationError as exc:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+
+    @staticmethod
+    def _parse_invoice_payment(payment: object) -> _StripeInvoicePaymentPayload:
+        try:
+            return _StripeInvoicePaymentPayload.model_validate(payment)
         except ValidationError as exc:
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
@@ -506,7 +733,7 @@ class StripeBillingConnector:
                 occurred_at=occurred_at,
                 recovery_deadline=_provider_timestamp(invoice.next_payment_attempt),
             )
-        if event.type == "invoice.payment_succeeded":
+        if event.type in {"invoice.paid", "invoice.payment_succeeded"}:
             paid_at = invoice.status_transitions.paid_at
             if invoice.attempt_count < 2 or paid_at is None:
                 return None
@@ -524,6 +751,8 @@ class StripeBillingConnector:
                 provider_period_id=invoice.id,
                 occurred_at=_provider_timestamp(marked_at),
             )
+        if event.type == "invoice.overpaid":
+            return None
         raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
 
     @staticmethod
@@ -532,6 +761,7 @@ class StripeBillingConnector:
         event_id: object,
         subscription: object,
         dunning_event: ProviderDunningEvent | None = None,
+        payment: ProviderInvoiceProjection | None = None,
         include_confirmed_transition: bool = False,
     ) -> ProviderSubscription:
         try:
@@ -552,6 +782,7 @@ class StripeBillingConnector:
                 current_period_end=datetime.fromtimestamp(parsed.current_period_end, tz=UTC),
                 cancel_at_period_end=parsed.cancel_at_period_end,
                 dunning_event=dunning_event,
+                payment=payment,
                 confirmed_transition=(
                     ProviderConfirmedTransitionEvidence(
                         provider_schedule_id=parsed.schedule,
@@ -607,9 +838,12 @@ class StripeBillingExtension:
                     "checkout.session.completed",
                     "customer.subscription.updated",
                     "customer.subscription.deleted",
+                    "invoice.paid",
+                    "invoice.overpaid",
                     "invoice.payment_failed",
                     "invoice.payment_succeeded",
                     "invoice.marked_uncollectible",
+                    "invoice_payment.paid",
                 ),
                 health_contract=("configured", "reachable", "webhook_configured"),
                 admin=ConnectorAdminMetadata(

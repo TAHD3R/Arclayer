@@ -251,37 +251,40 @@ class SimulatedBillingConnector:
         data = self._require_subscription_data(event)
         activation = data.checkout_activation
         occurred_at = _provider_timestamp(event.created)
-        return ProviderSubscription(
-            event_id=event.id,
-            workspace_id=data.workspace_id,
-            plan_id=data.plan_id,
-            plan_revision_id=data.plan_revision_id,
-            external_price_id=data.external_price_id,
-            billing_cycle=data.billing_cycle,
-            currency=data.currency,
-            customer_id=data.customer_id,
-            subscription_id=data.subscription_id,
-            status=data.status,
-            current_period_start=_provider_timestamp(data.current_period_start),
-            current_period_end=_provider_timestamp(data.current_period_end),
-            cancel_at_period_end=data.cancel_at_period_end,
-            dunning_event=_provider_dunning_event(data.dunning, occurred_at=occurred_at),
-            payment=_provider_payment_projection(
-                data.payment,
+        try:
+            return ProviderSubscription(
+                event_id=event.id,
+                workspace_id=data.workspace_id,
+                plan_id=data.plan_id,
+                plan_revision_id=data.plan_revision_id,
+                external_price_id=data.external_price_id,
+                billing_cycle=data.billing_cycle,
                 currency=data.currency,
-                occurred_at=occurred_at,
-            ),
-            checkout_activation=(
-                ProviderCheckoutActivationEvidence(
-                    checkout_session_id=activation.checkout_session_id,
-                    external_session_id=activation.external_session_id,
-                    checkout_outcome_event_id=activation.checkout_outcome_event_id,
+                customer_id=data.customer_id,
+                subscription_id=data.subscription_id,
+                status=data.status,
+                current_period_start=_provider_timestamp(data.current_period_start),
+                current_period_end=_provider_timestamp(data.current_period_end),
+                cancel_at_period_end=data.cancel_at_period_end,
+                dunning_event=_provider_dunning_event(data.dunning, occurred_at=occurred_at),
+                payment=_provider_payment_projection(
+                    data.payment,
+                    currency=data.currency,
                     occurred_at=occurred_at,
-                )
-                if activation is not None
-                else None
-            ),
-        )
+                ),
+                checkout_activation=(
+                    ProviderCheckoutActivationEvidence(
+                        checkout_session_id=activation.checkout_session_id,
+                        external_session_id=activation.external_session_id,
+                        checkout_outcome_event_id=activation.checkout_outcome_event_id,
+                        occurred_at=occurred_at,
+                    )
+                    if activation is not None
+                    else None
+                ),
+            )
+        except ValidationError as exc:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
     async def checkout_outcome_from_event(
         self,

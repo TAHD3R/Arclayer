@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4a.2 Stripe invoice normalization and projection.
+Current active part: M2.4b purchased top-up, refund, and correction projection.
 
 Repository baseline:
 
@@ -373,8 +373,8 @@ M2 execution parts:
    - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
    - M2.4a.1 Provider-neutral and simulated invoice/transaction projection. — Complete
-   - M2.4a.2 Stripe invoice normalization and projection. — Active
-   - M2.4b purchased top-up, refund, and correction projection. — Pending
+   - M2.4a.2 Stripe invoice normalization and projection. — Complete
+   - M2.4b purchased top-up, refund, and correction projection. — Active
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
@@ -701,6 +701,29 @@ M2.4a.1 validation:
 - Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `26` report-only findings are existing localization prototypes plus the known simulated Connector lifecycle report.
 - M2.4a.1 is complete. The only active part is M2.4a.2 real Stripe invoice normalization and projection; production Stripe remains independent from simulated event shapes and must use exact Provider transaction identities.
 
+M2.4a.2 implementation evidence:
+
+- Normalized Stripe Basil invoice facts from `invoice.paid`, `invoice.overpaid`, `invoice.payment_failed`, `invoice.payment_succeeded`, `invoice.marked_uncollectible`, and the allocation-native `invoice_payment.paid` event without reusing simulated Provider payload shapes.
+- `invoice_payment.paid` processing occurs only in the accepted Connector Job. It resolves the exact Invoice by the signed InvoicePayment's `invoice` identity, requests the complete expanded `payments.data` collection, and then resolves the Subscription; webhook verification itself remains free of Provider I/O.
+- Uses each Stripe `inpay_*` InvoicePayment identity as the canonical transaction identity. Every allocation must identify `object = invoice_payment`, belong to the projected Invoice, use the same currency, carry complete paid amount/time evidence, and match the fetched expanded allocation exactly for allocation events.
+- Incomplete or paginated payment collections, allocation totals above the Invoice paid amount, paid amounts above the requested allocation, and semantically false `invoice.overpaid` events fail explicitly. Invoice paid amount may exceed amount due, and absent Provider transaction evidence never causes a fabricated transaction identity.
+- Preserved integer micros: Stripe two-decimal payment amounts scale by `10_000`; Stripe zero-decimal payment currencies scale by `1_000_000`; ISK, UGX, HUF, and TWD remain on Stripe's two-decimal payment representation.
+- Invoice service periods are independent from the Subscription current period for ordinary Stripe invoice projection. Completed-Checkout activation retains strict period equality and subscription-transaction semantics; non-activation invoice facts accept exact Stripe `subscription_create | subscription_cycle` transaction kinds.
+- Open partial invoices complete the Provider application as `payment_projected`. Exact Job replay creates no duplicate projection and does not advance Subscription, commercial access, Provider-period Credits, or period identity. A later paid Invoice advances the same Invoice, records every exact allocation, advances the Subscription period, and grants period Credits once.
+- Stripe `trialing` remains explicitly unsupported. `invoice.payment_failed` without Provider recovery metadata remains an invalid/attention event; the Connector does not infer an unlimited Grace window or immediate Payment Restricted state.
+- The tightened Provider-neutral Checkout activation validator exposed a simulated Connector normalization leak. Provider contract validation errors are now translated to the stable invalid-webhook error instead of escaping as raw Pydantic exceptions.
+
+M2.4a.2 validation:
+
+- Focused Stripe, simulated, Provider payment, and Billing Job unit regression passed `50` tests.
+- Real PostgreSQL Stripe chain passed `1` test covering signed `invoice_payment.paid` partial allocation, expanded Invoice retrieval, `payment_projected` replay, later `invoice.paid`, two exact `inpay_*` transactions, and one Provider-period Credit grant.
+- Real PostgreSQL Provider application and simulated lifecycle regressions passed `5` and `14` tests respectively. The separate legacy Free-to-Premium fixture still correctly fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED` because it supplies neither completed Checkout nor confirmed transition evidence.
+- Targeted Ruff lint/format and `ty` passed across all changed API, Connector, and test files. `db:upgrade` reports no migrations to apply and `db:migrate` reports `No changes detected`.
+- `pnpm api:check` passed API lint and formatting across `1867` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4a.2 unit and PostgreSQL tests remain green.
+- Changed-scope Code Review Engine exited successfully with zero blockers. Its `17` report-only findings are existing application-service localization prototypes and the known simulated/Stripe Connector lifecycle prototype reports.
+- Final staged GitNexus detection reported `LOW` risk across `8` files and `168` indexed symbols, with no affected execution flow.
+- M2.4a.2 is complete. The only active part is M2.4b purchased top-up, refund, and correction projection.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
@@ -930,3 +953,13 @@ M2.4a.1 validation:
 - Corrected transaction update ordering to use Provider event time and covered pending-to-succeeded advancement with a focused regression.
 - Verified `36` focused unit/Connector/Job/migration tests, `15` PostgreSQL lifecycle/migration tests, targeted lint/format/type checks, and a zero-blocker changed-scope review. The package gate retains `289` unrelated broad type diagnostics.
 - Completed M2.4a.1 and selected M2.4a.2 real Stripe invoice normalization and projection as the only active part.
+
+### 2026-08-05 — M2.4a.2 Stripe invoice and InvoicePayment projection
+
+- Added strict Stripe invoice and InvoicePayment normalization with exact `inpay_*` identities, allocation-to-Invoice ownership, complete expanded payment collections, event/status invariants, overpayment semantics, and integer currency scaling.
+- Added allocation-native `invoice_payment.paid` handling through accepted Job-time Invoice expansion while retaining existing invoice lifecycle, dunning, signature, encrypted inbox, and pinned Connector boundaries.
+- Preserved payment-only partial projection/replay without Subscription, access, or Credit advancement; later paid Invoice convergence advances the existing Invoice, records all allocations, and grants period Credits exactly once.
+- Restored strict Checkout activation period authority while keeping ordinary Stripe invoice periods independent from Subscription current periods, and translated simulated normalized-contract failures to the stable invalid-webhook boundary.
+- Verified `50` focused unit tests, `1` Stripe PostgreSQL full-chain test, `19` Provider application/simulated lifecycle PostgreSQL tests, targeted static checks, no migration drift, no pending database upgrade, and zero changed-scope review blockers.
+- Recorded the unchanged legacy unauthorized Revision-rebind failure and existing `289` broad API type diagnostics without weakening authority or adding a fallback.
+- Completed M2.4a.2 and selected M2.4b purchased top-up, refund, and correction projection as the only active part.

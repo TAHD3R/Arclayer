@@ -25,6 +25,7 @@ from src.models.commerce.billing import (
     WorkspaceSubscription,
 )
 from src.models.commerce.credit_allocation import PlanPeriodGrantReason
+from src.models.commerce.payments import CommerceInvoiceStatus
 from src.modules.commerce.access_state.composition import (
     CommercialAccessStateComposition,
     build_commercial_access_state_composition,
@@ -223,6 +224,13 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                     subscription=subscription,
                     activation=activation,
                 )
+            if reconciliation_error is None and not is_applied_replay and self._is_payment_only_event(subscription):
+                await self._complete_application(
+                    application=application,
+                    result_code="payment_projected",
+                    conn=conn,
+                )
+                return
             if reconciliation_error is None and not is_applied_replay:
                 self._validate_subscription_order(
                     current=workspace_subscription,
@@ -589,12 +597,20 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         ):
             raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
         if identity.applied_at is not None and (
-            identity.result_code == "applied" or (identity.result_code or "").startswith("dunning_")
+            identity.result_code in {"applied", "payment_projected"}
+            or (identity.result_code or "").startswith("dunning_")
         ):
             return True
         if identity.applied_at is None and identity.result_code == "provider_reconciliation_required":
             return False
         raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
+
+    @staticmethod
+    def _is_payment_only_event(subscription: ProviderSubscription) -> bool:
+        payment = subscription.payment
+        return (
+            payment is not None and subscription.dunning_event is None and payment.status != CommerceInvoiceStatus.PAID
+        )
 
     @staticmethod
     def _validate_subscription_order(*, current: WorkspaceSubscription, incoming: ProviderSubscription) -> None:
