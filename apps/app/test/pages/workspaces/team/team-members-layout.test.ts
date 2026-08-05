@@ -43,6 +43,7 @@ describe("team members layout", () => {
     expect(source).not.toContain("AdminDataTableSection");
     expect(source).not.toContain("useDataTable(");
     expect(source).toContain("useTeamMemberCreditUsage(workspaceId)");
+    expect(source).toContain("useMemberCreditLimitOverrides(workspaceId)");
     expect(source).toContain("<TeamMemberCreditUsageCell");
     expect(source).toContain('t("team:TEAM_TABLE_COL_USAGE")');
   });
@@ -56,6 +57,9 @@ describe("team members layout", () => {
     expect(source).toContain("!member.isOwner");
     expect(source).toContain("const canDisable =");
     expect(source).toContain("const canEnable =");
+    expect(source).toContain('creditLimitAction === "hidden"');
+    expect(source).toContain("<MemberCreditLimitDialog");
+    expect(source).toContain('t("commerce:MEMBER_LIMIT_OVERRIDE_ACTION")');
   });
 
   it("does not fetch or expose role controls unless the server enables role management", () => {

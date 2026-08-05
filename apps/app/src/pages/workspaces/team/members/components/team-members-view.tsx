@@ -1,4 +1,4 @@
-import { BadgeCheck, MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
+import { BadgeCheck, Gauge, MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { MemberFeatureAccessDialog } from "@/pages/workspaces/team/members/components/member-feature-access-dialog";
+import { MemberCreditLimitDialog } from "@/pages/workspaces/team/members/components/member-credit-limit-dialog";
 import { TeamMemberCreditUsageCell } from "@/pages/workspaces/team/members/components/team-member-credit-usage-cell";
 import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
@@ -58,10 +59,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { resolveWorkspaceName } from "../utils";
 import { useMemberFeatureAccess } from "../use-member-feature-access";
 import { useTeamMemberCreditUsage } from "../use-team-member-credit-usage";
+import { useMemberCreditLimitOverrides } from "../use-member-credit-limit-overrides";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 
 function teamMembersSettingsQueryKeyPrefix(workspaceId: string | null | undefined) {
   return ["team-members-settings", workspaceId ? String(workspaceId) : null] as const;
+}
+
+type MemberCreditLimitActionState = "hidden" | "loading" | "error" | "manage";
+
+export function resolveMemberCreditLimitActionState(options: {
+  membershipStatus: TeamMember["membershipStatus"];
+  managementStatus: "loading" | "error" | "view" | "manage";
+  queryStatus: "loading" | "error" | "success";
+  hasItem: boolean;
+}): MemberCreditLimitActionState {
+  if (options.membershipStatus !== "active" || options.managementStatus === "view") return "hidden";
+  if (options.managementStatus === "loading") return "loading";
+  if (options.managementStatus === "error") return "error";
+  if (options.queryStatus !== "success") return options.queryStatus;
+  return options.hasItem ? "manage" : "hidden";
+}
+
+function memberDisplayName(member: TeamMember, fallback: string): string {
+  return member.displayName || member.username || member.email || fallback;
 }
 
 export function TeamMembersView(props: {
@@ -102,6 +123,7 @@ export function TeamMembersView(props: {
     currentUserId: currentUserId ? String(currentUserId) : null,
   });
   const memberCreditUsage = useTeamMemberCreditUsage(workspaceId);
+  const memberCreditOverrides = useMemberCreditLimitOverrides(workspaceId);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", sessionVersion],
@@ -142,6 +164,7 @@ export function TeamMembersView(props: {
 
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
+  const [creditLimitMember, setCreditLimitMember] = React.useState<TeamMember | null>(null);
   const hydratedSearchRef = React.useRef<string | null>(null);
   const canEditRoles =
     Boolean(editingMember) &&
@@ -237,8 +260,20 @@ export function TeamMembersView(props: {
       const canEditMemberRoles =
         roleManagementAvailable && !member.isOwner && member.membershipStatus === "active";
       const featureAccessAction = featureAccess.actionStateFor(member);
+      const creditLimitAction = resolveMemberCreditLimitActionState({
+        membershipStatus: member.membershipStatus,
+        managementStatus: memberCreditOverrides.access.managementAccessStatus,
+        queryStatus: memberCreditOverrides.query.isLoading
+          ? "loading"
+          : memberCreditOverrides.query.isError
+            ? "error"
+            : "success",
+        hasItem: memberCreditOverrides.byMembershipId.has(member.membershipId),
+      });
 
-      if (member.isOwner && featureAccessAction === "hidden") return null;
+      if (member.isOwner && featureAccessAction === "hidden" && creditLimitAction === "hidden") {
+        return null;
+      }
 
       return (
         <DropdownMenu>
@@ -262,6 +297,28 @@ export function TeamMembersView(props: {
                       : featureAccessAction === "manage"
                         ? t("featureAccess:MANAGE")
                         : t("featureAccess:VIEW")}
+                </DropdownMenuIconItem>
+                {creditLimitAction !== "hidden" || !member.isOwner ? (
+                  <DropdownMenuSeparator />
+                ) : null}
+              </>
+            ) : null}
+            {creditLimitAction !== "hidden" ? (
+              <>
+                <DropdownMenuIconItem
+                  icon={<Gauge className="size-4" />}
+                  disabled={creditLimitAction !== "manage"}
+                  onSelect={() => {
+                    if (creditLimitAction !== "manage") return;
+                    memberCreditOverrides.clearFeedback();
+                    setCreditLimitMember(member);
+                  }}
+                >
+                  {creditLimitAction === "loading"
+                    ? t("commerce:MEMBER_LIMIT_OVERRIDE_LOADING")
+                    : creditLimitAction === "error"
+                      ? t("commerce:MEMBER_LIMIT_OVERRIDE_UNAVAILABLE")
+                      : t("commerce:MEMBER_LIMIT_OVERRIDE_ACTION")}
                 </DropdownMenuIconItem>
                 {!member.isOwner ? <DropdownMenuSeparator /> : null}
               </>
@@ -307,11 +364,16 @@ export function TeamMembersView(props: {
       disableMutation,
       enableMutation,
       featureAccess,
+      memberCreditOverrides,
       roleManagementAvailable,
       rolesQueryFailed,
       t,
     ],
   );
+
+  const creditLimitItem = creditLimitMember
+    ? (memberCreditOverrides.byMembershipId.get(creditLimitMember.membershipId) ?? null)
+    : null;
 
   const pageToolbar = (
     <div className="flex flex-wrap items-center gap-3">
@@ -597,6 +659,29 @@ export function TeamMembersView(props: {
       ) : null}
 
       <MemberFeatureAccessDialog {...featureAccess.dialogProps} />
+
+      <MemberCreditLimitDialog
+        open={Boolean(creditLimitMember)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setCreditLimitMember(null);
+          memberCreditOverrides.clearFeedback();
+        }}
+        memberName={
+          creditLimitMember
+            ? memberDisplayName(creditLimitMember, t("team:TEAM_TABLE_COL_USER"))
+            : t("team:TEAM_TABLE_COL_USER")
+        }
+        item={creditLimitItem}
+        configurationRevision={memberCreditOverrides.query.data?.configurationRevision ?? null}
+        pending={memberCreditOverrides.pending}
+        feedback={memberCreditOverrides.feedback}
+        onEdit={memberCreditOverrides.clearFeedback}
+        onSave={(input) => {
+          if (!creditLimitMember) return Promise.reject(new Error("MEMBER_NOT_SELECTED"));
+          return memberCreditOverrides.saveOverride(creditLimitMember.membershipId, input);
+        }}
+      />
 
       <InviteMembersDialog
         open={inviteOpen}

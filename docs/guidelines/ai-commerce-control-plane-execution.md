@@ -247,12 +247,12 @@ M1.5b execution parts:
    - Add a manager-only paginated member-limits controller keyed by `membershipId`.
    - Preserve one Workspace-wide `configurationRevision`; reject inconsistent pages and duplicate member rows explicitly.
    - Implement per-member revision-bound set/clear mutations, response-scope validation, target-aware idempotency fingerprints, conflict refresh, and canonical cache invalidation.
-2. M1.5b.2 focused per-member override dialog and People row action. — Active
+2. M1.5b.2 focused per-member override dialog and People row action. — Complete
    - Use `SettingDialog`, React Hook Form, Zod, and canonical shared fields.
    - Keep `inherit`, explicit positive-integer `limited`, and explicit `unlimited` as three distinct states.
    - Owner may edit their own row; Billing Managers require both the role-management Entitlement and exact Commerce permission; ordinary members receive no action.
    - Keep roles, Feature Seat assignment, member activation, and member removal as separate actions and authorities.
-3. M1.5b.3 canonical Workspace settings entry and focus target. — Pending
+3. M1.5b.3 canonical Workspace settings entry and focus target. — Active
    - Add an authorized Workspace-basics entry that opens `workspace.plan-usage` at `default-member-credit-limit`.
    - Add one `SettingsSectionAnchor` around the existing M1.4 editor.
    - Do not add another default-limit form, mutation, cache, or policy store.
@@ -289,6 +289,25 @@ M1.5b.1 validation:
 - `pnpm app:check`: lint, format, and locale tasks passed; typecheck and broad Vitest remain blocked by the same missing browser acceptance support module.
 - Staged GitNexus change detection reported `MEDIUM` risk across `29` indexed symbols and `5` expected Workspace Commerce/People execution flows; no unrelated flow was introduced.
 - Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its sole report-only finding is the existing prototype directory-structure suggestion for the overlay-mounted `plan-usage` directory.
+
+M1.5b.2 implementation evidence:
+
+- Added a `SettingDialog`-based member Credit limit editor using React Hook Form and Zod with three canonical states: inherited Workspace default, explicit positive-integer limit, and explicit unlimited.
+- Dialog initialization comes only from the manager member-limits snapshot. Inherited state submits `action = "clear"`; explicit unlimited submits a persisted `action = "set"` command with `limitCredits = null`.
+- Added visible saving, saved, conflict, and failure states. Conflict refresh keeps the selected member and dialog open while the form resets from the refreshed canonical revision.
+- Added a separate People row action for active members. The action uses the shared Commerce authority, stays hidden from ordinary members and non-active targets, and exposes loading/error states without borrowing role or Feature Seat permissions.
+- Corrected the Owner-row action early return so an Owner can edit their own member limit even when Feature Access has no action. Existing role, Feature Access, enable, disable, and self-disable behavior remains independently gated.
+- Added bilingual Commerce copy without exposing raw member or protocol identifiers.
+
+M1.5b.2 validation:
+
+- Focused Product tests: `24 passed` across three-state dialog behavior, positive-integer validation, action-state gating, People source contracts, and the member-limit controller. The expanded Workspace team regression suite passed `51` tests across `13` files.
+- Product App lint and format checks passed; locale parity passed for all `23` namespaces.
+- Product OpenAPI typecheck passed.
+- Product App typecheck contains only the known unrelated browser acceptance support import error; no M1.5b.2 type error remains.
+- `pnpm app:check`: lint, format, and locale tasks passed; typecheck and broad Vitest remain blocked by `test/browser/product-acceptance.spec.ts` importing the missing `../../../../tests/browser/support` module.
+- Staged GitNexus change detection reported `HIGH` risk because `TeamMembersView` is a shared People/roles/Usage integration hub; the `7` affected flows are the expected existing Team Members API, permission, and projection paths. The expanded team regression suite and exact authority tests passed before commit.
+- Code Review Engine changed-scope audit exited successfully with zero findings.
 
 ## Known unrelated repository failures
 
@@ -372,3 +391,11 @@ M1.5b.1 validation:
 - Extended the existing default member-limit controller to the same shared authority and canonical invalidation contract.
 - Verified `19` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.5b.2 focused per-member override dialog and People row action.
+
+### 2026-08-05 — M1.5b.2 member override dialog and People action
+
+- Added the canonical inherit/limited/unlimited member override dialog and connected it to the revision-bound M1.5b.1 controller.
+- Added manager-only actions for active People rows, preserved ordinary-member read-only behavior, and restored Owner self-edit through the existing row menu.
+- Kept role assignment, Feature Access, activation, and deactivation as separate actions with their existing authorities.
+- Verified `24` focused member-limit tests and `51` expanded Workspace team regression tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.5b.3 canonical Workspace settings entry and Plan & Usage focus target.
