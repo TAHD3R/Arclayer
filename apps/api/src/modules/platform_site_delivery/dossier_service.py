@@ -68,9 +68,7 @@ class PlatformSiteDeliveryDossierService(BaseService):
             PlatformDeliveryActionAvailabilityOut(
                 action=HostingDeliveryOperationAction.VERIFY_OWNERSHIP,
                 available=(
-                    binding.source == DomainBindingSource.CUSTOM
-                    and binding.is_active
-                    and not binding.is_verified
+                    binding.source == DomainBindingSource.CUSTOM and binding.is_active and not binding.is_verified
                 ),
                 reason_code=_domain_action_reason(binding),
             ),
@@ -327,7 +325,9 @@ class PlatformSiteDeliveryDossierService(BaseService):
             state=str(projection.state),
             visitor_effect=_visitor_effect(projection.state),
             summary_key="siteDelivery:HOSTING_CONTINUITY_RECOVERY_REQUIRED",
-            retryable=next(action.available for action in actions if action.action is HostingDeliveryOperationAction.RETRY),
+            retryable=next(
+                action.available for action in actions if action.action is HostingDeliveryOperationAction.RETRY
+            ),
             occurred_at=projection.updated_at,
             source_identity=projection.source_identity,
             scope=PlatformDeliveryScopeOut(workspace_id=projection.workspace_id),

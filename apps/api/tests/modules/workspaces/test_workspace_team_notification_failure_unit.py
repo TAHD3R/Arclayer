@@ -13,8 +13,8 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.models.system.notification import NotificationCategory
-from src.modules.system.admin.notifications.schema import NotificationWorkspaceSettingsTarget
 from src.models.workspaces.workspace import WorkspaceMembershipStatus
+from src.modules.system.admin.notifications.schema import NotificationWorkspaceSettingsTarget
 from src.modules.workspaces.team import service as module
 from src.modules.workspaces.team.service import WorkspaceTeamService
 

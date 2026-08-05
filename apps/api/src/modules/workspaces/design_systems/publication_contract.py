@@ -144,7 +144,9 @@ def build_design_system_compile_job_definition(
 
 
 def _validate_target_input(target: BaseSchema, input_reference: BaseSchema) -> None:
-    if not isinstance(target, DesignSystemCompileJobTarget) or not isinstance(input_reference, DesignSystemCompileJobInput):
+    if not isinstance(target, DesignSystemCompileJobTarget) or not isinstance(
+        input_reference, DesignSystemCompileJobInput
+    ):
         raise TypeError("Design System compilation requires its exact target and input schemas")
 
 

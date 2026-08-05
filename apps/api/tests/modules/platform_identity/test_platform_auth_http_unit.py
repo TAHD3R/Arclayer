@@ -329,9 +329,7 @@ class _Flows:
             identity_revision=identity_revision,
             invitation_id=None if setup_context is None else setup_context.invitation_id,
             invitation_revision=None if setup_context is None else setup_context.invitation_revision,
-            requires_phishing_resistant=(
-                False if setup_context is None else setup_context.requires_phishing_resistant
-            ),
+            requires_phishing_resistant=(False if setup_context is None else setup_context.requires_phishing_resistant),
             expires_at=expires_at,
             failure_count=0,
         )

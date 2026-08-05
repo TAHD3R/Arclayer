@@ -32,7 +32,7 @@ class NotificationProjectTargetTemplate(BaseModel):
     focus: Literal["api_key", "preview_token", "content_item", "release"] | None = None
 
     @model_validator(mode="after")
-    def validate_focus(self) -> "NotificationProjectTargetTemplate":
+    def validate_focus(self) -> NotificationProjectTargetTemplate:
         allowed_focus = {
             "overview": {None},
             "settings_api": {None, "api_key", "preview_token"},

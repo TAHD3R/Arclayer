@@ -83,11 +83,7 @@ class PlatformSiteDeliveryService(BaseService):
         count_rows = await connection.execute_query_dict(f"SELECT COUNT(*) AS total FROM ({source_sql}) issues")
         total = int(count_rows[0]["total"]) if count_rows else 0
         rows = await connection.execute_query_dict(
-            "SELECT * FROM ("
-            f"{source_sql}"
-            ") issues "
-            "ORDER BY occurred_at DESC, id DESC "
-            "LIMIT $1 OFFSET $2",
+            f"SELECT * FROM ({source_sql}) issues ORDER BY occurred_at DESC, id DESC LIMIT $1 OFFSET $2",
             [params.limit, params.offset],
         )
         items = tuple(
@@ -131,14 +127,11 @@ class PlatformSiteDeliveryService(BaseService):
         return _page(items=items, total=total, params=params)
 
     async def list_storage(self, *, params: PageParams) -> PlatformDeliveryStoragePage:
-        query = (
-            StorageProfile.filter(
-                scope_type=SCOPE_TYPE_SYSTEM,
-                scope_id=SYSTEM_SCOPE_ID,
-                tombstoned_at=None,
-            )
-            .order_by("-updated_at", "-id")
-        )
+        query = StorageProfile.filter(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            tombstoned_at=None,
+        ).order_by("-updated_at", "-id")
         total = int(await query.count())
         profiles = await query.offset(params.offset).limit(params.limit)
         test_states = (
@@ -165,9 +158,7 @@ class PlatformSiteDeliveryService(BaseService):
                     else None
                 ),
                 last_tested_at=(
-                    states_by_key[profile.profile_key].last_tested_at
-                    if profile.profile_key in states_by_key
-                    else None
+                    states_by_key[profile.profile_key].last_tested_at if profile.profile_key in states_by_key else None
                 ),
             )
             for profile in profiles
@@ -358,7 +349,9 @@ class PlatformSiteDeliveryService(BaseService):
         try:
             result = await StorageProfilesService(self._settings).test_profile(profile_id=profile.id)
         except Exception as exc:
-            await self._mark_outcome_unknown(operation=operation, actor_user_id=actor_user_id, workspace_id=None, exc=exc)
+            await self._mark_outcome_unknown(
+                operation=operation, actor_user_id=actor_user_id, workspace_id=None, exc=exc
+            )
             raise
         refreshed = await self._storage_profile(profile_id=profile.id)
         refreshed_test_state = await self._storage_test_state(profile=refreshed)

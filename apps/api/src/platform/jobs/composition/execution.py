@@ -135,6 +135,14 @@ from src.modules.system.plugins.job_contract import (
 from src.modules.system.plugins.job_handler import PluginLifecycleJobHandler
 from src.modules.tenancy.context import require_current_tenant_context
 from src.modules.tenancy.repository import TenancyRepository
+from src.modules.workspaces.design_systems.publication_assets import DesignSystemAssetPinResolver
+from src.modules.workspaces.design_systems.publication_contract import (
+    DESIGN_SYSTEM_COMPILE_JOB_TYPE,
+    DESIGN_SYSTEM_COMPILE_JOB_TYPE_VERSION,
+)
+from src.modules.workspaces.design_systems.publication_handler import DesignSystemPublicationJobHandler
+from src.modules.workspaces.design_systems.publication_repository import DesignSystemPublicationRepository
+from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
 from src.modules.workspaces.knowledge.indexing_contract import (
     KNOWLEDGE_SOURCE_INDEX_JOB_TYPE,
     KNOWLEDGE_SOURCE_INDEX_JOB_TYPE_VERSION,
@@ -158,14 +166,6 @@ from src.modules.workspaces.knowledge.source_fetch import (
     KnowledgeSourceFetchPolicy,
     UntrustedHttpKnowledgeFetcher,
 )
-from src.modules.workspaces.design_systems.publication_assets import DesignSystemAssetPinResolver
-from src.modules.workspaces.design_systems.publication_contract import (
-    DESIGN_SYSTEM_COMPILE_JOB_TYPE,
-    DESIGN_SYSTEM_COMPILE_JOB_TYPE_VERSION,
-)
-from src.modules.workspaces.design_systems.publication_handler import DesignSystemPublicationJobHandler
-from src.modules.workspaces.design_systems.publication_repository import DesignSystemPublicationRepository
-from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
 from src.modules.workspaces.skills.github_fetcher import PublicGitHubSkillFetcher
 from src.modules.workspaces.skills.github_import_contract import (
     SKILL_GITHUB_IMPORT_JOB_TYPE,

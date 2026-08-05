@@ -62,13 +62,7 @@ class AgentRunRecoveryRepository(TortoiseORMRepository[AgentRunRecoveryRecord]):
 
     @staticmethod
     async def next_generation(*, run_id: UUID, conn: BaseDBAsyncClient) -> int:
-        latest = await (
-            AgentRunRecoveryRecord
-            .filter(run_id=run_id)
-            .using_db(conn)
-            .order_by("-generation")
-            .first()
-        )
+        latest = await AgentRunRecoveryRecord.filter(run_id=run_id).using_db(conn).order_by("-generation").first()
         return 1 if latest is None else latest.generation + 1
 
     async def create_recovery(
@@ -273,11 +267,7 @@ class AgentRunExecutionEffectRepository(TortoiseORMRepository[AgentRunExecutionE
         conn: BaseDBAsyncClient | None = None,
     ) -> AgentRunExecutionEffectRecord | None:
         return await (
-            AgentRunExecutionEffectRecord
-            .filter(job_id=job_id)
-            .using_db(conn)
-            .order_by("-registered_at", "-id")
-            .first()
+            AgentRunExecutionEffectRecord.filter(job_id=job_id).using_db(conn).order_by("-registered_at", "-id").first()
         )
 
     @staticmethod

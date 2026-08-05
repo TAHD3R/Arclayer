@@ -13,7 +13,11 @@ from src.common.schemas import BaseSchema
 from src.models.assets.asset import AssetRecord
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.scope import AssetScope
-from src.modules.workspaces.design_systems.manifest import DesignAssetReferenceV1, DesignSystemManifestV1, design_system_content_digest
+from src.modules.workspaces.design_systems.manifest import (
+    DesignAssetReferenceV1,
+    DesignSystemManifestV1,
+    design_system_content_digest,
+)
 
 _FONT_MIME_TYPES: Final = frozenset({
     "application/font-sfnt",

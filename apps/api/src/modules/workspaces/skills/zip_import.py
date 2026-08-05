@@ -151,11 +151,7 @@ def _read_archive_files(archive: zipfile.ZipFile) -> dict[str, bytes]:
 def _resolve_package_root(files: dict[str, bytes]) -> dict[str, bytes]:
     if METADATA_PATH in files and INSTRUCTIONS_PATH in files:
         return files
-    top_level_folders = {
-        PurePosixPath(path).parts[0]
-        for path in files
-        if len(PurePosixPath(path).parts) > 1
-    }
+    top_level_folders = {PurePosixPath(path).parts[0] for path in files if len(PurePosixPath(path).parts) > 1}
     if len(top_level_folders) != 1 or any(len(PurePosixPath(path).parts) < 2 for path in files):
         return files
     wrapping_folder = next(iter(top_level_folders))

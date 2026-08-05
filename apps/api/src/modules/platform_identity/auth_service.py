@@ -368,9 +368,7 @@ class PlatformAuthService(BaseService):
             raise Unauthorized(error="PLATFORM_IDENTITY_CHANGED")
         return flow, access
 
-    async def _authenticate_primary_identity(
-        self, *, identifier: str, password: str
-    ) -> PlatformAuthUserLike:
+    async def _authenticate_primary_identity(self, *, identifier: str, password: str) -> PlatformAuthUserLike:
         user = await self._users.get_by_identifier(identifier)
         credential = None if user is None else cast(PlatformAuthCredentialLike | None, user.credential)
         password_hash = "" if credential is None else credential.password_hash

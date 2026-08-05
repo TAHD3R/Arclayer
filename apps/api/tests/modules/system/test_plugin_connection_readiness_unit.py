@@ -65,11 +65,7 @@ async def test_analytics_connection_is_explicitly_unavailable_without_an_owning_
 
 async def test_oauth_connection_uses_platform_sign_in_readiness() -> None:
     oauth = _ReadinessPort(
-        SimpleNamespace(
-            providers=(
-                SimpleNamespace(key="google", installed=True, enabled=True, configured=True),
-            )
-        )
+        SimpleNamespace(providers=(SimpleNamespace(key="google", installed=True, enabled=True, configured=True),))
     )
     service = _service(
         oauth=oauth,
@@ -86,11 +82,7 @@ async def test_oauth_connection_uses_platform_sign_in_readiness() -> None:
 async def test_oauth_connection_surfaces_missing_configuration() -> None:
     service = _service(
         oauth=_ReadinessPort(
-            SimpleNamespace(
-                providers=(
-                    SimpleNamespace(key="google", installed=True, enabled=True, configured=False),
-                )
-            )
+            SimpleNamespace(providers=(SimpleNamespace(key="google", installed=True, enabled=True, configured=False),))
         ),
         billing=_UnexpectedPort(),
         mail=_UnexpectedPort(),

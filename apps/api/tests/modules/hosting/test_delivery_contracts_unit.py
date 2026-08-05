@@ -56,11 +56,9 @@ def test_delivery_contracts_are_frozen_equal_and_json_serializable() -> None:
 
 def test_delivery_contracts_reject_undeclared_fields() -> None:
     with pytest.raises(ValidationError, match="extra_forbidden"):
-        HostingDeliveryTarget.model_validate(
-            {
-                "site_id": uuid4(),
-                "runtime_id": uuid4(),
-                "preserved_release_id": None,
-                "workspace_id": uuid4(),
-            }
-        )
+        HostingDeliveryTarget.model_validate({
+            "site_id": uuid4(),
+            "runtime_id": uuid4(),
+            "preserved_release_id": None,
+            "workspace_id": uuid4(),
+        })

@@ -155,7 +155,8 @@ class HostingDeliveryOperationRepository:
         limit: int,
     ) -> tuple[HostingDeliveryOperation, ...]:
         records = await (
-            HostingDeliveryOperation.filter(target_type=target_type, target_id=target_id)
+            HostingDeliveryOperation
+            .filter(target_type=target_type, target_id=target_id)
             .order_by("-created_at", "-id")
             .limit(limit)
         )
@@ -184,9 +185,7 @@ class HostingDeliveryOperationRepository:
 
     @staticmethod
     async def _locked(*, operation_id: UUID, conn) -> HostingDeliveryOperation:
-        operation = await (
-            HostingDeliveryOperation.filter(id=operation_id).using_db(conn).select_for_update().first()
-        )
+        operation = await HostingDeliveryOperation.filter(id=operation_id).using_db(conn).select_for_update().first()
         if operation is None:
             raise NotFound(error="HOSTING_DELIVERY_OPERATION_NOT_FOUND")
         return operation
@@ -194,7 +193,8 @@ class HostingDeliveryOperationRepository:
     @staticmethod
     async def _find_locked(*, actor_user_id: UUID, idempotency_key: str, conn) -> HostingDeliveryOperation | None:
         return await (
-            HostingDeliveryOperation.filter(
+            HostingDeliveryOperation
+            .filter(
                 actor_user_id=actor_user_id,
                 idempotency_key=idempotency_key,
             )

@@ -1102,9 +1102,7 @@ class WorkspaceGuidanceService(BaseService):
             return project_effective_guidance_preview(
                 workspace=await self._project_layer(layer=workspace_layer, conn=conn),
                 project=(
-                    await self._project_layer(layer=project_layer, conn=conn)
-                    if project_layer is not None
-                    else None
+                    await self._project_layer(layer=project_layer, conn=conn) if project_layer is not None else None
                 ),
             )
 

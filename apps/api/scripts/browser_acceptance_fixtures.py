@@ -107,10 +107,13 @@ async def _create_platform_operator(*, user: User) -> str:
         description="Real acceptance principal with explicit Platform role permissions.",
         created_by_user_id=user.id,
     )
-    revision = await PlatformRoleRevision.create(role_id=role.id, sequence=1, is_current=True, created_by_user_id=user.id)
-    await PlatformRoleRevisionPermission.bulk_create(
-        [PlatformRoleRevisionPermission(role_revision_id=revision.id, permission_id=permission.id) for permission in permissions]
+    revision = await PlatformRoleRevision.create(
+        role_id=role.id, sequence=1, is_current=True, created_by_user_id=user.id
     )
+    await PlatformRoleRevisionPermission.bulk_create([
+        PlatformRoleRevisionPermission(role_revision_id=revision.id, permission_id=permission.id)
+        for permission in permissions
+    ])
     operator = await PlatformOperator.create(
         user_id=user.id,
         status=PlatformOperatorStatus.MFA_SETUP_REQUIRED,

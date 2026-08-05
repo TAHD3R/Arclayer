@@ -211,8 +211,8 @@ class WorkspaceService(BaseService):
         self.project_repo = project_repo or ProjectRepository()
         self.instance_setup_service = instance_setup_service or InstanceSetupService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
-        self.organization_workspace_service = (
-            organization_workspace_service or build_organization_workspace_service(settings)
+        self.organization_workspace_service = organization_workspace_service or build_organization_workspace_service(
+            settings
         )
         self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
         self.membership_end_participant = membership_end_participant

@@ -13,15 +13,15 @@ from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.design_systems.publication import DesignSystemArtifactRecord, DesignSystemPublicationRecord
 from src.models.design_systems._enums import DesignSystemValidationStatus, DesignSystemVersionStatus
+from src.models.design_systems.publication import DesignSystemArtifactRecord, DesignSystemPublicationRecord
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.jobs.schema import BackgroundJobCreate, BackgroundJobCreateResult
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.workspaces.design_systems.manifest import DesignSystemManifestV1
 from src.modules.workspaces.design_systems.publication_assets import (
-    DesignSystemAssetPinResolver,
     DesignSystemAssetPinningError,
+    DesignSystemAssetPinResolver,
     design_system_asset_pins_hash,
 )
 from src.modules.workspaces.design_systems.publication_compiler import (
@@ -169,11 +169,13 @@ class DesignSystemPublicationService(BaseService):
                 raise RuntimeError("DESIGN_SYSTEM_PUBLICATION_ARTIFACT_INVARIANT_INVALID")
             return existing, artifact, None
         _require_publication_base(version_checksum=version.manifest_checksum, state=state, payload=payload)
-        validation = (await self._repository.latest_validations(
-            workspace_id=workspace_id,
-            version_ids=(version.id,),
-            conn=conn,
-        )).get(version.id)
+        validation = (
+            await self._repository.latest_validations(
+                workspace_id=workspace_id,
+                version_ids=(version.id,),
+                conn=conn,
+            )
+        ).get(version.id)
         if (
             validation is None
             or str(validation.status) != DesignSystemValidationStatus.VALID.value
@@ -350,8 +352,13 @@ def _require_replay(*, publication, key: str, fingerprint: str) -> None:
         raise Conflict(t("errors", "DESIGN_SYSTEM_IDEMPOTENCY_CONFLICT"), error="DESIGN_SYSTEM_IDEMPOTENCY_CONFLICT")
 
 
-def _require_publication_base(*, version_checksum: str, state, payload: WorkspaceDesignSystemPublicationCreateRequest) -> None:
-    if version_checksum != payload.expected_manifest_checksum or state.status_revision != payload.expected_status_revision:
+def _require_publication_base(
+    *, version_checksum: str, state, payload: WorkspaceDesignSystemPublicationCreateRequest
+) -> None:
+    if (
+        version_checksum != payload.expected_manifest_checksum
+        or state.status_revision != payload.expected_status_revision
+    ):
         raise Conflict(t("errors", "DESIGN_SYSTEM_REVISION_CONFLICT"), error="DESIGN_SYSTEM_REVISION_CONFLICT")
     if str(state.status) != DesignSystemVersionStatus.VALID.value:
         _raise_validation_blocked()

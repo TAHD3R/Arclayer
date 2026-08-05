@@ -280,7 +280,9 @@ def with_selected_lead_skill_installations(
     skill_grant_workspace_id = (
         lead_agent.skill_grant_workspace_id
         if lead_agent.skill_installation_ids or lead_agent.skill_grant_workspace_id is not None
-        else workspace_id if installation_ids else None
+        else workspace_id
+        if installation_ids
+        else None
     )
     return lead_agent.model_copy(
         update={

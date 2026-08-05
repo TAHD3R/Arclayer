@@ -163,8 +163,7 @@ class _Repository(WorkspaceGuidanceRepository):
             (
                 record
                 for record in self.revisions.values()
-                if record.guidance_layer_id == guidance_layer_id
-                and record.request_idempotency_key == idempotency_key
+                if record.guidance_layer_id == guidance_layer_id and record.request_idempotency_key == idempotency_key
             ),
             None,
         )
@@ -282,11 +281,13 @@ class _Repository(WorkspaceGuidanceRepository):
         guidance_layer_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> tuple[int, int, int]:
-        count = len(await self.list_references(
-            workspace_id=workspace_id,
-            guidance_layer_id=guidance_layer_id,
-            conn=conn,
-        ))
+        count = len(
+            await self.list_references(
+                workspace_id=workspace_id,
+                guidance_layer_id=guidance_layer_id,
+                conn=conn,
+            )
+        )
         return count, count, count
 
     async def count_project_layers(
@@ -298,9 +299,7 @@ class _Repository(WorkspaceGuidanceRepository):
         return sum(
             1
             for layer in self.layers.values()
-            if layer.workspace_id == workspace_id
-            and str(layer.scope_kind) == "project"
-            and layer.removed_at is None
+            if layer.workspace_id == workspace_id and str(layer.scope_kind) == "project" and layer.removed_at is None
         )
 
     async def get_preview_by_idempotency_key(
@@ -1120,11 +1119,7 @@ def test_guidance_router_exposes_canonical_lifecycle_routes_with_idempotency() -
         "/workspaces/{workspace_id}/guidance/references",
         "/workspaces/{workspace_id}/guidance/projects/{project_id}/references",
     } <= paths
-    guidance_mutations = tuple(
-        route
-        for route in routes
-        if "/guidance" in route.path and route.methods != {"GET"}
-    )
+    guidance_mutations = tuple(route for route in routes if "/guidance" in route.path and route.methods != {"GET"})
     assert guidance_mutations
     for route in guidance_mutations:
         assert "Idempotency-Key" in {parameter.alias for parameter in route.dependant.header_params}

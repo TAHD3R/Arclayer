@@ -56,11 +56,13 @@ def test_parse_workspace_skill_zip_builds_strict_immutable_payload() -> None:
 
 
 def test_parse_workspace_skill_zip_accepts_one_wrapping_folder() -> None:
-    parsed = parse_workspace_skill_zip(_archive({
-        "editorial-review/skill.json": _metadata(),
-        "editorial-review/SKILL.md": "# Editorial review\n\nUse approved evidence only.",
-        "editorial-review/references/checklist.md": "# Checklist",
-    }))
+    parsed = parse_workspace_skill_zip(
+        _archive({
+            "editorial-review/skill.json": _metadata(),
+            "editorial-review/SKILL.md": "# Editorial review\n\nUse approved evidence only.",
+            "editorial-review/references/checklist.md": "# Checklist",
+        })
+    )
 
     assert parsed.payload.slug == "editorial-review"
     assert [reference.path for reference in parsed.payload.references] == [

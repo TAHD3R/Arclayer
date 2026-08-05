@@ -321,6 +321,7 @@ class AgentRunPlatformRecoveryActionPort(BaseService):
             raise AgentRuntimePersistenceError("AGENT_RUN_RECOVERY_JOB_SCOPE_INVALID")
         return job
 
+
 def _recovery_event(
     *,
     command: PlatformAIRecoveryCommand,

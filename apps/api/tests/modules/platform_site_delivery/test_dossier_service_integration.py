@@ -52,11 +52,7 @@ async def test_hosting_issue_dossier_remains_addressable_after_source_recovery()
         operations=operations,
     ).get_issue(issue_id=projection.id)
 
-    retry = next(
-        action
-        for action in dossier.actions
-        if action.action is HostingDeliveryOperationAction.RETRY
-    )
+    retry = next(action for action in dossier.actions if action.action is HostingDeliveryOperationAction.RETRY)
     assert dossier.state == HostingCommercialAccessState.RESTORED
     assert not dossier.retryable
     assert not retry.available

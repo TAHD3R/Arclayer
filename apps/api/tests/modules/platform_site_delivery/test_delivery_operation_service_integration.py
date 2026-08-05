@@ -66,7 +66,9 @@ async def test_storage_readiness_operation_is_idempotent_revision_bound_and_sour
 
 
 @pytest.mark.usefixtures("db")
-async def test_storage_readiness_operation_replays_for_the_same_actor_and_records_unknown_source_outcome(monkeypatch) -> None:
+async def test_storage_readiness_operation_replays_for_the_same_actor_and_records_unknown_source_outcome(
+    monkeypatch,
+) -> None:
     actor_user_id = uuid4()
     profile = await StorageProfile.create(
         profile_key="hosting-operation-replay",

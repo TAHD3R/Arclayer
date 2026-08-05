@@ -655,9 +655,7 @@ def _build_official_version(
     display_name: str,
     description: str,
     payload: (
-        PlatformSkillPackageCreateRequest
-        | PlatformSkillPackageReplaceRequest
-        | PlatformSkillVersionCreateRequest
+        PlatformSkillPackageCreateRequest | PlatformSkillPackageReplaceRequest | PlatformSkillVersionCreateRequest
     ),
 ) -> InlineSkillVersion:
     try:

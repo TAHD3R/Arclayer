@@ -809,11 +809,16 @@ class WorkspaceGuidanceRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> int:
         async with self.connection(conn) as tenant_conn:
-            return await KnowledgeGuidanceLayerRecord.filter(
-                workspace_id=workspace_id,
-                scope_kind="project",
-                removed_at__isnull=True,
-            ).using_db(tenant_conn).count()
+            return (
+                await KnowledgeGuidanceLayerRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    scope_kind="project",
+                    removed_at__isnull=True,
+                )
+                .using_db(tenant_conn)
+                .count()
+            )
 
     async def get_preview_by_idempotency_key(
         self,
@@ -977,11 +982,7 @@ class WorkspaceGuidanceRepository(TenantScopedRepository):
                     effective_content=project_revision.content,
                     attached_knowledge_base_ids=project_reference_ids,
                     unavailable_codes=unavailable_codes,
-                    conflict_codes=(
-                        ("project_override_hides_workspace",)
-                        if workspace_revision is not None
-                        else ()
-                    ),
+                    conflict_codes=(("project_override_hides_workspace",) if workspace_revision is not None else ()),
                 )
 
             workspace_reference_ids = await self._reference_ids(

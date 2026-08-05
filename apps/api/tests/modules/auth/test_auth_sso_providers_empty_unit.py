@@ -97,6 +97,4 @@ async def test_auth_sso_list_providers_returns_configured_builtin_providers(
     assert items[2]["start_url"] == (
         "http://testserver/api/v1/auth/sso/start/microsoft?redirect=%2Fprojects%2Fproject-1"
     )
-    assert items[3]["start_url"] == (
-        "http://testserver/api/v1/auth/sso/start/discord?redirect=%2Fprojects%2Fproject-1"
-    )
+    assert items[3]["start_url"] == ("http://testserver/api/v1/auth/sso/start/discord?redirect=%2Fprojects%2Fproject-1")

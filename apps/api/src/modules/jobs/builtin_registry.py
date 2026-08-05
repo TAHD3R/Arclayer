@@ -31,11 +31,11 @@ from src.modules.projects.builder.generation_job_contract import (
 from src.modules.projects.design_systems.concept_job_contract import (
     build_design_system_concept_generation_job_definition,
 )
-from src.modules.workspaces.design_systems.publication_contract import build_design_system_compile_job_definition
 from src.modules.system.admin.notifications.campaign_job_contract import (
     build_notification_campaign_job_definition,
 )
 from src.modules.system.plugins.job_contract import build_plugin_lifecycle_job_definition
+from src.modules.workspaces.design_systems.publication_contract import build_design_system_compile_job_definition
 from src.modules.workspaces.knowledge.indexing_contract import (
     build_knowledge_source_index_job_definition,
 )

@@ -728,6 +728,4 @@ class FeedbackService(BaseService):
         delivery.failure_code = reason
         delivery.failure_message = None
         delivery.is_retryable = False
-        await delivery.save(
-            update_fields=["state", "failure_code", "failure_message", "is_retryable", "updated_at"]
-        )
+        await delivery.save(update_fields=["state", "failure_code", "failure_message", "is_retryable", "updated_at"])

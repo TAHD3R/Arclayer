@@ -104,8 +104,7 @@ async def test_workflow_event_prefers_assignee_and_creates_in_app_delivery(
 
 
 @pytest.mark.asyncio
-async def test_project_event_without_recipient_surfaces_contract_error(
-) -> None:
+async def test_project_event_without_recipient_surfaces_contract_error() -> None:
     runtime = NotificationEventRuntime(
         Settings(),
         audience_reader=_AudienceReader(users=[]),

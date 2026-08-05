@@ -220,11 +220,7 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         conn: BaseDBAsyncClient | None,
     ) -> AgentRunExecutionEffectRecord | None:
         return await (
-            AgentRunExecutionEffectRecord
-            .filter(job_id=job_id)
-            .using_db(conn)
-            .order_by("-registered_at", "-id")
-            .first()
+            AgentRunExecutionEffectRecord.filter(job_id=job_id).using_db(conn).order_by("-registered_at", "-id").first()
         )
 
     @staticmethod
@@ -234,12 +230,7 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         job_id: UUID,
         conn: BaseDBAsyncClient | None,
     ) -> AgentRunRecoveryExecutionSnapshot | None:
-        recovery = await (
-            AgentRunRecoveryRecord
-            .filter(run_id=run.id, recovery_job_id=job_id)
-            .using_db(conn)
-            .first()
-        )
+        recovery = await AgentRunRecoveryRecord.filter(run_id=run.id, recovery_job_id=job_id).using_db(conn).first()
         if recovery is None:
             return None
         effect_record = await AgentRunJobRepository._latest_execution_effect(
