@@ -12,6 +12,7 @@ from src.modules.commerce import authorization
 from src.modules.commerce.authorization import (
     WORKSPACE_COMMERCE_MANAGE_REQUIRED,
     get_workspace_roles_manage_availability,
+    has_workspace_commerce_manage_access,
 )
 from src.modules.commerce.entitlement_schema import WORKSPACE_ROLES_MANAGE_ENTITLEMENT, EntitlementDecision
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
@@ -71,6 +72,28 @@ async def test_workspace_owner_can_manage_commerce_without_rbac_lookup(monkeypat
     )
 
     assert result is ctx
+    assert entitlements.calls == []
+
+
+@pytest.mark.asyncio
+async def test_workspace_guest_owner_cannot_manage_commerce(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def unexpected(**_kwargs: object) -> bool:
+        raise AssertionError("guest access must be rejected before RBAC lookup")
+
+    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", unexpected)
+    entitlements = _Entitlements(granted=True)
+    ctx = _context(owner=True).model_copy(update={"access_type": WorkspaceAccessType.GUEST})
+
+    with pytest.raises(Forbidden) as exc_info:
+        await authorization._require_workspace_owner_or_permission(
+            permission="workspace:commerce:manage",
+            user_id=uuid4(),
+            ctx=ctx,
+            error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
+            entitlements=entitlements,
+        )
+
+    assert exc_info.value.error == WORKSPACE_COMMERCE_MANAGE_REQUIRED
     assert entitlements.calls == []
 
 
@@ -139,24 +162,18 @@ async def test_non_owner_generic_or_platform_permissions_do_not_authorize_commer
     monkeypatch: pytest.MonkeyPatch,
     unrelated_permission: str,
 ) -> None:
-    async def denied(permission: str, **_kwargs: object) -> bool:
-        assert permission == "workspace:commerce:manage"
-        return False
+    async def only_unrelated_permission(permission: str, **_kwargs: object) -> bool:
+        return permission == unrelated_permission
 
-    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", denied)
-    entitlements = _Entitlements(granted=True)
+    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", only_unrelated_permission)
 
-    with pytest.raises(Forbidden) as exc_info:
-        await authorization._require_workspace_owner_or_permission(
-            permission="workspace:commerce:manage",
-            user_id=uuid4(),
-            ctx=_context(),
-            error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
-            entitlements=entitlements,
-        )
+    allowed = await has_workspace_commerce_manage_access(
+        user_id=uuid4(),
+        ctx=_context(),
+        entitlements=_Entitlements(granted=True),
+    )
 
-    assert unrelated_permission != "workspace:commerce:manage"
-    assert exc_info.value.error == WORKSPACE_COMMERCE_MANAGE_REQUIRED
+    assert allowed is False
 
 
 @pytest.mark.asyncio
@@ -211,3 +228,48 @@ async def test_roles_manage_availability_uses_registered_entitlement_and_connect
             "conn": conn,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_commerce_manage_authority_returns_false_when_revision_entitlement_is_excluded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def unexpected_permission(**_kwargs: object) -> bool:
+        raise AssertionError("RBAC must not be evaluated when the revision excludes management")
+
+    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", unexpected_permission)
+
+    assert not await has_workspace_commerce_manage_access(
+        user_id=uuid4(),
+        ctx=_context(),
+        entitlements=_Entitlements(granted=False),
+    )
+
+
+@pytest.mark.asyncio
+async def test_commerce_manage_authority_requires_exact_permission_after_entitlement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    decisions = iter((False, True))
+
+    async def exact_permission(**_kwargs: object) -> bool:
+        return next(decisions)
+
+    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", exact_permission)
+    ctx = _context()
+    entitlements = _Entitlements(granted=True)
+
+    denied = await has_workspace_commerce_manage_access(
+        user_id=uuid4(),
+        ctx=ctx,
+        entitlements=entitlements,
+    )
+    granted = await has_workspace_commerce_manage_access(
+        user_id=uuid4(),
+        ctx=ctx,
+        entitlements=entitlements,
+    )
+
+    assert denied is False
+    assert granted is True
+    assert len(entitlements.calls) == 2

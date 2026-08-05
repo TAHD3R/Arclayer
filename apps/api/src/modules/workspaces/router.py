@@ -23,6 +23,7 @@ from src.modules.commerce.convergence.router import router as workspace_plan_acc
 from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
 from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.commerce.feature_access.router import router as workspace_feature_access_router
+from src.modules.commerce.member_credit_router import router as workspace_member_credit_router
 from src.modules.commerce.workspace_router import router as workspace_commerce_router
 from src.modules.jobs.router import router as workspace_jobs_router
 from src.modules.observability.workspace_router import router as workspace_observability_router
@@ -81,6 +82,7 @@ router.include_router(workspace_commerce_router)
 router.include_router(workspace_commercial_access_router)
 router.include_router(workspace_plan_access_convergence_router)
 router.include_router(workspace_feature_access_router)
+router.include_router(workspace_member_credit_router)
 router.include_router(workspace_observability_router)
 router.include_router(workspace_jobs_router)
 router.include_router(workspace_knowledge_router)

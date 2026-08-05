@@ -20,7 +20,7 @@ from src.modules.permissions import (
     deserialize_condition_sets,
     evaluate_condition_sets,
 )
-from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context
 
 WORKSPACE_COMMERCE_MANAGE_REQUIRED = "WORKSPACE_COMMERCE_MANAGE_REQUIRED"
@@ -94,17 +94,47 @@ async def _require_workspace_owner_or_permission(
     error_code: str,
     entitlements: WorkspaceEntitlementAvailability,
 ) -> WorkspaceContext:
-    if ctx.is_workspace_owner:
+    if await _has_workspace_owner_or_permission(
+        permission=permission,
+        user_id=user_id,
+        ctx=ctx,
+        entitlements=entitlements,
+    ):
         return ctx
+    raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error=error_code)
+
+
+async def _has_workspace_owner_or_permission(
+    *,
+    permission: str,
+    user_id: UUID,
+    ctx: WorkspaceContext,
+    entitlements: WorkspaceEntitlementAvailability,
+) -> bool:
+    if ctx.access_type != WorkspaceAccessType.MEMBER or ctx.workspace_membership_id is None:
+        return False
+    if ctx.is_workspace_owner:
+        return True
     roles_manage = await get_workspace_roles_manage_availability(
         workspace_id=ctx.workspace_id,
         entitlements=entitlements,
     )
     if not roles_manage.granted:
-        raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error=error_code)
-    if not await _has_exact_workspace_permission(permission=permission, user_id=user_id, ctx=ctx):
-        raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error=error_code)
-    return ctx
+        return False
+    return await _has_exact_workspace_permission(permission=permission, user_id=user_id, ctx=ctx)
+
+
+async def has_workspace_commerce_manage_access(
+    user_id: UUID = Depends(get_current_user_id),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    entitlements: WorkspaceEntitlementAvailability = Depends(build_workspace_entitlement_availability),
+) -> bool:
+    return await _has_workspace_owner_or_permission(
+        permission=WORKSPACE_COMMERCE_MANAGE,
+        user_id=user_id,
+        ctx=ctx,
+        entitlements=entitlements,
+    )
 
 
 async def require_workspace_commerce_manage_access(

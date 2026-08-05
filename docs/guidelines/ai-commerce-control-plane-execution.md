@@ -97,13 +97,13 @@ Data semantics:
 - Policy and override mutations use optimistic revision and durable idempotency receipts.
 - Same key and fingerprint replays the stored result; changed payload conflicts.
 - Effective limit is override when present, otherwise Workspace default.
-- Usage reads current period reserved, committed, available allowance, and append-only event attribution without reconstructing identity from mutable membership data.
+- Usage reads expose current-period reserved, committed, and available allowance from durable member counters. Raw append-only event attribution remains a separate ledger contract rather than being folded into this table endpoint.
 
 Active implementation parts:
 
 1. M1.1 schemas, repository/service, receipts, and migration extension. — Complete
-2. M1.2 Product router contracts and authorization tests. — Active
-3. M1.3 OpenAPI synchronization and Product API wrappers.
+2. M1.2 Product router contracts and authorization tests. — Complete
+3. M1.3 OpenAPI synchronization and Product API wrappers. — Active
 4. M1.4 Plan & Usage default-limit/usage surface.
 5. M1.5 People Usage column and per-member override dialog.
 
@@ -137,21 +137,40 @@ M1.1 validation:
 - Real PostgreSQL `0116 → 0117` migration contract test: `1 passed`.
 - `pnpm api:check`: failed outside M1.1 on existing API Ruff findings and 28 existing format-check files; Turbo interrupted the remaining package tasks after those gates failed. No M1.1 targeted diagnostic remained.
 
-M1.2 active boundary:
+M1.2 status: Complete
 
-- Add the four Product Workspace Commerce routes listed above.
-- Reuse the canonical Workspace authorization stack; do not duplicate role interpretation.
-- Owner has full read/write authority, including self-override.
-- Billing Manager requires exact `workspace:commerce:manage` plus the revision-bound management entitlement.
-- Ordinary active members may read only their own Usage.
-- Route tests must cover Owner, entitled Billing Manager, ordinary member self-only access, disabled membership, cross-Workspace target, idempotency, and revision errors.
+M1.2 implementation evidence:
+
+- Added the four canonical Product Workspace Commerce routes under one typed member-Credit router and registered it in the Product Workspace composition.
+- Added a read repository/service boundary that validates existing Workspace billing, pins the account's exact `period_start`/`period_end`, reads only active memberships, and batch-loads page-scoped overrides and current-period counters without creating rows.
+- Effective limits preserve explicit unlimited overrides versus inherited defaults. Limited availability is `max(limit - reserved - committed, 0)`; unlimited availability is `null`; missing Usage counters are zero.
+- The read path holds the Workspace member-Credit policy lock while reading override/counter rows so `configurationRevision` and effective limits cannot cross revisions. This intentionally makes same-Workspace reads and configuration writes serialize for a coherent management snapshot; the lock order has no cycle with the command path.
+- Added a reusable Commerce management authority: Owner bypasses entitlement/RBAC only as an active Workspace member; non-Owner management requires the revision-bound `workspace.roles.manage` entitlement followed by exact `workspace:commerce:manage`.
+- `member-usage` projects `ALL` for authorized management and `SELF` for an ordinary active member. Limits and both mutations use the strict management dependency. Guest Owners are rejected before Owner bypass.
+- Added PublicUUID/camelCase response contracts for usage rows, nested member identity, limits, pagination, period bounds, and the Workspace-wide configuration revision.
+
+M1.2 validation:
+
+- Targeted Ruff checks, Ruff format checks, and `ty` checks across the changed models, authorization, schemas, repositories/services/composition/router, Workspace router registration, and tests: passed.
+- Authorization and router unit tests: `18 passed`, covering Owner bypass, guest-Owner denial, entitlement-before-exact-permission, unrelated permission rejection, ordinary-member self projection, manager all projection, real 403 manager dependency behavior, canonical paths, PublicUUID serialization, mutation transport, and stable error propagation.
+- Member-Credit schema plus real PostgreSQL configuration/read integration: `14 passed`, covering replay/conflict/stale revision, disabled/cross-Workspace targets, current account period isolation, old-period exclusion, limited/unlimited/inherited limits, over-limit clamping, missing Usage rows, active-member filtering, self-only reads, pagination, and GET row-count preservation across subscription/account/policy/override/Usage tables.
+- Code Review Engine changed-scope audit: exited successfully with zero blocking findings. Its two M1.2 prototype findings were removed by using the canonical Tortoise repository base and a frozen Pydantic snapshot; remaining report-only findings belong to unrelated changed modules in the shared worktree.
+- `pnpm api:check`: failed on five existing Ruff findings outside M1.2. API format check passed for all `1843` files; Turbo interrupted the broad test process and did not expose a final type-check result after lint failed. No targeted M1.2 diagnostic remained.
+
+M1.3 active boundary:
+
+- Export the Product OpenAPI contract with all four M1 endpoints and synchronize generated clients without hand-editing generated artifacts.
+- Add Product Application API wrappers for member Usage, member limits, default-limit writes, and member-override set/clear commands.
+- Preserve PublicUUID path encoding, camelCase payloads, pagination query parameters, optimistic revision, and body-scoped idempotency keys exactly.
+- Add focused wrapper/contract tests for paths, query/body serialization, output typing, and stable API error propagation. No M1.4 or M1.5 UI work belongs in this part.
 
 ## Known unrelated repository failures
 
-- API Ruff currently reports existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, Platform Jobs composition, and other files outside M1.1.
-- API format check currently reports 28 existing files outside M1.1 that would be reformatted.
+- API Ruff currently reports five existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, Platform Jobs composition, and a Workspace team notification test outside M1.2.
+- API format check currently passes all `1843` files.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
+- Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
 
 ## Progress log
 
@@ -175,3 +194,12 @@ M1.2 active boundary:
 - Completed and verified migration `0117_workspace_member_credit_command_receipts`.
 - Verified `10` unit tests, `5` repository/service integration tests, and `1` real PostgreSQL migration test.
 - Advanced the active implementation part to M1.2 Product router contracts and authorization tests.
+
+### 2026-08-05 — M1.2 Product member Usage and limits API
+
+- Completed the four Product Workspace Commerce endpoints with typed Product principal, Workspace context, pagination, and member-Credit read/configuration services.
+- Completed Owner/Billing Manager/ordinary-member authorization projections and closed the reachable guest-Owner management bypass in the shared Commerce authority.
+- Completed coherent account-period reads, batched effective-limit/Usage projection, explicit unlimited semantics, disabled-member exclusion, and no-create GET behavior.
+- Verified `18` authorization/router unit tests and `14` schema plus PostgreSQL configuration/read integration tests; targeted lint, format, and type checks passed.
+- Ran the affected package gate: formatting passed; five unrelated Ruff findings caused `pnpm api:check` to fail and Turbo interrupted the remaining broad gates.
+- Advanced the active implementation part to M1.3 OpenAPI synchronization and Product API wrappers.

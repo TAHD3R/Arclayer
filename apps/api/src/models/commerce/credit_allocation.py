@@ -185,6 +185,7 @@ class WorkspaceMemberCreditLimitOverride(BaseModel):
 
     if TYPE_CHECKING:
         workspace_id: UUID
+        membership_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "commerce_workspace_member_credit_limit_overrides"
