@@ -63,6 +63,40 @@ def _payload(*, timestamp: int, outcome: str = "succeeded") -> bytes:
     ).encode()
 
 
+def _subscription_payload(
+    *,
+    timestamp: int,
+    workspace_id: str,
+    plan_id: str,
+    plan_revision_id: str,
+) -> bytes:
+    return json.dumps(
+        {
+            "id": "sim_evt_subscription123",
+            "type": "subscription.lifecycle",
+            "mode": "test",
+            "account": "platform",
+            "created": timestamp,
+            "data": {
+                "billing_cycle": "monthly",
+                "cancel_at_period_end": False,
+                "currency": "USD",
+                "current_period_end": timestamp + 2_592_000,
+                "current_period_start": timestamp,
+                "customer_id": "sim_cus_unit123",
+                "external_price_id": "sim_price_premium_monthly",
+                "plan_id": plan_id,
+                "plan_revision_id": plan_revision_id,
+                "status": "active",
+                "subscription_id": "sim_sub_unit123",
+                "workspace_id": workspace_id,
+            },
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+
+
 def _signature(payload: bytes, *, timestamp: int, secret: bytes = b"simulated-unit-secret") -> str:
     digest = hmac.new(
         secret,
@@ -109,7 +143,7 @@ def test_simulated_connector_rejects_invalid_and_expired_signatures() -> None:
     assert expired.value.error == "BILLING_WEBHOOK_SIGNATURE_EXPIRED"
 
 
-def test_simulated_registration_accepts_only_checkout_outcome_events() -> None:
+def test_simulated_registration_accepts_checkout_and_subscription_lifecycle_events() -> None:
     project_root = Path(__file__).resolve().parents[5]
     plugin_path = project_root / "plugins" / "arclayer-simulated-billing" / "src" / "plugin.py"
     spec = importlib.util.spec_from_file_location("test_arclayer_simulated_billing_registration", plugin_path)
@@ -123,7 +157,10 @@ def test_simulated_registration_accepts_only_checkout_outcome_events() -> None:
 
     registration = registry.connectors.resolve("billing.simulated")
     assert registration is not None
-    assert registration.definition.webhook_events == ("checkout.session.outcome",)
+    assert registration.definition.webhook_events == (
+        "checkout.session.outcome",
+        "subscription.lifecycle",
+    )
 
 
 @pytest.mark.asyncio
@@ -177,3 +214,61 @@ async def test_simulated_connector_normalizes_checkout_outcome_without_subscript
     assert outcome.outcome == "succeeded"
     assert outcome.expected_revision == 1
     assert subscription is None
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_normalizes_strict_subscription_lifecycle_facts() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    workspace_id = uuid4()
+    plan_id = uuid4()
+    plan_revision_id = uuid4()
+    payload = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(workspace_id),
+        plan_id=str(plan_id),
+        plan_revision_id=str(plan_revision_id),
+    )
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert checkout_outcome is None
+    assert subscription is not None
+    assert subscription.event_id == "sim_evt_subscription123"
+    assert subscription.workspace_id == workspace_id
+    assert subscription.plan_id == plan_id
+    assert subscription.plan_revision_id == plan_revision_id
+    assert subscription.external_price_id == "sim_price_premium_monthly"
+    assert subscription.billing_cycle == "monthly"
+    assert subscription.currency == "USD"
+    assert subscription.customer_id == "sim_cus_unit123"
+    assert subscription.subscription_id == "sim_sub_unit123"
+    assert subscription.status == "active"
+    assert int(subscription.current_period_start.timestamp()) == timestamp
+    assert int(subscription.current_period_end.timestamp()) == timestamp + 2_592_000
+    assert subscription.cancel_at_period_end is False
+    assert subscription.dunning_event is None
+    assert subscription.confirmed_transition is None
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_rejects_event_type_and_data_shape_mismatch() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    body = json.loads(_payload(timestamp=timestamp))
+    body["type"] = "subscription.lifecycle"
+    payload = json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    with pytest.raises(BadRequest) as mismatch:
+        await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert mismatch.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"

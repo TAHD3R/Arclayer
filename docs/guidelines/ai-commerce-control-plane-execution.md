@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3a simulated subscription lifecycle event contract and application baseline.
+Current active part: M2.3a.2 completed-Checkout activation evidence and Revision rebinding.
 
 Repository baseline:
 
@@ -468,11 +468,33 @@ M2.2b validation:
 
 M2.3 execution parts:
 
-1. M2.3a simulated subscription lifecycle event contract and application baseline. — Active
-   - Extend `ProviderSubscription` only where exact lifecycle identity is missing, then add strict simulated subscription lifecycle envelopes and normalization in `plugins/arclayer-simulated-billing/src/plugin.py`; Stripe normalization and event ownership must remain unchanged.
-   - Route signed simulated subscription facts through `BillingEventAcceptanceService`, encrypted `ConnectorEventInbox`, pinned `BillingConnectorEventJobHandler`, and `BillingProviderSubscriptionApplicationService`; no direct service or test mutation of Subscription/access is accepted as lifecycle evidence.
-   - Cover initial paid activation after a completed simulated Checkout, exact Plan/Revision/Price and Provider period identity, duplicate replay, stale/out-of-order event rejection, and explicit reconciliation failure for unconfirmed Plan Revision changes.
-   - Primary files are `billing_connector.py`, `billing_event_job_handler.py`, `billing_provider_application_service.py`, the simulated Connector, and focused Connector/Job/application PostgreSQL tests. Add a migration only if the existing durable Provider application/access facts cannot preserve required identity.
+1. M2.3a simulated subscription lifecycle event contract and application baseline. — In progress
+   - M2.3a.1 strict simulated subscription lifecycle normalization and same-Revision application baseline. — Complete
+     - Add one strict `subscription.lifecycle` simulated event shape and normalize it to the existing `ProviderSubscription` contract without changing Stripe event ownership or behavior.
+     - Route a signed event through `BillingEventAcceptanceService`, encrypted `ConnectorEventInbox`, pinned `BillingConnectorEventJobHandler`, and `BillingProviderSubscriptionApplicationService`; direct Subscription mutation is not accepted as lifecycle evidence.
+     - Apply only the Subscription's already-bound published Revision and exact simulated Price in this slice. Verify Provider customer/subscription identity, period, status, application identity, duplicate replay, and stale-period rejection. Dunning, Credits, payment projections, and Revision rebinding remain unavailable.
+     - Primary files are the simulated Connector and focused Connector/full-chain PostgreSQL tests. No schema or migration is expected.
+   - M2.3a.2 completed-Checkout activation evidence and Revision rebinding. — Active
+     - Correlate a completed simulated subscription Checkout to the exact Workspace, current Subscription, target Plan/Revision/Price, Provider account/session, and actor command evidence before a paid activation event may rebind the Revision.
+     - Require the canonical Plan Access Convergence path for any access-reducing target; an unconfirmed or mismatched Revision change remains an explicit reconciliation failure.
+     - Cover initial paid activation after completed Checkout, exact Provider period identity, duplicate replay, stale/out-of-order events, and unchanged Stripe behavior.
+
+M2.3a.1 implementation evidence:
+
+- Registered the separate strict simulated event type `subscription.lifecycle` while retaining `checkout.session.outcome`. Event data is a closed union: subscription facts require exact Workspace, Plan, Revision, Price, billing cycle, uppercase currency, Provider customer/subscription identity, explicit supported lifecycle status, valid increasing period boundaries, and cancellation scheduling state.
+- The simulated Connector validates that the event type matches its exact data shape. Subscription events normalize only to `ProviderSubscription`; Checkout events continue to normalize only to `ProviderCheckoutOutcome`. Stripe code and registered Stripe event ownership are unchanged.
+- The real integration path verifies HMAC bytes, stores only encrypted payload in `ConnectorEventInbox`, creates the pinned Job/outbox, resolves the pinned simulated Connector, normalizes the lifecycle event, and applies it through `BillingProviderSubscriptionApplicationService`.
+- This slice applies only an already-bound published Plan Revision with an exact simulated Price. It updates Provider customer/subscription identity, lifecycle status, period, and Credit-account period identity without granting Credits, changing access state, creating payment projections, or permitting Revision rebinding.
+- Duplicate event acceptance and processed-Job replay return the existing result. A different event carrying an older period is rejected by the Commerce application boundary and recorded as a failed inbox without rolling back the already-applied current period.
+
+M2.3a.1 validation:
+
+- Simulated Connector unit coverage passed `7` tests for signature identity, signature rejection, strict registration, Checkout preservation, lifecycle normalization, and event-type/data-shape mismatch rejection.
+- Focused simulated/Stripe Connector and Billing event Job regression passed `29` tests.
+- Real PostgreSQL regression passed `2` integration tests: the existing simulated Checkout outcome chain and the new subscription lifecycle acceptance/application/replay/stale-period chain.
+- Targeted Ruff check/format and `ty` passed for the simulated Connector and both focused test files. GitNexus pre-edit impact for every modified Connector symbol was `LOW`, with zero indexed upstream dependencies and zero affected execution flows; dynamic plugin behavior is covered by the focused tests above.
+- Changed-scope Code Review Engine reported zero blocking findings. Its only report-only finding is the known prototype lifecycle rule for the simulated Connector, which registers through the canonical `arclayer_register` Connector contract.
+- Final staged GitNexus detection reported `LOW` risk across `4` files and `42` indexed symbols, with no affected execution flow.
 2. M2.3b dunning and restricted-access projection. — Pending
    - Normalize a failed-payment dunning fact with Provider period identity, occurrence time, and explicit recovery deadline; apply it through the existing access-state composition and configured Provider-aware dunning policy.
    - Verify warning/restricted/suspended transitions, optimistic access revision, duplicate/out-of-order convergence, entitlement/Credit denial behavior, and immutable signed evidence.
@@ -615,3 +637,13 @@ M2.3 execution parts:
 - Repaired the latent Tortoise projected migration state mismatch with a reviewed database-no-op app-state snapshot and separated the new command model into migration `0121`; a clean migration generation now reports no changes.
 - Verified `43` focused unit tests and `2` real PostgreSQL integration tests, targeted static checks, Product OpenAPI generation/typecheck, and locale parity. API lint/format pass; the broad gate retains the same `294` unrelated type diagnostics.
 - Changed-scope review has zero blocking findings and only the two known Connector lifecycle prototype reports. Advanced the only active implementation part to M2.3a simulated subscription lifecycle event contract and application baseline.
+
+### 2026-08-05 — M2.3a.1 simulated subscription lifecycle baseline
+
+- Added the strict `subscription.lifecycle` simulated Provider event with exact Plan/Revision/Price, Provider identity, status, and period facts while preserving the existing Checkout event and unchanged Stripe ownership.
+- Proved the event through signature verification, encrypted inbox, pinned Job, Connector normalization, same-Revision Subscription application, durable Provider application evidence, duplicate replay, and stale-period rejection.
+- Kept Revision rebinding, dunning/access transitions, Credit grants, transaction/invoice/refund projection, and simulator API work outside this slice.
+- Verified `7` simulated Connector tests, `29` Connector/Job regressions, `2` PostgreSQL full-chain regressions, and targeted Ruff/format/`ty` checks.
+- Changed-scope review has zero blocking findings and only the known simulated Connector lifecycle prototype report.
+- Final staged GitNexus risk is `LOW` with no affected execution flow.
+- Advanced the only active implementation part to M2.3a.2 completed-Checkout activation evidence and Revision rebinding.

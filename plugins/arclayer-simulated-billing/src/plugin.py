@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from src.config import get_settings
 from src.core.connectors import (
@@ -20,6 +20,7 @@ from src.core.connectors import (
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
+from src.models.commerce.billing import BillingCycle, SubscriptionStatus
 from src.modules.commerce.billing_connector import (
     BillingRedirectSession,
     BillingWebhookEnvelope,
@@ -35,6 +36,7 @@ _EXTENSION_NAME = "arclayer-simulated-billing"
 _CHECKOUT_SESSION_TTL = timedelta(minutes=30)
 _PROVIDER_ACCOUNT_ID = "platform"
 _CHECKOUT_OUTCOME_EVENT_TYPE = "checkout.session.outcome"
+_SUBSCRIPTION_LIFECYCLE_EVENT_TYPE = "subscription.lifecycle"
 
 
 class _SimulatedCheckoutOutcomeData(BaseModel):
@@ -53,6 +55,29 @@ class _SimulatedCheckoutOutcomeData(BaseModel):
     outcome: Literal["pending", "succeeded", "failed", "canceled"]
 
 
+class _SimulatedSubscriptionData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    workspace_id: UUID
+    plan_id: UUID
+    plan_revision_id: UUID
+    external_price_id: str = Field(..., min_length=1, max_length=255)
+    billing_cycle: BillingCycle
+    currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    customer_id: str = Field(..., min_length=1, max_length=128)
+    subscription_id: str = Field(..., min_length=1, max_length=128)
+    status: SubscriptionStatus
+    current_period_start: int
+    current_period_end: int
+    cancel_at_period_end: bool = False
+
+    @model_validator(mode="after")
+    def validate_period(self) -> "_SimulatedSubscriptionData":
+        if self.current_period_end <= self.current_period_start:
+            raise ValueError("subscription period end must be later than its start")
+        return self
+
+
 class _SimulatedWebhookEvent(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -61,7 +86,7 @@ class _SimulatedWebhookEvent(BaseModel):
     mode: Literal["test"] = "test"
     account: str = Field(default="platform", min_length=1, max_length=255)
     created: int
-    data: _SimulatedCheckoutOutcomeData
+    data: _SimulatedCheckoutOutcomeData | _SimulatedSubscriptionData
 
 
 class SimulatedBillingConnector:
@@ -132,8 +157,26 @@ class SimulatedBillingConnector:
         event = self._parse_event(payload)
         self._validate_envelope(event=event, envelope=envelope)
         if event.type == _CHECKOUT_OUTCOME_EVENT_TYPE:
+            self._require_checkout_data(event)
             return None
-        raise ServiceUnavailable(error="BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE")
+        if event.type != _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
+            raise ServiceUnavailable(error="BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE")
+        data = self._require_subscription_data(event)
+        return ProviderSubscription(
+            event_id=event.id,
+            workspace_id=data.workspace_id,
+            plan_id=data.plan_id,
+            plan_revision_id=data.plan_revision_id,
+            external_price_id=data.external_price_id,
+            billing_cycle=data.billing_cycle,
+            currency=data.currency,
+            customer_id=data.customer_id,
+            subscription_id=data.subscription_id,
+            status=data.status,
+            current_period_start=_provider_timestamp(data.current_period_start),
+            current_period_end=_provider_timestamp(data.current_period_end),
+            cancel_at_period_end=data.cancel_at_period_end,
+        )
 
     async def checkout_outcome_from_event(
         self,
@@ -143,21 +186,25 @@ class SimulatedBillingConnector:
     ) -> ProviderCheckoutOutcome | None:
         event = self._parse_event(payload)
         self._validate_envelope(event=event, envelope=envelope)
+        if event.type == _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
+            self._require_subscription_data(event)
+            return None
         if event.type != _CHECKOUT_OUTCOME_EVENT_TYPE:
             return None
+        data = self._require_checkout_data(event)
         return ProviderCheckoutOutcome(
             event_id=event.id,
-            checkout_session_id=event.data.checkout_session_id,
-            external_session_id=event.data.external_session_id,
-            workspace_id=event.data.workspace_id,
-            actor_user_id=event.data.actor_user_id,
-            plan_code=event.data.plan_code,
-            plan_revision_id=event.data.plan_revision_id,
-            external_price_id=event.data.external_price_id,
-            checkout_request_fingerprint=event.data.checkout_request_fingerprint,
-            command_idempotency_key_hash=event.data.command_idempotency_key_hash,
-            expected_revision=event.data.expected_revision,
-            outcome=event.data.outcome,
+            checkout_session_id=data.checkout_session_id,
+            external_session_id=data.external_session_id,
+            workspace_id=data.workspace_id,
+            actor_user_id=data.actor_user_id,
+            plan_code=data.plan_code,
+            plan_revision_id=data.plan_revision_id,
+            external_price_id=data.external_price_id,
+            checkout_request_fingerprint=data.checkout_request_fingerprint,
+            command_idempotency_key_hash=data.command_idempotency_key_hash,
+            expected_revision=data.expected_revision,
+            outcome=data.outcome,
             occurred_at=_provider_timestamp(event.created),
         )
 
@@ -204,6 +251,18 @@ class SimulatedBillingConnector:
         ):
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
 
+    @staticmethod
+    def _require_checkout_data(event: _SimulatedWebhookEvent) -> _SimulatedCheckoutOutcomeData:
+        if not isinstance(event.data, _SimulatedCheckoutOutcomeData):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        return event.data
+
+    @staticmethod
+    def _require_subscription_data(event: _SimulatedWebhookEvent) -> _SimulatedSubscriptionData:
+        if not isinstance(event.data, _SimulatedSubscriptionData):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        return event.data
+
 
 class SimulatedBillingExtension:
     name = _EXTENSION_NAME
@@ -232,7 +291,10 @@ class SimulatedBillingExtension:
                 secret_schema={
                     "signingSecret": {"type": "string", "writeOnly": True},
                 },
-                webhook_events=(_CHECKOUT_OUTCOME_EVENT_TYPE,),
+                webhook_events=(
+                    _CHECKOUT_OUTCOME_EVENT_TYPE,
+                    _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE,
+                ),
                 health_contract=("configured", "webhook_configured"),
                 admin=ConnectorAdminMetadata(
                     label_key="settings:SETTINGS_SYSTEM_PLUGIN_SIMULATED_BILLING_NAME",
