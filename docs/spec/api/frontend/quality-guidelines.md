@@ -14,7 +14,7 @@ This code-spec defines quality gates for frontend API contract consumption.
 - Generated package: `packages/openapi`
 - Generate command: `pnpm --filter @arclayer/openapi generate`
 - Shared contract source: `docs/spec/shared/**`
-- Admin quality gate: `pnpm admin:check`
+- Product Application quality gate: `pnpm app:check`
 - Cross-app quality gate: `pnpm check`
 
 ### 3. Contracts
@@ -45,8 +45,8 @@ This code-spec defines quality gates for frontend API contract consumption.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: OpenAPI type drift breaks `pnpm admin:check`, then the consumer is fixed.
-- Good: a breaking response rename is covered by backend route tests, regenerated OpenAPI types, mapper tests, and `pnpm admin:check`.
+- Good: OpenAPI type drift breaks `pnpm app:check`, then the consumer is fixed.
+- Good: a breaking response rename is covered by backend route tests, regenerated OpenAPI types, mapper tests, and `pnpm app:check`.
 - Base: non-breaking field addition updates UI only when the feature needs it.
 - Bad: frontend catches parsing failure and returns `{ ok: true, data: [] }`.
 - Bad: generated types are manually cast to old names to avoid updating consumers.

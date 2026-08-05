@@ -12,7 +12,7 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 
 ### 2. Signatures
 
-- Admin API prefix: `/api/v1`
+- Product API prefix: `/api/v1`
 - Content API prefix: `/content-api/v1`
 - Management API prefix: `/management-api/v1`
 - Content API credential headers: `x-api-key` or `Authorization: Bearer <delivery-key>`
@@ -24,7 +24,7 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 
 ### 3. Contracts
 
-- Admin session tokens grant Admin API access only; they do not grant Content API delivery access.
+- Admin session tokens grant Product API access only; they do not grant Content API delivery access.
 - Content API credentials are validated through Content API auth and must carry required delivery scopes.
 - Preview reads require a preview delivery key or valid preview token.
 - Tenant-owned runtime reads must execute inside the runtime tenant database connection.

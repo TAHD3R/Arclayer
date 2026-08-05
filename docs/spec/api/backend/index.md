@@ -27,12 +27,14 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Domain Design](./domain-design.md) | API surface taxonomy, module boundaries, PublicUUID policy, tag vocabulary, and hard-cut evolution rules | Active |
 | [Services and Repositories](./services-repositories.md) | BaseService and Tortoise repository interaction boundaries, tx propagation, and event publication contracts | Active |
 | [Content Delivery API](./content-delivery-api.md) | `/content-api/v1` delivery route contracts | Active |
+| [Images API](./images-api.md) | Public and Project asset transforms, bounds, caching, and delivery errors | Active |
+| [Search Integration](./search-integration.md) | Search backend configuration, delivery-safe index shape, query, and lifecycle contracts | Active |
 | [Content Model Storage Sync](./content-model-storage-sync.md) | Content model schema-to-storage planning contracts | Active |
 | [Agents](./agents.md) | Read-only Agent runtime, tools, sessions, cancellation, and event boundaries | Active |
 | [AI Site Builder](./site-builder.md) | Authoring mode, structure revisions, immutable Site Revision manifests, ChangeSets, preview, and staged publish | Approved target |
-| [Durable Background Jobs](./background-jobs.md) | Job, Attempt, transactional dispatch outbox, leases, retries, cancellation, Admin APIs, and migration contracts | Approved target |
+| [Durable Background Jobs](./background-jobs.md) | Job, Attempt, transactional dispatch outbox, leases, retries, cancellation, Product APIs, and migration contracts | Approved target |
 | [Storage Profiles and Provider Effects](./storage-profiles.md) | Stable profile identity, immutable route revisions, tombstones, normalized provider-effect registration/settlement, and compatibility boundaries | Approved Wave 0 core |
-| [Taskiq Workload Topology](./taskiq-workload-topology.md) | Locked Taskiq/Redis Stream broker isolation, routing manifest, acknowledgement, redelivery, scheduler, and deployment proof gates | Accepted Wave 0 ADR |
+| [Taskiq Workload Topology](./taskiq-workload-topology.md) | Locked Taskiq/Redis Stream broker isolation, routing manifest, acknowledgement, redelivery, scheduler, and deployment proof gates | Approved contract |
 | [Workspace Knowledge](./workspace-knowledge.md) | Versioned Knowledge sources, ingestion, retrieval authorization, citations, quarantine, and Agent context contracts | Approved target |
 | [Workspace Skills](./workspace-skills.md) | Built-in, inline, and immutable GitHub Skill packages, validation, installation, permissions, and supply-chain boundaries | Approved target |
 | [Design Systems](./design-systems.md) | Immutable Design System versions, project assignment, token validation, preview, import, and Agent consumption | Approved target |

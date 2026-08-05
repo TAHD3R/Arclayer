@@ -1,6 +1,6 @@
 # Platform Communications Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 Supporting contracts: [Feedback and Support](./admin-feedback-support.md), [Notification and Mail capability details](./admin-plugin-notification-mail.md)
@@ -10,13 +10,6 @@ Supporting contracts: [Feedback and Support](./admin-feedback-support.md), [Noti
 This contract defines one Communications Platform Domain for User feedback triage and replies, recipient sending issues, announcements and Campaigns, localized message templates, email-service readiness, and durable delivery evidence.
 
 “Communications” is the canonical architecture term. The product label is `消息与反馈 / Messages & Feedback`; primary navigation describes feedback and sending work rather than internal notification, event, or transport models.
-
-## 2. Current-state evidence
-
-- `/system/feedback` is an operator work queue with assignment, priority, status, replies, internal notes, audit, and user-visible delivery failure.
-- `/system/settings/notifications` mixes notification-group switches with Campaign authoring in a generic settings page.
-- `/system/settings/email` combines mail enablement, Provider selection and configuration, sender identity, fallback and retry policy, test delivery, and locale-specific templates in another settings page.
-- Campaign and transactional notifications require one durable per-recipient/channel delivery ledger, while the current event runtime still has a direct email path and the existing delivery record is Campaign-shaped.
 
 ## 3. Information architecture
 

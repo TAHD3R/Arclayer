@@ -1,3 +1,4 @@
+import { ProgressProvider } from "@bprogress/react";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -9,6 +10,7 @@ import { initializePlatformI18n, i18n } from "@/lib/i18n";
 import { PlatformPreferencesProvider } from "@/lib/preferences";
 import { routeTree } from "@/routeTree.gen";
 import type { PlatformSessionIssuedOut } from "@arclayer/platform-openapi";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 vi.mock("@/components/platform-aurora", () => ({
   PlatformAurora: () => <div data-testid="platform-aurora" />,
@@ -42,11 +44,20 @@ async function renderSignIn() {
   });
   await router.load();
   render(
-    <PlatformPreferencesProvider>
-      <PlatformAuthProvider>
-        <RouterProvider router={router} />
-      </PlatformAuthProvider>
-    </PlatformPreferencesProvider>,
+    <ProgressProvider color="var(--foreground)" height="2px">
+      <PlatformPreferencesProvider>
+        <ChromeTabsProvider
+          labels={{
+            scrollLeftAriaLabel: i18n.t("common:TABS_SCROLL_LEFT"),
+            scrollRightAriaLabel: i18n.t("common:TABS_SCROLL_RIGHT"),
+          }}
+        >
+          <PlatformAuthProvider>
+            <RouterProvider router={router} />
+          </PlatformAuthProvider>
+        </ChromeTabsProvider>
+      </PlatformPreferencesProvider>
+    </ProgressProvider>,
   );
 }
 
@@ -91,7 +102,7 @@ describe("Platform sign-in and MFA", () => {
     );
     expect(document.querySelector('[data-slot="field-group"]')).toBeVisible();
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeVisible();
-    expect(screen.getByText("Structured content, visually built.")).toBeVisible();
+    expect(screen.getByText("Sign in to manage this Arclayer deployment.")).toBeVisible();
     expect(screen.getByRole("img", { name: "Arclayer" })).toHaveAttribute("src", "/logo-full.svg");
     expect(screen.queryByText("Authorized administrators only")).not.toBeInTheDocument();
     expect(
@@ -121,7 +132,7 @@ describe("Platform sign-in and MFA", () => {
 
     await user.click(screen.getByRole("button", { name: "Change language" }));
     expect(await screen.findByRole("heading", { name: "欢迎回来" })).toBeVisible();
-    expect(screen.getByText("结构化内容，可视化构建。")).toBeVisible();
+    expect(screen.getByText("登录 Arclayer 管理后台，管理当前部署。")).toBeVisible();
   });
 
   it("keeps an Instance Owner on the required security-key setup path", async () => {

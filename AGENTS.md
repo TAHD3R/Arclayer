@@ -9,16 +9,18 @@ Use this routing model for every change:
 - Implementation contracts (canonical): `docs/spec/**`
 - Non-spec guidance: `docs/guidelines/**`
 - Visual language source: `DESIGN.md`
-- Admin design implementation guide: `docs/guidelines/frontend-design.md`
+- Product and Platform implementation guide: `docs/guidelines/frontend-design.md`
 
 ## Repo Map
 
 - Monorepo: Turborepo + pnpm workspace
-- Backend API: `apps/api`
-- Admin frontend: `apps/admin`
-- Platform Console frontend: `apps/platform`
-- Shared packages: `packages/*`
-- Plugins: `plugins/*`
+- Product Application: `apps/app` (`@arclayer/app`) — the customer-facing product
+- Server/API: `apps/api` (`@arclayer/api`) — the shared backend and API compositions
+- Platform management console: `apps/platform` (`@arclayer/platform`) — deployment-wide administration
+- Shared packages: `packages/**`
+- Plugin extensions: `plugins/*` (not pnpm workspaces)
+
+Do not use `admin` as a synonym for the Product Application. `admin` remains valid only for real administration domains, permissions, and legacy external contracts. When a request says “app”, change `apps/app`; when it says “management console” or deployment administration, change `apps/platform`; server work belongs in `apps/api`.
 
 ## Command Discipline
 
@@ -42,7 +44,7 @@ repository-wide gate after every small edit.
 - During an isolated change, run the closest relevant static check and focused
   test. Re-run only the checks invalidated by subsequent edits.
 - At a coherent milestone or before handoff, run the affected package gate:
-  `pnpm api:check` for API work, `pnpm admin:check` for Admin work, or
+  `pnpm api:check` for API work, `pnpm app:check` for Product Application work, or
   `pnpm platform:check` for Platform work.
 - Run `pnpm check` for cross-app integration or final delivery when its scope
   justifies a repository-wide gate.
@@ -51,8 +53,8 @@ repository-wide gate after every small edit.
   60-second timeout as a diagnostic default, not a hard gate. Give
   integration, database, or inherently slow tests the time needed to complete
   and expose their result.
-- Pass focused Admin Vitest paths directly, for example
-  `pnpm --filter @arclayer/admin test test/components/layout/route-progress.test.tsx`.
+- Pass focused Product Application Vitest paths directly, for example
+  `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`.
   Use the same direct-path form for Platform. Do not insert an extra `--`
   before the path or depend on separator behavior across pnpm and Vitest; it
   can defeat the intended file filter and trigger a broader run.
@@ -61,20 +63,20 @@ repository-wide gate after every small edit.
 
 `docs/guidelines/**` stores non-spec guidance only.
 
-- Keep: `agents-guide.md`, `code-review-engine.md`, `frontend-design.md`
-- Pending migration material: `images-api.md`, `search-integration.md`
+- Keep non-spec guidance only, including `agents-guide.md`, `code-review-engine.md`, `frontend-design.md`, and the thinking guides.
 - Do not route implementation contracts from `docs/guidelines/**`
 
 ## Frontend Execution Contract
 
-- Active frontend scope: `apps/admin`, `apps/platform`, and application-facing surfaces in `packages/ui`
+- Active frontend scope: `apps/app`, `apps/platform`, and application-facing surfaces in `packages/ui`
 - `DESIGN.md` is the primary visual language source
 - For design-sensitive changes, align with `docs/guidelines/frontend-design.md`
 - Reuse `@arclayer/ui` first; install missing generic primitives through the configured shadcn Registry instead of hand-building substitutes
-- Use `lucide-react` for icons and `@arclayer/ui/chart` (Recharts) for charts; do not add competing icon or chart stacks
+- Use `lucide-react` for icons and the Arclayer-adapted Bklit implementation behind `@arclayer/ui/chart`; do not add competing icon or chart stacks
 - Keep page-local loading, error, and empty states explicit
 - All new product copy must use stable i18n keys with both `zh-CN` and `en-US` resources
-- Treat `docs/spec/admin/frontend/product-ui-toolchain.md` as the canonical UI toolchain contract
+- Write for the user's task and next action in plain language. Do not expose README instructions, component/API names, raw errors, logs, JSON, hashes, or internal architecture in ordinary product UI; put necessary diagnostics in an explicit details surface
+- Treat `docs/spec/app/frontend/product-ui-toolchain.md` as the canonical UI toolchain contract
 
 ## Repo Intelligence Workflow
 
@@ -82,7 +84,7 @@ For medium+ tasks, architecture questions, or multi-file refactors:
 
 1. `GitNexus` for discovery and impact
 2. `code-review-engine` changed audit for repository-rule review context
-3. `serena` for symbol-level precision
+3. available symbol/LSP tooling for targeted precision when the environment provides it
 
 Prefer live repo truth if indexes are stale or unavailable.
 
@@ -96,7 +98,7 @@ Prefer live repo truth if indexes are stale or unavailable.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Arclayer** (99333 symbols, 158082 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Arclayer**. Use the GitNexus tools to understand code, assess impact, and navigate safely; run `npx gitnexus status` instead of relying on copied symbol counts.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

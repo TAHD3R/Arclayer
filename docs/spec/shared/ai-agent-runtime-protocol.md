@@ -1,33 +1,13 @@
-# AI Agent Runtime Protocol Decision
+# AI Agent Runtime Protocol Contract
 
-**Status:** Approved selected protocol. The normalized backend and Admin hard cut are implemented; the complete section 11 browser/worker fault-injection vertical proof remains gated.
-**Decision date:** 2026-07-15
+**Status:** Approved protocol contract.
 **Target protocol:** Arclayer Agent Event Stream v1
-**Applies to:** `apps/api`, `apps/admin`, Agent workers, LangGraph checkpoints, generated API clients, and assistant-ui integration.
+**Applies to:** `apps/api`, `apps/app`, Agent workers, LangGraph checkpoints, generated API clients, and assistant-ui integration.
 **Parent contract:** `docs/spec/shared/ai-website-builder-platform.md`.
 
-This ADR selects the first production protocol boundary between Arclayer's durable FastAPI/LangGraph Agent runtime and assistant-ui. It defines public Agent event semantics, durable recovery, the SSE representation, and the browser adapter contract. It does not replace the Agent domain, LangGraph orchestration, or the commercial ledger contracts.
+This contract defines the production protocol boundary between Arclayer's durable FastAPI/LangGraph Agent runtime and assistant-ui. It defines public Agent event semantics, durable recovery, the SSE representation, and the browser adapter contract. It does not replace the Agent domain, LangGraph orchestration, or the commercial ledger contracts.
 
-Normative terms such as **must**, **must not**, **required**, and **forbidden** are binding. Implementation status is stated explicitly; an unpassed section 11 gate must not be inferred from protocol approval.
-
-## 1. Decision-date context and verified constraints
-
-The decision is grounded in the repository state on the decision date:
-
-- `apps/api/src/agents/types.py` exposes named run events but its current `AgentRunEvent` contains only `event` and `data`; it has no schema version, event ID, sequence, cursor, timestamp, or thread/run envelope.
-- `apps/api/src/modules/projects/agents/repository.py` overwrites a JSON array of events in the run record. It does not provide an append-only event history or a uniqueness constraint for `(run_id, sequence)`.
-- `POST /projects/{project_id}/agents/runs/stream` in `apps/api/src/modules/projects/agents/router.py` creates a run and owns its SSE subscription in one request. Its frames contain `event:` and `data:` but no SSE `id:`. Disconnect cancellation currently cancels the run.
-- `LangGraphAgentRunExecutor` in `apps/api/src/agents/langgraph_runtime.py` already supports interrupt/resume with `Command(resume=...)`, and production checkpointing can use `AsyncPostgresSaver` through `apps/api/src/agents/checkpointing.py`.
-- `apps/admin` currently installs `@assistant-ui/react@0.14.23`. The installed types expose tool-call approval metadata, approval options, nested `ToolCallMessagePart.messages`, `respondToToolApproval`, `defineToolkit`, and `Tools`.
-- `AIChatRuntimeProvider` in `apps/admin/src/components/ai/ai-chat-runtime.tsx` currently adapts browser-owned Zustand conversation state with `useExternalStoreRuntime`. The target makes the backend authoritative and limits Zustand to transient UI state.
-- The current LLM runtime commits actual usage before yielding its terminal provider chunk. The Agent engine then publishes usage and run completion. This ordering must remain compatible with the Workspace Credits contract.
-
-These bullets preserve the 2026-07-15 baseline that motivated the decision. The
-normalized production path and its backend/Admin regression suites have since
-been implemented. The deterministic contract oracle is recorded in
-`docs/spec/shared/proofs/ai-agent-runtime-protocol-proof-spike-2026-07-15.md`;
-the remaining full browser, worker-restart, provider, and fault-injection
-vertical is still acceptance-gated in section 11.
+Normative terms such as **must**, **must not**, **required**, and **forbidden** are binding.
 
 ## 2. Decision and strict layer boundaries
 
@@ -76,13 +56,13 @@ HTTP subscriber lifetime must not own producer lifetime. Closing, refreshing, or
 
 | Candidate | Fit with FastAPI/LangGraph | assistant-ui mapping | Durable reconnect | Added infrastructure | Decision |
 | --- | --- | --- | --- | --- | --- |
-| AG-UI runtime/protocol | Semantically promising for events and Agent UI, but no repository fixture currently proves LangGraph interrupts, nested delegations, Credits ordering, owner validation, or replay against this stack | Vendor adapter is attractive | Must still be designed and proved separately; an AG-UI runtime does not by itself establish Arclayer event retention and cursor semantics | likely an additional package and adapter surface | Not selected for the first hard cut; eligible to supersede this ADR only after the same proof gates pass |
+| AG-UI runtime/protocol | Semantically promising for events and Agent UI, but no repository fixture currently proves LangGraph interrupts, nested delegations, Credits ordering, owner validation, or replay against this stack | Vendor adapter is attractive | Must still be designed and proved separately; an AG-UI runtime does not by itself establish Arclayer event retention and cursor semantics | likely an additional package and adapter surface | Not selected for the first hard cut; eligible to supersede this contract only after the same proof gates pass |
 | assistant-ui Assistant Transport | Native to assistant-ui's transport/runtime model, but the installed implementation is TypeScript-oriented and no production Python encoder/decoder path is proved here | Direct mapping is attractive | Transport events do not replace Arclayer's append-only history, snapshots, retention, or tenant authorization | a Node relay/sidecar would be required unless a first-class Python path is proved | Rejected for the first hard cut; no Node relay or sidecar will be introduced for this purpose |
-| Arclayer versioned custom SSE | Native to current FastAPI boundaries and can map LangGraph interrupts and commercial ordering without changing orchestrators | Requires one maintained reducer/adapter | Explicitly defined by this ADR | no new runtime service | **Selected, subject to section 11** |
+| Arclayer versioned custom SSE | Native to current FastAPI boundaries and can map LangGraph interrupts and commercial ordering without changing orchestrators | Requires one maintained reducer/adapter | Explicitly defined by this contract | no new runtime service | **Selected, subject to section 11** |
 | A2A | Intended for interoperating with external Agent systems | Does not solve the internal thread/Tool UI contract | Does not replace internal run recovery | unnecessary protocol surface | Rejected for internal specialist delegation; reserved for future external interoperability |
 | Existing create-and-stream POST | Already present | Existing custom frontend can consume it | Disconnect owns cancellation; no cursor, replay, or versioned envelope | none | Rejected and removed at hard cut |
 
-This decision deliberately avoids binding backend domain objects to React or assistant-ui package types. It also avoids a permanent compatibility facade. If AG-UI later passes the same fixture, a superseding ADR may change the wire/runtime mapping while retaining the domain and recovery contracts.
+This decision deliberately avoids binding backend domain objects to React or assistant-ui package types. It also avoids a permanent compatibility facade. If AG-UI later passes the same fixture, a superseding protocol contract may change the wire/runtime mapping while retaining the domain and recovery contracts.
 
 ## 4. Public domain event contract
 
@@ -400,7 +380,7 @@ Wire rules:
 - the connection closes after replaying or publishing the one terminal run event. Reconnecting after terminal replays any missing terminal event and closes again.
 - disconnect and local `AbortController.abort()` detach only that subscriber. They do not call cancel and do not mutate run state.
 
-SSE is the selected representation, not the domain itself. A future wire adapter may represent the same event semantics differently only through a superseding ADR and equivalent proof.
+SSE is the selected representation, not the domain itself. A future wire adapter may represent the same event semantics differently only through a superseding protocol contract and equivalent proof.
 
 ## 7. assistant-ui runtime adapter
 
@@ -548,7 +528,7 @@ The hard cut is forbidden until all section 11 gates pass against the normalized
 **PARTIALLY EXECUTED.** Normalized repository, HTTP/SSE, snapshot, approval,
 delegation projection, interrupt/resume, durable Job, worker-loss recovery,
 Skill snapshot, Admin reducer/provider, and protocol-contract tests exist in the
-repository and run in the API/Admin quality gates. The single full browser
+repository and run in the API/Product Application quality gates. The single full browser
 fixture combining real authenticated UI, worker restart, provider streaming,
 Tool effects, approval, child delegation, Credits settlement, and every fault
 injection below has not yet passed as one production vertical. Those unchecked

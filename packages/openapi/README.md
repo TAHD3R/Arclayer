@@ -26,11 +26,11 @@ API contract 变更必须先修改 `apps/api` 的 schema / route source，再运
 ## 类型所有权
 
 - 后端请求/响应边界类型：直接从 `@arclayer/openapi` 或 Admin helper
-  `@arclayer/openapi/admin-types` 导入。
+  `@arclayer/openapi` 导入。
 - SDK transport options、metadata、envelope、result、pagination wrapper 等运行时类型：
   留在 owning SDK package，例如 `packages/management-sdk/src/types.ts`。
 - Admin UI-only view model、row、form state、UI state：留在 owning Admin feature 或
-  `apps/admin/src/types/**`，命名应表达 UI ownership。
+  `apps/app/src/types/**`，命名应表达 UI ownership。
 
 Forbidden:
 
@@ -45,7 +45,7 @@ Forbidden:
 在前端工程中添加依赖：
 
 ```bash
-pnpm --filter @arclayer/admin add @arclayer/openapi@workspace:*
+pnpm --filter @arclayer/app add @arclayer/openapi@workspace:*
 ```
 
 初始化客户端配置（示例，具体以生成的 client 导出为准）：

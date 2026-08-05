@@ -130,7 +130,7 @@ class OpenApiSingleSourceRule(AuditRule):
         r"export\s+(?:\*\s+from|type\s+[\s\S]*?\s+from)\s+['\"]@arclayer/openapi(?:/admin-types)?['\"]"
     )
     ADMIN_OPENAPI_IMPORT_BLOCK_RE = re.compile(
-        r"import\s+type\s+\{(?P<body>[\s\S]*?)\}\s+from\s+['\"]@arclayer/openapi/admin-types['\"]"
+        r"import\s+type\s+\{(?P<body>[\s\S]*?)\}\s+from\s+['\"]@arclayer/openapi['\"]"
     )
     ADMIN_LOCAL_GENERATED_ALIAS_RE = re.compile(
         r"^\s*export\s+type\s+\w+\s*=\s*(?P<target>\w+)\s*;?\s*$"
@@ -227,23 +227,23 @@ class OpenApiSingleSourceRule(AuditRule):
                             )
                         )
 
-        admin_api_barrel = root / "apps" / "admin" / "src" / "types" / "api" / "index.ts"
-        text = "\n".join(_read_lines(admin_api_barrel))
+        app_api_barrel = root / "apps" / "app" / "src" / "types" / "api" / "index.ts"
+        text = "\n".join(_read_lines(app_api_barrel))
         if text and self.ADMIN_OPENAPI_BARREL_RE.search(text):
             violations.append(
                 v(
-                    file=_relative_file(admin_api_barrel),
+                    file=_relative_file(app_api_barrel),
                     line=0,
                     rule=self.rule_id,
-                    message="Admin API type barrel must not re-export generated backend API boundary types.",
+                    message="Product Application API type barrel must not re-export generated backend API boundary types.",
                     severity=Severity.BLOCKER,
                     evidence="@arclayer/openapi re-export",
                 )
             )
 
-        admin_api_dir = root / "apps" / "admin" / "src" / "types" / "api"
-        if admin_api_dir.exists():
-            for source_file in sorted(admin_api_dir.rglob("*.ts")):
+        app_api_dir = root / "apps" / "app" / "src" / "types" / "api"
+        if app_api_dir.exists():
+            for source_file in sorted(app_api_dir.rglob("*.ts")):
                 lines = _read_lines(source_file)
                 imported_openapi_names = self._openapi_admin_type_import_names("\n".join(lines))
                 for line_number, line in enumerate(lines, 1):
@@ -254,7 +254,7 @@ class OpenApiSingleSourceRule(AuditRule):
                                 file=_relative_file(source_file),
                                 line=line_number,
                                 rule=self.rule_id,
-                                message="Admin src/types/api must not alias generated backend API boundary types. Import from @arclayer/openapi/admin-types directly at the consumer.",
+                                message="Product Application src/types/api must not alias generated backend API boundary types. Import from @arclayer/openapi directly at the consumer.",
                                 severity=Severity.BLOCKER,
                                 evidence=line.strip(),
                             )
@@ -265,7 +265,7 @@ class OpenApiSingleSourceRule(AuditRule):
                                 file=_relative_file(source_file),
                                 line=line_number,
                                 rule=self.rule_id,
-                                message="Admin src/types/api must not define backend Request/Response shapes. Use generated OpenAPI types or UI-only ViewModel/Row/FormState types.",
+                            message="Product Application src/types/api must not define backend Request/Response shapes. Use generated OpenAPI types or UI-only ViewModel/Row/FormState types.",
                                 severity=Severity.MAJOR,
                                 evidence=line.strip(),
                             )

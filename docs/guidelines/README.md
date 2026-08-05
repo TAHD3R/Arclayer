@@ -9,14 +9,9 @@ Canonical implementation contracts live in `docs/spec/**`.
 
 - `agents-guide.md`: long-lived agent behavior and communication norms.
 - `code-review-engine.md`: Code Review Engine tool guide and rule catalog.
-- `frontend-design.md`: Admin implementation-facing design guide (visual language source remains `DESIGN.md`).
-
-## Pending Domain-Specific Migration Material
-
-These files remain temporarily while their domain contracts are being migrated into `docs/spec/**`:
-
-- `images-api.md`
-- `search-integration.md`
+- `frontend-design.md`: Product Application and Platform Console implementation guide (visual language source remains `DESIGN.md`).
+- `code-reuse-thinking-guide.md`: non-normative prompts for reuse decisions.
+- `cross-layer-thinking-guide.md`: non-normative prompts for cross-layer changes.
 
 ## Maintenance Rules
 

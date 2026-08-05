@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PageDataPlatformAiTaskOut, PlatformAiTaskOut } from "@arclayer/platform-openapi";
@@ -12,6 +13,10 @@ vi.mock("@/ai/ai-services-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/ai/ai-services-api")>();
   return { ...actual, executeAiTaskAction: vi.fn(), listAiTasks: vi.fn() };
 });
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
 
 function action(
   actionName: PlatformAiTaskOut["actions"][number]["action"],
@@ -80,7 +85,10 @@ describe("AI task recovery", () => {
     const retry = await screen.findByRole("button", { name: "Retry" });
     expect(retry).toBeDisabled();
     expect(screen.getByText("Retry is not currently offered for this task.")).toBeVisible();
-    expect(screen.getByText("AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE")).toBeVisible();
+    expect(screen.getByText("Running")).toBeVisible();
+    expect(screen.getByText("Build")).toBeVisible();
+    expect(screen.queryByText("AI_AGENT_RUN_STATUS_RUNNING")).not.toBeInTheDocument();
+    expect(screen.queryByText("AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
@@ -89,9 +97,11 @@ describe("AI task recovery", () => {
         idempotencyKey: expect.any(String),
       }),
     );
-    expect(await screen.findByText("Current task status")).toBeVisible();
-    expect(screen.getByText("After Cancel, the task status is In progress.")).toBeVisible();
-    expect(screen.getByText("Latest recorded update: 5.")).toBeVisible();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Current task status", {
+        description: "After Cancel, the task status is In progress. Latest recorded update: 5.",
+      }),
+    );
   });
 
   it("reuses the same idempotency key after an unconfirmed task action", async () => {
@@ -106,11 +116,15 @@ describe("AI task recovery", () => {
     render(<AiTasksPage />);
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(await screen.findByText("Action result not confirmed")).toBeVisible();
-    expect(screen.getByText("AI_PLATFORM_TASK_CANCEL_NOT_ELIGIBLE")).toBeVisible();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Action result not confirmed", {
+        description: "This task cannot be safely cancelled in its current state.",
+      }),
+    );
+    expect(screen.queryByText("AI_PLATFORM_TASK_CANCEL_NOT_ELIGIBLE")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await screen.findByText("Current task status");
+    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
 
     const firstKey = vi.mocked(executeAiTaskAction).mock.calls[0]?.[2].idempotencyKey;
     const secondKey = vi.mocked(executeAiTaskAction).mock.calls[1]?.[2].idempotencyKey;

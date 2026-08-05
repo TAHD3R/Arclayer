@@ -551,8 +551,6 @@ def patch_namespace(*, patch: JsonObject) -> None: ...
 - Forbidden compliance-only publisher:
   - `await self.publish_optional_domain_event(name="workspace.member.invited", ...)`
   - `await self._publish_activity_event(name="workspace.invite.email.created", ...)` when the helper is best-effort
-- Coverage matrix:
-  - `docs/plans/architecture-hard-cut-2026-05-04/activity-coverage-matrix.md`
 - Enforcement rule:
   - `service.no-optional-activity-publish`
 

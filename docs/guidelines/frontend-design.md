@@ -1,154 +1,96 @@
-# Frontend Design Guideline (Arclayer Product and Platform)
+# Frontend Design Guideline
 
-This document defines the live UI and interaction rules for the Product Application in `apps/admin` and Platform Console in `apps/platform`.
-`DESIGN.md` is the primary source of truth for Arclayer's visual language.
-This document turns that visual language into Admin implementation rules for page shells, overlay behavior, component defaults, and anti-drift checks.
+This guide turns `DESIGN.md` into implementation practice for the Product Application in `apps/app`, the Platform management console in `apps/platform`, and application-facing primitives in `packages/ui`.
 
-## 1. Scope
+`DESIGN.md` is the visual-language source of truth. Implementation contracts, package boundaries, and approved tools remain in `docs/spec/**`.
 
-This guideline applies to:
+## 1. Product Boundaries
 
-- `apps/admin`
-- `apps/platform`
-- shared application-facing UI surfaces from `packages/ui/*`
+- `apps/app` is the customer-facing Product Application. Its UI helps people create, edit, publish, share, configure, and recover their work.
+- `apps/platform` is the deployment-wide management console. Its UI helps authorized operators investigate, decide, configure, and resolve operational issues.
+- `apps/api` is the server. Frontend copy and structure must not expose its internal modules, routes, providers, jobs, or data shapes unless the user is deliberately viewing diagnostics.
+- Product Application components must not be described as Admin components. Administration language is reserved for real workspace or platform administration.
 
-## 2. Product Personality
+## 2. Page Composition
 
-Product Application and Platform Console UI should feel:
+- Give every page one dominant task and one primary reading axis.
+- Use the owning application's shared page shell before creating a local shell. Product Application-only shell names do not apply to Platform unless Platform exports the same contract.
+- Every data-driven page defines loading, empty, error, and ready states locally.
+- Route-level progress preserves stable application chrome but does not replace page-level state handling.
+- Skeletons should match the final macro layout and respect reduced motion. Do not claim a shared skeleton implementation unless both applications actually use it.
 
-- Clear: users should understand what a screen is for within a few seconds.
-- Operational: actions should read like tools, not marketing copy.
-- Calm: dense when necessary, but never noisy or decorative for its own sake.
-- Consistent: the same action category should look and behave the same across surfaces.
+## 3. Containers and Hierarchy
 
-The Platform Console may use denser operational composition than the Product Application, but both consume the same semantic visual tokens. Theme choices are Light, Dark, and Follow system only; do not add a template palette, accent selector, second font/radius/elevation system, gradient Dashboard, neon glow, or glass treatment.
+- Avoid card-in-card by default.
+- Group related content with spacing, headings, dividers, rows, or a single shared surface.
+- Nest a bordered or elevated surface only when it represents a distinct object or workflow.
+- A nested surface stays one visual level below its parent; do not stack equal borders, shadows, background contrast, or padding frames.
+- Do not turn every metric, field group, or empty state into a card.
 
-Default writing style:
+## 4. Overlays and Forms
 
-- sentence case
-- short labels
-- direct action verbs
-- no filler copy
+- Choose dialog, sheet, popover, or inline editing based on task size and risk, not visual novelty.
+- Input-capable overlays include a clear title and description.
+- Primary actions bind disabled and loading states to real pending state.
+- Cancel remains visually secondary; destructive actions state the consequence explicitly.
+- Popup content must remain inside the correct overlay root and stay keyboard reachable.
+- Prefer inline editing for small settings; use a separate overlay for multi-step, spatially large, or risky work.
 
-## 3. Page Shell Rules
+## 5. Components and Dense Surfaces
 
-### 3.1 Default business pages
+- Reuse `@arclayer/ui` primitives and semantic tokens before creating application-local primitives.
+- Keep product-specific compositions in the owning application until another real consumer justifies promotion.
+- Tables use server-supported sorting/filtering, localized date and number formatting, explicit empty/error states, and predictable row actions.
+- Loading indicators communicate real work. Decorative spinners, repeated shimmer, and competing progress systems are prohibited.
+- Tags and badges represent stable status or type semantics; do not use colorful pills as decoration.
+- Use semantic radius, typography, color, and elevation tokens from `packages/ui`; do not add page-local visual scales.
 
-- Use `DefaultPage` as the default shell for single-surface business pages.
-- Keep title, description, header actions, and main content in the standard page hierarchy.
-- Do not hand-roll page headers unless the feature genuinely cannot fit the shared shell.
+## 6. Icons, Emoji, and Motion
 
-### 3.2 Multi-pane management surfaces
+- Use an icon only when it communicates a recognized action, state, object/type, or navigation target.
+- Omit an icon when the visible label already communicates the same meaning and the icon adds no scanning value.
+- Do not use emoji as product UI icons, status markers, section decoration, or substitutes for illustrations.
+- Decorative icons use `aria-hidden`; icon-only controls require an accessible name and a tooltip when discoverability matters.
+- A status icon must be paired with text or another non-color cue.
+- Use `lucide-react` or reviewed shared icons. Charts go through `@arclayer/ui/chart`.
+- Motion explains state or spatial change. Avoid stacked icon effects, bounce in routine tasks, and animation that delays completion.
 
-- Use `ColumnsPage` when the page has a persistent side rail, preview pane, or management inspector.
-- Keep the side pane meaningful on desktop and reachable through the built-in mobile sheet behavior.
-- Do not recreate one-off two-column page shells in feature files.
+## 7. Product Copy
 
-### 3.3 Loading, empty, and error states
+- Write for the user's task and next action, not for the implementation.
+- Use plain language, short sentences, sentence case, and concrete verbs.
+- Put the outcome first, then explain the next step. Keep one clear CTA in each decision area.
+- Product Application copy speaks in user goals such as create, edit, publish, share, restore, and configure.
+- Platform copy may be denser, but it still describes operator outcomes rather than internal services.
+- Do not expose README instructions, component/API/route names, provider internals, raw errors, stack traces, logs, JSON, hashes, revisions, job/run ids, or architecture terms in ordinary product UI.
+- If technical detail is necessary, place it in an explicit Details or diagnostics surface and pair it with a plain-language summary and next step.
+- Empty states explain what the user can do now. Do not describe roadmap or development progress.
+- Errors follow: what happened, whether work was saved or changed, and what the user can do next.
+- Keep bilingual terminology aligned. Every new product string uses a stable i18n key with both `zh-CN` and `en-US` resources.
 
-- Every data-driven page must define explicit loading, empty, and error behavior.
-- Use `ContentGuard` and shared page-shell patterns instead of bespoke state wrappers.
-- Skeletons should resemble the eventual layout closely enough to avoid misleading jumps.
-- Admin and Platform route transitions use the shared `RouteTransition` boundary built with `@arclayer/ui` `Skeleton`; feature pages must not create a second route-level skeleton system.
-- Route skeletons complement, rather than replace, explicit domain loading/error/empty states. They preserve stable Shell chrome, match the final page's macro layout, use neutral semantic loading tokens, and render without shimmer or pulse when reduced motion is preferred.
+Examples:
 
-## 4. Overlay and Form Rules
+- Good: `No projects yet. Create your first project.`
+- Good: `We couldn't save this project. Check your connection and try again.`
+- Bad: `Failed to execute mutation.`
+- Bad: `See README or check logs.`
 
-### 4.1 Overlay selection
+## 8. Accessibility and Responsive Behavior
 
-- Prefer `SettingDialog` for form-oriented overlays and edit flows.
-- Use lower-level dialog primitives only when the interaction truly falls outside the shared settings/dialog contract.
-- Confirmation flows should stay explicit; do not reintroduce `@arclayer/ui/confirm-dialog` in application feature code.
+- Interactive elements remain keyboard reachable with visible focus.
+- Labels, descriptions, and ARIA attributes are present when native semantics are insufficient.
+- Error, selected, disabled, and destructive states do not rely on color alone.
+- Text and controls meet WCAG 2.2 AA contrast requirements.
+- Responsive changes preserve task meaning and action access; they do not blindly stack every desktop region.
+- Normal task information remains at least 14px. Smaller text is reserved for secondary technical metadata.
 
-### 4.2 Overlay behavior
+## 9. Review Checklist
 
-- Input-capable overlays must include both `title` and `description`.
-- Footer surfaces should keep the shared `bg-card` treatment.
-- Cancel actions should stay visually secondary and non-destructive.
-- Primary actions must bind `loading` and `disabled` to the real pending state.
-
-### 4.3 Popup interoperability
-
-For Antd popups rendered inside dialog-like overlays:
-
-- Mount popup containers through the shared overlay-aware helpers.
-- Keep popup surfaces within the dialog overlay root rather than clipping them inside nested sections.
-- Do not break option selection by disabling pointer interaction on the overlay root.
-
-## 5. Component Defaults
-
-### 5.1 Buttons and inputs
-
-- All Antd `Button` usage in Admin must set `autoInsertSpace={false}`.
-- Default form controls should optimize for readability first; dense controls belong in toolbars, filters, and technical side panels.
-- Avoid inventing one-off input density rules per page. Match the surrounding feature surface.
-
-### 5.2 Loading indicators
-
-- Do not introduce new Antd `Spin` usage in application feature UI.
-- Use shared `Spinner` or `SpinnerOverlay` for blocking and refresh states.
-- Decorative loaders are not a substitute for explicit pending semantics.
-
-### 5.3 Avatars
-
-- Admin avatars are round by default.
-- Do not introduce square avatars unless there is explicit product approval for the surface.
-
-### 5.4 Tags
-
-- Tag-like UI must use the shared semantic tag system under `apps/admin/src/components/ui/tags`.
-- Do not hand-roll tag pills with local `div` or `span` styling in feature files.
-- Do not import Antd `Tag` directly inside application feature code.
-- If a new tag meaning is needed, add a semantic tag component instead of styling ad hoc at call sites.
-
-## 6. Icons and Motion
-
-- Default to stable `lucide-react` icons or existing shared icons from `@arclayer/ui/icons`.
-- Do not import or reference the removed `@arclayer/ui/icons/lucide-animated` barrel.
-- Compose charts through `@arclayer/ui/chart` instead of importing Recharts in feature pages.
-- Keep motion restrained and state-driven. Small hover or open-state feedback is enough.
-- Avoid layering multiple icon motion effects in feature code when the component already communicates state.
-
-## 7. Data Table and Dense Surface Rules
-
-- Shared data-table behavior belongs in the shared table stack, not in page-local reinventions.
-- If a backend-supported field is orderable, the corresponding Admin column should expose sorting through shared conventions.
-- Sticky table layering must stay locally isolated and must not overlap higher-level app overlays.
-- Date and time rendering inside tables should use the shared localization and formatting path.
-
-## 8. Settings Surface Rules
-
-- Settings pages should compose from the shared settings vocabulary: `DefaultPage`, `ChromeTabs`, `SettingPanel`, and `SettingAccordionItem` where appropriate.
-- Inline expansion/editing is the default for settings. Use dialogs or sheets only when the workflow is multi-step, spatially large, or risky enough to justify separation.
-- Save/reset feedback must be local, explicit, and tied to the action the user just triggered.
-
-## 9. Typography and Token Discipline
-
-- Shared visual tokens belong to `packages/ui`.
-- New authored UI should use semantic typography classes such as `text-body`, `text-footnote`, and `text-caption`.
-- Prefer semantic text colors such as `text-label-secondary`; do not add new `text-muted-foreground` usage.
-- Do not bypass the token system with app-local one-off typography or color scales unless the deviation is intentional and justified.
-
-## 10. Accessibility and UX Baseline
-
-- Interactive elements must remain keyboard reachable.
-- Focus states must stay visible.
-- Labels, descriptions, and ARIA attributes must be present when semantics are not obvious from native HTML.
-- Error, disabled, and destructive states must communicate intent clearly instead of relying on color alone.
-
-Product copy must use i18n keys with both supported locales. Use direct, sentence-case labels and distinguish commercial terms such as plan, billing period, granted credits, used credits, reserved credits, and available credits.
-
-## 11. PR Checklist
-
-- [ ] The page uses the shared page-shell primitives instead of a custom shell without justification.
-- [ ] Loading, empty, and error states are explicit.
-- [ ] Overlay forms use `SettingDialog` or a justified alternative.
-- [ ] Antd `Button` usage keeps `autoInsertSpace={false}`.
-- [ ] No new Antd `Spin` usage was introduced in application feature UI.
-- [ ] Tag-like UI uses the semantic tag system.
-- [ ] New icons do not depend on the removed `lucide-animated` barrel.
-- [ ] Charts use `@arclayer/ui/chart` and expose exact values accessibly.
-- [ ] Route loading remains compatible with the shared `RouteTransition` skeleton boundary.
-- [ ] New product copy exists in both `zh-CN` and `en-US` resources.
-- [ ] Typography and color usage follow shared semantic tokens.
-- [ ] Accessibility basics remain intact for focus, keyboard flow, labels, and destructive confirmations.
+- [ ] The page belongs to the correct application: Product Application, Platform management console, or server.
+- [ ] The page has one dominant task and explicit loading, empty, error, and ready states.
+- [ ] The layout avoids card-in-card and decorative containers.
+- [ ] Every icon has action, state, object/type, or navigation meaning; no emoji is used as UI chrome.
+- [ ] Product copy uses plain language and gives the user a clear next action.
+- [ ] Internal implementation and diagnostics are absent from the primary UI.
+- [ ] Shared tokens and primitives are used without inventing a competing visual system.
+- [ ] Keyboard, focus, contrast, reduced motion, and narrow layouts are covered.

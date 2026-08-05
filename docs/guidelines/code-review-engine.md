@@ -22,14 +22,12 @@ pnpm code-review-engine --scope backend --format json
 pnpm code-review-engine --scope module --module analytics --format json
 pnpm code-review-engine --scope changed --base develop --format json
 pnpm code-review-engine --rules service.no-direct-orm,frontend.route-no-api-calls --format json
-pnpm code-review-engine --baseline .baseline/code-review-engine.json --format json
-pnpm code-review-engine --write-baseline .baseline/code-review-engine.json
 pnpm code-review-engine --scope full --format markdown --output output/code-review-engine/full.md
 ```
 
 CLI behavior:
 
-- non-zero exit when active `BLOCKER` findings exist outside baseline/waiver policy
+- non-zero exit only when a `blocking`-stability rule emits a `BLOCKER` finding
 - non-zero exit on invalid scope or malformed config input
 - stdout output plus report artifact emission
 
@@ -45,12 +43,11 @@ Supported scopes:
 - `changed`
 - `rules`
 
-## Baseline and Waiver Policy
+## Enforcement Model
 
-- `--write-baseline` records current findings for debt tracking.
-- `--baseline` reports new and resolved findings.
-- `scripts/code-review-engine/waivers.yaml` controls temporary waivers.
-- Expired waivers fail execution.
+- `prototype` and `active` rules are report-only.
+- `blocking` rules may fail automation when they emit `BLOCKER` findings.
+- Baseline suppression and waiver flags are not exposed; unsupported behavior must not appear as a no-op option.
 
 ## Rule Catalog Ownership
 

@@ -171,7 +171,7 @@
   "ENABLE_PROJECT": "恢复项目访问",
   "ENABLE_PROJECT_DESCRIPTION": "确认限制不再适用后，恢复 {{name}}。",
   "PROJECT_OPERATIONS": "项目运行状态",
-  "PROJECT_OPERATIONS_DESCRIPTION": "查看项目服务最新报告的运行状态、域名、版本和部署信息。",
+  "PROJECT_OPERATIONS_DESCRIPTION": "查看此项目当前的服务状态、域名、版本和交付进度。",
   "PROJECT_OPERATIONS_LOADING": "正在加载项目运行状态…",
   "PROJECT_OPERATIONS_ERROR_TITLE": "项目运行状态暂不可用",
   "PROJECT_OPERATIONS_ERROR_DESCRIPTION": "无法加载最新报告的运行与交付状态。请重试；系统不会根据缺失信息推断状态。",

@@ -88,7 +88,7 @@ import {
 
 type QueryState<T> = { status: string; data?: T };
 type TaskAction = "retry" | "cancel" | "reconcile";
-type TaskActionReason = Readonly<{ copyKey: string; reasonCode: string | null }>;
+type TaskActionReason = Readonly<{ copyKey: string }>;
 type ProviderLifecycleContinuation = "none" | "archive" | "delete";
 type ProviderAvailabilityFlow = Readonly<{
   preview: SystemAiProviderAvailabilityPreviewOut;
@@ -183,7 +183,6 @@ function taskActionReason(
   if (!availability) {
     return {
       copyKey: "ACTION_AVAILABILITY_MISSING",
-      reasonCode: "AI_PLATFORM_TASK_ACTION_AVAILABILITY_MISSING",
     };
   }
   if (availability.available && availability.stateEligible) return null;
@@ -192,7 +191,6 @@ function taskActionReason(
     copyKey:
       (reasonCode ? taskActionReasonCopyKeys[reasonCode] : undefined) ??
       (availability.available ? "ACTION_STATE_NOT_ELIGIBLE" : "ACTION_PORT_UNAVAILABLE"),
-    reasonCode,
   };
 }
 
@@ -217,18 +215,21 @@ export function AiTasksPage() {
       const currentTask = await executeAiTaskAction(task.id, action, { idempotencyKey });
       idempotencyKeys.current.delete(operationKey);
       toast.success(t("ai:TASK_ACTION_RESULT_TITLE"), {
-        description: t("ai:TASK_ACTION_RESULT_DESCRIPTION", {
+        description: `${t("ai:TASK_ACTION_RESULT_DESCRIPTION", {
           action: t(`ai:ACTION_${action.toUpperCase()}`),
           outcome: t(`ai:OUTCOME_${currentTask.outcome.toUpperCase()}`),
-        }),
+        })} ${t("ai:TASK_ACTION_RESULT_SEQUENCE", { sequence: currentTask.lastSequence })}`,
       });
       retry();
     } catch (error) {
       const code = taskActionErrorCode(error);
+      const actionErrorCopyKey = taskActionReasonCopyKeys[code];
       toast.error(t("ai:TASK_ACTION_UNCONFIRMED"), {
-        description: i18n.exists(`errors:${code}`)
-          ? `${t(`errors:${code}`)} · ${code}`
-          : `${t("ai:TASK_ACTION_UNCONFIRMED_DESCRIPTION")} · ${code}`,
+        description: actionErrorCopyKey
+          ? t(`ai:${actionErrorCopyKey}`)
+          : i18n.exists(`errors:${code}`)
+            ? t(`errors:${code}`)
+            : t("ai:TASK_ACTION_UNCONFIRMED_DESCRIPTION"),
       });
     } finally {
       setPending(null);
@@ -267,13 +268,12 @@ export function AiTasksPage() {
                           {t(`OUTCOME_${task.outcome.toUpperCase()}`)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{task.executionMode}</TableCell>
+                      <TableCell>{t(`MODE_${task.executionMode.toUpperCase()}`)}</TableCell>
                       <TableCell className="space-y-1">
-                        <p>{task.statusKey ?? task.durableJobStatus ?? t("NO_PROGRESS")}</p>
+                        <p>{t(`STATUS_${task.status.toUpperCase()}`)}</p>
                         <p className="text-xs text-muted-foreground">
                           {t("EVIDENCE_SEQUENCE", { sequence: task.lastSequence })}
                         </p>
-                        {task.errorCode ? <code>{task.errorCode}</code> : null}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
@@ -291,7 +291,6 @@ export function AiTasksPage() {
                                   disabled={!available || pending === `${task.id}:${action}`}
                                   onClick={() => void execute(task, action)}
                                   size="sm"
-                                  title={reason?.reasonCode ?? undefined}
                                   variant={action === "cancel" ? "outline" : "secondary"}
                                 >
                                   {pending === `${task.id}:${action}`
@@ -304,9 +303,6 @@ export function AiTasksPage() {
                                     id={reasonId}
                                   >
                                     {t(reason.copyKey)}
-                                    {reason.reasonCode ? (
-                                      <code className="block">{reason.reasonCode}</code>
-                                    ) : null}
                                   </p>
                                 ) : null}
                               </div>

@@ -2,7 +2,7 @@
 
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved canonical implementation contract
 Parent: [Product and Platform Separation Implementation Contract](./product-platform-separation.md)
 
 ## 1. Scope
@@ -10,16 +10,6 @@ Parent: [Product and Platform Separation Implementation Contract](./product-plat
 This contract defines the People settings relationship experience, named-invitation and reusable-link flows, Pending/Invite links views, Plan-governed Fixed Member access, and a server-driven localized permission and role matrix that updates when the catalog changes, including Owner-delegated Billing Manager authority.
 
 It extends `identity-access-contracts.md` and `conditional-permissions.md`. Server authorization remains authoritative; this document defines product projections, state transitions, and Admin behavior.
-
-## 2. Current-state evidence
-
-- workspace invitations already expose Pending, Accepted, and Links tabs with create, renew, revoke/disable, copy, and pagination, but the tables and cache behavior still carry legacy implementation patterns;
-- current invitation links use a code-plus-HMAC token, including `il_`/`ilg_` link prefixes and `ei_`/`eig_` email prefixes;
-- preview and existing-account acceptance endpoints exist, and unauthenticated flows return through Login/Register to `/invitations` before onboarding completion;
-- existing-account acceptance currently needs regression coverage for users with memberships in organizations other than the invitation's target organization; target membership lookup must never select an arbitrary first organization;
-- workspace permission and action APIs plus a backend permission catalog already exist, and core templates include some i18n metadata;
-- tenant Checkout, Customer Portal, and Credit Ledger routes currently use broad membership/manage-access dependencies rather than a dedicated billing permission, so ordinary membership and settings roles are not safely separated from payment authority;
-- the workspace settings permission screen currently wraps a locally managed role matrix; some action definitions still have only English descriptions and catalog revision/refresh semantics are incomplete.
 
 ## 3. Non-goals
 

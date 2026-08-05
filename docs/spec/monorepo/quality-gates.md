@@ -11,7 +11,7 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
 
 ### 2. Signatures
 
-- Admin-only gate: `pnpm admin:check`
+- Product Application-only gate: `pnpm app:check`
 - Platform-only gate: `pnpm platform:check`
 - API-only gate: `pnpm api:check`
 - CLI gate: `pnpm cli:check`
@@ -28,7 +28,7 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
   focused test. Re-run only checks that later edits invalidate; do not run an
   affected-package or repository-wide gate after every edit.
 - At a coherent milestone or before handoff, run the affected package gate:
-  `pnpm admin:check`, `pnpm api:check`, or `pnpm platform:check` as applicable.
+  `pnpm app:check`, `pnpm api:check`, or `pnpm platform:check` as applicable.
   Run `pnpm check` only for cross-app integration or final delivery when its
   repository-wide scope is justified.
 - Choose the narrowest verification that covers the changed behavior, then
@@ -50,7 +50,7 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
 
 | Change type                                         | Validation stage                                                                                                                               |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin page/component/hook/store/API consumer        | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm admin:check`.                                            |
+| Admin page/component/hook/store/API consumer        | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm app:check`.                                            |
 | Platform page/component/hook/store/API consumer     | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm platform:check`.                                         |
 | API router/service/repository/schema/core behavior  | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm api:check`.                                              |
 | Shared package used by Admin, Platform, or API      | Verify the affected package and each affected Admin, Platform, or API consumer; reserve `pnpm check` for cross-app integration/final delivery. |
@@ -92,7 +92,7 @@ Verification: looks good locally
 
 ```text
 Executed:
-- pnpm admin:check
+- pnpm app:check
 Result:
 - passed
 Manual verification:

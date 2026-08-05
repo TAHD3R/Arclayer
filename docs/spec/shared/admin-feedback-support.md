@@ -1,6 +1,6 @@
 # Admin Feedback and Support Contract
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved canonical implementation contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Domain: [Platform Communications](./admin-communications.md)
 
@@ -13,20 +13,9 @@ This contract defines:
 - the operator Feedback Center and its immediate-update behavior;
 - the shared ContentGuard error/empty presentation.
 
-It replaces the submission-category and frontend-composition portions of `feedback-observability.md` where they conflict. The existing feedback lifecycle, privacy, audit, and authorization requirements remain authoritative unless explicitly superseded here.
+This file is the canonical feedback contract. It owns submission, lifecycle, privacy, audit, authorization, replies, and operator triage.
 
 The operator Feedback Center is the default User feedback queue inside the Communications Platform Domain, not an independent top-level Platform Domain. External replies use the Communications delivery ledger; internal notes never enter recipient delivery.
-
-## 2. Current-state evidence
-
-- `admin-scope-switcher.tsx` applies both Radix trigger-width CSS and measured inline widths to nested panels, creating multiple width authorities.
-- `feedback-dialog.tsx` is a compact Popover with a plain Textarea and still exposes request-id copy in some error contexts.
-- `ai-drawer-overlay.tsx` has conversation-history actions but no feedback entry beside them.
-- `content-guard.tsx` uses custom animated illustrations and sequential action layout instead of `@arclayer/ui/empty` and Lucide.
-- feedback categories still include `usability`, `performance`, and `billing`, even though the new mechanism is an intent-driven support entry point.
-- the operator queue supports status, priority, assignment, replies, internal notes, and audit events, but its filter/order and mutation cache behavior are not yet consistent with the Assets control pattern.
-
-These facts describe the baseline, not acceptable fallback behavior.
 
 ## 3. Non-goals
 

@@ -47,7 +47,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/`.
 ## Required Reading Before API Frontend Work
 
 - Read the relevant shared contract file when payload, error, identity, permission, or schema behavior changes.
-- Read Product Application frontend specs when the consumer is `apps/admin`; read the Platform Console contracts and shared product UI toolchain when the consumer is `apps/platform`.
+- Read Product Application frontend specs when the consumer is `apps/app`; read the Platform Console contracts and shared product UI toolchain when the consumer is `apps/platform`.
 - Read monorepo specs when the change involves `packages/openapi`, shared packages, generated artifacts, package scripts, or cross-app checks.
 - Do not create a second contract package or local duplicate request/response types.
 

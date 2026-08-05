@@ -1,6 +1,6 @@
 # Platform AI Operations Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
@@ -9,12 +9,6 @@ Experience authority: [Product and Platform administration experience redesign](
 This contract defines one Platform AI Operations Domain for cross-Workspace AI task investigation and recovery, model and provider readiness, official Agent and Skill availability, Platform action policy, and runtime operations.
 
 “Platform AI Operations” is the canonical architecture term. The product label is `AI 服务 / AI Services`; primary navigation and copy use recognizable tasks rather than framework, policy, or state-machine terminology.
-
-## 2. Current-state evidence
-
-- `/system/settings/agents` is one long page that combines Agent enablement, default mode/model, Provider credentials, model catalog, a Workspace-bound monthly usage summary, write approval policy, dry-run policy, LangGraph enablement, checkpointer selection, checkpoint retention, and interruption recovery.
-- the page uses settings-oriented labels and metric rows even when the operator's real need is to diagnose unavailable models, failed Runs, unsafe policy, or runtime recovery.
-- durable AI Runs, approvals, model/provider state, Agent versions, queues, checkpoints, and usage evidence already exist across the platform contracts, but they are not composed into one cross-Workspace operations queue.
 
 ## 3. Information architecture
 

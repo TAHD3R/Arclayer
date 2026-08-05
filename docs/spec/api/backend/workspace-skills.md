@@ -1,6 +1,6 @@
 # Workspace Skill Package Contracts
 
-**Status:** Approved target contract; Wave 1D inline, official-catalog, public GitHub, Agent grant, Run snapshot, worker context, reviewed repin, installation removal, and package archive authorities are implemented. Remaining purge and migration surfaces are gated.
+**Status:** Approved contract.
 **Canonical target:** `docs/spec/shared/ai-website-builder-platform.md`, section 7.2.
 **Related contracts:** `docs/spec/shared/ai-agent-runtime-protocol.md`, `docs/spec/api/backend/background-jobs.md`, and `docs/spec/api/backend/plugins.md`.
 
@@ -9,93 +9,6 @@ validation, GitHub import, workspace installation, update review, Agent
 resolution, and API contracts. A Skill is a declarative instruction/resource
 package. It is never an executable plugin, Tool, Connector, package-manager
 command, or permission grant.
-
-Current implementation status (2026-07-20):
-
-- implemented: strict `SkillManifestV1`, canonical package/resource digests,
-  normalized public and tenant models, generated migration `0035`, tenant
-  migration version 10, inline package/version authoring, cursor package and
-  version reads, deterministic persisted validation, exact workspace-version
-  installation, installation enable/disable revisions, request fingerprints,
-  idempotency, tenant isolation, required Activity writes, generated OpenAPI
-  routes, and bilingual stable error copy;
-- implemented official catalog authority: six packaged Arclayer Skills,
-  verified publisher metadata, immutable public package/version/resource/
-  validation records, exact pinned checksums, atomic and idempotent startup
-  bootstrap synchronization under a PostgreSQL advisory transaction lock, six
-  packaged seed Skills, and fail-fast duplicate/checksum/credential/Tool checks;
-- approved Platform official-catalog authority: public package metadata,
-  immutable version publication, validation evidence, lifecycle state, and
-  Workspace adoption impact are managed through Platform API permissions;
-  packaged assets seed missing packages and publish reviewed new checksums but
-  never overwrite Platform metadata or archive Platform-managed packages;
-- implemented official catalog API and workspace projection: cursor list,
-  search, package detail, exact manifest/resources/validation evidence,
-  workspace-isolated installed state, and exact `system`-scope installation
-  without public-to-tenant foreign keys or package copies;
-- implemented Admin workspace settings surface: package search, inline package
-  and immutable-version authoring, reference and declaration editing,
-  deterministic validation evidence, exact-version installation review,
-  installation enable/disable with revision checks, resource/checksum
-  inspection, verified official catalog discovery and exact-version review,
-  public GitHub import/refresh, durable import evidence and status polling,
-  pinned source provenance, exact-version update diff/risk review, declaration
-  acceptance, atomic repinning, fail-closed installation removal impact, and
-  package archive impact with immutable-content/reference counts;
-- implemented public GitHub authority: generated migration `0036`, tenant
-  migration version 11, tenant-scoped durable import records, resource-style
-  create/read/refresh API, `skill.github.import` and `skill.github.refresh`
-  connector Jobs, transactional Job/outbox/Activity creation, exact
-  commit/tree/blob verification, bounded inert UTF-8 resources, candidate-only
-  persistence, redelivery reconciliation, cancellation/failure projection,
-  cross-workspace isolation, and atomic refresh that preserves prior versions
-  on failure;
-- implemented Agent grant and runtime authority: global Agent versions carry an
-  immutable `skillGrantWorkspaceId` plus exact installation IDs, publication
-  and assignment revalidate tenant ownership and Tool requirements, Run
-  creation persists normalized per-Agent/per-Skill snapshot rows in the same
-  transaction as the Run/Job/outbox, and workers load only exact immutable
-  resources after rechecking checksum, validation, digest, order, and context
-  byte evidence;
-- implemented System Agents Admin workflow: version publication selects one
-  Skill workspace and governed installations by product name, exposes exact
-  provenance, blocks disabled or Tool-incompatible choices, and disables
-  versions that cannot be assigned to the selected workspace;
-- implemented reviewed update, installation-removal, and package-archive
-  authority: generated migrations `0038`/`0039`/`0040`, tenant migration
-  versions 12/13/14, persisted exact
-  preview and removal command evidence, deterministic diff/risk/preview hashes,
-  atomic revision-checked repinning, exact idempotency replay, structured Agent
-  Version/Assignment/retained Run impact, fail-closed uninstall, required
-  Activity writes, generated OpenAPI contracts, and bilingual Admin review
-  dialogs with retry-stable idempotency keys, plus revision-checked soft package
-  archive, active GitHub-operation fencing, immutable archive result evidence,
-  and archived-package write rejection;
-- current inline validation is synchronous, deterministic, and performs no
-  external I/O or resource execution. It checks manifest/checksum/resource
-  integrity and credential-like content, persists every validation attempt,
-  updates the latest valid version projection, and quarantines suspicious
-  content;
-- current installation accepts exact workspace-owned or official public
-  versions, pins scope, package/version IDs, checksum, validation finding hash,
-  and declaration review evidence, and fails closed when a declared Tool is
-  outside the currently supported runtime Tool surface. Installation does not
-  grant that Tool. Re-enabling revalidates the exact target and evidence;
-- implemented ZIP package import: one bounded multipart upload containing root
-  `skill.json` metadata, root `SKILL.md` instructions, and optional UTF-8
-  Markdown/plain-text/JSON references; archive paths, compression ratios,
-  collisions, expanded bytes, schema, and MIME are validated before entering
-  the existing immutable package transaction;
-- gated: private GitHub Connector authorization, Asset-backed resources,
-  durable validation Jobs, durable package purge, legacy locator migration,
-  Knowledge grants, model-aware Skill token allocation, and removal of the
-  static registry compatibility authority.
-
-Capability responses derive public GitHub availability from deployment policy,
-advertise the official catalog and Agent Skill grants as available, and must
-continue to advertise the remaining gated surfaces as unavailable. This
-partial implementation does not satisfy the complete acceptance gate at the
-end of this contract.
 
 ## Scenario: Trusted, Versioned Skill Packages for Workspace Agents
 
@@ -118,21 +31,16 @@ end of this contract.
     resources with the original archive checksum retained as provenance;
   - `github`: repository/ref/subpath imported at an immutable commit.
 
+Archive import accepts one bounded multipart ZIP with root `skill.json`, root
+`SKILL.md`, and optional UTF-8 Markdown, plain-text, or JSON references. Archive
+paths, compression ratios, collisions, expanded bytes, schema, and MIME are
+validated before the immutable package transaction begins.
+
 `npx`, npm package execution, shell commands, Python entrypoints, dynamically
 loaded JavaScript, and repository hooks are outside the Skill contract. Such
 capabilities require the trusted Tool/Connector/plugin boundaries.
 
-### 2. Verified Baseline and Hard-Cut Decision
-
-The legacy compatibility baseline builds Skills inside `_build_skill_catalog()` in
-`apps/api/src/agents/registry.py`. `AgentSkillDefinition` combines display,
-Agent identity, Tool names, read/write mode, approval, and enabled state. System
-Agent settings provide `skills_enabled` plus an `enabled_skill_ids` allowlist,
-and the Admin `SkillLibraryEditor` serializes locator text. The normalized
-workspace package/version/resource/validation/installation, public GitHub,
-update-review, Agent grant, and runtime snapshot authorities now exist. The
-static registry remains a legacy runtime/catalog compatibility authority until
-the explicit hard-cut migration is complete.
+### 2. Hard-Cut Decision
 
 The target hard cut:
 
@@ -145,9 +53,6 @@ The target hard cut:
 - validates and pins exact Skill versions before an Agent Run can use them;
 - removes locator text, `npx`, static catalog authority, and product-facing
   enable/allowlist settings after migration review.
-
-Static registry values may seed official package manifests during migration,
-but the runtime registry stops being the catalog source of truth.
 
 ### 3. Ownership and Module Boundaries
 
@@ -360,7 +265,7 @@ permission.
 
 ### 5. HTTP API Surface
 
-All routes are Admin API resources under the canonical prefix:
+All routes are Product API resources under the canonical prefix:
 
 ```text
 /api/v1/workspaces/{workspaceId}/skills
@@ -611,11 +516,6 @@ before Run creation, the Run fails with an explicit compatibility/grant error.
 An already-running Run retains its immutable Skill content for reproducibility,
 but every Tool/Connector/permission decision is still revalidated when used.
 
-The legacy `AgentSkillDefinition` may remain as a temporary internal projection
-derived from resolved packages during migration. It cannot remain catalog or
-installation authority and is removed when all consumers use versioned
-contracts.
-
 ### 9. Security and Trust
 
 - official verification is assigned only to Arclayer-controlled publisher keys
@@ -694,31 +594,10 @@ contracts.
 Messages use backend i18n keys and sanitized metadata. Frontend control flow
 branches on stable codes.
 
-### 12. Migration and Hard Cut
-
-1. create official catalog assets/records and verify static built-ins map to
-   exact official package versions/checksums.
-2. add tenant models through source models, generated migrations, and the
-   tenant-control path for every existing workspace.
-3. convert legacy `skill_library` lines, GitHub/inline locators,
-   `enabled_skill_ids`, and `npx` values into explicit migration-review records;
-   do not mark them installed or enabled automatically.
-4. reject `npx` as a target source. Preserve its original text only in the
-   migration review/audit record so an admin can choose a declarative Skill or
-   trusted Connector replacement.
-5. register official/custom catalog, validation, installation, update, Job,
-   permission, route, and generated-client contracts.
-6. switch Agent definition/version resolution to installation IDs and exact
-   versions; freeze old settings writes during parity verification.
-7. remove `SkillLibraryEditor` locator persistence, static catalog authority,
-   product-facing `skills_enabled`/allowlist authority, old write paths, and the
-   temporary `AgentSkillDefinition` compatibility projection in the same hard
-   cut.
-
 Generated migrations and OpenAPI artifacts are command output and are never
 hand-edited.
 
-### 13. Tests and Acceptance Gates
+### 12. Tests and Acceptance Gates
 
 Required tests:
 

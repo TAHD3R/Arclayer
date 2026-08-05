@@ -9,7 +9,7 @@ This code-spec defines the shared plan, subscription, AI Credits, provider check
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing plan configuration, workspace subscriptions, Workspace creation eligibility, AI usage charging, credit balances, plan selection, commercial ownership, or commercial administration UI.
-- Applies to `apps/api`, Product Application commerce surfaces in `apps/admin`, Platform Console commerce operations in `apps/platform`, generated OpenAPI contracts, and AI runtime accounting.
+- Applies to `apps/api`, Product Application commerce surfaces in `apps/app`, Platform Console commerce operations in `apps/platform`, generated OpenAPI contracts, and AI runtime accounting.
 - The workspace is the commercial tenant. Users and projects consume the active workspace's entitlement; they do not own independent plan balances.
 
 ### 2. Domain vocabulary

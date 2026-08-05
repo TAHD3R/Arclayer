@@ -12,7 +12,7 @@ This code-spec defines where backend code belongs in `apps/api` and which depend
 ### 2. Signatures
 
 - Route composition: `apps/api/src/core/routes.py`
-- Admin API prefix: `/api/v1`
+- Product API prefix: `/api/v1`
 - Content API prefix: `/content-api/v1`
 - Management API prefix: `/management-api/v1`
 - Domain module root: `apps/api/src/modules/<domain>/`

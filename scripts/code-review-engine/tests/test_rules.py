@@ -55,10 +55,10 @@ def test_registry_rejects_blocking_stability_for_non_blocker_severity() -> None:
 
 
 def test_frontend_page_structure_allows_page_local_directories(tmp_path) -> None:
-    page = tmp_path / "apps/admin/src/pages/workspaces/assets/page.tsx"
-    component = tmp_path / "apps/admin/src/pages/workspaces/assets/components/assets-view.tsx"
-    hook = tmp_path / "apps/admin/src/pages/workspaces/assets/hooks/use-assets-view.tsx"
-    shared = tmp_path / "apps/admin/src/pages/workspaces/shared/activity.tsx"
+    page = tmp_path / "apps/app/src/pages/workspaces/assets/page.tsx"
+    component = tmp_path / "apps/app/src/pages/workspaces/assets/components/assets-view.tsx"
+    hook = tmp_path / "apps/app/src/pages/workspaces/assets/hooks/use-assets-view.tsx"
+    shared = tmp_path / "apps/app/src/pages/workspaces/shared/activity.tsx"
     for path in (page, component, hook, shared):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("export function Sample() { return null; }\n", encoding="utf-8")
@@ -104,13 +104,13 @@ def test_openapi_single_source_flags_removed_contract_package_and_imports(tmp_pa
     contracts_file = tmp_path / "packages/contracts/src/index.ts"
     package_file = tmp_path / "packages/management-sdk/package.json"
     source_file = tmp_path / "packages/management-sdk/src/types.ts"
-    admin_barrel = tmp_path / "apps/admin/src/types/api/index.ts"
+    admin_barrel = tmp_path / "apps/app/src/types/api/index.ts"
     for path in (contracts_file, package_file, source_file, admin_barrel):
         path.parent.mkdir(parents=True, exist_ok=True)
     contracts_file.write_text("export type Legacy = {};\n", encoding="utf-8")
     package_file.write_text('{"dependencies":{"@arclayer/contracts":"workspace:*"}}\n', encoding="utf-8")
     source_file.write_text('import type { Legacy } from "@arclayer/contracts";\n', encoding="utf-8")
-    admin_barrel.write_text('export * from "@arclayer/openapi/admin-types";\n', encoding="utf-8")
+    admin_barrel.write_text('export * from "@arclayer/openapi";\n', encoding="utf-8")
 
     report = run_audit(
         repo_root=tmp_path,
@@ -123,12 +123,12 @@ def test_openapi_single_source_flags_removed_contract_package_and_imports(tmp_pa
 
 
 def test_openapi_single_source_allows_direct_generated_imports_and_ui_models(tmp_path) -> None:
-    admin_types = tmp_path / "apps/admin/src/types/api/projects.ts"
+    admin_types = tmp_path / "apps/app/src/types/api/projects.ts"
     admin_types.parent.mkdir(parents=True, exist_ok=True)
     admin_types.write_text(
         "\n".join(
             [
-                'import type { ProjectDetailOut } from "@arclayer/openapi/admin-types";',
+                'import type { ProjectDetailOut } from "@arclayer/openapi";',
                 "",
                 "export type ProjectListItemRow = {",
                 "  id: ProjectDetailOut['id'];",
@@ -150,12 +150,12 @@ def test_openapi_single_source_allows_direct_generated_imports_and_ui_models(tmp
 
 
 def test_openapi_single_source_flags_generated_request_aliases_in_admin_types(tmp_path) -> None:
-    admin_types = tmp_path / "apps/admin/src/types/api/uploads.ts"
+    admin_types = tmp_path / "apps/app/src/types/api/uploads.ts"
     admin_types.parent.mkdir(parents=True, exist_ok=True)
     admin_types.write_text(
         "\n".join(
             [
-                'import type { UploadInitRequest as OpenApiUploadInitRequest } from "@arclayer/openapi/admin-types";',
+                'import type { UploadInitRequest as OpenApiUploadInitRequest } from "@arclayer/openapi";',
                 "",
                 "export type UploadInitRequest = OpenApiUploadInitRequest;",
                 "",
@@ -175,7 +175,7 @@ def test_openapi_single_source_flags_generated_request_aliases_in_admin_types(tm
 
 
 def test_openapi_single_source_allows_test_files_describing_removed_contract_import(tmp_path) -> None:
-    test_file = tmp_path / "apps/admin/src/pages/workspaces/assets/__tests__/hard-cut-contracts.test.ts"
+    test_file = tmp_path / "apps/app/src/pages/workspaces/assets/__tests__/hard-cut-contracts.test.ts"
     test_file.parent.mkdir(parents=True, exist_ok=True)
     test_file.write_text(
         "\n".join(
@@ -198,9 +198,9 @@ def test_openapi_single_source_allows_test_files_describing_removed_contract_imp
 
 
 def test_frontend_page_structure_allows_support_files_in_parent_with_child_pages(tmp_path) -> None:
-    shell = tmp_path / "apps/admin/src/pages/system/system-settings-shell.tsx"
-    form_utils = tmp_path / "apps/admin/src/pages/system/system-settings-form-utils.tsx"
-    child_page = tmp_path / "apps/admin/src/pages/system/users/page.tsx"
+    shell = tmp_path / "apps/app/src/pages/system/system-settings-shell.tsx"
+    form_utils = tmp_path / "apps/app/src/pages/system/system-settings-form-utils.tsx"
+    child_page = tmp_path / "apps/app/src/pages/system/users/page.tsx"
     for path in (shell, form_utils, child_page):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("export function Sample() { return null; }\n", encoding="utf-8")
@@ -215,7 +215,7 @@ def test_frontend_page_structure_allows_support_files_in_parent_with_child_pages
 
 
 def test_frontend_page_structure_allows_pure_support_directories(tmp_path) -> None:
-    support = tmp_path / "apps/admin/src/pages/projects/content/surfaces/surface-boundary-card.tsx"
+    support = tmp_path / "apps/app/src/pages/projects/content/surfaces/surface-boundary-card.tsx"
     support.parent.mkdir(parents=True, exist_ok=True)
     support.write_text("export function SurfaceBoundaryCard() { return null; }\n", encoding="utf-8")
 

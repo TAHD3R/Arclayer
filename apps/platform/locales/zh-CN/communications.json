@@ -92,7 +92,7 @@
   "CAMPAIGN_MULTI_LANGUAGE_LIMIT_DESCRIPTION": "这个活动保存了多个语言版本。你可以编辑现有发送形式，但新增邮件或站内信会让其他语言缺少内容。",
   "REVIEW_AND_SEND": "检查并发送",
   "CAMPAIGN_REVIEW_TITLE": "检查 {{name}}",
-  "CAMPAIGN_REVIEW_DESCRIPTION": "发送或排期前，请检查受众人数和实际消息内容。",
+  "CAMPAIGN_REVIEW_DESCRIPTION": "发送或排期前，请检查收件人和最终消息内容。",
   "CAMPAIGN_REVIEW_LOADING": "正在加载受众和消息预览",
   "CAMPAIGN_REVIEW_LOAD_FAILED": "无法加载受众或消息预览，系统尚未发送任何内容。",
   "CAMPAIGN_REVIEW_STALE": "加载检查结果后，这个活动又发生了变化。请关闭窗口并检查最新版本后再发送。",

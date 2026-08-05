@@ -1,8 +1,8 @@
 # Product and Platform Administration Experience Redesign
 
-Status: Approved implementation contract; visual direction selected 2026-08-01
+Status: Approved implementation contract
 Owners: Product Application, Platform Console, API, Product Design
-Applies to: `apps/admin`, `apps/platform`, `apps/api`, `packages/ui`, generated Product and Platform API clients, locale resources, route skeletons, and browser acceptance
+Applies to: `apps/app`, `apps/platform`, `apps/api`, `packages/ui`, generated Product and Platform API clients, locale resources, route skeletons, and browser acceptance
 
 ## 1. Purpose and authority
 
@@ -16,7 +16,7 @@ Contract routing is:
 2. This file owns the Product and Platform administration experience.
 3. [Product and Platform separation](./product-platform-separation.md) owns application, deployment, Session, and authority boundaries.
 4. Topic specs own exact domain rules, permissions, persistence, operations, and Audit evidence.
-5. [Product UI toolchain](../admin/frontend/product-ui-toolchain.md), `DESIGN.md`, and `docs/guidelines/frontend-design.md` own implementation mechanics and visual language.
+5. [Product UI toolchain](../app/frontend/product-ui-toolchain.md), `DESIGN.md`, and `docs/guidelines/frontend-design.md` own implementation mechanics and visual language.
 
 When contracts disagree, implementation stops and the conflict is resolved in the canonical docs. Current code is migration evidence, not authority for retaining an obsolete route, read-only surface, technical label, or incomplete action.
 
@@ -267,8 +267,6 @@ The reusable foundation is an Arclayer-owned Platform Experience Kit built from 
 
 ### 12.2 Selected direction: A · Operational Ledger
 
-Selected by the user on 2026-08-01. The approved reference is `output/imagegen/product-admin-visual-directions-2026-08-01/a-operational-ledger.html`.
-
 “Operational Ledger” names the information grammar, not a product label and not a mandate to turn every screen into a table or monitoring console.
 
 - Use compact titles, standard toolbars, dense structured records, clear state, exact actions, and route-backed detail.
@@ -332,7 +330,7 @@ A requirement is complete only when:
 - copy is natural in both locales with no primary technical leakage;
 - permission, capability, readiness, rollout, commercial, health, and evidence failures remain distinct;
 - desktop, tablet, narrow, zoom, reflow, keyboard, focus, reduced-motion, light, and dark evidence passes;
-- `pnpm platform:check`, `pnpm admin:check`, API checks for changed contracts, and final `pnpm check` pass without hiding pre-existing or new failures;
+- `pnpm platform:check`, `pnpm app:check`, API checks for changed contracts, and final `pnpm check` pass without hiding pre-existing or new failures;
 - representative browser evidence covers Overview, Workspaces, AI Services, Knowledge, Design Systems, Plan & Usage, and People in both locales and includes populated, empty, filtered-empty, partial, stale, permission, error, editing, operation-progress, and recovery states as applicable;
 - GitNexus impact review and changed-scope detection show only the expected execution flows;
 - repository rule review reports no unresolved finding.

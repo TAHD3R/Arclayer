@@ -201,7 +201,7 @@ def test_cli_enforces_stable_blocking_findings(capsys, tmp_path: Path, monkeypat
 
 
 def test_cli_frontend_scope_reports_repo_relative_paths(capsys, tmp_path: Path) -> None:
-    component = tmp_path / "apps/admin/src/pages/login/components/login-view.tsx"
+    component = tmp_path / "apps/app/src/pages/login/components/login-view.tsx"
     component.parent.mkdir(parents=True)
     component.write_text("export function LoginView(value: any) {\n  return value;\n}\n", encoding="utf-8")
 
@@ -211,7 +211,7 @@ def test_cli_frontend_scope_reports_repo_relative_paths(capsys, tmp_path: Path) 
     payload = json.loads(captured.out)
     assert exit_code == 0
     assert payload["summary"]["majors"] == 1
-    assert payload["findings"][0]["file"] == "apps/admin/src/pages/login/components/login-view.tsx"
+    assert payload["findings"][0]["file"] == "apps/app/src/pages/login/components/login-view.tsx"
 
 
 def test_cli_changed_scope_limits_findings_to_changed_files(capsys) -> None:

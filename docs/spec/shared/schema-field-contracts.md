@@ -16,7 +16,7 @@ This code-spec defines shared schema semantics for Pydantic, OpenAPI, content mo
 - Immutable value config: `ConfigDict(frozen=True)`
 - Field default factory: `Field(default_factory=list)` or `Field(default_factory=dict)`
 - JSON serialization: `model_dump(mode="json")`
-- OpenAPI-generated frontend imports: `@arclayer/openapi` or `@arclayer/openapi/admin-types`
+- OpenAPI-generated frontend imports: `@arclayer/openapi` or `@arclayer/openapi`
 - Content model storage payload: `ContentModelSchemaChangePlanOut.storage_sync`
 
 ### 3. Contracts

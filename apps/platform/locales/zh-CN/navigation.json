@@ -57,13 +57,13 @@
   "COMMAND_EMPTY": "没有可打开的页面符合当前搜索。",
   "COMMAND_RECENT": "最近打开",
   "COMMAND_DESTINATIONS": "可打开的页面",
-  "COMMAND_PARTIAL": "你可使用的部分页面尚未包含在当前 Arclayer 管理后台版本中。",
+  "COMMAND_PARTIAL": "你有权限访问的部分页面未包含在当前版本的 Arclayer 管理后台中。",
   "COMMAND_RECENT_UNAVAILABLE": "无法加载最近打开的页面，仍可使用这里显示的页面。",
   "CAPABILITY_LOADING": "正在加载可用页面…",
   "CAPABILITY_ERROR_TITLE": "无法加载可用页面",
   "CAPABILITY_ERROR_DESCRIPTION": "暂时无法确认你现在能打开哪些页面。服务可用后请重试。",
-  "CAPABILITY_ERROR_CODE": "错误代码：{{code}}",
+  "CAPABILITY_ERROR_CODE": "暂时无法加载你可访问的页面；如需联系支持，请提供代码 {{code}}。",
   "CAPABILITY_RETRY": "重试",
-  "CAPABILITY_PARTIAL": "你可使用的部分页面尚未包含在当前 Arclayer 管理后台版本中。",
+  "CAPABILITY_PARTIAL": "你有权限访问的部分页面未包含在当前版本的 Arclayer 管理后台中。",
   "CAPABILITY_UNAUTHORIZED": "你的平台账号无法打开此页面。"
 }

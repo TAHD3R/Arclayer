@@ -1,4 +1,4 @@
-"""Frontend audit rules — derived from docs/spec/admin/frontend/directory-structure.md
+"""Frontend audit rules — derived from docs/spec/app/frontend/directory-structure.md
 and docs/guidelines/frontend-design.md.
 
 For P1, these rules use regex-based pattern matching on TS/TSX files.
@@ -18,8 +18,8 @@ from code_review_engine.migrated.runtime import get_repo_root_from_env
 def _admin_root() -> Path:
     root = get_repo_root_from_env()
     if root is None:
-        return Path("apps/admin/src")
-    return root / "apps" / "admin" / "src"
+        return Path("apps/app/src")
+    return root / "apps" / "app" / "src"
 
 
 def _repo_root() -> Path:
@@ -63,7 +63,7 @@ def _read_lines(p: Path) -> list[str]:
 
 
 class FrontendNoAny(AuditRule):
-    """No authored `any` in TypeScript source (per docs/spec/admin/frontend/directory-structure.md sec 10)."""
+    """No authored `any` in TypeScript source (per docs/spec/app/frontend/directory-structure.md sec 10)."""
 
     rule_id = "frontend.no-any"
     description = "No `any` type in authored TypeScript files."
@@ -94,7 +94,7 @@ class FrontendNoAny(AuditRule):
 
 
 class FrontendRouteNoAPICalls(AuditRule):
-    """Route files must not contain API calls (per docs/spec/admin/frontend/directory-structure.md sec 4.1)."""
+    """Route files must not contain API calls (per docs/spec/app/frontend/directory-structure.md sec 4.1)."""
 
     rule_id = "frontend.route-no-api-calls"
     description = "Route files (routes/**) must not contain API calls or React Query orchestration."
@@ -136,7 +136,7 @@ class FrontendRouteNoAPICalls(AuditRule):
 class FrontendDataMustUseReactQuery(AuditRule):
     """Data fetching must use React Query (Tanstack Query), not raw fetch/axios.
 
-    Per docs/spec/admin/frontend/directory-structure.md sec 6.3: "Components and pages should not
+    Per docs/spec/app/frontend/directory-structure.md sec 6.3: "Components and pages should not
     scatter raw fetch logic."
     """
 
@@ -176,12 +176,12 @@ class FrontendDataMustUseReactQuery(AuditRule):
 class FrontendPageStructureRule(AuditRule):
     """Page directories should follow the canonical structure from the guideline.
 
-    Per docs/spec/admin/frontend/directory-structure.md sec 5.4: each page dir should have
+    Per docs/spec/app/frontend/directory-structure.md sec 5.4: each page dir should have
     page.tsx, and optionally components/, hooks/, types.ts, utils.ts, constants.ts.
     """
 
     rule_id = "frontend.page-structure"
-    description = "Page directories must have a page.tsx entry (per docs/spec/admin/frontend/directory-structure.md sec 5.3)."
+    description = "Page directories must have a page.tsx entry (per docs/spec/app/frontend/directory-structure.md sec 5.3)."
     PAGE_LOCAL_DIRS = frozenset(
         {
             "components",

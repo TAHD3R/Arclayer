@@ -5,7 +5,7 @@ const ACCEPTANCE_ROOT = "/tmp/arclayer-browser-acceptance";
 export default defineConfig({
   testDir: ".",
   testMatch: [
-    "apps/admin/test/browser/**/*.spec.ts",
+    "apps/app/test/browser/**/*.spec.ts",
     "apps/platform/test/browser/**/*.spec.ts",
   ],
   fullyParallel: false,

@@ -18,7 +18,11 @@ def _is_in_scope(selector: ScopeSelector, file_path: str, changed_files: frozens
     if selector.scope == selector.scope.BACKEND:
         return file_path.startswith("apps/api/")
     if selector.scope == selector.scope.FRONTEND:
-        return file_path.startswith("apps/admin/") or file_path.startswith("packages/ui/")
+        return (
+            file_path.startswith("apps/app/")
+            or file_path.startswith("apps/platform/")
+            or file_path.startswith("packages/ui/")
+        )
     if selector.scope == selector.scope.MODULE:
         if not selector.module:
             return False

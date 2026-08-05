@@ -1,8 +1,8 @@
 # Platform Control Plane Productization Rollout
 
-Status: Approved domain rollout contract; experience amended 2026-08-01
+Status: Approved domain rollout contract
 Owners: Platform Console, Product Application, API
-Applies to: `apps/platform` as the target Platform Console, `apps/admin` as the Product Application and migration source, `apps/api`, `packages/ui`, plugin packages
+Applies to: `apps/platform` as the target Platform Console, `apps/app` as the Product Application and migration source, `apps/api`, `packages/ui`, plugin packages
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Purpose
@@ -13,7 +13,7 @@ This contract coordinates the domain productization of Arclayer's platform contr
 
 The rollout is a hard-cut product contract. New work must use the domain contracts linked below; superseded page-local models and UI shims are removed in the same wave unless a migration is explicitly documented.
 
-The monorepo application boundary is explicit: `apps/admin` remains the Product Application package `@arclayer/admin`, `apps/platform` is the Platform Console package `@arclayer/platform`, and `apps/api` remains the backend package `@arclayer/api` with separate Product API and Platform API composition roots.
+The monorepo application boundary is explicit: `apps/app` remains the Product Application package `@arclayer/app`, `apps/platform` is the Platform Console package `@arclayer/platform`, and `apps/api` remains the backend package `@arclayer/api` with separate Product API and Platform API composition roots.
 
 ## 2. Product and visual intent
 
@@ -21,7 +21,7 @@ Arclayer's Platform Console is a dense operations surface for the Instance Owner
 
 The Platform Console shares Arclayer's semantic visual tokens with the Product Application. It supports Light, Dark, and Follow system preferences only; Dark uses the true-black and neutral-charcoal hierarchy in `DESIGN.md`, while operational density comes from composition rather than a second theme, template palette, accent picker, gradient Dashboard, glow, or glass treatment.
 
-All surfaces follow `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `docs/spec/admin/frontend/product-ui-toolchain.md`. The preferred composition is:
+All surfaces follow `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `docs/spec/app/frontend/product-ui-toolchain.md`. The preferred composition is:
 
 - one Arclayer-owned Platform Experience Kit built from canonical `@arclayer/ui`; reviewed `satnaing/shadcn-admin` shell patterns remain source-donor evidence only;
 - `DefaultPage` for page framing and Header slots;
@@ -266,12 +266,12 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 
 - Schema changes require forward migrations, backfill strategy, indexes for every supported list/filter/order path, and a rollback or repair procedure.
 - Create `apps/platform` as the only Platform Console frontend package and build artifact. It owns its Vite entry point, TanStack Router tree, Platform Session bootstrap, Platform API client boundary, i18n bootstrap, shared route-skeleton composition, tests, and deployment output.
-- Keep `apps/admin` as the Product Application. Existing `/system/**` routes, Platform navigation, Platform API clients, Platform-only stores, pages, tests, translations, and route skeletons move to `apps/platform` or are deleted according to their owning domain contract; `apps/admin` retains no re-export, redirect, embedded Console, or compatibility facade.
+- Keep `apps/app` as the Product Application. Existing `/system/**` routes, Platform navigation, Platform API clients, Platform-only stores, pages, tests, translations, and route skeletons move to `apps/platform` or are deleted according to their owning domain contract; `apps/app` retains no re-export, redirect, embedded Console, or compatibility facade.
 - The target `apps/platform` route tree uses the exact route inventory in the administration experience redesign. It does not reproduce `/system/**`, add `/platform/**`, or retain old frontend aliases and redirects.
 - Application packages do not import source from one another. Reusable visual primitives and framework-neutral contracts move to their existing shared package owner only when both applications genuinely consume them.
-- Add root `platform`, `platform:build`, and `platform:check` scripts for `@arclayer/platform`; the cross-app `check` gate includes `@arclayer/admin`, `@arclayer/platform`, and `@arclayer/api` without changing the meaning of the existing Product Application `admin:*` scripts.
-- Build and verify `apps/platform` outside the official production entry until every retained Platform route and capability satisfies the frontend cutover gate. Production never exposes a route-by-route split, nested legacy page, cross-Shell handoff, or feature flag that switches individual domains back to `apps/admin`.
-- The cutover release enables the Platform Host and its Platform Session entry while deleting all Platform routes, navigation, pages, API clients, state, translations, route skeletons, and build references from `apps/admin` in the same boundary. The Product Application account menu shows a localized typed cross-host Platform target only from a minimal Product API eligibility projection; the link transfers no Product Session, token, Workspace context, or Platform authority, and the Console Header always exposes a normal typed return-to-product link.
+- Root scripts use `app`, `app:build`, and `app:check` for `@arclayer/app`, plus the corresponding `platform:*` and API commands; `admin:*` is not a Product Application alias.
+- Build and verify `apps/platform` outside the official production entry until every retained Platform route and capability satisfies the frontend cutover gate. Production never exposes a route-by-route split, nested legacy page, cross-Shell handoff, or feature flag that switches individual domains back to `apps/app`.
+- The cutover release enables the Platform Host and its Platform Session entry while deleting all Platform routes, navigation, pages, API clients, state, translations, route skeletons, and build references from `apps/app` in the same boundary. The Product Application account menu shows a localized typed cross-host Platform target only from a minimal Product API eligibility projection; the link transfers no Product Session, token, Workspace context, or Platform authority, and the Console Header always exposes a normal typed return-to-product link.
 - Preparatory database and Platform API changes may land earlier only as an explicit forward-compatible migration. During the rehearsed rollback window, the previous complete application/backend artifacts remain deployable; this does not authorize a user-visible legacy route or a second mutation authority. After cutover acceptance, the declared retirement migration removes superseded API/schema contracts rather than preserving them indefinitely.
 - Frontend rollback redeploys the previous complete release boundary. It does not toggle individual pages, embed old components in `apps/platform`, or restore a compatibility facade inside the new build.
 - Old feedback categories remain readable only through a documented legacy projection; they are not presented as new submission options.
@@ -317,7 +317,7 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 ### Wave 0: contracts and foundations
 
 1. Resolve canonical spec conflicts and approve this contract set.
-2. Create the independent `apps/platform` / `@arclayer/platform` frontend and its build, test, i18n, routing, Platform Session, Platform API, shared route-skeleton, and deployment boundaries while preserving `apps/admin` / `@arclayer/admin` as the Product Application.
+2. Create the independent `apps/platform` / `@arclayer/platform` frontend and its build, test, i18n, routing, Platform Session, Platform API, shared route-skeleton, and deployment boundaries while preserving `apps/app` / `@arclayer/app` as the Product Application.
 3. Add required migrations, projections, indexes, error codes, and durable-job contracts.
 4. Define the Platform Capability Catalog, Platform Domain inventory, trusted frontend module registry, capability-management surface, and permission-aware navigation contract.
 5. Define the revisioned three-stage Workspace Capability Rollout contract, migration inventory, server enforcement boundaries, impact preview, Audit evidence, and its separation from eligibility, Entitlement, permission, readiness, and health.
@@ -369,7 +369,7 @@ Backend, migration, and domain implementation commits may land through the waves
 5. Identity-provider/local-MFA separation, WebAuthn-preferred/TOTP-compatible Platform enrollment and challenge, server-catalog phishing-resistant critical actions, Owner and privileged-role WebAuthn readiness, multiple-method and last-method behavior, independent-device Session inventory, inactivity/absolute expiry, refresh-boundary and precise-revocation behavior, one-time-code and authorized-reset Operator MFA recovery, action-bound step-up, CSRF/CORS/cookie boundaries, direct Platform API denial, capability-filtered navigation, command search, eligibility-gated Product entry, authority-free typed cross-host links, return-to-product navigation, configured out-of-Console Ownership Recovery rehearsal, Overview, and Needs attention pass end-to-end acceptance;
 6. Support Access default-denial, Workspace Owner grant/revoke/history, named-Operator/case/scope/expiry binding, separate Platform permission, read-only projection, secret exclusion, revocation races, and no-impersonation behavior pass direct API and cross-application browser acceptance;
 7. the full old-to-new route/component/copy/data migration matrix contains no unresolved Platform surface, placeholder page, decorative KPI replacement, embedded legacy page, duplicate mutation authority, or undeclared retirement item;
-8. `apps/admin` and `apps/platform` builds prove there is no app-to-app source import, no Platform bundle/module in the Product Application artifact, and no Product page in the Console artifact;
+8. `apps/app` and `apps/platform` builds prove there is no app-to-app source import, no Platform bundle/module in the Product Application artifact, and no Product page in the Console artifact;
 9. desktop, narrow, keyboard-only, reduced-motion, Light, Dark, both-locale, empty, populated, partial, permission-constrained, and failed-network browser evidence passes for the complete Console;
 10. the previous complete release rollback is rehearsed against the forward-compatible database/API state, and the superseded API/schema retirement migration is declared before production enablement.
 
@@ -383,7 +383,7 @@ Use staged verification rather than repeatedly running the full monorepo gate:
 
 1. Targeted unit/component tests while editing a domain.
 2. Targeted API integration tests start with a 60-second diagnostic timeout for narrow backend nodes; extend it when database, integration, or other inherently slow tests need time to expose a real result.
-3. `pnpm admin:check` for Admin-only waves, `pnpm api:check` for API-only waves, and `pnpm check` only at cross-app release boundaries.
+3. `pnpm app:check` for Product Application-only waves, `pnpm api:check` for API-only waves, and `pnpm check` only at cross-app release boundaries.
 4. `pnpm code-review-engine --scope changed --base HEAD --format human` at wave boundaries.
 5. GitNexus impact before modifying symbols, and `detect_changes()` before every commit. If the service is unavailable, record the failure and do not claim graph verification.
 6. Browser acceptance at desktop, narrow viewport, keyboard-only, reduced motion, dark theme, empty state, populated state, and failed-network state.
@@ -393,8 +393,8 @@ Use staged verification rather than repeatedly running the full monorepo gate:
 A requirement is done only when:
 
 - the domain and API behavior in the owning spec is implemented without page-local duplicate contracts;
-- `apps/platform` is the only Platform Console frontend and `apps/admin` contains no Platform route, navigation, page, Platform API client, or compatibility export; neither application imports source from the other;
-- the official Platform Host is enabled only after the complete frontend cutover gate passes, the same release removes every Platform UI surface from `apps/admin`, and rollback uses the previous complete artifacts rather than per-route flags or embedded legacy pages;
+- `apps/platform` is the only Platform Console frontend and `apps/app` contains no Platform route, navigation, page, Platform API client, or compatibility export; neither application imports source from the other;
+- the official Platform Host is enabled only after the complete frontend cutover gate passes, the same release removes every Platform UI surface from `apps/app`, and rollback uses the previous complete artifacts rather than per-route flags or embedded legacy pages;
 - the Platform Console frontend opens Overview at `/` and Needs attention at `/attention`, matches the canonical route inventory, contains no `/system` or `/platform` route prefix, and retains no old frontend aliases or redirects;
 - the Product Application exposes “Open Platform Console” only from the minimal eligibility projection, transfers no Product authority or Workspace context, and direct Platform Host/API tests prove identity, current operator status, MFA, Platform Session, and exact Platform Permission are independently enforced; the Console always retains a localized return-to-product link;
 - migrations and backfills succeed against a representative existing database;

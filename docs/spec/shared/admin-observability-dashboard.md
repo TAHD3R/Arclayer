@@ -1,6 +1,6 @@
 # Platform Monitoring & Audit and Cross-domain Attention Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
@@ -8,16 +8,7 @@ Experience authority: [Product and Platform administration experience redesign](
 
 This contract defines one Monitoring & Audit Platform Domain for raw request/error investigation, performance and usage trends, Activity trends, and immutable administrative Audit evidence. It also defines useful chart/table drill-down, the shared chart implementation, removal of redundant route families, and source projections consumed by Overview and Needs attention. The Platform root and cross-domain attention experience are owned by the administration experience redesign contract.
 
-It supersedes the hourly-only percentile and observability-overview UI statements in `feedback-observability.md`. Hourly aggregates remain useful for long-range trends, while persisted raw request records are the source for exact request investigation and true percentile computation inside their retention window.
-
-## 2. Current-state evidence
-
-- `/system/audit-log` already has ChromeTabs for request records, request analysis, and events.
-- raw request rows currently retain occurrence time, trace id, actor/workspace/project ids, route template, method, status, and duration; the current detail Dialog cannot explain an incident at PostHog/Cloudflare depth.
-- request analytics already computes true P95/P99 from raw rows using PostgreSQL percentile functions, but the analysis tab can return an internal-server error and needs database/integration diagnosis.
-- event rows expose actor/subject summaries plus raw entity and trace identifiers, but target and correlation columns are not operator-readable.
-- the current overview uses page-local metric widgets and drill-downs that repeat facts without identifying a concrete operator decision or resolution action.
-- `/system/observability/overview` duplicates focused observability pages, while `/system/overview` is still mostly a summary of other pages.
+Hourly aggregates remain useful for long-range trends, while persisted raw request records are the source for exact request investigation and true percentile computation inside their retention window.
 
 ## 3. Non-goals
 

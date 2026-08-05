@@ -1,6 +1,6 @@
 # Platform Identity & Access Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
@@ -9,13 +9,6 @@ Experience authority: [Product and Platform administration experience redesign](
 This contract defines one Identity & Access Platform Domain for deployment-wide sign-in policy, identity providers, Platform team authority, Platform Roles and Permissions, mandatory multi-factor authentication, and Platform Session operations.
 
 “Identity & Access” is the canonical architecture term. The primary product label is localized as “访问与安全” / “Access & Security”; pages and actions use task language rather than repeating the domain name or exposing internal authorization vocabulary.
-
-## 2. Current-state evidence
-
-- `/system/settings/access` currently groups OAuth automatic provisioning with public-registration and email-verification switches in a generic settings page.
-- `/system/settings/oauth` currently renders plugin-discovered OAuth Provider credentials and enablement as another generic settings page.
-- the User directory already contains individual password, session, 2FA, OAuth-link, restriction, and account actions as part of cross-tenant investigation.
-- the accepted Platform architecture requires one Instance Owner, delegated Platform Operators, explicit Platform Roles and Permissions, mandatory MFA, and independently revocable Platform Sessions, but the current settings registry has no complete product surface for these responsibilities.
 
 ## 3. Information architecture
 

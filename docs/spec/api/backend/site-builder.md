@@ -11,7 +11,7 @@ Read this spec before changing:
 - `apps/api/src/modules/projects/builder/**`.
 - page content, route, hierarchy, presentation, or component-binding behavior used by the Builder.
 - Site Revision, ChangeSet, Builder generation, preview artifact, or authoring-mode persistence.
-- `/projects/{projectId}/builder/**` Admin API routes.
+- `/projects/{projectId}/builder/**` Product API routes.
 - source-to-Builder or Builder-to-source migration behavior.
 - release/build activation used by Builder-managed sites.
 
@@ -289,7 +289,7 @@ Restricted Recovery Mode keeps authorized reads of existing Builder projections,
 
 Preview/thumbnail capture uses a short-lived audience-limited preview credential, fixed capture profile, and explicit renderer readiness. It does not reuse an operator browser session or expose editor/private data.
 
-## 12. Admin API surface
+## 12. Product API surface
 
 Module-local paths are mounted under the global Admin `/api/v1` prefix by `core/routes.py`.
 
@@ -398,255 +398,6 @@ During isolated backend implementation, run the closest static check and focused
 test. Run `pnpm api:check` at a coherent backend milestone or before handoff;
 reserve `pnpm check` for cross-app integration or final delivery. Review-sensitive
 changes also run the canonical changed-scope code review engine.
-
-## 17. Wave 2A implementation evidence (2026-07-20)
-
-Wave 2A implements the backend foundation of Wave 2. It does not switch the Admin `/editor` route and does not claim the Sitemap canvas, ChangeSet, generation, renderer, or publish pipeline as complete.
-
-Implemented contracts:
-
-- `ProjectAuthoringMode` is explicitly `builder_managed` or `source_managed`. New Project creation requires the mode in both the HTTP schema and Workspace AI create-project Tool contract.
-- existing Projects migrate with `authoring_mode = null`, `authoring_state = migration_required`, and `authoring_revision = 1`; no service infers a mode from current content or source state.
-- `ContentStructureRevisionRecord`, `SiteRevisionManifestRecord`, `SiteRevisionStatusRecord`, and `BuilderInitializationCommandRecord` persist in the tenant schema. The Site Revision manifest contains immutable authoring inputs only; mutable readiness remains in the one-to-one status projection.
-- `POST /api/v1/projects/{projectId}/builder/initializations` requires `Idempotency-Key`, the exact Project authoring revision, Site, preview Environment, Design System assignment revision, Design System version/checksum, and explicit provenance. Agent provenance additionally requires `agentRunId`; non-Agent provenance rejects it.
-- initialization locks the Project and exact Design System assignment, verifies the assignment/version/validation checksums, snapshots canonical route/hierarchy/content state, pins exact Content Versions and presentation/binding hashes, and creates the root structure revision, manifest, status, Activity event, and idempotency result in one transaction.
-- exact replay returns the first result snapshot. Reusing the key with a different request fails with `BUILDER_IDEMPOTENCY_CONFLICT`. A later Design System assignment does not mutate the retained root manifest or status.
-- `GET /api/v1/projects/{projectId}/builder` composes authoring authority, primary Site, default preview Environment, retained current manifest/status, initialization requirement, and stable blocker codes without writing or auto-initializing data.
-- the root status is intentionally `draft`. An empty Site reports `BUILDER_SITE_EMPTY`; the current foundation Design System reports `DESIGN_SYSTEM_RENDERER_NOT_READY` and `DESIGN_SYSTEM_PUBLICATION_NOT_READY` until real renderer/publication evidence exists.
-- public migration `0044_auto_20260720_2323` adds the Project authority fields and four Builder tables after `0043`; tenant-control migration v17 clones the four tables for existing/new tenant schemas. The generated OpenAPI client exposes the required authoring fields and both Builder endpoints.
-
-Implementation boundaries remain explicit:
-
-- typed ChangeSet preview/apply, stale-base conflict, approval checkpoints, and partial saga state are not implemented.
-- Builder generation Jobs, Agent Builder context, and `builderContext=true` remain gated.
-- Sitemap full-screen editing, `/editor` hard cut, undo/redo, Wireframe, Style Guide, and Design are not implemented by Wave 2A.
-- preview renderer readiness, preview artifacts, candidate build, publication readiness, and release activation remain gated; no synthetic Site Revision or mock-ready projection exists.
-
-Verification evidence:
-
-- Builder pure contract tests: 11 passed, including deterministic structure/locales, exact Content Version selection, stable presentation/binding hashes, manifest hash recomputation, provenance validation, and authoring-mode refusal.
-- Project authoring/Workspace AI/Builder targeted unit group: 81 passed.
-- Project Activity integration: 2 passed.
-- Workspace Design System + immutable Agent Run context + Builder HTTP lifecycle: 1 passed, including exact replay, conflicting replay, and assignment-change isolation.
-- public clean migration to `0044`: passed; tenant schema v17/table readiness: passed.
-- OpenAPI package typecheck and Admin typecheck: passed after explicit legacy Project fixtures were updated.
-- `pnpm api:check`: 2098 passed, 435 skipped, 26 warnings; 4/4 tasks passed.
-- `pnpm admin:check`: 1413 passed; 4/4 tasks passed.
-- `pnpm check`: 8/8 tasks passed.
-- changed-scope code review report: `status=ok`, zero enforcement-blocking findings, 45 report-only prototype findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings). The report is not described as zero findings.
-- GitNexus reported high aggregate risk for the large working tree (158 indexed changed files and 14 affected processes), but its index does not cover the many untracked Wave files; live code, generated contracts, database tests, HTTP tests, and full quality gates are the authoritative evidence.
-
-## 18. Wave 2B ChangeSet preview evidence (2026-07-21)
-
-This historical slice records the persisted, typed Sitemap preview checkpoint before apply was activated. Preview deliberately performs no target-domain write; the later apply state is recorded in section 19.
-
-Implemented contracts:
-
-- `BuilderChangeSetRecord` persists the exact workspace/project/Site/Environment/base Site Revision, normalized typed operations, canonical operation hash, affected targets, issues, permission intersection, approval class, expiry, provenance, and apply lifecycle placeholders. `BuilderChangeSetCommandRecord` persists exact preview/apply idempotency outcomes under `(project, commandKind, Idempotency-Key)`.
-- the public preview request is a closed discriminated union for `page.create`, `page.rename`, `page.move`, `page.reorder`, `page.delete`, `route.set`, and `route.disable`. Unknown fields and operations are rejected. Public provenance is limited to `human | agent`; import/system provenance is reserved for future trusted internal command entry points.
-- `POST /api/v1/projects/{projectId}/builder/change-sets/preview` requires `project:content:site-builder:write` and `Idempotency-Key`. The request must carry the exact latest `baseRevisionId` and manifest ETag; there is no default revision, rebase, or Site/Environment inference outside the canonical project runtime and default preview Environment.
-- preview locks the Project/current Site Revision, verifies immutable manifest and Content Structure hashes, validates route normalization/uniqueness, dynamic-route source contracts, page/version targets, hierarchy cycles, delete conflicts, and operation ordering, then writes only the ChangeSet, command snapshot, and `project.builder.change_set.previewed` Activity in one transaction.
-- affected Content Model targets use an explicit `targetKey`; persisted page/route/hierarchy targets use UUIDs and proposed page targets use `clientTargetId`. `page.delete` is classified `destructive` with visible impact evidence; Agent proposals are at least `review`.
-- Agent provenance must resolve to a real Agent Run owned by the same actor in the same workspace/project and bound to the exact base Site Revision. Since Agent Builder context remains gated in this slice, an older unbound run fails with `AGENT_BUILDER_CONTEXT_REQUIRED`; the service does not forge or infer a binding.
-- the preview token is purpose-bound to `builder_changeset_apply` and signs actor/workspace/project/Site/Environment/base revision/base ETag/operation hash/UTC expiry. Only its SHA-256 hash is persisted. The idempotency command snapshot excludes the raw token; exact replay deterministically rebuilds the same token from retained claims.
-- reusing an idempotency key with different actor/input fails with `CHANGE_SET_IDEMPOTENCY_CONFLICT`. A stale manifest ETag fails with `SITE_REVISION_STALE`. Invalid/tampered/wrong-purpose/expired token contracts fail explicitly and never degrade to an unsigned preview.
-- public migration `0045_auto_20260721_0009` adds the two ChangeSet tables after `0044`; tenant-control migration v18 clones them into existing/new tenant schemas. Generated OpenAPI types expose the closed operation union and preview endpoint.
-
-Self-review boundaries at this preview-only checkpoint were:
-
-- `POST /builder/change-sets/{changeSetId}/apply` is not implemented. No canonical Content item/version, route, hierarchy, Content Structure Revision, Site Revision, status, release, or artifact is mutated by preview.
-- approval checkpoints are represented by `approvalClass` only; apply-time approval verification, fresh authorization/entitlement/Tool-grant intersection, atomic canonical writes, next-revision construction, undo evidence, and partial-saga state remain required.
-- Builder generation Jobs and Agent Builder context remain gated; `builderContext=false` remains truthful.
-- the full-screen Sitemap scene and old `/editor` hard cut remain gated until apply and generation are complete.
-
-Verification evidence:
-
-- Builder ChangeSet/token/persistence plus existing snapshot unit group: 26 passed. Coverage includes duplicate IDs/deletes, provenance identity, move/reorder, cycles, missing/stale targets, route conflicts, dynamic-route source requirements, destructive approval, repeated disable visibility, timezone-aware expiry, token round-trip/tampering/wrong audience/expiry, token hashing, raw-token exclusion, and deterministic replay.
-- Workspace Design System + Agent Run + Builder initialization + ChangeSet HTTP lifecycle: passed with real tenant/RBAC context, including unbound Agent refusal, normalized preview, persisted tenant records, exact replay, idempotency conflict, stale ETag, zero target revision mutation, and transactional Activity evidence.
-- public clean migration through `0045`: passed; tenant schema v18/table readiness: passed.
-- OpenAPI generation, OpenAPI typecheck, API typecheck, and Admin typecheck: passed. API typecheck retains only the three previously known test warnings.
-- `pnpm api:check`: 2113 passed, 435 skipped, 26 warnings; 4/4 tasks passed.
-- `pnpm admin:check`: 1413 passed; 4/4 tasks passed.
-- `pnpm check`: 8/8 tasks passed.
-- changed-scope code review report: `status=ok`, zero enforcement-blocking findings, 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings). No finding points at the new Builder ChangeSet preview files, and the report is not represented as zero findings.
-
-## 19. Wave 2B Sitemap ChangeSet apply evidence (2026-07-21)
-
-This slice completes the first canonical Sitemap apply path over the typed preview protocol. It does not broaden apply to Wireframe, Style Guide, Design, assets, release activation, or arbitrary cross-domain operations.
-
-Implemented contracts:
-
-- `POST /api/v1/projects/{projectId}/builder/change-sets/{changeSetId}/apply` requires `Idempotency-Key`, `project:content:site-builder:write`, `project:content:items:write`, the raw purpose-bound preview token, and the exact Builder approval checkpoint for `review` or `destructive` changes.
-- apply locks the Project, ChangeSet, latest Site Revision, base status, and approval checkpoint; it verifies the token signature/hash and exact actor/workspace/project/Site/Environment/base revision/base ETag/operation hash/expiry binding. It re-hashes persisted operations and re-derives current Content structure, selected Content Versions, presentations, and component bindings. Any drift fails with `SITE_REVISION_STALE`; there is no implicit rebase.
-- human approval is a typed `BuilderChangeSetApprovalRecord` bound one-to-one to the immutable ChangeSet, requester, operation hash, approval class, and expiry. The current atomic endpoint performs `pending → consumed` while writing `approvedBy`, `approvedAt`, and `consumedAt` in the apply transaction. `approved` is reserved for a future separately persisted approval action and is not emitted by this atomic path.
-- Agent-origin apply additionally requires a real actor-owned Run bound to the exact base Site Revision, `build` execution mode, a pinned lead Agent version, and an exact Tool grant. Plan mode and absent grants fail explicitly; the service does not infer or forge Builder context.
-- `page.create`, `page.rename`, `page.move`, `page.reorder`, `page.delete`, `route.set`, and `route.disable` execute in operation order. Content creation/rename/deletion go through caller-transaction-aware canonical Content commands; route and hierarchy mutations use canonical routing helpers rather than Builder-owned ORM writes.
-- Content lifecycle `before_*` handlers and required Activity writes execute inside the caller-owned tenant transaction. `after_*` lifecycle/runtime effects are retained as typed hooks and dispatched only after the outer transaction commits; a rollback cannot publish a false success event.
-- apply creates the next immutable Content Structure Revision and Site Revision, supersedes the base status, creates a new draft status, pins exact Content Versions and presentation/binding hashes, updates the ChangeSet, consumes approval, writes `project.builder.change_set.applied`, and stores the APPLY command snapshot in the same transaction. Empty-site readiness is re-derived in both directions as pages are created or the last page is deleted.
-- exact APPLY replay returns the committed snapshot without rewriting domains or Activity. Reusing a different key after application returns `CHANGE_SET_ALREADY_APPLIED`; reusing the same key with a different fingerprint returns `CHANGE_SET_IDEMPOTENCY_CONFLICT`. The raw preview token is never stored in the ChangeSet, apply result, Activity, or command snapshot.
-- public migration `0046_auto_20260721_0053` adds `builder_change_set_approvals` after `0045`; tenant-control migration v19 clones it into existing and new tenant schemas. Generated OpenAPI now includes preview approval output, apply input/output, and the apply SDK operation.
-
-Self-review boundaries remain explicit:
-
-- durable Builder generation Jobs and Agent Builder context are still gated; `builderContext=false` remains truthful and older unbound Agent Runs remain unusable for Builder apply.
-- the current endpoint covers tenant-atomic Sitemap operations only. Future Wireframe/Design/Asset/Connector operations must either participate in a proven common transaction or implement the durable saga contract from section 7.2; no partial-success fallback exists.
-- Builder entitlement enforcement remains part of the commercialization/entitlement wave. Current apply enforces the two project permissions and Agent Tool grant but does not claim a product-plan entitlement boundary that is not yet implemented.
-- undo evidence, full-screen Sitemap editing, `/editor` hard cut, renderer artifacts, candidate build, publication readiness, and release activation remain pending.
-
-Verification evidence:
-
-- the full tenant/RBAC Design System + Agent Run + Builder HTTP lifecycle passes with create/apply, exact replay, applied-key refusal, destructive approval requirement/consumption, delete/apply, revision `1 → 2 → 3`, status supersession, empty-site finding restoration, stale preview refusal, token non-persistence, and exact Activity ordering.
-- transaction/lifecycle, approval/token binding, Agent Build/Tool grant, live structure/version/presentation drift, and Content rename presentation-copy tests pass in focused unit suites.
-- public clean migration through `0046` and tenant schema v19 readiness pass; generated OpenAPI succeeds; API typecheck retains only the three previously known test warnings.
-
-## 20. Wave 2C durable Sitemap generation evidence (2026-07-21)
-
-This slice activates immutable Agent Builder context and durable Sitemap candidate generation over the ChangeSet preview/apply protocol. It does not activate the full-screen editor, automatically apply a candidate, or broaden generation to Wireframe, Style Guide, Design, assets, builds, or publication.
-
-Implemented contracts:
-
-- an Agent Run created with an exact `siteRevisionId` resolves and locks the latest Site Revision, status, Content Structure Revision, manifest, and matching Design System context. `ai_run_builder_snapshots` stores one immutable, hash-verified Builder context per Run, including exact workspace/project/Site/Environment/revision identities, manifest/status/structure hashes, the typed manifest and structure snapshot, context hash, and serialized byte size. Revision drift, missing state, and Design System mismatch fail explicitly; no current-state fallback is reconstructed later.
-- the Agent runtime loads that retained snapshot into the Run execution prompt as untrusted project data. Workspace Design System capabilities now truthfully expose `builderContext=true`; older Runs without the snapshot remain invalid for Builder generation.
-- `POST /api/v1/projects/{projectId}/builder/generations` requires `project:content:site-builder:write`, `Idempotency-Key`, the exact latest base revision/ETag, a creator-owned revision-bound Agent Run, and the pinned Agent version's `builder.sitemap.generate` Tool grant. The deterministic generation identity is a public-ID-compatible UUID v4 derived from workspace/project/idempotency key; exact replay returns the first projection and a different request fingerprint fails with `BUILDER_GENERATION_IDEMPOTENCY_CONFLICT`.
-- `BuilderGenerationRecord` persists the exact intent, owning Job, base Site/Environment/revision/manifest/ETag, actor/Run/Tool provenance, selected pages, Knowledge references, candidate count, structured failures, and terminal state. Generation creation, the public Background Job, dispatch outbox, tenant record, and `project.builder.generation.created` Activity commit atomically before publication.
-- `builder.sitemap.generate` v1 runs on `agent-io` as an owner-only, actor-revalidated Project Job requiring `project:content:site-builder:write`. Its generic Project target contains workspace/project/runtime/environment but deliberately leaves generic `site_id` null; exact Site identity remains bound by the generation record, base revision, manifest hash, and typed Job input. Worker authorization re-resolves the exact Project and rejects workspace drift or revoked Project permission before a new effect.
-- the Job has `queued → preparing → generating → previewing → finalizing` progress, every phase is cooperatively cancellable, `retryClass=none`, and `maxAttempts=1`. Model calls are not automatically retried because duplicate non-deterministic generation is not assumed safe. A queued cancel records only `cancelRequestedAt`; `cancelled` and `cancellationAcknowledgedAt` are projected only after the worker observes the request and stops effects.
-- each model request forces exactly one `submit_builder_sitemap_candidate` function Tool call whose parameters are the Pydantic JSON Schema for a non-empty closed `BuilderSitemapCandidateV1`. The immutable Builder snapshot is explicitly treated as untrusted data. Provider failure stops later candidates with `BUILDER_GENERATION_PROVIDER_FAILED`; malformed or unsupported Tool output records `BUILDER_GENERATION_OUTPUT_INVALID` and may continue to the next requested candidate.
-- each valid candidate is server-validated through the canonical Agent-origin ChangeSet preview path with Tool provenance `builder.sitemap.apply`. Candidates are durable typed ChangeSets, never raw model payloads and never direct Site mutations. All candidates succeeding yields `succeeded`; mixed success/failure yields `partial`; zero candidates yields an explicit failed Job. Replay skips already persisted candidate indexes, preserves completed candidates across cancellation, and returns an existing terminal outcome without repeating model or preview effects.
-- every generation state write and candidate/failure/terminal commit runs under the active Job fence. Lease or generation loss prevents the stale worker from writing. The typed Job result must bind the exact generation ID and base Site Revision. Public generation projections rebuild authorized ChangeSet previews from retained command evidence and never persist raw preview tokens.
-- public migration `0047_auto_20260721_0158` adds `ai_run_builder_snapshots` and `builder_generations` after `0046`; tenant-control migration v20 clones both tables into existing and new tenant schemas. Generated OpenAPI exposes the create/get/cancel requests, projections, SDK operations, and closed generation status union.
-
-Implementation boundaries remain explicit:
-
-- generation produces reviewable Sitemap ChangeSet candidates only. Candidate selection and apply remain explicit human/Agent commands with the existing approval, Tool-grant, stale-base, and token contracts; there is no auto-apply path.
-- undo/redo evidence, the full-screen Sitemap scene, and the `/editor` hard cut remain pending.
-- Wireframe, Style Guide, Design, renderer artifacts, project/site thumbnails, candidate builds, publication readiness, release activation, and commercialization entitlement enforcement remain in later waves.
-
-Verification evidence:
-
-- 106 focused Job actor/boundary/registry/composition and Builder generation contract/provider/handler tests pass, including exact Tool schema/call parsing, provider/output failures, partial/all-failed outcomes, replay, cancellation, reconciliation, and fenced lease-loss behavior.
-- the real tenant/RBAC Design System + Agent Run + Builder lifecycle integration passes generation create, exact replay, conflicting replay, read, cooperative cancel request, persisted tenant/public/outbox records, token non-persistence, Activity ordering, and the earlier ChangeSet apply lifecycle.
-- public clean migration through `0047` and tenant schema v20/table readiness pass.
-- generated OpenAPI succeeds; API typecheck retains only the three previously known test warnings.
-- `pnpm api:check`: 2169 passed, 435 skipped, 26 warnings; 4/4 tasks passed.
-- `pnpm admin:check`: 1413 passed; 4/4 tasks passed.
-- `pnpm check`: 8/8 tasks passed.
-- changed-scope review reports `status=ok`, zero enforcement-blocking findings, and 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings); it is not represented as zero findings.
-
-## 21. Wave 2D immutable revision reader and Sitemap editor evidence (2026-07-21)
-
-This slice activates the first full-screen Sitemap authoring client over the Wave 2 aggregate. It does not claim Wireframe, Style Guide, Design, undo/redo, renderer preview, or publication activation.
-
-Backend read contract:
-
-- `GET /api/v1/projects/{projectId}/builder/revisions/{revisionId}` requires `project:site:read` and returns one immutable `BuilderRevisionOut`, not current mutable Content rows.
-- the reader resolves the tenant/project/workspace-owned Site Revision, revalidates the manifest hash, loads the exact referenced Content Structure Revision in the same read transaction, revalidates its snapshot hash and Site/Environment identity, and requires the retained readiness status projection.
-- page summaries are projected by batching the Content Versions referenced by the manifest pins. Every page must have an exact matching content-version ID, item ID, version number, and retained title; missing or mismatched evidence fails with `BUILDER_CONTENT_VERSION_REQUIRED` instead of falling back to the current item title.
-- each page summary exposes only Sitemap needs: exact item/content-version identity, version number, title/summary, parent/order, and retained locale routes. It does not embed mutable editor state or full stage payloads.
-- generated OpenAPI now exposes `BuilderRevisionOut`, `BuilderRevisionPageOut`, and `domainProjectsGetProjectBuilderRevision`.
-
-Client command and reconciliation contract:
-
-- `/projects/{projectId}/editor` reads the composed Builder projection and then the exact immutable revision projection. It does not rebuild a graph from the current Content library or old source-manifest APIs.
-- human page creation is a two-step typed command: the dialog submits `page.create` to ChangeSet preview with exact base revision/ETag and only offers apply after a real preview. Apply carries the signed preview token and approval evidence when required; there is no local page insertion before the new revision is returned.
-- AI generation selects only available Build-capable Agents with the exact `builder.sitemap.generate` Tool grant. The client creates a project Thread, creates an exact `siteRevisionId`-bound Agent Run, then creates the durable generation using that Run ID and base revision/ETag. It polls the persisted Job, exposes partial/failure/cancellation state, and never auto-applies a candidate.
-- candidate apply carries the exact retained ChangeSet ID, raw authorized preview token, and typed approval decision. Success invalidates the Builder aggregate and reconciles from the next server revision.
-
-Verification evidence:
-
-- immutable revision projection unit tests: 3 passed, covering exact pinned title/route projection, cross-workspace not-found behavior, and missing pinned-version failure.
-- the real tenant/RBAC Builder integration passes initialization plus revision GET, revision-bound Agent Run, durable generation, preview/apply, persistence, and Activity assertions.
-- `pnpm api:check`: 2172 passed, 435 skipped, 26 warnings; 4/4 tasks passed. API typecheck retains only the three previously known test warnings.
-- `pnpm check`: 8/8 cross-app tasks passed.
-- changed-scope review reports `status=ok`, zero enforcement-blocking findings, and the same 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings); no new revision-reader or Editor file is reported.
-- the real browser confirmed the dedicated full-screen scene and productized API error boundary, but every Admin API request returned gateway-level 502 during visual verification. Successful real-data canvas rendering is therefore not recorded as browser-verified by this slice.
-
-Remaining backend boundaries are unchanged: exact undo/redo commands, stage-specific Wireframe/Style/Design projections, preview artifacts/builds, publication readiness/activation, and commercial entitlement enforcement remain in later waves.
-
-## 22. Wave 3A immutable Wireframe read contract evidence (2026-07-21)
-
-This slice activates the first Wireframe projection without claiming Wireframe mutation, AI generation, rendering, or publishability.
-
-Backend contract:
-
-- `ContentPresentationKind.WIREFRAME` is a first-class value for page and reusable-section presentation policies. Generated migration `0048_auto_20260721_0349` updates the enum field contract; OpenAPI generation exports the new presentation value and Wireframe schemas.
-- `WireframeDocumentV1` is strict and immutable at the API boundary. It pins the exact page item, Design System version, and component-catalog version. Each ordered section has stable section/intent/component/variant identity, typed field/literal/missing content bindings, bounded responsive rules, interaction rules, Asset references, and uniqueness validation for section IDs, intent IDs, slot keys, and breakpoints.
-- the immutable revision reader now loads Presentation Documents and Component Bindings for the exact manifest-pinned Content Version IDs. It recomputes every page presentation/binding hash and the aggregate presentation hash before returning stage data. Drift fails with `BUILDER_PRESENTATION_SET_INVALID`; malformed, duplicated, wrong-page, or wrong-Design-System Wireframe evidence fails with `BUILDER_WIREFRAME_INVALID`.
-- a missing Wireframe remains a valid explicit `null` projection. The reader does not substitute `VISUAL_BLUEPRINT`, current mutable Content, or a generated placeholder.
-
-Focused evidence:
-
-- 8 focused backend tests pass, including exact Wireframe projection, cross-workspace isolation, missing pinned Content evidence, wrong Design System pin, structurally invalid duplicate sections, presentation hash drift, and updated official page/reusable-section policies.
-- API typecheck returns only the three pre-existing test diagnostics; OpenAPI typecheck passes and generated clients expose `BuilderRevisionPageOut.wireframe`, `WireframeDocumentV1`, and the typed nested contracts.
-- final cross-app `pnpm check` passes all 8 Turbo tasks from cache misses: API has 2175 passed, 435 integration-disabled skips, and 26 existing warnings; Admin has 317 files and 1410 tests passed.
-
-Still gated: typed Wireframe ChangeSet operations, canonical Content Version creation on composition changes, Agent Wireframe generation, registered visitor component-catalog validation, preview renderer artifacts, Style Guide writes, and Design writes.
-
-## 23. Wave 3B typed Wireframe ChangeSet and immutable write evidence (2026-07-21)
-
-This slice closes the first Wireframe write loop without turning browser state or arbitrary model JSON into composition authority.
-
-Command contract:
-
-- `BuilderChangeSetPreviewRequest.operations` is now one closed discriminated union spanning Sitemap and Wireframe families. Wireframe v1 supports explicit initialization, section add/duplicate/remove/reorder, component and variant replacement, binding set/clear, responsive rule set/clear, and interaction-set replacement. Opaque JSON Patch and whole-document replacement remain forbidden.
-- one ChangeSet cannot mix Sitemap and Wireframe families. This is a correctness boundary: Sitemap mutations may change Content Version identity while Wireframe operations are pinned to the same base version. Cross-family orchestration requires a later explicit saga/aggregate command; it is not silently sequenced or rebased.
-- preview loads the exact manifest-pinned Content Versions, Presentation Documents, and Component Bindings, revalidates per-page and aggregate hashes, applies typed operations in request order, and returns `wireframeCandidates`. Preview performs no target-domain write.
-- section removal is classified as destructive and creates a bound approval checkpoint. Agent-origin Wireframe proposals remain review-class unless a destructive operation raises the class. Stable localized conflicts expose missing Wireframe, duplicate initialization, invalid index, missing section, invalid binding, stale revision, and invalid presentation evidence.
-
-Apply and persistence:
-
-- Apply revalidates the signed preview token, exact latest Site Revision, live structure/presentation inputs, approval, actor, execution mode, Agent Tool grant, and operations hash under the existing transaction boundary.
-- all operations targeting one page are folded into one server candidate and one `ProjectContentWireframeTransactionCommand.replace_wireframe` call. The command locks the exact item/version pin, creates one new immutable Content Version, preserves the full field snapshot, Presentation set, SEO projection, and exact Component Binding sort order, replaces only `WIREFRAME`, writes Activity, and returns an after-commit effect.
-- the same tenant transaction creates the next Content Structure Revision snapshot, immutable Site Revision manifest, page-version/presentation hashes, status transition, approval consumption, Activity, and idempotent apply result. Existing Content Versions are never edited in place and stale input never auto-rebases.
-- Sitemap and Wireframe commands remain separate injected canonical collaborators. Builder owns orchestration, not direct Content ORM mutation.
-
-Focused evidence currently passes 58 Builder/Content tests covering the full typed operation fold, initialization, missing/stale targets, destructive approval, one-version-per-page apply, exact Presentation/Binding copy, preview/apply persistence, drift rejection, and immutable revision projection. API typecheck has only the three pre-existing test diagnostics. Regenerated OpenAPI and client typecheck expose the full request union, output union, and server Wireframe candidates.
-
-Final cross-app verification runs from cache misses and passes all 8 Turbo tasks: API has 2183 passed, 435 integration-disabled skips, and 26 existing warnings; Admin has 317 files and 1411 tests passed. Changed-scope review is `status=ok` with zero enforcement-blocking findings and the existing 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings); no new Wireframe ChangeSet/transaction/editor file is reported. `git diff --check` passes.
-
-Still gated: registered component-catalog compatibility and required-slot validation, global-section dependency/cycle analysis, Agent Wireframe generation Jobs and Tool grants, multi-family aggregate sagas, preview renderer artifacts, server undo/redo, Style Guide writes, and Design writes.
-
-## 24. Wave 3C registered component catalog and atomic configuration evidence (2026-07-21)
-
-This slice closes the registered-component compatibility boundary without claiming a visitor renderer, compiler artifact, or publication readiness.
-
-Catalog authority:
-
-- `arclayer-wireframe-v1` is an immutable packaged JSON manifest with checksum `sha256:4e0ac533318237a2f30d526450e9a802af16712e1039836e2149b42bbacd93e2`. It declares five official components, localized product metadata, variants, slots/value kinds/binding kinds, responsive limits, interaction pairs, style slots, and renderer/compiler identity.
-- one strict schema plus injectable `ComponentCatalogResolver` is shared by Builder and Design Systems. Browsers, generators, validators, and future renderers do not maintain independent component dictionaries.
-- `GET /api/v1/projects/{projectId}/builder/component-catalog` resolves the exact Site Revision, exact Design System version/checksum, and exact registered catalog. Missing, mismatched, or incompatible evidence fails explicitly.
-
-Preview/apply compatibility:
-
-- Wireframe Preview resolves the exact catalog pinned by the validated Design System context and turns unknown component/variant/slot, missing required slot, unsupported binding kind, invalid literal type, unsupported responsive rule, and unsupported interaction into stable blocker findings.
-- Apply re-resolves the same exact Design System and catalog and repeats compatibility validation under the canonical transaction boundary. A blocker raises `BUILDER_CHANGE_SET_BLOCKED` before `ProjectContentWireframeTransactionCommand` can create a Content Version.
-- `wireframe.section.configure` is one closed typed operation that replaces a section's component, variant, complete bindings, complete responsive rules, and complete interaction rules while preserving stable section identity and non-composition metadata. It lets a caller supply a valid new component contract in one Preview instead of creating an intentionally blocked intermediate candidate.
-- the legacy fine-grained typed operations remain valid for single-contract edits. Neither operation family permits opaque document replacement, blocker Apply, browser authority, silent slot defaults, or automatic rebase.
-
-Focused evidence currently passes 24 catalog/Design System/generation/Wireframe backend tests, including atomic configuration and no-write blocker Apply; the real Workspace Design System integration passes both Workspace and revision-bound Project catalog reads. API lint, generated OpenAPI typecheck, and API typecheck pass with only the three known unrelated test diagnostics.
-
-Final cross-app `pnpm check` passes all 8 tasks from cache misses: API has 2191 passed, 435 integration-disabled skips, and 26 existing warnings; Admin has 317 files and 1413 tests passed.
-
-Still gated: plugin-contributed catalogs, global-section dependency/cycle validation, Agent Wireframe generation, a real shared visitor React renderer, catalog-backed rendered preview, deterministic compiler artifacts, publication readiness, and successful real-data browser capture.
-- `pnpm api:check`: 2144 passed, 435 skipped, 26 warnings; 4/4 tasks passed. API typecheck retained only the three previously known test warnings.
-- `pnpm admin:check`: 1413 passed; 4/4 tasks passed.
-- `pnpm check`: 8/8 tasks passed.
-- changed-scope code review: `status=ok`, zero enforcement-blocking findings, and 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings). The report contains no finding in the new Builder apply/Content transaction files and is not represented as zero findings.
-
-## 25. Wave 3D explicit Design System refresh ChangeSet evidence (2026-07-21)
-
-This slice activates the revision-bound refresh command required after accepting and assigning an immutable project Design System version. It does not make assignment itself rewrite the canvas, Site Revision, or active release.
-
-- `design-system.refresh` is a strict Builder operation carrying the expected assignment revision, exact Design System/version public IDs, exact manifest checksum, and exact validation finding hash. Design System operations cannot mix with Sitemap or Wireframe operations, and one refresh ChangeSet contains exactly one operation.
-- Preview resolves the Project-owned exact assignment, valid immutable version, validator-v2 finding, and registered component catalog. Assignment, checksum, finding, catalog, or compatibility drift fails explicitly; the service does not select a newer version or reconstruct a floating default.
-- human and Agent refreshes require `review` approval. The server returns one `design_system` affected target and public-ID summary values; internal UUID strings are not exposed through `summaryParams`.
-- Apply re-resolves the same exact Design System evidence inside the canonical transaction. It creates the next immutable Site Revision, supersedes the base status, and creates the next draft status while changing only the Design System system/version/checksum pin.
-- refresh creates no Content Version and no duplicate Content Structure Revision. It reuses the exact content-structure revision/hash, page-version pins, and presentation-set hash from the base manifest. The Project assignment remains unchanged, and stale state never auto-rebases.
-- generated OpenAPI exposes the discriminated operation through both Preview input and stored output unions. Five focused unit tests cover family isolation, single-operation cardinality, already-pinned rejection, assignment drift, and Content Structure reuse. The real PostgreSQL Workspace/Project Design System lifecycle additionally verifies missing approval, approved Apply, revision 4 projection, unchanged assignment revision, and Activity order.
-
-Final validation passes `pnpm api:check` with 4/4 tasks, 2196 tests passed, 435 integration-disabled skips, and 26 existing JWT warnings; API typecheck retains only the three documented unrelated test diagnostics. Repository `pnpm check` passes all 8 tasks. Changed-scope review is `status=ok` with zero enforcement-blocking findings and the existing 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings); no Design System refresh path is reported. `git diff --check` passes.
-
-Still gated: the Admin Style Guide compare/accept/assign/refresh experience, Agent-generated Style Guide concepts, Asset/font-rights review, section-scheme editing, a real shared visitor renderer, compile artifacts, Design-stage writes, publication readiness, and successful real-data browser capture.
 
 ## 26. Wave 3F Sitemap section-intent authority and Wireframe traceability contract
 
@@ -801,28 +552,6 @@ Still gated after Wave 3G: coordinated multi-page generation, a proved
 multi-family intent/composition saga, global-section dependency/cycle analysis,
 visitor rendering, Design writes, compiler artifacts, publication readiness,
 comments, and server undo/redo.
-
-### 27.5 Verification evidence (2026-07-22)
-
-The focused backend contract suite passes 43 tests across direct-Agent and
-Run-backed provenance, generation context/provider/service/handler, the
-Wireframe runtime Tool, Job registration, recovery routing, and tenant-schema
-migration. The recovery route has an explicit regression for the compact
-22-character `PublicUUID` query representation: FastAPI receives
-`selected_page_id` through `Annotated[PublicUUID, Query(...)]` rather than
-silently replacing the project validator with the native UUID query parser.
-
-`api:check` passes all 4 tasks with 2285 tests passed, 438 tests skipped because
-integration tests are disabled, 26 existing authentication-test warnings, and
-the three previously known typecheck diagnostics. Cross-app `pnpm check`
-passes all 8 tasks. Changed-scope review remains `status=ok` with zero
-enforcement-blocking findings; its 45 findings are prototype/report-only and do
-not include the Builder generation or recovery paths. `git diff --check`
-passes.
-
-The authenticated exact-page recovery request returns 200 for the real compact
-page ID. No generation, Apply, project migration, or publication command was
-issued during browser verification.
 
 ## 28. Wave 3H global-section authority and dependency graph contract
 
@@ -1453,29 +1182,6 @@ component catalog already pinned by the Site Revision. Missing themes, token
 cycles, invalid aliases, or type-invalid resolved values fail explicitly.
 Admin must not maintain a local token catalog or submit arbitrary token paths.
 
-### 32.7 Wave 3L implementation evidence
-
-The implemented contract now includes the frozen Visual Blueprint schema, the
-closed Design ChangeSet family, transaction-owned complete presentation
-replacement, exact Wireframe checksum projection, component-catalog authoring
-tokens, strict renderer source selection, and revision-pinned Admin transport.
-Token projection keeps stable ordering, resolves aliases to typed values,
-preserves deprecation/replacement evidence, and fails explicitly on alias
-cycles or a missing unique default light theme.
-
-Focused verification passes 3 component-catalog projection tests, including
-the public `BUILDER_RENDER_DOCUMENT_INVALID` /
-`BUILDER_RENDER_TOKEN_CYCLE` contract, and the 6-test shared SiteRenderer
-suite. The complete
-`pnpm api:check` passes lint, format, typecheck, and test with 2465 tests
-passed, 443 integration-disabled skips, 65 non-blocking type diagnostics, and
-26 existing test warnings. The cross-app `pnpm check` passes all 8 tasks.
-
-This accepts typed Design authoring and deterministic renderer selection. It
-does not accept AI Design generation, Asset/font-rights completion, automated
-accessibility execution, production compilation, release activation,
-thumbnail capture, comments, or server undo/redo.
-
 ## 33. Wave 3M revision-pinned AI Design generation contract
 
 `POST /projects/{projectId}/builder/generations` accepts `targetStage=design`
@@ -1540,79 +1246,6 @@ CSS/HTML/JSON patches, arbitrary component replacement, latest-state prompt
 rebuilds, Wireframe fallbacks for invalid Blueprints, and best-effort partial
 target writes.
 
-### 33.1 Wave 3M implementation evidence
-
-The contract is implemented by the generation aggregate, not a second Design
-write service. `generation_job_contract.py` defines the distinct durable Design
-Job/task identity; `generation_service.py` freezes and persists `designContext`
-before publication; `generation_provider.py` validates the forced structured
-candidate; and `generation_handler.py` sends validated candidates through the
-canonical ChangeSet Preview authority. Runtime conversation entry resolves the
-same command through `runtime_design_tool.py` and
-`runtime_model_step_gateway.py` after explicit approval.
-
-Fresh focused verification on 2026-07-22 passes 24 tests across the runtime
-gateway/Tool, Job contract, Design provider, handler, and generation service.
-This evidence accepts the revision-pinned Design generation contract only; it
-does not add compiler, release, asset/font-rights, thumbnail, comment, or
-server undo/redo authority.
-
-## 34. Website Config settings/runtime checkpoint
-
-The Wave 4 Website Config frontend continues to consume the existing project
-core settings read and merge-patch service. It writes only fields already
-projected into generated source and the public runtime:
-
-- `site.name`, localized name, subtitle, description, localized description,
-  URL, contact email, logo, and favicon;
-- `seo.title_policy_v1`, robots directive, sitemap enablement, and Open Graph
-  image;
-- existing `site_localization` locale and time-display values.
-
-A successful Admin mutation invalidates the generated project-source query so
-the management preview does not remain stale. The browser neither invents
-unknown settings nor claims publication before the real patch succeeds.
-
-This checkpoint does not accept the broad `/projects/{projectId}/settings/core`
-patch as the final product API. Typed website identity, SEO/discovery,
-localization, and resolved-public-URL facades with optimistic version/ETag,
-stable errors, Activity events, and Agent grants remain required. Domains must
-ultimately own verification and primary-domain selection; Website Config must
-consume that resolved address instead of maintaining a conflicting authority.
-No backend schema or ownership hard cut is claimed by this frontend rollout.
-
-## 35. Project General settings/lifecycle checkpoint
-
-The Wave 4 Project General frontend composes existing Project authorities
-without adding a second settings document:
-
-- Project detail remains the canonical source for team-facing identity,
-  lifecycle state, authoring mode/state/revision, stable IDs, and primary
-  runtime projection;
-- the existing Project patch updates only the submitted name, description, or
-  icon fields and preserves normal authorization and query reconciliation;
-- authorization/action projections decide whether the current actor can manage
-  settings;
-- the Project danger-capability projection decides whether archive and delete
-  are currently enabled and returns the exact delete-confirmation name and any
-  stable blocked reason;
-- archive and permanent delete remain dedicated commands and do not enter the
-  identity patch payload.
-
-The browser treats permission or capability lookup failure as an explicit
-read-only/error state. It does not infer permission from Project detail, enable
-a destructive action before capability evidence loads, invent timestamps or
-member counts, or represent navigation/removal as success before the canonical
-mutation completes.
-
-This checkpoint does not accept the general Project patch as the final domain
-contract. Team-facing identity and project defaults still require typed
-Pydantic/OpenAPI commands or a deliberately narrowed facade with optimistic
-version/ETag, stable conflicts/errors, Activity events, idempotency where a
-command can be retried, and explicit Agent Tool grants. Lifecycle capability,
-archive, and deletion authorities remain separate; no frontend rollout claims
-to replace their backend ownership.
-
 ## 36. Website Config typed settings authority
 
 Website Config has three backend-owned typed projections over the internal
@@ -1649,12 +1282,6 @@ transaction. Evidence contains exact changed paths and previous/next ETags,
 plus `api` or `agent` provenance, but no field values. No-op replacement does
 not update the row or emit Activity.
 
-This checkpoint establishes the typed repository/service authority and its
-test contract only. The existing broad Core Settings route remains mounted
-until typed HTTP routes, generated clients, Admin callers, and approval-backed
-Agent grants move together. The broad route cannot be restricted and this
-capability cannot be marked complete before that cutover.
-
 ## 37. Project General typed identity authority
 
 Project General now has one backend-owned identity projection over the
@@ -1680,9 +1307,3 @@ A material change and `project.general.identity.updated` Activity evidence
 commit in one transaction. Evidence contains Project/workspace identities,
 exact changed `project.*` paths, previous/next ETags, and `api` or `agent`
 provenance; it does not duplicate the name, description, icon value, or URL.
-
-This checkpoint establishes repository/service authority and its focused test
-contract only. It does not invent a project-defaults document where no owned
-fields have been specified. Public typed routes, generated clients, Admin
-migration, broad Project-patch restriction, and approval-backed Agent grants
-must move together before the Project General capability can be complete.

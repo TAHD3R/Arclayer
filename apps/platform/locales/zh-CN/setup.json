@@ -18,7 +18,7 @@
   "REPAIR_TITLE": "平台设置需要修复",
   "REPAIR_DESCRIPTION": "现有设置记录无法确认一个安全、完整的所有者状态。请先修复部署设置，再继续。",
   "REPAIR_INVALID_INSTALL_RECORD_TITLE": "无法验证安装记录",
-  "REPAIR_INVALID_INSTALL_RECORD_DESCRIPTION": "请让部署管理员检查并修复安装记录。Arclayer 管理后台不会覆盖或忽略现有记录。",
+  "REPAIR_INVALID_INSTALL_RECORD_DESCRIPTION": "请联系部署管理员修复部署设置后再继续。",
   "REPAIR_STATE_MISMATCH_TITLE": "所有者记录与安装记录不一致",
   "REPAIR_STATE_MISMATCH_DESCRIPTION": "请让部署管理员核对实例所有者和安装记录，修复不一致后再继续。",
   "REPAIR_UNKNOWN_TITLE": "设置记录不一致",

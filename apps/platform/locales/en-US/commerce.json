@@ -40,7 +40,7 @@
   "PLAN_CODE": "Plan code",
   "PLAN_CODE_REQUIRED": "Enter a Plan code.",
   "PLAN_TERMS": "Plan version terms",
-  "TERMS_JSON_DESCRIPTION": "Paste the structured plan terms in JSON. They are checked before this version can be saved.",
+  "TERMS_JSON_DESCRIPTION": "Enter the plan terms. We check them before saving this version.",
   "TERMS_JSON_INVALID": "Plan terms must be valid JSON.",
   "PUBLISH": "Publish",
   "PUBLISHING": "Publishing",

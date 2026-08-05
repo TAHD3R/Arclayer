@@ -14,9 +14,9 @@ This code-spec defines API response ownership and frontend consumption boundarie
 - Backend response envelope: `ApiResponse[T]`
 - Backend failure envelope: `ApiResponse.fail(message=..., error=..., meta=...)`
 - Backend route declaration: `@router.get(..., response_model=<SchemaOut>)`
-- Frontend generated type source: `@arclayer/openapi` or `@arclayer/openapi/admin-types`
-- Product Application transport location: `apps/admin/src/api/*`
-- Product Application view-model location: `apps/admin/src/types/**` for UI-only projections
+- Frontend generated type source: `@arclayer/openapi` or `@arclayer/openapi`
+- Product Application transport location: `apps/app/src/api/*`
+- Product Application view-model location: `apps/app/src/types/**` for UI-only projections
 - Platform Console transport location: `apps/platform/src/api/*`
 - Platform Console view-model location: `apps/platform/src/types/**` for UI-only projections
 
@@ -26,7 +26,7 @@ This code-spec defines API response ownership and frontend consumption boundarie
 - OpenAPI generation is the single source for frontend API boundary types.
 - Frontend code must import backend request/response types from generated OpenAPI packages rather than duplicating `*Request` or `*Response` shapes locally.
 - Each frontend app's `src/types/**` may define `*ViewModel`, `*Row`, `*FormState`, and `*UiState` types only when they are presentation projections.
-- Product API normalization belongs in `apps/admin/src/api/*`; Platform API normalization belongs in `apps/platform/src/api/*`. Framework-neutral behavior proven to be shared may move to a shared HTTP package, but application packages never import one another's source.
+- Product API normalization belongs in `apps/app/src/api/*`; Platform API normalization belongs in `apps/platform/src/api/*`. Framework-neutral behavior proven to be shared may move to a shared HTTP package, but application packages never import one another's source.
 - Backend routes must expose stable path parameters, query parameters, response model fields, and error codes before frontend code depends on them.
 - Breaking API changes require backend tests plus frontend consumer review.
 
@@ -70,7 +70,7 @@ type WorkspaceResponse = {
 #### Correct
 
 ```typescript
-import type { WorkspaceOut } from '@arclayer/openapi/admin-types'
+import type { WorkspaceOut } from '@arclayer/openapi'
 
 type WorkspaceRow = WorkspaceOut & {
   displayName: string

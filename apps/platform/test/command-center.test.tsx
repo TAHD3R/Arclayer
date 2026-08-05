@@ -55,7 +55,9 @@ describe("Platform Command Center", () => {
     const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
     expect(
-      screen.getByText("Some pages you can use are not available in this Console release."),
+      screen.getByText(
+        "Some pages you can access aren't included in this version of Arclayer Admin.",
+      ),
     ).toBeVisible();
     expect(screen.queryByText("Workspaces")).not.toBeInTheDocument();
   });

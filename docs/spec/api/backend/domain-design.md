@@ -16,7 +16,7 @@ This code-spec defines backend domain boundaries, public identifier contracts, a
 ### 2. Signatures
 
 - API surface taxonomy:
-  - Admin API: `/api/v1/*`
+  - Product API: `/api/v1/*`
   - Content API: `/content-api/v1/*`
   - Management API: `/management-api/v1/*` (reserved/explicit ownership)
 - Domain module baseline shape:
@@ -35,7 +35,7 @@ This code-spec defines backend domain boundaries, public identifier contracts, a
 - Public API payloads must not leak persistence details (for example DB table naming, internal ORM semantics).
 - Public entity identifiers in endpoint params and response schemas must follow `PublicUUID` contract.
 - CSRF and auth surface policies must be enforced per surface taxonomy:
-  - browser-authenticated unsafe Admin API calls require CSRF contract
+  - browser-authenticated unsafe Product API calls require CSRF contract
   - content API credential-based routes remain on explicit token/key boundary.
 - Hard-cut policy applies to domain/API evolution:
   - remove obsolete contract surfaces in same rollout

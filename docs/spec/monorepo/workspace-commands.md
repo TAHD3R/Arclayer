@@ -16,7 +16,7 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 - Task runner config: `turbo.json`
 - Root checks:
   - `pnpm check`
-  - `pnpm admin:check`
+  - `pnpm app:check`
   - `pnpm platform:check`
   - `pnpm api:check`
   - `pnpm cli:check`
@@ -42,7 +42,7 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 
 | Condition                                        | Required behavior                                                                                                                          |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Small Admin-only iteration                       | Run the closest static check and focused test; run `pnpm admin:check` at a coherent milestone or before handoff                            |
+| Small Product Application-only iteration                       | Run the closest static check and focused test; run `pnpm app:check` at a coherent milestone or before handoff                            |
 | Small Platform-only iteration                    | Run the closest static check and focused test; run `pnpm platform:check` at a coherent milestone or before handoff                         |
 | Small API-only iteration                         | Run the closest static check and focused test; run `pnpm api:check` at a coherent milestone or before handoff                              |
 | Change crosses Admin, Platform, or API           | Run affected package checks; run `pnpm check` for cross-app integration or final delivery                                                  |
@@ -55,11 +55,11 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 
 ### 5. Good/Base/Bad Cases
 
-- Good: an Admin component change runs the closest static check and focused test while it is edited, then `pnpm admin:check` at the next coherent milestone.
+- Good: a Product Application component change runs the closest static check and focused test while it is edited, then `pnpm app:check` at the next coherent milestone.
 - Good: a backend schema/API change runs focused backend checks and regenerates OpenAPI while it is edited, then runs `pnpm api:check` and the affected frontend check at the appropriate milestone.
 - Good: an OpenAPI client refresh uses `pnpm --filter @arclayer/openapi generate`.
 - Base: a narrow API unit investigation uses `pnpm -C apps/api uv -- pytest <node>` with a 60-second initial diagnostic budget, extending integration, database, or inherently slow runs until the actual result is visible.
-- Good: a focused Admin Vitest file uses `pnpm --filter @arclayer/admin test test/components/layout/route-progress.test.tsx`. Pass the path directly without an extra `--`; separator behavior across pnpm and Vitest can defeat the intended file filter and broaden the run.
+- Good: a focused Admin Vitest file uses `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`. Pass the path directly without an extra `--`; separator behavior across pnpm and Vitest can defeat the intended file filter and broaden the run.
 - Bad: running `.venv/bin/pytest` directly from `apps/api`.
 - Bad: changing `turbo.json` to make a broken task pass without fixing the failing package script.
 - Bad: hand-editing generated migration or OpenAPI output to satisfy a local test.

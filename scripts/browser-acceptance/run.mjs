@@ -224,7 +224,7 @@ async function main() {
       ],
       env,
     ),
-    start("product-app", "pnpm", ["-C", "apps/admin", "dev", "--", "--host", "0.0.0.0"], env),
+    start("product-app", "pnpm", ["-C", "apps/app", "dev", "--", "--host", "0.0.0.0"], env),
     start("platform-app", "pnpm", ["-C", "apps/platform", "dev", "--", "--host", "0.0.0.0"], env),
   ];
   try {

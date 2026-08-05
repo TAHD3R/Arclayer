@@ -18,7 +18,7 @@
   "REPAIR_TITLE": "Platform setup needs repair",
   "REPAIR_DESCRIPTION": "The current setup records do not confirm a safe, complete owner state. Repair the deployment setup before continuing.",
   "REPAIR_INVALID_INSTALL_RECORD_TITLE": "The installation record cannot be verified",
-  "REPAIR_INVALID_INSTALL_RECORD_DESCRIPTION": "Ask the deployment administrator to inspect and repair the installation record. Arclayer Admin won't replace or ignore it.",
+  "REPAIR_INVALID_INSTALL_RECORD_DESCRIPTION": "Ask the deployment administrator to repair the deployment setup before continuing.",
   "REPAIR_STATE_MISMATCH_TITLE": "Owner and installation records don't match",
   "REPAIR_STATE_MISMATCH_DESCRIPTION": "Ask the deployment administrator to compare the Instance Owner and installation records, then repair the mismatch before continuing.",
   "REPAIR_UNKNOWN_TITLE": "Setup records don't match",

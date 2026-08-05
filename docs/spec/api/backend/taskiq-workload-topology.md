@@ -1,10 +1,6 @@
-# Taskiq Workload Topology ADR
+# Taskiq Workload Topology Contract
 
-**Status:** Accepted and implemented for the `asset-cpu`, normalized `agent-io`,
-Knowledge `connector`, and bounded `maintenance` Provider Effect recovery
-verticals;
-production enablement remains blocked by the deployment gates in section 11.
-**Decision date:** 2026-07-15
+**Status:** Approved contract.
 **Scope:** Taskiq workload routing, worker isolation, registration, delivery,
 acknowledgement, redelivery, scheduling, and shutdown.
 **Canonical parent:** `docs/spec/api/backend/background-jobs.md`.
@@ -20,49 +16,18 @@ Arclayer requires six durable background-workload classes:
 - `connector`
 - `maintenance`.
 
-The pre-ADR baseline constructed one `RedisStreamBroker` with one `queue_name`,
+The previous topology constructed one `RedisStreamBroker` with one `queue_name`,
 registered every task on that broker, and started one worker command plus one
 `TaskiqScheduler`. The durable Job contract requires explicit resource
 isolation and at-least-once dispatch, but it intentionally made the physical
 Redis Stream layout conditional on a locked-version evidence spike.
 
-This ADR closes the library-level topology decision for the currently locked
+This contract defines the library-level topology decision for the supported
 stack. It does not claim that process signals, container termination grace,
 rolling deployment compatibility, or production capacity are proven by an
 in-process integration test.
 
-## 2. Evidence Environment
-
-Evidence was collected from the live repository and a real local Valkey
-instance using:
-
-- Python `3.12.12`;
-- Taskiq `0.12.1` from `apps/api/uv.lock`;
-- taskiq-redis `1.2.2` from `apps/api/uv.lock`;
-- Valkey server `8.0.6` (`server_name=valkey`);
-- `RedisStreamBroker`, Taskiq `Receiver`, Redis Streams consumer groups,
-  `XPENDING`, `XACK`, and `XAUTOCLAIM`;
-- the real integration Valkey database selected by the repository test
-  settings.
-
-Reproducible evidence lives in:
-
-`apps/api/tests/platform/jobs/test_taskiq_workload_topology_integration.py`
-
-Verification command:
-
-```bash
-RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 \
-  pnpm -C apps/api uv -- pytest -vv \
-  tests/platform/jobs/test_taskiq_workload_topology_integration.py --no-cov
-```
-
-The accepted run used an external 60-second diagnostic budget, collected five
-tests, and passed `5/5` in `0.60s`. That elapsed budget is an observation from
-the evidence run, not a hard test contract; reruns may be extended to expose
-their real result when integration infrastructure needs more time.
-
-## 3. Proven Findings
+## 3. Topology Decisions
 
 | Question | Reproducible finding | Proof boundary |
 |---|---|---|
@@ -288,15 +253,7 @@ and compare-and-delete shutdown never releases another replica's token. Real
 Valkey evidence starts two candidates, proves exactly one effective schedule,
 lets the lease expire without a graceful release, promotes the follower, and
 proves the stale candidate is fenced at `pre_send`.
-
-The current Wave 0 scheduler registers the bounded Provider Effect orphan scan
-as a maintenance control task. The deleted legacy Taskiq cron tasks were not
-reintroduced. Usage aggregation, retention, scheduled publish, and lease-reaper
-automation are therefore still not running. Future ticks must be explicit
-bounded control tasks that create or replay durable Jobs/outboxes; they must
-not call legacy business functions inline.
-
-## 9. Shutdown Contract and Proven Boundary
+\n## 9. Shutdown Contract
 
 The locked Receiver API proves that a finish event stops new intake and waits
 for active tasks up to `wait_tasks_timeout`. The broker shutdown path then runs
@@ -318,28 +275,7 @@ successful or cancelled by itself.
 The integration test does not prove UNIX signal forwarding, child-process
 coordination, browser teardown, process-pool termination, or Kubernetes/Docker
 grace-period ordering. Those remain explicit gates.
-
-Current process smoke evidence is narrower but concrete. All six real
-worker command roots started against PostgreSQL and Valkey with isolated
-streams. The built-in registry currently yields these exact task slices:
-
-| Workload root | Registered workload tasks |
-|---|---|
-| `asset-cpu` | `jobs:asset-cpu:asset-thumbnail-generate:v1` |
-| `agent-io` | `jobs:agent-io:agent-run-execute:v1`; `jobs:agent-io:knowledge-source-index:v1` |
-| `render-browser` | none |
-| `publish` | none |
-| `connector` | `jobs:connector:knowledge-source-ingest:v1` |
-| `maintenance` | `jobs:maintenance:provider-effect-orphan-reconcile:v1`; control task `jobs:maintenance:provider-effect-orphan-scan:v1` |
-
-An empty slice is intentional startup evidence, not an implemented business
-workload. The launcher also passes `--max-fails 1`. With locked Taskiq
-`0.12.1`, the parent exits non-zero after the first abnormal child exit instead
-of silently restarting a configuration failure; a database-disabled worker
-smoke produced that fail-fast outcome. This does not replace the running-Job
-termination and pending-recovery gate.
-
-The `connector` Knowledge task owns manual processing and untrusted public-URL
+\nThe `connector` Knowledge task owns manual processing and untrusted public-URL
 `initial | refresh` ingestion. URL bytes are fetched only inside this worker;
 HTTP request handlers persist source/Job/outbox facts and return `202`. The
 worker transport resolves and validates every redirect target, connects to a
@@ -354,21 +290,7 @@ creating Task, retains only the supported global fallback, and tracks exact
 nested ownership. Only the final matching close resets model apps while the
 fallback is still present, then closes connections. Same-configuration nesting
 is reference-counted, different-configuration nesting and foreign lifecycle
-ownership fail explicitly, and shutdown errors are not downgraded to warnings.
-Cross-Task and nested-ownership tests pass, and the real idle worker smokes no
-longer emit the former context-token reset warning.
-
-Main-process SIGTERM smokes for the idle `connector` and `maintenance` roots
-now reach Taskiq intake stop, broker shutdown, the application shutdown hook,
-ORM close, and exit code `0`. Their final `Durable Job worker stopped` record is
-present in both the terminal and `app.log`. The earlier intermittent missing
-record was an asynchronous `QueueListener` teardown race; the shutdown hook now
-drains queued records and switches remaining teardown logging to synchronous
-handlers before returning. This proves those idle process roots and the final
-application hook. It still does not prove an in-flight Job, child-process
-signal forwarding, readiness ordering, or orchestrator grace-period budgets.
-
-## 10. Accepted and Rejected Decisions
+ownership fail explicitly, and shutdown errors are not downgraded to warnings.\n## 10. Accepted and Rejected Decisions
 
 ### Accepted
 
@@ -489,76 +411,15 @@ until all gates below have recorded evidence.
       route, while profile delete/migration cannot strand a manifest or redirect
       cleanup to a new bucket, endpoint, or local root.
 
-## 12. Implementation and Hard-Cut Consequences
-
-The first implementation rollout has:
-
-- replaced the single `TaskiqSettings.queue_name` contract with typed stream and
-  consumer-group prefixes plus per-workload tuning;
-- created a broker factory that yields one immutable broker instance per
-  canonical `JobWorkloadClass`;
-- given the outbox dispatcher exclusive typed producer selection;
-- split worker commands by workload and limited each import root to its exact
-  task slice;
-- bound the single scheduler construction to maintenance;
-- added startup manifest validation and the durable ACK gate;
-- registered normalized Agent Run execution and Workspace Knowledge index tasks
-  on `agent-io`, plus Workspace Knowledge ingestion on `connector`;
-- added the generic append-only Storage Profile route revisions, tombstones,
-  and normalized Provider Effect registration/settlement core;
-- registered the strict thumbnail
-  `asset.thumbnail.objects` / schema `1` / `generated-objects` contract in
-  production composition and made its pipeline persist ACTIVE normalized
-  evidence before the first provider `put`;
-- bound thumbnail output identity to exact Profile/Route Revision, target
-  bucket, and logical manifest without secrets, timestamps, or Attempt identity;
-- separated existing-source reads, active exact-route output authorization, and
-  old-revision cleanup with current credentials, then implemented
-  all-disposition marker-first COMMITTED/CLEANED convergence with deterministic
-  terminal references;
-- retained `JobAttemptRecord.provider_references` only as an inert ORM/database
-  column with no runtime read/write or dual-read/dual-write path;
-- converged persistence and transport on `JobWorkloadClass`,
-  `JobInternalStatus`, `JobAttemptStatus`, and `JobDispatchStatus`;
-- kept Taskiq result storage non-canonical and removed the legacy single broker,
-  best-effort enqueue, and scheduled-task registration path.
-
-It has not yet:
-
-- added real Job definitions and handlers for `render-browser` or `publish`;
-- completed S3 Profile lifecycle/process-loss evidence or Valkey
-  outage/recovery evidence;
-- proven deployment replicas, resource limits, readiness/health checks,
-  shutdown grace, rolling compatibility, or operational queue ownership;
-- passed every gate in section 11.
-
-The normalized thumbnail runtime hard cut and bounded maintenance orphan
-reconciler are implemented. The stable scheduled control task performs only
-bounded `SKIP LOCKED` fan-out; each typed durable recovery Job owns a real
-fenced Attempt, exact tenant marker routing, exact historical-route cleanup,
-and cross-Job settlement. Concurrent scanner and seeded terminal-orphan Taskiq
-tests prove this in-process contract. Real Valkey competing-candidate evidence
-also proves scheduler lease exclusivity, expiry failover, and stale-leader
-`pre_send` fencing. A separate OS-level integration now starts two production
-`asset-cpu` worker generations, kills each process group after ACTIVE evidence
-and real local objects are durable, proves pending delivery recovery, lease
-expiry, retry exhaustion/dead-lettering, and bounded maintenance cleanup. The
-tenant Asset row lock creates only the deterministic pre-marker-commit window;
-it does not fabricate Effect, Attempt, Job, ACK, or terminal state. S3,
-Valkey-outage, deployment signal/readiness, capacity, and poison-message gates
-remain open.
-
-Future Job persistence changes still use generated migrations. No rollout may
+## 12. Hard-Cut Consequences\n\nFuture Job persistence changes still use generated migrations. No rollout may
 restore a best-effort enqueue, general-worker, dynamic-label, or inline
 execution fallback merely because a remaining workload is empty.
 
-## 13. ADR Acceptance Criteria
+## 13. Contract Acceptance Criteria
 
-This ADR remains valid for Taskiq `0.12.1` plus taskiq-redis `1.2.2`. Upgrading
-either package reopens the evidence spike for registration, routing,
-acknowledgement, pending recovery, and shutdown behavior.
-
-The library-level decision is accepted because all five real-Valkey evidence
-tests pass. Production enablement is not accepted until section 11 gates pass.
+Changing Taskiq or taskiq-redis versions requires revalidating registration,
+routing, acknowledgement, pending recovery, and shutdown behavior against real
+Valkey integration coverage. Production enablement requires every section 11
+gate to pass.
 Failure of a gate blocks the relevant worker/API rollout; it does not authorize
 a silent single-queue fallback.

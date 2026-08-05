@@ -1,6 +1,6 @@
 # Admin Plugin, Notification, and Mail Contract
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved canonical implementation contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Domain owners: Extensibility for sections 4-8; [Platform Communications](./admin-communications.md) for sections 9-18
 
@@ -17,15 +17,6 @@ This contract defines:
 It extends `docs/spec/api/backend/plugins.md`, `docs/spec/api/backend/notifications.md`, and `docs/spec/api/backend/background-jobs.md`. Those contracts remain authoritative for package discovery, event routing, and durable execution where they do not conflict.
 
 This combined file is a migration-era capability contract, not a shared Platform Domain or navigation group. Plugin installation, upgrade, trust, rollback, and package configuration belong to Extensibility. Campaign, transactional, recipient-delivery, global-message, template, and mail-channel operations belong to Communications. Neither domain duplicates the other's routes, forms, permissions, or Operational Signal resolution actions.
-
-## 2. Current-state evidence
-
-- `/system/plugins` renders a basic card grid and the API currently exposes only installed plugin discovery through `GET /system/plugins`.
-- plugin metadata already contains provides, permissions, configuration schema, Admin metadata, and connector definitions, but there is no persisted install/upgrade/uninstall lifecycle.
-- system notifications can create inbox/email records and render `inbox`, `toast`, `modal`, or `banner`, but a broadcast synchronously walks users and has no campaign, audience estimate, schedule, retry, or delivery ledger.
-- the event runtime supports a narrow hard-coded event list and sends email directly after creating an in-app record; `NotificationDeliveryRecord` currently requires Campaign and Campaign-variant foreign keys, so domain-transactional events do not share its idempotent delivery ledger or retry evidence.
-- global modal/banner consumption supports only text, severity, one action, and a local dismissed set; it lacks media, secondary action, display policy, and durable recipient state.
-- email templates are unique by `(key, locale)` and support CRUD/preview/versioning, but the Admin list renders one row per locale and duplicates Edit in its primary action and menu.
 
 ## 3. Non-goals
 

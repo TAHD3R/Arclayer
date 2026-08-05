@@ -10,11 +10,7 @@ The dark theme is the sharper half of the system. It begins from a true black ba
 
 Typography uses one platform-native UI family for both hierarchy and working text. The stack prioritizes each platform's native Chinese face so mixed Chinese and Latin text keeps consistent weight, baseline, and rendering quality. Hierarchy comes from size and weight rather than switching proportional typefaces; monospace remains reserved for code, identifiers, and diagnostics.
 
-What makes Arclayer distinctive is this balance:
-- calmer than Slack
-- more technical than Notion
-- less decorative than Linear-style marketing systems
-- more deliberate than default Tailwind dashboards
+Arclayer is distinguished by a quiet canvas, obvious task hierarchy, restrained color, and product surfaces that explain what the user can do next without decorative noise.
 
 **Key Characteristics**
 - Soft neutral-gray canvas with white work surfaces in light mode
@@ -156,7 +152,7 @@ The same proportional stack handles headings, tables, filters, commands, forms, 
 
 **Primary**
 - Background: Action Blue / Action Blue Dark
-- Text: white
+- Text: white in light mode; near-black in dark mode so the bright action color meets contrast requirements
 - Padding: 8px 16px
 - Radius: 6px
 - Border: transparent
@@ -194,6 +190,8 @@ The same proportional stack handles headings, tables, filters, commands, forms, 
 
 Cards should feel like work surfaces, not decorative tiles. In light mode they should barely rise off the canvas. In dark mode they must visibly separate from black, otherwise the whole interface collapses into one layer.
 
+Avoid card-in-card by default. Group related content with spacing, headings, or dividers. Nest a bordered or elevated surface only when the child is a distinct object or workflow; keep it one visual level lower and never stack equal-weight borders, shadows, or backgrounds.
+
 ### Inputs & Forms
 
 - Background: white in light mode, dark surface in dark mode
@@ -211,7 +209,10 @@ Inputs should feel contained and tactile. A field should always read as an objec
 - Navigation should feel stable and quiet
 - Selected states should be obvious without becoming giant blue pills
 - Hover states should use neutral surfaces first, blue second
-- Icons should support scanning, not dominate it
+- Use an icon only when it communicates a recognized action, state, object/type, or navigation target
+- If a visible label already says the same thing and the icon adds no scanning value, omit the icon
+- Do not use emoji as product UI icons or decorative section markers
+- Decorative icons are hidden from assistive technology; icon-only controls require an accessible name and a tooltip when discoverability matters
 - Page chrome should not compete with the page itself
 
 ### Command Menus & Popovers
@@ -285,12 +286,13 @@ This is a practical system, not a decorative one. It should make dense surfaces 
 
 ### Radius Scale
 
-- **4px**: inputs, buttons, compact controls
-- **8px**: cards, menus, popovers, command surfaces
-- **16px**: sheets, large panels, dialogs
+- **6px (`--radius-sm`)**: inputs, buttons, compact controls
+- **10px (`--radius-md`)**: cards, menus, popovers, command surfaces
+- **16px (`--radius-lg`)**: sheets and large panels
+- **20px (`--radius-xl`)**: large dialogs or rare hero surfaces
 - **9999px**: badges and pills when the pattern truly calls for it
 
-Arclayer should not use a dozen corner styles. The system works because it stays short.
+Use the semantic radius tokens from `packages/ui`; do not introduce page-local radius scales.
 
 ### Border System
 
@@ -377,7 +379,7 @@ Arclayer should not rely on cinematic shadows. In light mode, depth comes from s
 
 ### Contrast
 
-- Primary text should comfortably exceed WCAG AA
+- Text and interactive controls must meet WCAG 2.2 AA contrast requirements
 - Secondary text must remain readable on both white and charcoal
 - Borders in dark mode must remain visible against black
 - Never rely on color alone to convey meaning
@@ -388,6 +390,7 @@ Arclayer should not rely on cinematic shadows. In light mode, depth comes from s
 - Reading order should match interaction order
 - Decorative imagery stays out of the accessibility tree
 - Informative imagery needs meaningful alt text
+- Icon-only controls need an accessible name; decorative icons and emoji stay out of the accessibility tree
 
 ## 10. UX Writing
 
@@ -411,56 +414,24 @@ Arclayer writing should feel like a capable operator speaking clearly.
 - Stay consistent with terminology
 - Empty states should guide, not perform personality
 - Error copy should clarify what happened and what the user can do next
+- Write for the user's task and next action, not for the implementation
+- Use plain language and concrete verbs; explain necessary domain terms where they first appear
+- Do not expose README instructions, component/API/route names, raw errors, stack traces, logs, JSON, hashes, or internal architecture in ordinary product UI
+- Put necessary technical detail in an explicit diagnostics/details surface, paired with a plain-language summary and next step
+- Product Application copy focuses on creating, editing, publishing, sharing, and recovering work; Platform Console copy focuses on operator decisions and outcomes, not service internals
+- Keep diagnostic identifiers, job/run ids, revisions, and error codes out of the primary status or action area
 
-## 11. Agent Prompt Guide
+## 11. Product Guardrails
 
-### Quick Color Reference
+Product UI must satisfy these checks:
 
-- Background light: `hsl(220 14% 97%)`
-- Background dark: `hsl(0 0% 0%)`
-- Card light: `hsl(0 0% 100%)`
-- Card dark: `hsl(0 0% 8%)`
-- Primary text light: `hsl(230 5.7% 20.8%)`
-- Primary text dark: `hsl(0 0% 92%)`
-- Secondary text light: `hsl(237 8% 43.9%)`
-- Secondary text dark: `hsl(0 0% 70%)`
-- Primary action blue: `hsl(211 100% 45.9%)`
-- Primary action blue dark: `hsl(211 100% 60%)`
-- Neutral hover light: `hsl(220 10% 90%)`
-- Neutral hover dark: `hsl(0 0% 14%)`
-- Border light: `hsl(229 16.5% 79.8%)`
-- Border dark: `hsl(0 0% 30%)`
+- no gradient, glow, glass, or decorative color treatment without a functional state meaning
+- no card-in-card composition unless the nested surface is an independent object or workflow
+- no emoji or redundant icon used as decoration
+- no normal task information below 14px
+- no marketing slogan where the user needs a status, instruction, or next action
+- no raw implementation or diagnostic text in the primary product surface
 
-### Example Component Prompts
+## 12. One-Sentence Brief
 
-- "Create a login screen on a soft neutral-gray background with a calm product tone. Use a 32px system UI title, 16px support text, restrained borders, and blue only for the primary action."
-- "Design a dark admin dashboard on a true black canvas with neutral charcoal cards (`hsl(0 0% 8%)`), strong readable text, low-noise chrome, and selected states that use deep blue rather than glow."
-- "Build a command palette with a 10px radius, charcoal popover background, clear border, 14px system UI menu items, secondary keyboard hints, and a selected row that feels precise rather than loud."
-- "Create a settings card with a white surface, soft border, 18px system UI section title, 16px body text, 16px-24px spacing rhythm, and inputs that feel contained and tactile."
-- "Design a dense data table that stays readable: 14px system UI content, quiet column labels, restrained row hover, predictable selection states, and borders that support scanning without boxing everything in."
-
-### Iteration Guide
-
-1. Keep the page canvas quiet.
-2. Use surfaces, not background effects, to build hierarchy.
-3. Use blue for actions and selection, not for atmosphere.
-4. In dark mode, think black plus charcoal plus border, not black plus gradients.
-5. Use size and weight to announce hierarchy while keeping one proportional UI family.
-6. If the screen feels impressive before it feels usable, simplify it.
-7. If density makes the UI feel tiny, fix spacing and grouping before shrinking text.
-8. If a state is not obvious without explanation, strengthen the visual contract.
-
-## 12. What Arclayer Is Not
-
-Arclayer should not become:
-
-- a warm notebook UI
-- a neon dark dashboard
-- a glassmorphism control room
-- a gradient-first SaaS marketing page
-- a rainbow collaboration toy
-- a tiny-text enterprise spreadsheet wall
-
-## 13. One-Sentence Brief
-
-Design Arclayer as a high-trust product workspace: softly layered in light mode, black and neutral-charcoal in dark mode, blue for action, one platform-native UI family for mixed-language clarity, and just enough motion to confirm the task without ever stealing attention.
+Design Arclayer as a high-trust product workspace: quiet surfaces, clear task hierarchy, blue reserved for action, semantic icons only, plain-language product copy, and just enough motion to confirm change without stealing attention.

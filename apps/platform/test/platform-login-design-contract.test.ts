@@ -58,8 +58,10 @@ describe("Platform login design contract", () => {
     expect(accessZh).not.toContain("ADMIN_ONLY");
     expect(accessZh).not.toContain("ADMIN_ACCESS_NOTICE");
     expect(accessEn).toContain('"SIGN_IN_TITLE": "Welcome back"');
-    expect(accessEn).toContain('"SIGN_IN_DESCRIPTION": "Structured content, visually built."');
+    expect(accessEn).toContain(
+      '"SIGN_IN_DESCRIPTION": "Sign in to manage this Arclayer deployment."',
+    );
     expect(accessZh).toContain('"SIGN_IN_TITLE": "欢迎回来"');
-    expect(accessZh).toContain('"SIGN_IN_DESCRIPTION": "结构化内容，可视化构建。"');
+    expect(accessZh).toContain('"SIGN_IN_DESCRIPTION": "登录 Arclayer 管理后台，管理当前部署。"');
   });
 });

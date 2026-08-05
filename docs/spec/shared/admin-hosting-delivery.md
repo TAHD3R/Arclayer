@@ -1,6 +1,6 @@
 # Platform Hosting & Delivery Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
@@ -9,12 +9,6 @@ Experience authority: [Product and Platform administration experience redesign](
 This contract defines one Hosting & Delivery Platform Domain for cross-Workspace site-delivery investigation and recovery, domain and certificate readiness, file-storage operations, delivery policy, Delivery Suspended state, and restoration.
 
 “Hosting & Delivery” is the canonical architecture term. The product label is `托管与域名 / Hosting & Domains`; primary navigation describes recognizable site, domain, certificate, and file-storage tasks rather than infrastructure implementation.
-
-## 2. Current-state evidence
-
-- `/system/settings/domains` currently manages the deployment base domain, Admin subdomain, automatic Project subdomain assignment, and reserved labels without domain-binding, DNS, certificate, or delivery-health operations.
-- `/system/settings/storage` manages storage profiles, connection tests, defaults, and upload limits, but presents them as a generic settings category rather than as delivery readiness and affected-work evidence.
-- release, artifact, domain binding, certificate association, Hosting Continuity, Delivery Suspended, restoration, and public unavailable-response contracts already exist across publishing and commercialization specs but are not composed into one operator workflow.
 
 ## 3. Information architecture
 

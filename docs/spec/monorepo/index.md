@@ -19,6 +19,7 @@ These rules apply across `apps/*`, `packages/*`, `scripts/*`, root package scrip
 | [Workspace Commands](./workspace-commands.md) | pnpm workspace, Turborepo, package filters, and allowed command entry points | Active |
 | [Quality Gates](./quality-gates.md) | lint, format, typecheck, test, generated artifact, and evidence contracts | Active |
 | [Repo Hygiene](./repo-hygiene.md) | git scope, commits, generated files, lockfiles, ignored workspaces, and cleanup rules | Active |
+| [CLI Operational Contracts](./cli-operational-contracts.md) | CLI command ownership, explicit failure behavior, and Product/Platform API boundaries | Active |
 
 ---
 

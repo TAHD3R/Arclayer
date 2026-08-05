@@ -1,6 +1,6 @@
 # Platform Extensibility Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 Supporting contract: [Plugin lifecycle capability details](./admin-plugin-notification-mail.md#4-plugin-domain-model)
@@ -10,12 +10,6 @@ Supporting contract: [Plugin lifecycle capability details](./admin-plugin-notifi
 This contract defines one Extensibility Platform Domain for instance Extension discovery, installation, integrity and trust, compatibility, requested-permission review, dependency impact, upgrade, rollback, disablement, removal, and provided connection-capability inventory.
 
 “Extensibility” is the canonical architecture term. The product label is `扩展 / Extensions`; primary navigation describes installed software and lifecycle work rather than runtime registries or manifest structure.
-
-## 2. Current-state evidence
-
-- `/system/plugins` currently renders a basic installed-plugin card grid and the Platform API exposes installed discovery without a complete persisted install, upgrade, rollback, or uninstall lifecycle.
-- Plugin metadata already declares capabilities, permissions, configuration schema, Admin metadata, and Connector definitions, while the current UI distributes Connector configuration across generic settings pages.
-- the runtime Extension manager already owns load, register, bootstrap, ready, destroy, and Workspace activation/deactivation phases, but instance package lifecycle, consuming-domain configuration, and Workspace activation are not the same authority.
 
 ## 3. Information architecture
 

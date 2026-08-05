@@ -7,7 +7,7 @@ This code-spec defines how frontend components should consume API contracts with
 ### 1. Scope / Trigger
 
 - Trigger: building UI that renders backend API data or submits backend payloads.
-- Applies to Admin components and future frontend apps consuming `packages/openapi`.
+- Applies to Product Application and Platform components consuming `packages/openapi`.
 
 ### 2. Signatures
 

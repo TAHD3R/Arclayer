@@ -61,9 +61,7 @@ describe("Platform first-owner setup", () => {
     const user = userEvent.setup();
     await renderRoute("/sign-in");
 
-    expect(
-      await screen.findByRole("heading", { name: "Set up the Platform Console" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Set up Arclayer Admin" })).toBeVisible();
     expect(screen.getByLabelText("Username")).toHaveAttribute("pattern", "[a-z0-9\\-]+");
     await user.type(screen.getByLabelText("Username"), "instance-owner");
     await user.type(screen.getByLabelText("Display name"), "Instance Owner");

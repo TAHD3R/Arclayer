@@ -1,6 +1,6 @@
 packages:
   - apps/api
-  - apps/admin
+  - apps/app
   - apps/platform
   - packages/**
   - scripts/*

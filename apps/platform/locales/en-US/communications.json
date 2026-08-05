@@ -92,7 +92,7 @@
   "CAMPAIGN_MULTI_LANGUAGE_LIMIT_DESCRIPTION": "This campaign has more than one saved language. You can edit its current formats, but adding email or an inbox message would leave other languages incomplete.",
   "REVIEW_AND_SEND": "Review and send",
   "CAMPAIGN_REVIEW_TITLE": "Review {{name}}",
-  "CAMPAIGN_REVIEW_DESCRIPTION": "Check the audience and exact message payload before sending now or scheduling it.",
+  "CAMPAIGN_REVIEW_DESCRIPTION": "Review the recipients and final message before sending or scheduling.",
   "CAMPAIGN_REVIEW_LOADING": "Loading the audience and message preview",
   "CAMPAIGN_REVIEW_LOAD_FAILED": "The audience or message preview could not be loaded. Nothing has been sent.",
   "CAMPAIGN_REVIEW_STALE": "This campaign changed after the review loaded. Close this window and review the latest version before sending.",

@@ -20,7 +20,7 @@ authority.
   - `apps/api/src/platform/jobs/**`
   - Taskiq broker, worker, scheduler, and deployment configuration
   - domain services that create, cancel, resume, retry, or consume Jobs
-  - Admin APIs and generated clients that expose Job state.
+  - Product APIs and generated clients that expose Job state.
 - Required workload classes:
   - `agent-io`
   - `render-browser`
@@ -36,19 +36,11 @@ usage/reconciliation, and retention work.
 
 This contract does not make Taskiq result storage authoritative, does not put
 tenant content in broker messages, and does not authorize a physical queue
-topology outside the accepted ADR and its remaining deployment gates.
+topology outside the accepted topology contract and its deployment gates.
 
-### 2. Verified Baseline and Hard-Cut Target
+### 2. Hard-Cut Target
 
-The pre-Wave 0 baseline had one `RedisStreamBroker`, one `queue_name`, one
-worker script, and one scheduler bound to `LabelScheduleSource`. Tasks were
-registered in one module. `try_enqueue_task()` caught enqueue errors and
-returned `False`, while `try_dedupe_enqueue()` treated unavailable dedupe as
-permission to continue. The scheduled-publish scanner loaded all due rows and
-executed them serially in the scanner process.
-
-That behavior is transitional and is not a compatibility contract. The target
-hard cut:
+The hard cut:
 
 - replaces best-effort enqueue with `BackgroundJob` plus transactional
   `JobDispatchOutbox`;
@@ -602,31 +594,19 @@ its own transaction under `Job -> Attempt` locks and a post-lock PostgreSQL
 clock read. Concurrent reapers therefore converge through locked revalidation;
 only the winner may create the next dispatch sequence.
 
-### 9. RedisStreamBroker Workload Topology ADR Gate
+### 9. RedisStreamBroker Workload Topology Contract
 
-The topology ADR is accepted for locked Taskiq `0.12.1` plus taskiq-redis
-`1.2.2`. The Wave 0 implementation now constructs one typed broker/stream and
-one exact worker command root for each of the six workload classes. The
+The runtime constructs one typed broker/stream and one exact worker command
+root for each of the six workload classes. The
 producer selects brokers through the validated Job manifest, workers import
 only their workload root, and the durable ACK gate leaves ambiguous execution
 pending for redelivery.
 
-All six real command roots have reached startup against PostgreSQL and Valkey.
-This proves that the roots and exact task slicing are constructible; it does
-not prove six business workloads. The built-in registry now gives `asset-cpu`
-the thumbnail task, `agent-io` the Agent Run and Knowledge index tasks,
-`connector` the Knowledge ingest task, and `maintenance` the Provider Effect
-recovery tasks. `render-browser` and `publish` remain explicitly empty durable
-business slices; an empty slice is startup evidence, not a hidden inline
-implementation.
-
-The local OS-kill asset vertical now proves pending-message recovery, lease
-expiry, retry exhaustion, and bounded orphan cleanup. Deployment termination
-signals and readiness drain, rolling-version compatibility, capacity,
-starvation, supported idle/autoclaim timing, Valkey outage/recovery,
-poison-message operations, health, and metrics gates remain binding in
-`taskiq-workload-topology.md`, section 11. Passing the first asset vertical does
-not satisfy those deployment gates.
+Each workload is enabled only after its registered handlers, process-loss
+recovery, lease expiry, retry exhaustion, orphan cleanup, deployment shutdown,
+readiness, capacity, outage recovery, poison-message handling, health, and
+metrics gates pass. An empty workload slice remains unavailable and never falls
+back to inline or general-worker execution.
 
 Production Job creation must remain disabled with
 `BACKGROUND_JOBS_UNAVAILABLE` until schema readiness, dispatcher, required
@@ -638,7 +618,7 @@ fallback.
 
 Task names follow a stable versioned convention such as
 `jobs:{workload}:{job_type}:v{major}`. Each registered type belongs to exactly
-one workload class and broker selected by the ADR-backed producer registry.
+one workload class and broker selected by the contract-backed producer registry.
 
 Task wrappers:
 
@@ -1296,7 +1276,7 @@ migration v20 add the immutable Agent Builder snapshot and generation tables.
 The owning Builder create/get/cancel endpoints expose the accepted projection;
 there remains no generic arbitrary-Job creation API.
 
-### 14. Admin API and Resource Contracts
+### 14. Product API and Resource Contracts
 
 All paths below are domain-router-local; `/api/v1` remains owned by
 `apps/api/src/core/routes.py`. Responses use `ResponseModel[T]`, camelCase,
@@ -1355,12 +1335,12 @@ names, or worker credentials.
 | Duplicate broker delivery for terminal Job | Acknowledge duplicate, emit metric, perform no side effect. |
 | Worker receives an exact message before dispatcher DB acknowledgement | Reconcile matching outbox/job state from dispatch sequence and envelope hash, then claim normally. |
 | Worker receives a message that does not match the current dispatch sequence/hash | Reject execution and record an explicit stale/invalid-delivery outcome. |
-| Delivery sees an unexpired active Attempt | Do not execute concurrently; acknowledge/defer per ADR-backed transport behavior. |
+| Delivery sees an unexpired active Attempt | Do not execute concurrently; acknowledge/defer per contract-backed transport behavior. |
 | Attempt fencing token is stale | Reject heartbeat/progress/terminal update with `BACKGROUND_JOB_LEASE_LOST`. |
 | Worker crashes and lease expires | Reaper schedules retry or dead-letters according to policy. |
 | Cancellation requested during uninterruptible call | Keep `running` plus cancellation metadata until worker reaches a safe point. |
 | Cancellation arrives after a canonical success outcome committed | Project `succeeded`, retain and acknowledge the late request, and preserve the result reference. |
-| Duplicate delivery sees a running Attempt plus cancellation request | Do not terminalize without the active Attempt fence; defer/acknowledge the duplicate according to the topology ADR. |
+| Duplicate delivery sees a running Attempt plus cancellation request | Do not terminalize without the active Attempt fence; defer/acknowledge the duplicate according to the topology contract. |
 | Deterministic validation/build failure | Mark failed once; do not retry blindly. |
 | Retryable attempts exhausted | Mark `dead_lettered`; retain evidence and surface explicit failure. |
 | Domain outcome succeeds but public terminal update fails | Reconcile from idempotent domain outcome; do not repeat the effect. |
@@ -1435,7 +1415,7 @@ Migration order is mandatory:
    generated output and apply it through the repository upgrade script. Never
    hand-write or hand-repair migration artifacts.
 3. Implement state/repository/service/registry tests before migrating callers.
-4. Ratify the RedisStreamBroker topology ADR using the locked Taskiq packages.
+4. Ratify the RedisStreamBroker topology contract using the locked Taskiq packages.
 5. Deploy dispatcher, workload workers, scheduler leader, and health checks.
 6. Freeze old publish-job and best-effort enqueue mutation paths.
 7. Drain active old workers; no running legacy Job is guessed into a new lease.
@@ -1518,7 +1498,7 @@ domain-outcome evidence.
 
 - real Redis/Valkey plus locked Taskiq packages for publish, consume,
   acknowledgement, worker crash, redelivery, and graceful shutdown;
-- one integration case per workload broker selected by the ADR;
+- one integration case per workload broker selected by the topology contract;
 - API auth, CSRF, `PublicUUID`, envelopes, pagination, permissions, and stable
   errors;
 - cross-workspace/project Job IDs return not-found and never resolve tenant

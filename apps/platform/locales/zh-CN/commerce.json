@@ -40,7 +40,7 @@
   "PLAN_CODE": "套餐代码",
   "PLAN_CODE_REQUIRED": "请输入套餐代码。",
   "PLAN_TERMS": "版本条款",
-  "TERMS_JSON_DESCRIPTION": "请以 JSON 粘贴结构化套餐条款。系统会在保存此版本前进行检查。",
+  "TERMS_JSON_DESCRIPTION": "填写套餐条款，保存版本前系统会自动检查。",
   "TERMS_JSON_INVALID": "套餐条款必须是有效的 JSON。",
   "PUBLISH": "发布",
   "PUBLISHING": "正在发布",

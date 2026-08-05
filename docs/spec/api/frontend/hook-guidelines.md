@@ -15,7 +15,7 @@ This code-spec defines hooks that consume generated API contracts and app API la
 - Transport owner: app `src/api/**`
 - Server-state owner: React Query
 - Generated type source: `@arclayer/openapi` or app-specific generated export
-- Global query client defaults: `apps/admin/src/lib/query/query-client.ts`
+- Global query client defaults: `apps/app/src/lib/query/query-client.ts`
 - Query error suppression: `meta: { silent: true }`
 
 ### 3. Contracts

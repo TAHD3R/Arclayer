@@ -1,6 +1,6 @@
 # Platform Workspaces Governance Contract
 
-Status: Approved domain contract; experience amended 2026-08-01
+Status: Approved domain contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
 Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
@@ -9,16 +9,6 @@ Experience authority: [Product and Platform administration experience redesign](
 This contract defines the internal cross-tenant governance domain rendered to operators as `Workspaces / 工作空间`: its Workspace-first governance queue; peer User and Project investigative views; useful identity hover cards; Workspace commercial and usage projections with exact Plans & Billing deep links; Workspace lifecycle and deletion authority; case-bound Support Access Grants for customer content; project operational detail; identity cells; truncation-aware tooltips; and server-authoritative disabled/suspended access behavior.
 
 Commercial figures and subscription mutations remain owned by `workspace-commercialization.md`. This contract defines their control-plane projection and interaction, not a second billing calculation.
-
-## 2. Current-state evidence
-
-- the user directory already supports detail/update, avatar, password/session/2FA/OAuth actions, disable/enable, and delete;
-- the workspace directory supports detail/update, archive/restore, disable/enable, and delete, but its list/detail projection lacks plan, subscription, credits, and usage;
-- the current Workspace delete path accepts `system:settings:manage` and directly deletes the record after name confirmation, which is broader than the canonical Owner-or-legal Workspace Lifecycle Authority and must be replaced rather than retained as an operator convenience path;
-- the project directory supports detail/update, disable/enable, and delete, but exposes little operational context beyond workspace, owner, member count, and status;
-- workspace and project records already have icon identity fields, while tables frequently render them as generic Tags;
-- tenant tables overuse Tooltip regardless of whether text is actually truncated;
-- user login checks active status and several workspace/project repositories filter inactive entities, but there is no unified restriction code or app-level blocker and some workspace denial is represented as not-found.
 
 ## 3. Non-goals
 

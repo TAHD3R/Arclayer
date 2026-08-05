@@ -13,7 +13,6 @@ This code-spec defines repository hygiene for git scope, commits, ignored files,
 
 - Git status command: `git status --short`
 - Git diff command: `git diff -- <path>`
-- Local task workspace: `docs/plans/**`
 - Do-not-touch defaults:
   - `node_modules/**`
   - `.venv/**`

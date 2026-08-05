@@ -1,8 +1,8 @@
 # Product and Platform Separation Implementation Contract
 
-Status: Approved boundary contract; administration experience amended 2026-08-01
+Status: Approved boundary contract
 Owners: Product Application, Platform Console, API
-Applies to: `apps/admin`, `apps/platform`, `apps/api`, `packages/ui`, generated OpenAPI clients, deployment routing, and the retained Platform and Workspace domain modules
+Applies to: `apps/app`, `apps/platform`, `apps/api`, `packages/ui`, generated OpenAPI clients, deployment routing, and the retained Platform and Workspace domain modules
 
 ## 1. Purpose
 
@@ -27,15 +27,14 @@ The following precedence applies:
 2. [Product and Platform administration experience redesign](./product-admin-experience-redesign.md) owns administration IA, product language, complete-lifecycle delivery, page composition, state coverage, and the integrated experience gate.
 3. This file owns the cross-application, deployment, Session, and authority boundary.
 4. The topic contracts below own their exact domain behavior, API semantics, state matrices, copy keys, and tests.
-5. `DESIGN.md` owns the shared visual language; `docs/guidelines/frontend-design.md` explains its Admin-era implementation context without becoming a contract source.
-6. ADRs under `docs/adr/` preserve why hard-to-reverse decisions were made. They do not override a newer canonical Spec.
-7. Live code is evidence of current state, not authority for retaining legacy behavior that conflicts with these contracts.
+5. `DESIGN.md` owns the shared visual language; `docs/guidelines/frontend-design.md` explains Product and Platform implementation practice without becoming a contract source.
+6. Live code is evidence of current state, not authority for retaining legacy behavior that conflicts with these contracts.
 
 | Contract | Canonical responsibility |
 |---|---|
 | [Administration experience redesign](./product-admin-experience-redesign.md) | final Product/Platform IA, route inventory, complete lifecycle, Experience Kit, state model, visual gate, language, accessibility, rollout, and acceptance |
 | [Platform control-plane rollout](./admin-control-plane-rollout.md) | Platform domain invariants, capability-driven navigation, operational interaction rules, migration details, and Platform release gate |
-| [Product and Platform UI toolchain](../admin/frontend/product-ui-toolchain.md) | shared components, shadcn Registry use, source-donor rules, charts, route skeletons, motion, and bilingual product copy |
+| [Product and Platform UI toolchain](../app/frontend/product-ui-toolchain.md) | shared components, shadcn Registry use, source-donor rules, charts, route skeletons, motion, and bilingual product copy |
 | [Workspace commercialization](./workspace-commercialization.md) | Plans, Plan Revisions, Subscriptions, Credits, Entitlements, Free eligibility, active Project limits, Feature Seats, dunning, and Commerce |
 | [Workspace invitations and permissions](./workspace-invitation-permission-experience.md) | invitations, Fixed Member Access, Workspace roles and permissions, and member-level feature allocation |
 | [AI Website Builder platform](./ai-website-builder-platform.md) | Product Application builder, Project and Workspace setting ownership, Customization, and Product runtime contracts |
@@ -49,26 +48,11 @@ The following precedence applies:
 
 When this integration contract and a topic contract appear to disagree, implementation stops and resolves the documentation conflict explicitly. It must not choose one silently or add a compatibility branch.
 
-## 3. Verified current-state delta
-
-The 2026-07-30 repository state is a migration source with these known gaps:
-
-| Current evidence | Required target |
-|---|---|
-| `apps/admin` contains Product routes and Platform routes in `src/constants/menu/global.ts` under `/system/*`. | `apps/admin` contains Product Application code only; every Platform route, menu item, page, client, state store, locale key, skeleton, and test moves to `apps/platform` or is deleted. |
-| `apps/platform` is absent from `pnpm-workspace.yaml`, root scripts, and the application tree. | `apps/platform` is an independent `@arclayer/platform` workspace with its own build, checks, locales, route tree, OpenAPI consumer, host, and deployment artifact. |
-| `apps/api/src/main.py` exposes one `create_app()` composition. | `apps/api` exposes independently startable Product API and Platform API FastAPI compositions with separate routes, OpenAPI documents, boundary middleware, and host-facing entrypoints. |
-| Product and Platform access currently share legacy super-admin assumptions in multiple routes and projections. | Product Session, Platform Session, Workspace authority, Platform Roles, and non-delegable Instance Owner authority are separate, server-enforced contracts. |
-| `Workspace.owner_user_id` exists, but Workspace creation does not consistently populate it and access still derives `is_creator_admin` from Organization Owner plus creator identity. | `Workspace.owner_user_id` is the sole Workspace ownership authority; creation initializes it, transfer changes it explicitly, and every creator-admin or assignable Owner-role compatibility path is removed. |
-| Root build and quality scripts target only `@arclayer/admin` and `@arclayer/api`. | root scripts include `@arclayer/platform`, and `platform:check` independently enforces lint, formatting, types, tests, build, route generation, and locale parity. |
-
-These gaps are implementation inventory, not permission to preserve the old model.
-
 ## 4. Application and deployment boundaries
 
-### 4.1 Product Application — `apps/admin`
+### 4.1 Product Application — `apps/app`
 
-`apps/admin` remains package `@arclayer/admin` and is the customer-facing Product Application. Its historical directory name is not a product term and does not authorize instance-level code to remain there.
+`apps/app` is package `@arclayer/app` and is the customer-facing Product Application.
 
 It owns:
 
@@ -85,7 +69,7 @@ It does not own Platform routes, Platform Sessions, Platform Roles, cross-tenant
 
 `apps/platform` is package `@arclayer/platform` and produces an independent frontend artifact on a configured Platform Host. It owns all instance-level navigation, pages, clients, query state, local state, translations, route skeletons, tests, and browser acceptance.
 
-It may consume `@arclayer/ui`, generated Platform API types, and other explicitly public shared packages. It must not import source files from `apps/admin`, mount Product Application pages, reuse a Product Session, or preserve an embedded `/system` shell.
+It may consume `@arclayer/ui`, generated Platform API types, and other explicitly public shared packages. It must not import source files from `apps/app`, mount Product Application pages, reuse a Product Session, or preserve an embedded `/system` shell.
 
 The Console root `/` is `Overview / 总览`; `/attention` is `Needs attention / 待处理`. Stable frontend routes use the exact non-localized business segments in the administration experience redesign contract; a `/system` or `/platform` frontend prefix is forbidden.
 
@@ -386,7 +370,7 @@ Implementation may use multiple focused changes, rehearsals, and deployable back
 ### Wave 9 — One-boundary Platform cutover
 
 - enable the independently hosted Platform Console only after all retained Platform capabilities, permissions, migrations, bilingual copy, and browser scenarios pass;
-- remove every Platform route, navigation entry, page, client, store, locale key, skeleton, test, and build reference from `apps/admin` in the same release boundary;
+- remove every Platform route, navigation entry, page, client, store, locale key, skeleton, test, and build reference from `apps/app` in the same release boundary;
 - remove legacy Platform API routes, `require_super_admin` compatibility authority, aliases, facades, and old generated client surfaces;
 - retain only explicitly documented forward-compatible database changes needed to rehearse rollback of the previous complete release, followed by a declared retirement migration.
 
@@ -398,7 +382,7 @@ The rollout is complete only when all of the following pass with reproducible ev
 
 - `pnpm-workspace.yaml`, root scripts, and Turbo tasks include `@arclayer/platform`.
 - application packages do not import one another's source.
-- `apps/admin` contains no Platform routes, page modules, API clients, stores, locale keys, skeletons, or navigation entries.
+- `apps/app` contains no Platform routes, page modules, API clients, stores, locale keys, skeletons, or navigation entries.
 - Platform build output and host are independent from Product Application output and host.
 - Product API and Platform API generate distinct OpenAPI documents and frontend clients.
 
@@ -437,7 +421,7 @@ The rollout is complete only when all of the following pass with reproducible ev
 ### 14.6 Quality gates
 
 - focused migration, API contract, authorization, concurrency, and domain tests pass;
-- `pnpm admin:check`, `pnpm platform:check`, `pnpm api:check`, and `pnpm check` run through repository scripts and reach visible final results;
+- `pnpm app:check`, `pnpm platform:check`, `pnpm api:check`, and `pnpm check` run through repository scripts and reach visible final results;
 - generated route trees and OpenAPI clients are regenerated through repository generators and are clean;
 - `git diff --check`, documentation link checks, locale parity, residue scans, GitNexus `detect_changes`, and Code Review Engine changed-scope audit pass;
 - real browser QA covers Product and Platform hosts, both locales, Light/Dark/Follow system, narrow and desktop layouts, keyboard use, deep links, Session separation, error states, and the final route hard cut;
@@ -446,7 +430,7 @@ The rollout is complete only when all of the following pass with reproducible ev
 ## 15. Non-goals
 
 - Splitting `apps/api` into independently owned services or databases.
-- Renaming `apps/admin` solely to match its Product Application meaning.
+- Renaming stable administration permissions, API fields, or external configuration solely because the Product Application directory is named `app`.
 - Rebuilding the Platform Console as a generic analytics dashboard, BI tool, arbitrary widget system, or global settings catalog.
 - Making Organization the commercial tenant or allowing Plans, Credits, Usage, or Entitlements to pool across Workspaces.
 - Paid trials, temporary paid features, automatic upgrades, or silent downgrades.
@@ -456,15 +440,6 @@ The rollout is complete only when all of the following pass with reproducible ev
 - Preserving legacy `/system` routes, Admin terminology, creator-admin authority, mutable published Plans, old route aliases, or dual Product/Platform authority for compatibility.
 - Introducing defensive fallback behavior to make a partially migrated deployment appear successful.
 
-## 16. ADR traceability
+## 16. Contract traceability
 
-The approved decision record is grouped as follows:
-
-- Application and API separation: ADR 0001–0006, 0036–0037, 0043–0044, and 0047.
-- Platform home, information architecture, interaction, visual language, and configuration: ADR 0007–0009 and 0027–0046.
-- Workspace commercialization, restrictions, Hosting interaction, tenant billing, and notifications: ADR 0010–0026.
-- Platform operator lifecycle, roles, Sessions, MFA, ownership, and recovery: ADR 0028 and 0048–0061.
-- Customer-content support access, capability rollout, change application, and cross-domain attention triage: ADR 0062–0065.
-- Free Plan, Workspace eligibility, active Project allowance, Fixed Member Access, Feature Seats, Customization, and downgrade convergence: ADR 0066–0072.
-
-Every implementation change must be explainable through this Spec, one routed topic contract, and the applicable ADR rationale. A decision outside those boundaries requires an explicit contract update before code changes begin.
+Every implementation change must be explainable through this Spec and one routed topic contract. A decision outside those boundaries requires an explicit contract update before code changes begin.

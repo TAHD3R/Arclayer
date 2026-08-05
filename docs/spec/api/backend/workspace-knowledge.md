@@ -1,8 +1,6 @@
 # Workspace Knowledge Contracts
 
-**Status:** Approved Wave 1D-B contract. Manual and public-URL ingestion plus
-durable indexing are implemented; file, Connector, structured-content, and
-retrieval capabilities remain gated.
+**Status:** Approved contract.
 **Canonical target:** `docs/spec/shared/ai-website-builder-platform.md`, section 7.1.
 **Related contracts:** `docs/spec/api/backend/background-jobs.md`, `docs/spec/shared/ai-agent-runtime-protocol.md`, and `docs/spec/shared/api-contracts.md`.
 
@@ -17,7 +15,7 @@ attachment list, or prompt text copied into every conversation.
 
 - Trigger: adding or changing Knowledge bases, sources, ingestion, parsing,
   indexing, retrieval, citations, ACLs, Agent Knowledge grants, or Workspace
-  Knowledge Admin APIs.
+  Knowledge Product APIs.
 - Applies to:
   - target models under `apps/api/src/models/knowledge/**`;
   - target module `apps/api/src/modules/workspaces/knowledge/**`;
@@ -36,14 +34,9 @@ This contract does not define a general-purpose vector database API, does not
 allow arbitrary runtime network retrieval from prompts, and does not make an
 embedding provider's storage authoritative for source content.
 
-### 2. Verified Baseline and Hard-Cut Decision
+### 2. Hard-Cut and Availability Contract
 
-The pre-Wave 1D baseline had no `KnowledgeBase`, `KnowledgeSource`,
-`KnowledgeSourceVersion`, or `KnowledgeChunk` model/API. Workspace core settings
-were stored through `SettingRecord` JSON, while Agent configuration had no
-normalized Knowledge grant authority.
-
-The implemented hard cut now:
+The hard cut:
 
 - adds normalized tenant-owned Knowledge records instead of new core-setting
   keys;
@@ -55,16 +48,11 @@ The implemented hard cut now:
 - keeps retrieval, citation, and Agent Run pinning behind explicit capability
   gates until their ACL and source-version contracts are implemented.
 
-The current production boundary is deliberately narrower than the complete
-contract. Normalized Base/Policy/Source/Version/Chunk records, manual Markdown
-versions, public HTTP/HTTPS URL fetch and normalization,
-`knowledge.source.ingest` version `1`, and `knowledge.source.index` version `1`
-exist. URL ingestion is deployment-gated by both `KNOWLEDGE_SOURCE_FETCH__ENABLED`
-and `KNOWLEDGE_INDEX__ENABLED`; the capability response is false unless both are
-enabled. File, Connector, and structured-content readers are not implemented.
-Retrieval, citation delivery, ACL revalidation in retrieval, and Agent Run
-source-version pinning remain implementation gates and must not be advertised
-as available.
+URL ingestion is deployment-gated by both `KNOWLEDGE_SOURCE_FETCH__ENABLED` and
+`KNOWLEDGE_INDEX__ENABLED`; the capability response is false unless both are
+enabled. File, Connector, structured-content, retrieval, citation delivery, ACL
+revalidation, and Agent Run source-version pinning must not be advertised until
+their complete contracts and acceptance gates are active.
 
 There is no legacy Knowledge data to preserve. Any pre-existing prompt text or
 Agent system setting remains prompt configuration until a user explicitly
@@ -230,7 +218,7 @@ version after refresh.
 
 ### 5. HTTP API Surface
 
-All routes are Admin API resources under the canonical workspace-context prefix:
+All routes are Product API resources under the canonical workspace-context prefix:
 
 ```text
 /api/v1/workspaces/{workspaceId}/knowledge-bases

@@ -13,7 +13,7 @@ Use this layer for contracts that cross the backend/frontend boundary:
 
 Backend and frontend specs should link to these files instead of duplicating the same rules.
 
-## Guidelines Index
+## Specs Index
 
 | Guide | Description | Status |
 |-------|-------------|--------|
@@ -26,14 +26,15 @@ Backend and frontend specs should link to these files instead of duplicating the
 | [Product and Platform Separation](./product-platform-separation.md) | Canonical application, deployment, Session, and authority boundaries across Product, Platform, and API | Approved target |
 | [Workspace Commercialization](./workspace-commercialization.md) | Plan catalog, subscriptions, AI Credits accounting, and upgrade workflows | Active |
 | [AI Website Builder Platform](./ai-website-builder-platform.md) | Unified creation editor, multi-Agent runtime, workspace context, durable jobs, connectors, and product experience | Approved target |
-| [AI Agent Runtime Protocol](./ai-agent-runtime-protocol.md) | Backend-owned Thread/Run/event truth, versioned SSE replay, Tool responses, approvals, delegation, Credits ordering, and proof gates | Proposed Wave 0 decision |
-| [Feedback & Observability](./feedback-observability.md) | Feedback lifecycle, audit views, request telemetry, and scoped observability | Active |
+| [AI Agent Runtime Protocol](./ai-agent-runtime-protocol.md) | Backend-owned Thread/Run/event truth, versioned SSE replay, Tool responses, approvals, delegation, Credits ordering, and acceptance gates | Approved selected protocol |
+| [Platform Feedback and Support](./admin-feedback-support.md) | Feedback submission, triage, privacy, replies, audit, and support lifecycle | Approved canonical |
+| [Platform Monitoring & Audit](./admin-observability-dashboard.md) | Request investigation, telemetry, trends, audit evidence, and cross-domain attention | Approved domain |
 | [Platform Control Plane Productization](./admin-control-plane-rollout.md) | Domain invariants and rollout details behind Overview, Workspaces, AI Services, Hosting & Domains, Messages & Feedback, Extensions, Plans & Billing, Access & Security, and Monitoring & Audit | Approved target |
 
 ## Shared Layer Rules
 
 - Put implementation contracts here when both backend and frontend must obey the same shape.
-- Keep thinking prompts in `docs/spec/guides/`; keep executable signatures and payload fields here.
+- Keep thinking prompts in `docs/guidelines/`; keep executable signatures and payload fields here.
 - When a shared contract changes, update the relevant backend and frontend specs or indexes to reference it.
 - Generated OpenAPI types remain the frontend source for backend request/response shapes; shared specs define the rule, not a second type package.
 

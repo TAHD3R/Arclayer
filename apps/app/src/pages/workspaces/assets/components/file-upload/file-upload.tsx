@@ -1,0 +1,472 @@
+import {
+  CheckCircle2,
+  CircleAlert,
+  CircleHelp,
+  CloudUpload,
+  FileWarning,
+  LoaderCircle,
+  RotateCcw,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
+import { useMemo } from "react";
+import { useDropzone, type FileError, type FileRejection } from "react-dropzone";
+import { useTranslation } from "react-i18next";
+
+import { Tooltip, TooltipTrigger, TooltipContent } from "@arclayer/ui/tooltip";
+import { Button } from "@arclayer/ui/button";
+import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
+import { Progress } from "@arclayer/ui/progress";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+
+export type FileUploadItemStatus =
+  | "pending"
+  | "uploading"
+  | "finalizing"
+  | "success"
+  | "error"
+  | "finalize_error"
+  | "canceled";
+
+export interface FileUploadPanelItem {
+  id: string;
+  file: File;
+  status: FileUploadItemStatus;
+  progress: number; // 0-100
+  errorText?: string | null;
+}
+
+export interface FileUploadPanelProps {
+  items: FileUploadPanelItem[];
+  isDisabled?: boolean;
+  className?: string;
+  accept?: string;
+  maxSizeBytes?: number;
+  onPickFiles: (files: File[]) => void;
+  onDeleteItem: (id: string) => void;
+  onRetryItem?: (id: string) => void;
+  isItemActionDisabled?: (id: string) => boolean;
+  isItemRemovable?: (id: string) => boolean;
+  dropZoneHintSummary?: ReactNode;
+  dropZoneHintDetail?: ReactNode;
+}
+
+export interface FileUploadDropZoneProps {
+  className?: string;
+  isDisabled?: boolean;
+  accept?: string;
+  allowsMultiple?: boolean;
+  maxSizeBytes?: number;
+  hintSummary?: ReactNode;
+  hintDetail?: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  formatsHelpLabel?: string;
+  onPickFiles?: (files: File[]) => void;
+  onDropUnacceptedFiles?: (files: File[]) => void;
+  onSizeLimitExceed?: (files: File[]) => void;
+}
+
+function splitAcceptString(accept: string | undefined): string[] {
+  if (!accept) return [];
+  return accept
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function isFileTypeAccepted(file: File, accept: string | undefined): boolean {
+  if (!accept) return true;
+  const acceptedTypes = splitAcceptString(accept);
+  return acceptedTypes.some((acceptedType) => {
+    if (acceptedType.startsWith(".")) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!ext) return false;
+      return `.${ext}` === acceptedType.toLowerCase();
+    }
+
+    if (acceptedType.endsWith("/*")) {
+      const prefix = acceptedType.split("/")[0];
+      return file.type.startsWith(`${prefix}/`);
+    }
+
+    return file.type === acceptedType;
+  });
+}
+
+function toFiles(rejections: FileRejection[]): File[] {
+  return rejections.map((r) => r.file);
+}
+
+function getReadableFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"] as const;
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const formatted = unitIndex === 0 ? String(Math.round(value)) : value.toFixed(value < 10 ? 1 : 0);
+  return `${formatted} ${units[unitIndex]}`;
+}
+
+export interface FileUploadListItemProps {
+  name: string;
+  sizeBytes: number;
+  mimeType?: string | null;
+  progress: number; // 0-100
+  status: FileUploadItemStatus;
+  errorText?: string | null;
+  isActionDisabled?: boolean;
+  onDelete?: () => void;
+  onRetry?: () => void;
+  className?: string;
+}
+
+export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
+  const { t } = useTranslation();
+  const progress = Math.min(100, Math.max(0, Math.round(props.progress)));
+  const isComplete = props.status === "success" || progress >= 100;
+  const isFailed = props.status === "error";
+  const isCompletionPending = props.status === "finalize_error";
+
+  const statusLabel = useMemo(() => {
+    switch (props.status) {
+      case "pending":
+        return t("assets:ASSET_UPLOAD_STATUS_PENDING");
+      case "uploading":
+        return t("assets:ASSET_UPLOAD_STATUS_UPLOADING");
+      case "finalizing":
+        return t("assets:ASSET_UPLOAD_STATUS_FINALIZING");
+      case "success":
+        return t("assets:ASSET_UPLOAD_STATUS_SUCCESS");
+      case "canceled":
+        return t("assets:ASSET_UPLOAD_STATUS_CANCELED");
+      case "error":
+        return t("assets:ASSET_UPLOAD_STATUS_ERROR");
+      case "finalize_error":
+        return t("assets:ASSET_UPLOAD_STATUS_FINALIZE_REQUIRED");
+    }
+  }, [props.status, t]);
+
+  const statusIcon = useMemo(() => {
+    if (props.status === "success")
+      return <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />;
+    if (props.status === "error")
+      return <XCircle aria-hidden="true" className="size-4 text-error-primary" />;
+    if (props.status === "finalize_error")
+      return <CircleAlert aria-hidden="true" className="size-4 text-warning" />;
+    if (props.status === "canceled")
+      return <FileWarning aria-hidden="true" className="size-4 text-label-secondary" />;
+    if (props.status === "finalizing")
+      return (
+        <LoaderCircle
+          aria-hidden="true"
+          className="size-4 animate-spin text-label-secondary motion-reduce:animate-none"
+        />
+      );
+    if (props.status === "uploading")
+      return <CloudUpload aria-hidden="true" className="size-4 text-label-secondary" />;
+    return null;
+  }, [props.status]);
+
+  return (
+    <li
+      className={cn(
+        "relative flex gap-3 overflow-hidden rounded-xl bg-card p-4",
+        "border border-border/60",
+        isFailed ? "ring-2 ring-destructive ring-inset" : null,
+        isCompletionPending ? "ring-1 ring-warning/50 ring-inset" : null,
+        props.className,
+      )}
+      aria-busy={props.status === "uploading" || props.status === "finalizing"}
+    >
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-y-0 left-0 rounded-[inherit] bg-primary/6 transition-[width,opacity] duration-100 ease-linear motion-reduce:transition-none dark:bg-primary/12",
+          isComplete ? "opacity-0" : null,
+        )}
+        style={{ width: `${progress}%` }}
+      />
+
+      <div className="relative shrink-0">
+        <FileTypeIcon
+          filename={props.name}
+          mimeType={props.mimeType ?? undefined}
+          theme="auto"
+          className="size-10"
+        />
+      </div>
+
+      <div className="relative min-w-0 flex-1">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-headline text-label-primary" title={props.name}>
+              {props.name}
+            </div>
+            <div className="mt-0.5 flex min-w-0 items-center gap-2 text-callout text-label-secondary">
+              <span className="truncate">{getReadableFileSize(props.sizeBytes)}</span>
+              <span className="h-3 w-px shrink-0 rounded-full bg-border-primary" />
+              <span
+                className="inline-flex min-w-0 items-center gap-1"
+                role="status"
+                aria-live="polite"
+              >
+                {statusIcon}
+                <span className="min-w-0 truncate">{statusLabel}</span>
+              </span>
+              {props.status === "uploading" ? (
+                <span className="tabular-nums">{progress}%</span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2">
+            {(props.status === "error" || props.status === "finalize_error") && props.onRetry ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={props.isActionDisabled}
+                onClick={props.onRetry}
+              >
+                <RotateCcw aria-hidden="true" className="size-4" />
+                {props.status === "finalize_error"
+                  ? t("assets:ASSET_UPLOAD_ACTION_FINISH")
+                  : t("assets:ASSET_UPLOAD_ACTION_RETRY")}
+              </Button>
+            ) : null}
+
+            {props.onDelete ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn("px-2")}
+                    disabled={props.isActionDisabled}
+                    onClick={props.onDelete}
+                    aria-label={t("assets:ASSET_UPLOAD_REMOVE")}
+                  >
+                    <Trash2 aria-hidden="true" className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("assets:ASSET_UPLOAD_REMOVE")}</TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-2">
+          <Progress
+            value={progress}
+            className={cn(props.status === "error" ? "bg-destructive/15" : undefined)}
+          />
+          {props.errorText ? (
+            <div
+              className={cn(
+                "mt-1 text-callout",
+                isCompletionPending ? "text-warning" : "text-error-primary",
+              )}
+              role="alert"
+            >
+              {props.errorText}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function FileUploadDropZone(props: FileUploadDropZoneProps) {
+  const { t } = useTranslation();
+
+  const hintSummary = props.hintSummary ?? t("assets:ASSET_UPLOAD_DROP_HINT");
+  const hintDetail = props.hintDetail ?? t("assets:ASSET_UPLOAD_DROP_HINT_DETAIL");
+  const title = props.title ?? t("assets:ASSET_UPLOAD_DROP_TITLE");
+  const description = props.description ?? t("assets:ASSET_UPLOAD_DROP_DESC");
+  const formatsHelpLabel = props.formatsHelpLabel ?? t("assets:ASSET_UPLOAD_FORMATS_HELP");
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    multiple: props.allowsMultiple ?? true,
+    noClick: true,
+    disabled: props.isDisabled,
+    validator: (file) => {
+      const errors: FileError[] = [];
+
+      if (props.maxSizeBytes && file.size > props.maxSizeBytes) {
+        errors.push({
+          code: "file-too-large",
+          message: "File is larger than the allowed maximum size.",
+        });
+      }
+      if (!isFileTypeAccepted(file, props.accept)) {
+        errors.push({ code: "file-invalid-type", message: "File type is not allowed." });
+      }
+
+      return errors.length ? errors : null;
+    },
+    onDropAccepted: (files) => props.onPickFiles?.(files),
+    onDropRejected: (rejections) => {
+      const oversized = rejections.filter((r) => r.errors.some((e) => e.code === "file-too-large"));
+      const invalidType = rejections.filter((r) =>
+        r.errors.some((e) => e.code === "file-invalid-type"),
+      );
+      if (oversized.length) props.onSizeLimitExceed?.(toFiles(oversized));
+      if (invalidType.length) props.onDropUnacceptedFiles?.(toFiles(invalidType));
+    },
+  });
+
+  const rootProps = getRootProps({
+    role: "button",
+    tabIndex: props.isDisabled ? -1 : 0,
+    onClick: () => {
+      if (props.isDisabled) return;
+      open();
+    },
+    onKeyDown: (event) => {
+      if (props.isDisabled) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      open();
+    },
+  });
+
+  return (
+    <div
+      {...rootProps}
+      className={cn(
+        "relative flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center transition-[border-color,background-color,opacity] motion-reduce:transition-none",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        props.isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+        isDragActive
+          ? "border-primary bg-accent/35"
+          : "border-border/70 bg-card hover:border-border hover:bg-accent/25",
+        props.className,
+      )}
+    >
+      <input {...getInputProps({ accept: props.accept })} />
+
+      <CloudUpload
+        aria-hidden="true"
+        className={cn("size-10", isDragActive ? "text-primary" : "text-label-secondary")}
+      />
+
+      <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+          <Button
+            variant="link"
+            size="inline"
+            disabled={props.isDisabled}
+            className="m-0 h-auto p-0 text-body font-medium"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (props.isDisabled) return;
+              open();
+            }}
+          >
+            {title}
+          </Button>
+          <span className="text-body text-label-secondary">{description}</span>
+          <span className="text-body text-label-secondary">{hintSummary}</span>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ButtonPrimitive
+                type="button"
+                tapScale={1}
+                className={cn(
+                  "inline-flex size-6 items-center justify-center rounded-md text-label-secondary transition-colors",
+                  "hover:bg-accent/35 hover:text-label-primary",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                )}
+                aria-label={formatsHelpLabel}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                <CircleHelp aria-hidden="true" className="size-4" />
+              </ButtonPrimitive>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs whitespace-pre-line text-callout">{hintDetail}</div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export interface FileUploadRootProps extends ComponentPropsWithRef<"div"> {}
+
+export function FileUploadRoot(props: FileUploadRootProps) {
+  return <div {...props} className={cn("flex flex-col gap-4", props.className)} />;
+}
+
+export interface FileUploadListProps extends ComponentPropsWithRef<"ul"> {}
+
+export function FileUploadList(props: FileUploadListProps) {
+  return <ul {...props} className={cn("grid gap-3", props.className)} />;
+}
+
+export function FileUploadPanel(props: FileUploadPanelProps) {
+  return (
+    <div className={cn("flex flex-col", props.className)}>
+      <div className="px-5">
+        <FileUploadDropZone
+          isDisabled={props.isDisabled}
+          accept={props.accept}
+          maxSizeBytes={props.maxSizeBytes}
+          hintSummary={props.dropZoneHintSummary}
+          hintDetail={props.dropZoneHintDetail}
+          onPickFiles={props.onPickFiles}
+        />
+      </div>
+
+      {props.items.length ? (
+        <div className="px-5 pt-4 pb-5">
+          <FileUploadList className="mt-3 pr-1">
+            {props.items.map((it) => (
+              <FileUploadListItemProgressFill
+                key={it.id}
+                name={it.file.name}
+                sizeBytes={it.file.size}
+                mimeType={it.file.type || null}
+                progress={it.progress}
+                status={it.status}
+                errorText={it.errorText ?? null}
+                isActionDisabled={props.isItemActionDisabled?.(it.id)}
+                onDelete={
+                  props.isItemRemovable?.(it.id) === false
+                    ? undefined
+                    : () => props.onDeleteItem(it.id)
+                }
+                onRetry={
+                  (it.status === "error" || it.status === "finalize_error") && props.onRetryItem
+                    ? () => props.onRetryItem?.(it.id)
+                    : undefined
+                }
+              />
+            ))}
+          </FileUploadList>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export const FileUpload = {
+  Root: FileUploadRoot,
+  DropZone: FileUploadDropZone,
+  List: FileUploadList,
+  ListItemProgressFill: FileUploadListItemProgressFill,
+  Panel: FileUploadPanel,
+  getReadableFileSize,
+};

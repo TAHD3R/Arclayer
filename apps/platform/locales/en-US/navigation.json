@@ -57,13 +57,13 @@
   "COMMAND_EMPTY": "No available pages match your search.",
   "COMMAND_RECENT": "Recently opened",
   "COMMAND_DESTINATIONS": "Pages you can open",
-  "COMMAND_PARTIAL": "Some pages you can use are not available in this Arclayer Admin release.",
+  "COMMAND_PARTIAL": "Some pages you can access aren't included in this version of Arclayer Admin.",
   "COMMAND_RECENT_UNAVAILABLE": "Recently opened pages couldn't be loaded. You can still use the pages shown here.",
   "CAPABILITY_LOADING": "Loading available pages…",
   "CAPABILITY_ERROR_TITLE": "Can't load available pages",
   "CAPABILITY_ERROR_DESCRIPTION": "We can't confirm which pages you can open right now. Try again when the service is available.",
-  "CAPABILITY_ERROR_CODE": "Error code: {{code}}",
+  "CAPABILITY_ERROR_CODE": "We couldn't load your available pages. If support asks, share code {{code}}.",
   "CAPABILITY_RETRY": "Try again",
-  "CAPABILITY_PARTIAL": "Some pages you can use are not available in this Arclayer Admin release.",
+  "CAPABILITY_PARTIAL": "Some pages you can access aren't included in this version of Arclayer Admin.",
   "CAPABILITY_UNAUTHORIZED": "Your Platform account can't open this page."
 }
