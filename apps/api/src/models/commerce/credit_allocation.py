@@ -35,6 +35,17 @@ class CreditLotMutationKind(StrEnum):
     EXPIRATION = "expiration"
 
 
+class MemberCreditCommandScopeKind(StrEnum):
+    DEFAULT = "default"
+    OVERRIDE = "override"
+
+
+class MemberCreditCommandOperation(StrEnum):
+    SET_DEFAULT = "set_default"
+    SET_OVERRIDE = "set_override"
+    CLEAR_OVERRIDE = "clear_override"
+
+
 class WorkspaceCreditGrantLot(BaseModel):
     """Immutable-source Credit allocation with mutable remaining and reservation counters."""
 
@@ -180,6 +191,41 @@ class WorkspaceMemberCreditLimitOverride(BaseModel):
         table_description = "Explicit per-member monthly Credit limit overrides."
         abstract = False
         unique_together = (("workspace_id", "membership_id"),)
+
+
+class WorkspaceMemberCreditCommandReceipt(BaseModel):
+    """Immutable result for one Workspace-scoped member Credit configuration command."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace", related_name="member_credit_command_receipts", on_delete=fields.CASCADE
+    )
+    scope_kind = fields.CharEnumField(MemberCreditCommandScopeKind)
+    membership_id = fields.UUIDField(null=True)
+    idempotency_key_hash = fields.CharField(max_length=64)
+    request_fingerprint = fields.CharField(max_length=64)
+    operation = fields.CharEnumField(MemberCreditCommandOperation)
+    result_revision = fields.BigIntField()
+    result_snapshot = fields.JSONField()
+    audit_event = fields.ForeignKeyField(
+        "models.AuditEvent",
+        source_field="audit_event_id",
+        related_name="commerce_member_credit_command_receipts",
+        on_delete=fields.RESTRICT,
+    )
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        audit_event_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_workspace_member_credit_command_receipts"
+        table_description = "Durable idempotency receipts for member Credit configuration commands."
+        abstract = False
+        unique_together = (("workspace_id", "idempotency_key_hash"),)
+        indexes = (
+            ("workspace_id", "created_at"),
+            ("membership_id", "created_at"),
+        )
 
 
 class WorkspaceMemberCreditUsagePeriod(BaseModel):

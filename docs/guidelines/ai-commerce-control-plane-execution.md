@@ -101,8 +101,8 @@ Data semantics:
 
 Active implementation parts:
 
-1. M1.1 schemas, repository/service, receipts, and migration extension.
-2. M1.2 Product router contracts and authorization tests.
+1. M1.1 schemas, repository/service, receipts, and migration extension. — Complete
+2. M1.2 Product router contracts and authorization tests. — Active
 3. M1.3 OpenAPI synchronization and Product API wrappers.
 4. M1.4 Plan & Usage default-limit/usage surface.
 5. M1.5 People Usage column and per-member override dialog.
@@ -115,9 +115,41 @@ M1.1 acceptance criteria:
 - Do not reset or rewrite Usage when a limit changes.
 - Cover replay, conflict, stale revision, concurrent requests, Owner self-override, and invalid limit shapes.
 
+M1.1 status: Complete
+
+M1.1 implementation evidence:
+
+- Added typed default-limit, member-override, effective-limit, and mutation-result schemas with strict `limited`, `unlimited`, and `clear` shape validation.
+- Added an injected repository/service composition. The service owns revision, precedence, and command semantics; the Tortoise repository owns row locks, persistence, required Activity evidence, and durable receipts.
+- Workspace mutations serialize on the active Workspace row, then lock active actor/target memberships, policy, override, and receipt in a deterministic order.
+- `WorkspaceMemberCreditPolicy.revision` is the Workspace-wide configuration revision. Override writes and clears advance it without modifying current-period Usage rows.
+- Added Workspace-scoped receipt identity and request fingerprints covering actor, target, operation, expected revision, and payload. Exact replays return the stored snapshot; changed commands conflict before stale-revision evaluation.
+- Receipt replay validates scope, membership snapshot, result revision, and the complete output schema. Corrupt persistence evidence fails explicitly.
+- Receipt Activity evidence records operation, scope, expected/result revision, request hashes, and before/after limit snapshots in the same transaction.
+- Added migration `0117_workspace_member_credit_command_receipts`. Receipts cascade with Workspace deletion, retain membership UUID snapshots after membership deletion, and restrict deletion of their linked audit event.
+
+M1.1 validation:
+
+- Targeted Ruff formatting/checks: passed.
+- Targeted `ty` checks across schemas, repository/service/composition, models, and tests: passed.
+- Schema, model, and migration unit tests: `10 passed`.
+- Real PostgreSQL repository/service tests covering replay, conflict, stale revision, Owner self-override, explicit unlimited versus clear, inactive/cross-Workspace targets, same-key concurrency, revision races, Usage preservation, and archived Workspace rejection: `5 passed`.
+- Real PostgreSQL `0116 → 0117` migration contract test: `1 passed`.
+- `pnpm api:check`: failed outside M1.1 on existing API Ruff findings and 28 existing format-check files; Turbo interrupted the remaining package tasks after those gates failed. No M1.1 targeted diagnostic remained.
+
+M1.2 active boundary:
+
+- Add the four Product Workspace Commerce routes listed above.
+- Reuse the canonical Workspace authorization stack; do not duplicate role interpretation.
+- Owner has full read/write authority, including self-override.
+- Billing Manager requires exact `workspace:commerce:manage` plus the revision-bound management entitlement.
+- Ordinary active members may read only their own Usage.
+- Route tests must cover Owner, entitled Billing Manager, ordinary member self-only access, disabled membership, cross-Workspace target, idempotency, and revision errors.
+
 ## Known unrelated repository failures
 
-- API Ruff currently reports existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, and a Workspace notification test.
+- API Ruff currently reports existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, Platform Jobs composition, and other files outside M1.1.
+- API format check currently reports 28 existing files outside M1.1 that would be reformatted.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
 
@@ -134,4 +166,12 @@ M1.1 acceptance criteria:
 
 - Execution record created before M1 code changes.
 - Existing Product Commerce router, Workspace authorization, member models, Plan & Usage, People table, OpenAPI clients, and i18n surfaces mapped.
-- M1.1 is the only active implementation part.
+- M1.1 was selected as the only active implementation part.
+
+### 2026-08-05 — M1.1 member limit command foundation
+
+- Completed strict member-limit command/output schemas and explicit unlimited-versus-clear semantics.
+- Completed repository/service separation, deterministic locking, Workspace-wide optimistic revision, durable replay receipts, and required Activity evidence.
+- Completed and verified migration `0117_workspace_member_credit_command_receipts`.
+- Verified `10` unit tests, `5` repository/service integration tests, and `1` real PostgreSQL migration test.
+- Advanced the active implementation part to M1.2 Product router contracts and authorization tests.
