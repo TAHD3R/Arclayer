@@ -13,6 +13,7 @@ from src.models.commerce.access_facts import CommercialAccessFact
 from src.models.commerce.billing import (
     BillingCycle,
     BillingProviderMode,
+    CommerceDunningPolicy,
     CommerceEntitlementDefinition,
     CommercePlan,
     CommercePlanRevision,
@@ -279,6 +280,17 @@ async def test_verified_dunning_uses_the_eager_loaded_plan_revision_for_current_
         amount_micros=10_000_000,
         external_price_id=external_price_id,
     )
+    policy = await CommerceDunningPolicy.create(
+        provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+        revision=1,
+        is_active=True,
+        policy={
+            "recoveryDeadlineSource": "provider",
+            "paymentGraceEffects": {"meteredEffects": "blocked"},
+            "paymentRestrictedEffects": {"valueExpansion": "blocked"},
+        },
+    )
     access = await WorkspaceCommercialAccess.create(
         workspace_id=workspace.id,
         subscription_id=current.id,
@@ -327,6 +339,9 @@ async def test_verified_dunning_uses_the_eager_loaded_plan_revision_for_current_
     application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
     assert access.state == CommercialAccessState.PAYMENT_GRACE
     assert access.state_revision == 2
+    assert access.dunning_policy_id == policy.id
+    assert access.provider_period_identity == provider_period_id
+    assert access.source_occurred_at == now
     assert application.plan_revision_id == source.id
     assert application.provider_period_identity == provider_period_id
 
@@ -405,7 +420,10 @@ async def test_access_fact_job_and_dispatch_roll_back_together(db_schema) -> Non
             workspace_id=workspace_id,
             subscription_revision_id=uuid4(),
             provider="stripe",
+            provider_mode="test",
             provider_period_id="in_test",
+            provider_period_start=now,
+            provider_period_end=now + timedelta(days=30),
             state=CommercialAccessState.PAYMENT_GRACE,
             recovery_deadline=now + timedelta(days=1),
             access_revision=2,

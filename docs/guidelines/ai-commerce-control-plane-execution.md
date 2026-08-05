@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3b dunning and restricted-access projection.
+Current active part: M2.3b.3 Restricted Recovery denial projection and closure.
 
 Repository baseline:
 
@@ -522,9 +522,9 @@ M2.3a.2 validation:
      - Extend only `subscription.lifecycle` with a closed `payment_failure | final_unpaid` dunning union. Payment failure requires `past_due`, exact Provider period identity, event occurrence time, and an explicit later recovery deadline; final unpaid carries no deadline.
      - Apply the normalized fact only through signature verification, encrypted inbox, pinned Billing Job, Subscription application, `VerifiedProviderDunningFact`, the canonical access-state composition, immutable transition/outbox facts, and optimistic access revision.
      - Prove `normal -> payment_grace` and `payment_grace -> payment_restricted` without changing the bound Plan Revision, granting Credits, implementing recovery/renewal, or adding Platform simulator APIs.
-   - M2.3b.2 Provider-aware policy enforcement and dunning ordering. — Active
+   - M2.3b.2 Provider-aware policy enforcement and dunning ordering. — Complete
      - Resolve the active Provider/mode Dunning Policy, reject missing or inconsistent policy/recovery metadata explicitly, and prevent duplicate or stale Provider facts from extending or regressing the current state.
-   - M2.3b.3 Restricted Recovery denial projection and closure. — Pending
+   - M2.3b.3 Restricted Recovery denial projection and closure. — Active
      - Verify the existing Product API/Job command matrix against the projected state, withheld period Credit behavior, immutable Hosting/notification handoffs, and the complete focused/package regression before advancing to recovery.
 3. M2.3c recovery, renewal, and closure. — Pending
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
@@ -546,16 +546,37 @@ M2.3b.1 validation:
 - `pnpm api:check` passed lint and formatting across `1861` files. Broad typecheck remains blocked by `290` existing diagnostics, so Turbo interrupted broad pytest; no fallback or suppression was added.
 - Changed-scope Code Review Engine reported zero blocking findings and only the existing i18n and simulated Connector lifecycle prototype reports.
 
+M2.3b.2 implementation evidence:
+
+- Added exact active Dunning Policy resolution by Provider and mode. Missing, multi-active, invalid-mode, non-Provider deadline, empty, or non-object effect metadata fails explicitly before Subscription, access, Credit-account, application, transition, or outbox state commits.
+- Moved Provider application claim, policy resolution, access ordering, transition/outbox writes, Subscription/Credit-account projection, and application completion into one database transaction. A failed policy or access write rolls back the complete application boundary.
+- Expanded the verified dunning identity to Provider, mode, Provider account, event, exact Provider period boundaries, occurrence time, Subscription Revision, and policy Revision. Durable transition lookup and uniqueness no longer conflate test/live or separate Provider accounts that reuse an event id.
+- Rebuilt replay receipts exclusively from immutable transition snapshots rather than the mutable current Subscription. Historical replay preserves its original Revision, Provider mode, account/event scope, period, access revision, occurrence evidence, and policy revision after later transitions or Subscription changes.
+- Added explicit `transitioned`, `replayed`, `stale_ignored`, `state_repeat_ignored`, and `state_regression_ignored` outcomes. Later failure retries cannot extend a Grace deadline; delayed older periods remain stale even with a later arrival time; Restricted cannot regress to Grace; and a recovered Provider period cannot re-enter dunning from a later failure fact.
+- Standardized the transactional lock order as Subscription before commercial access, removing the dunning/recovery lock-order cycle while preserving optimistic access revision checks.
+- Added migration `0123_dunning_policy_ordering_evidence`. It backfills exact Provider application, Subscription Revision, Provider period, and resulting access-revision evidence for M2.3b.1 transitions, rejects ambiguous/incomplete legacy evidence, enforces non-null snapshot columns and scoped event uniqueness, and prevents database updates to historical transitions while retaining Workspace lifecycle cascade behavior.
+
+M2.3b.2 validation:
+
+- Focused access-state, policy, and Restricted Recovery unit regression passed `37` tests.
+- Simulated Connector, Stripe Connector, and Billing event Job regression passed `33` tests.
+- Real PostgreSQL Provider application and simulated lifecycle regression passed `17` tests, covering policy failure rollback, exact replay, Grace deadline stability, stale and regressing facts, immutable historical receipts, Provider period ordering, and unchanged Stripe behavior.
+- Real PostgreSQL `0122 -> 0123` legacy-data migration coverage passed `1` test, including exact snapshot backfill, non-null evidence, current access-period backfill, and database-level immutable transition rejection.
+- The active database was rolled back to `0122`, upgraded through the final `0123`, and migration generation reported `No changes detected`.
+- Targeted Ruff lint/format and `ty` checks passed across the changed model, migration, access-state/application runtime, and tests.
+- `pnpm api:check`: API lint and formatting passed across `1862` files. Broad typecheck remains blocked by `289` existing diagnostics in Design System/content and unrelated test surfaces; Turbo interrupted broad pytest after that failure. All M2.3b.2 focused and PostgreSQL tests remain green.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `25` report-only findings are the existing prototype backend error-localization pattern on changed access-state/application files; no architecture or lifecycle blocker was reported.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
-- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
+- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3b.2 package gate reports `289` diagnostics while targeted Commerce type checking passes.
 - The M2.2a `pnpm api:check` run still fails on `294` existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
 - Product App typecheck currently fails because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside Commerce work.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
 - The M2.2a broad Product Vitest run observed one nondeterministic `workspace-guidance-view.test.tsx` failure; its immediate isolated rerun passed `5/5`.
-- Changed-scope Code Review Engine currently has zero blockers and only the two Connector lifecycle prototype reports documented in M2.2a validation.
+- Changed-scope Code Review Engine currently has zero blockers. The latest M2.3b.2 audit reports `25` report-only prototype backend error-localization findings on changed access-state/application files.
 
 ## Progress log
 
@@ -708,3 +729,13 @@ M2.3b.1 validation:
 - Fixed Hosting handoff state serialization exposed by the first real restricted-access projection.
 - Verified `51` focused unit tests, `14` PostgreSQL integration tests, targeted static checks, and zero changed-scope Code Review Engine blockers.
 - Advanced the only active implementation part to M2.3b.2 Provider-aware policy enforcement and dunning ordering.
+
+### 2026-08-05 — M2.3b.2 Provider-aware policy and ordering
+
+- Added strict Provider/mode Dunning Policy resolution and kept policy failure inside the atomic Provider application transaction.
+- Persisted exact Provider account/event, Subscription Revision, Provider period boundaries, occurrence time, resulting access revision, and policy revision on immutable transitions; replay no longer reads mutable current Subscription facts.
+- Added explicit duplicate, stale, repeat, and regression convergence, including recovered-period and delayed-older-period protection without extending the original Grace deadline.
+- Rebuilt migration `0123` with legacy M2.3b.1 evidence backfill, ambiguity rejection, non-null snapshot enforcement, scoped uniqueness, canonical Subscription-before-access locks, and database-level transition update rejection.
+- Verified `37` focused access/policy tests, `33` Connector/Job regressions, `17` PostgreSQL lifecycle tests, `1` PostgreSQL migration test, targeted static checks, final database upgrade, and zero migration drift.
+- Recorded the existing `289` broad API type diagnostics and `25` report-only Code Review Engine localization findings without suppression or fallback.
+- Advanced the only active implementation part to M2.3b.3 Restricted Recovery denial projection and closure.

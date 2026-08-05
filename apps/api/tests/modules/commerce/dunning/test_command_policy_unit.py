@@ -13,6 +13,7 @@ def _projection(*, workspace_id: UUID, state: str = "payment_restricted"):
         workspace_id=workspace_id,
         subscription_revision_id=uuid4(),
         provider="stripe",
+        provider_mode="test",
         provider_period_id="period-4",
         state=CommercialAccessState(state),
         recovery_deadline=None,

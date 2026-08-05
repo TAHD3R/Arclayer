@@ -14,6 +14,7 @@ def _projection(*, state="payment_restricted"):
         workspace_id=uuid4(),
         subscription_revision_id=uuid4(),
         provider="stripe",
+        provider_mode="test",
         provider_period_id="period-4",
         state=access_state,
         recovery_deadline=(

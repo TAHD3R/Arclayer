@@ -25,7 +25,15 @@ from src.modules.commerce.access_state.composition import (
     CommercialAccessStateComposition,
     build_commercial_access_state_composition,
 )
-from src.modules.commerce.access_state.schema import ProviderDunningFactKind, VerifiedProviderDunningFact
+from src.modules.commerce.access_state.dunning_policy import (
+    DunningPolicyResolver,
+    TortoiseDunningPolicyResolver,
+)
+from src.modules.commerce.access_state.schema import (
+    CommercialAccessStateApplyOutcome,
+    ProviderDunningFactKind,
+    VerifiedProviderDunningFact,
+)
 from src.modules.commerce.billing_connector import ProviderSubscription
 from src.modules.commerce.checkout_activation_repository import (
     CheckoutActivationRecord,
@@ -99,12 +107,14 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         convergence: PlanAccessConvergenceService | None = None,
         convergence_resolver: ProviderConfirmedConvergenceResolver | None = None,
         checkout_activation: TortoiseCheckoutActivationRepository | None = None,
+        dunning_policy: DunningPolicyResolver | None = None,
     ) -> None:
         super().__init__(settings)
         self._access_state = access_state or build_commercial_access_state_composition(settings=self.settings)
         self._convergence = convergence or build_plan_access_convergence_service(self.settings)
         self._convergence_resolver = convergence_resolver or TortoiseProviderConfirmedConvergenceResolver()
         self._checkout_activation = checkout_activation or TortoiseCheckoutActivationRepository()
+        self._dunning_policy = dunning_policy or TortoiseDunningPolicyResolver()
 
     async def apply_provider_subscription(
         self,
@@ -180,6 +190,21 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                     current=workspace_subscription,
                     incoming=subscription,
                 )
+                dunning_outcome = await self._apply_verified_dunning_fact(
+                    subscription=subscription,
+                    provider=provider,
+                    provider_mode=mode,
+                    provider_account_id=provider_account_id,
+                    verified_event=verified_event,
+                    conn=conn,
+                )
+                if dunning_outcome is not None and not dunning_outcome.transitioned:
+                    await self._complete_application(
+                        application=application,
+                        result_code=f"dunning_{dunning_outcome.disposition}",
+                        conn=conn,
+                    )
+                    return
                 credit_account = await self._lock_credit_account(
                     workspace_id=subscription.workspace_id,
                     subscription_id=workspace_subscription.id,
@@ -198,16 +223,13 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                 )
                 await workspace_subscription.save(using_db=conn)
                 await credit_account.save(using_db=conn)
-                application.applied_at = datetime.now(UTC)
-                application.result_code = "applied"
-                await application.save(update_fields=["applied_at", "result_code"], using_db=conn)
+                await self._complete_application(
+                    application=application,
+                    result_code="applied",
+                    conn=conn,
+                )
         if reconciliation_error is not None:
             raise reconciliation_error
-        await self._apply_verified_dunning_fact(
-            subscription=subscription,
-            provider=provider,
-            verified_event=verified_event,
-        )
 
     async def _apply_confirmed_convergence(
         self,
@@ -317,31 +339,60 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         *,
         subscription: ProviderSubscription,
         provider: str,
+        provider_mode: BillingProviderMode,
+        provider_account_id: str,
         verified_event: VerifiedBillingProviderEvent,
-    ) -> None:
+        conn: BaseDBAsyncClient,
+    ) -> CommercialAccessStateApplyOutcome | None:
         dunning = subscription.dunning_event
         if dunning is None:
-            return
-        projection = await self._access_state.current_projection(workspace_id=subscription.workspace_id)
+            return None
+        policy = await self._dunning_policy.resolve(
+            provider=provider,
+            provider_mode=provider_mode.value,
+            conn=conn,
+        )
+        projection = await self._access_state.current_projection(
+            workspace_id=subscription.workspace_id,
+            conn=conn,
+            for_update=True,
+        )
         if projection is None:
             raise ServiceUnavailable(error="COMMERCIAL_ACCESS_STATE_UNAVAILABLE")
         source = VerifiedProviderDunningFact(
             workspace_id=subscription.workspace_id,
             subscription_revision_id=subscription.plan_revision_id,
             provider=provider,
+            provider_mode=provider_mode.value,
+            provider_account_id=provider_account_id,
             provider_event_id=verified_event.provider_event_id,
             provider_period_id=dunning.provider_period_id,
+            provider_period_start=subscription.current_period_start,
+            provider_period_end=subscription.current_period_end,
             kind=ProviderDunningFactKind(dunning.kind),
             occurred_at=dunning.occurred_at,
             recovery_deadline=dunning.recovery_deadline,
             source_payload_sha256=verified_event.payload_sha256,
             signature_reference=verified_event.signature_reference,
         )
-        await self._access_state.apply_verified_provider_fact(
+        return await self._access_state.apply_verified_provider_fact_outcome(
             source=source,
+            policy=policy,
             expected_access_revision=projection.access_revision,
             idempotency_key=f"provider:{provider}:{verified_event.provider_event_id}",
+            conn=conn,
         )
+
+    @staticmethod
+    async def _complete_application(
+        *,
+        application: CommerceProviderEventApplication,
+        result_code: str,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        application.applied_at = datetime.now(UTC)
+        application.result_code = result_code
+        await application.save(update_fields=["applied_at", "result_code"], using_db=conn)
 
     async def _claim_event(
         self,
@@ -462,7 +513,9 @@ class BillingProviderSubscriptionApplicationService(BaseService):
             or identity.checkout_outcome_command_id != activation_command_id
         ):
             raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
-        if identity.applied_at is not None and identity.result_code == "applied":
+        if identity.applied_at is not None and (
+            identity.result_code == "applied" or (identity.result_code or "").startswith("dunning_")
+        ):
             return True
         if identity.applied_at is None and identity.result_code == "provider_reconciliation_required":
             return False

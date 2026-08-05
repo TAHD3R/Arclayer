@@ -663,8 +663,23 @@ class WorkspaceCommercialAccess(BaseModel):
     )
     state = fields.CharEnumField(CommercialAccessState, default=CommercialAccessState.NORMAL, db_index=True)
     deadline_at = fields.DatetimeField(null=True, db_index=True)
+    provider_period_identity = fields.CharField(max_length=255, null=True)
+    provider_period_start = fields.DatetimeField(null=True)
+    provider_period_end = fields.DatetimeField(null=True)
+    source_occurred_at = fields.DatetimeField(null=True, db_index=True)
+    dunning_policy = fields.ForeignKeyField(
+        "models.CommerceDunningPolicy",
+        related_name="current_access_projections",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
     state_revision = fields.BigIntField(default=1)
     source_identity = fields.CharField(max_length=255, unique=True)
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        subscription_id: UUID
+        dunning_policy_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "commerce_workspace_commercial_access"
@@ -682,14 +697,36 @@ class CommercialAccessTransition(BaseModel):
     from_state = fields.CharEnumField(CommercialAccessState)
     to_state = fields.CharEnumField(CommercialAccessState)
     deadline_at = fields.DatetimeField(null=True)
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharField(max_length=16)
+    provider_account_id = fields.CharField(max_length=255)
+    provider_event_id = fields.CharField(max_length=255)
+    subscription_revision_identity = fields.UUIDField()
+    provider_period_identity = fields.CharField(max_length=255)
+    provider_period_start = fields.DatetimeField()
+    provider_period_end = fields.DatetimeField()
+    source_occurred_at = fields.DatetimeField(null=True, db_index=True)
+    resulting_state_revision = fields.BigIntField()
+    dunning_policy_revision = fields.BigIntField(null=True)
+    dunning_policy = fields.ForeignKeyField(
+        "models.CommerceDunningPolicy",
+        related_name="access_transitions",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
     source_identity = fields.CharField(max_length=255, unique=True)
     correlation_id = fields.UUIDField(unique=True, db_index=True)
+
+    if TYPE_CHECKING:
+        access_id: UUID
+        dunning_policy_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "commerce_commercial_access_transitions"
         table_description = "Immutable Commerce Payment Grace and Restricted transition history."
         abstract = False
         indexes = (("access_id", "created_at"),)
+        unique_together = (("provider", "provider_mode", "provider_account_id", "provider_event_id"),)
 
 
 class CommercePolicyException(BaseModel):

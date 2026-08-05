@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -14,6 +15,7 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
         CommercialAccessState,
         ProviderDunningFact,
         ProviderDunningFactKind,
+        ResolvedDunningPolicy,
         VerifiedProviderDunningFact,
     )
 
@@ -24,8 +26,12 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
         workspace_id=workspace_id,
         subscription_revision_id=revision_id,
         provider="stripe",
+        provider_mode="test",
+        provider_account_id="platform",
         provider_event_id="evt_verified",
         provider_period_id="period_verified",
+        provider_period_start=now,
+        provider_period_end=now + timedelta(days=30),
         kind=ProviderDunningFactKind.PAYMENT_FAILURE,
         occurred_at=now,
         recovery_deadline=now + timedelta(days=5),
@@ -36,7 +42,10 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
         workspace_id=workspace_id,
         subscription_revision_id=revision_id,
         provider="stripe",
+        provider_mode="test",
         provider_period_id="period_previous",
+        provider_period_start=now - timedelta(days=30),
+        provider_period_end=now,
         state=CommercialAccessState.NORMAL,
         recovery_deadline=None,
         access_revision=1,
@@ -51,7 +60,7 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
         async def get_projection(self, **_kwargs):
             return projection
 
-        async def compare_and_append(self, *, write):
+        async def compare_and_append(self, *, write, **_kwargs):
             return write.result
 
         async def get_decision(self, **_kwargs):
@@ -67,6 +76,12 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
 
     result = await composition.apply_verified_provider_fact(
         source=verified,
+        policy=ResolvedDunningPolicy(
+            policy_id=uuid4(),
+            provider="stripe",
+            provider_mode="test",
+            revision=1,
+        ),
         expected_access_revision=1,
         idempotency_key="provider:stripe:evt_verified",
     )
@@ -76,7 +91,13 @@ async def test_composition_applies_only_the_injected_verified_provider_fact() ->
     raw = ProviderDunningFact(**verified.model_dump(exclude={"signature_reference"}))
     with pytest.raises(TypeError, match="VerifiedProviderDunningFact"):
         await composition.apply_verified_provider_fact(
-            source=raw,  # type: ignore[arg-type]
+            source=cast(VerifiedProviderDunningFact, raw),
+            policy=ResolvedDunningPolicy(
+                policy_id=uuid4(),
+                provider="stripe",
+                provider_mode="test",
+                revision=1,
+            ),
             expected_access_revision=1,
             idempotency_key="provider:stripe:evt_raw",
         )

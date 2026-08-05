@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.config import Settings
 from src.core.exceptions import ServiceUnavailable
 from src.core.i18n import t
@@ -16,10 +18,12 @@ from src.modules.commerce.access_state.schema import (
     CommercialAccessMemberView,
     CommercialAccessProjection,
     CommercialAccessRecoveryView,
+    CommercialAccessStateApplyOutcome,
     CommercialAccessStateApplyResult,
     PaymentRecoveryGrantDecision,
     PaymentRecoveryGrantRequest,
     ProviderDunningTransitionRequest,
+    ResolvedDunningPolicy,
     VerifiedProviderDunningFact,
 )
 from src.modules.commerce.access_state.service import CommercialAccessStateService
@@ -58,9 +62,27 @@ class CommercialAccessStateComposition:
         self,
         *,
         source: VerifiedProviderDunningFact,
+        policy: ResolvedDunningPolicy,
         expected_access_revision: int,
         idempotency_key: str,
     ) -> CommercialAccessStateApplyResult:
+        outcome = await self.apply_verified_provider_fact_outcome(
+            source=source,
+            policy=policy,
+            expected_access_revision=expected_access_revision,
+            idempotency_key=idempotency_key,
+        )
+        return outcome.result
+
+    async def apply_verified_provider_fact_outcome(
+        self,
+        *,
+        source: VerifiedProviderDunningFact,
+        policy: ResolvedDunningPolicy,
+        expected_access_revision: int,
+        idempotency_key: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> CommercialAccessStateApplyOutcome:
         if not isinstance(source, VerifiedProviderDunningFact):
             raise TypeError("source must be a VerifiedProviderDunningFact")
         service = CommercialAccessStateService(
@@ -72,15 +94,27 @@ class CommercialAccessStateComposition:
         return await service.apply_provider_fact(
             request=ProviderDunningTransitionRequest(
                 source=source,
+                policy=policy,
                 expected_access_revision=expected_access_revision,
                 idempotency_key=idempotency_key,
-            )
+            ),
+            conn=conn,
         )
 
-    async def current_projection(self, *, workspace_id) -> CommercialAccessProjection | None:
+    async def current_projection(
+        self,
+        *,
+        workspace_id,
+        conn: BaseDBAsyncClient | None = None,
+        for_update: bool = False,
+    ) -> CommercialAccessProjection | None:
         """Expose the current revision required by a verified provider transition."""
 
-        return await self._persistence.get_projection(workspace_id=workspace_id)
+        return await self._persistence.get_projection(
+            workspace_id=workspace_id,
+            conn=conn,
+            for_update=for_update,
+        )
 
     async def decide_verified_recovery_grant(
         self,

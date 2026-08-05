@@ -17,11 +17,13 @@ from pydantic import SecretStr
 
 from src.config import Settings, get_settings
 from src.core.connectors import ConnectorDefinition, ConnectorKind, ConnectorTrustLevel
+from src.core.exceptions import ServiceUnavailable
 from src.core.registries import ConnectorRegistry
 from src.models.commerce.access_facts import CommercialAccessFact, CommercialAccessFactKind
 from src.models.commerce.billing import (
     BillingCycle,
     BillingProviderMode,
+    CommerceDunningPolicy,
     CommerceEntitlementDefinition,
     CommercePlan,
     CommercePlanRevision,
@@ -49,7 +51,8 @@ from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInbox
 from src.models.jobs.background_job import BackgroundJobRecord, JobDispatchOutboxRecord
 from src.models.organization.organization import Organization
 from src.models.workspaces.workspace import Workspace
-from src.modules.commerce.billing_connector import BillingConnector
+from src.modules.commerce.access_state.repository import TortoiseCommercialAccessStateRepository
+from src.modules.commerce.billing_connector import BillingConnector, ProviderDunningEvent, ProviderSubscription
 from src.modules.commerce.billing_event_acceptance_service import BillingEventAcceptanceService
 from src.modules.commerce.billing_event_job_contract import (
     BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE,
@@ -559,6 +562,17 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
 ) -> None:
     _ = db_schema
     fixture = await _fixture()
+    policy = await CommerceDunningPolicy.create(
+        provider="simulated",
+        provider_mode=BillingProviderMode.TEST,
+        revision=1,
+        is_active=True,
+        policy={
+            "recoveryDeadlineSource": "provider",
+            "paymentGraceEffects": {"meteredEffects": "blocked"},
+            "paymentRestrictedEffects": {"valueExpansion": "blocked"},
+        },
+    )
     access = await WorkspaceCommercialAccess.create(
         workspace_id=fixture.workspace.id,
         subscription_id=fixture.subscription.id,
@@ -609,8 +623,13 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     await fixture.subscription.refresh_from_db()
     await fixture.account.refresh_from_db()
     await access.refresh_from_db()
-    failure_transition = await CommercialAccessTransition.get(source_identity=f"provider:simulated:{failure_event_id}")
-    failure_facts = await CommercialAccessFact.filter(source_identity=f"provider:simulated:{failure_event_id}")
+    failure_transition = await CommercialAccessTransition.get(
+        provider="simulated",
+        provider_mode="test",
+        provider_account_id="platform",
+        provider_event_id=failure_event_id,
+    )
+    failure_facts = await CommercialAccessFact.filter(source_identity=failure_transition.source_identity)
     assert failure_result.applied is True
     assert fixture.subscription.status == SubscriptionStatus.PAST_DUE
     assert fixture.subscription.plan_revision_id == fixture.revision.id
@@ -619,15 +638,51 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     assert access.state == CommercialAccessState.PAYMENT_GRACE
     assert access.deadline_at == recovery_deadline
     assert access.state_revision == 2
+    assert access.dunning_policy_id == policy.id
+    assert access.provider_period_identity == "sim_period_dunning"
+    assert access.source_occurred_at == event_time
     assert failure_transition.from_state == CommercialAccessState.NORMAL
     assert failure_transition.to_state == CommercialAccessState.PAYMENT_GRACE
+    assert failure_transition.subscription_revision_identity == fixture.revision.id
+    assert failure_transition.provider_period_start == event_time
+    assert failure_transition.provider_period_end == period_end
+    assert failure_transition.resulting_state_revision == 2
+    assert failure_transition.dunning_policy_revision == 1
     assert {fact.kind for fact in failure_facts} == {CommercialAccessFactKind.LIFECYCLE_NOTIFICATION}
     assert failure_facts[0].payload == {
         "milestone": "payment_grace_started",
         "recovery_deadline": recovery_deadline.isoformat(),
     }
 
-    final_time = event_time + timedelta(seconds=1)
+    repeated_time = event_time + timedelta(seconds=1)
+    repeated_event_id = f"sim_evt_dunningrepeat{uuid4().hex[:16]}"
+    repeated_payload = _payload(
+        fixture=fixture,
+        event_id=repeated_event_id,
+        event_timestamp=int(repeated_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="past_due",
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_dunning",
+            "recovery_deadline": int((recovery_deadline + timedelta(days=10)).timestamp()),
+        },
+    )
+    repeated = await acceptance.accept(
+        payload=repeated_payload,
+        signature=_signature(repeated_payload, timestamp=int(repeated_time.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=repeated.inbox_id)))
+
+    await access.refresh_from_db()
+    repeated_application = await CommerceProviderEventApplication.get(provider_event_id=repeated_event_id)
+    assert repeated_application.result_code == "dunning_state_repeat_ignored"
+    assert access.deadline_at == recovery_deadline
+    assert access.state_revision == 2
+    assert await CommercialAccessTransition.filter(access_id=access.id).count() == 1
+
+    final_time = event_time + timedelta(seconds=2)
     final_event_id = f"sim_evt_dunningfinal{uuid4().hex[:16]}"
     final_payload = _payload(
         fixture=fixture,
@@ -646,14 +701,22 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
         signature=_signature(final_payload, timestamp=int(final_time.timestamp()), secret=secret),
     )
 
-    final_result = await handler.execute(context=_context(await ConnectorEventInbox.get(id=final.inbox_id)))
+    final_inbox = await ConnectorEventInbox.get(id=final.inbox_id)
+    final_result = await handler.execute(context=_context(final_inbox))
+    replayed_final_result = await handler.execute(context=_context(await ConnectorEventInbox.get(id=final.inbox_id)))
 
     await fixture.subscription.refresh_from_db()
     await fixture.account.refresh_from_db()
     await access.refresh_from_db()
-    final_transition = await CommercialAccessTransition.get(source_identity=f"provider:simulated:{final_event_id}")
-    final_facts = await CommercialAccessFact.filter(source_identity=f"provider:simulated:{final_event_id}")
+    final_transition = await CommercialAccessTransition.get(
+        provider="simulated",
+        provider_mode="test",
+        provider_account_id="platform",
+        provider_event_id=final_event_id,
+    )
+    final_facts = await CommercialAccessFact.filter(source_identity=final_transition.source_identity)
     assert final_result.applied is True
+    assert replayed_final_result == final_result
     assert fixture.subscription.status == SubscriptionStatus.CANCELED
     assert fixture.subscription.plan_revision_id == fixture.revision.id
     assert fixture.subscription.revision == 1
@@ -661,8 +724,15 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     assert access.state == CommercialAccessState.PAYMENT_RESTRICTED
     assert access.deadline_at is None
     assert access.state_revision == 3
+    assert access.dunning_policy_id == policy.id
+    assert access.source_occurred_at == final_time
     assert final_transition.from_state == CommercialAccessState.PAYMENT_GRACE
     assert final_transition.to_state == CommercialAccessState.PAYMENT_RESTRICTED
+    assert final_transition.subscription_revision_identity == fixture.revision.id
+    assert final_transition.provider_period_start == event_time
+    assert final_transition.provider_period_end == period_end
+    assert final_transition.resulting_state_revision == 3
+    assert final_transition.dunning_policy_revision == 1
     assert {fact.kind for fact in final_facts} == {
         CommercialAccessFactKind.LIFECYCLE_NOTIFICATION,
         CommercialAccessFactKind.HOSTING_HANDOFF,
@@ -676,6 +746,164 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
         "state": "payment_restricted",
         "cause": "provider_final_unpaid",
     }
+
+    stale_event_id = f"sim_evt_dunningstale{uuid4().hex[:16]}"
+    stale_payload = _payload(
+        fixture=fixture,
+        event_id=stale_event_id,
+        event_timestamp=int(repeated_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="past_due",
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_dunning",
+            "recovery_deadline": int((recovery_deadline + timedelta(days=20)).timestamp()),
+        },
+    )
+    stale = await acceptance.accept(
+        payload=stale_payload,
+        signature=_signature(stale_payload, timestamp=int(repeated_time.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=stale.inbox_id)))
+
+    regression_time = final_time + timedelta(seconds=1)
+    regression_event_id = f"sim_evt_dunningregression{uuid4().hex[:16]}"
+    regression_payload = _payload(
+        fixture=fixture,
+        event_id=regression_event_id,
+        event_timestamp=int(regression_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="past_due",
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_dunning",
+            "recovery_deadline": int((recovery_deadline + timedelta(days=30)).timestamp()),
+        },
+    )
+    regression = await acceptance.accept(
+        payload=regression_payload,
+        signature=_signature(regression_payload, timestamp=int(regression_time.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=regression.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await access.refresh_from_db()
+    stale_application = await CommerceProviderEventApplication.get(provider_event_id=stale_event_id)
+    regression_application = await CommerceProviderEventApplication.get(provider_event_id=regression_event_id)
+    assert stale_application.result_code == "dunning_stale_ignored"
+    assert regression_application.result_code == "dunning_state_regression_ignored"
+    assert fixture.subscription.status == SubscriptionStatus.CANCELED
+    assert access.state == CommercialAccessState.PAYMENT_RESTRICTED
+    assert access.deadline_at is None
+    assert access.state_revision == 3
+    assert access.source_occurred_at == final_time
+    assert await CommercialAccessTransition.filter(access_id=access.id).count() == 2
+    assert await CommercialAccessFact.filter(workspace_id=fixture.workspace.id).count() == 3
+
+    fixture.subscription.provider_mode = BillingProviderMode.LIVE
+    await fixture.subscription.save(update_fields=["provider_mode"])
+    historical_receipt = await TortoiseCommercialAccessStateRepository().get_transition_receipt(
+        provider="simulated",
+        provider_mode="test",
+        provider_account_id="platform",
+        provider_event_id=final_event_id,
+    )
+    assert historical_receipt is not None
+    assert historical_receipt.projection.subscription_revision_id == fixture.revision.id
+    assert historical_receipt.projection.provider_mode == "test"
+    assert historical_receipt.projection.provider_period_id == "sim_period_dunning"
+    assert historical_receipt.projection.access_revision == 3
+
+
+@pytest.mark.parametrize(
+    ("policy_payload", "expected_error"),
+    [
+        (None, "COMMERCIAL_DUNNING_POLICY_UNAVAILABLE"),
+        (
+            {
+                "recoveryDeadlineSource": "local",
+                "paymentGraceEffects": {"meteredEffects": "blocked"},
+                "paymentRestrictedEffects": {"valueExpansion": "blocked"},
+            },
+            "COMMERCIAL_DUNNING_POLICY_INCONSISTENT",
+        ),
+        (
+            {
+                "recoveryDeadlineSource": "provider",
+                "paymentGraceEffects": "blocked",
+                "paymentRestrictedEffects": {"valueExpansion": "blocked"},
+            },
+            "COMMERCIAL_DUNNING_POLICY_INCONSISTENT",
+        ),
+    ],
+)
+async def test_dunning_rejects_missing_or_inconsistent_provider_policy(
+    db_schema,
+    policy_payload: dict[str, object] | None,
+    expected_error: str,
+) -> None:
+    _ = db_schema
+    fixture = await _fixture()
+    access = await WorkspaceCommercialAccess.create(
+        workspace_id=fixture.workspace.id,
+        subscription_id=fixture.subscription.id,
+        state=CommercialAccessState.NORMAL,
+        source_identity=f"bootstrap:{fixture.subscription.id}",
+    )
+    if policy_payload is not None:
+        await CommerceDunningPolicy.create(
+            provider="simulated",
+            provider_mode=BillingProviderMode.TEST,
+            revision=1,
+            is_active=True,
+            policy=policy_payload,
+        )
+    occurred_at = datetime.now(UTC).replace(microsecond=0)
+    event_id = f"sim_evt_dunningpolicy{uuid4().hex[:16]}"
+    incoming = ProviderSubscription(
+        event_id=event_id,
+        workspace_id=fixture.workspace.id,
+        plan_id=fixture.plan.id,
+        plan_revision_id=fixture.revision.id,
+        external_price_id=fixture.price.external_price_id,
+        billing_cycle=BillingCycle.MONTHLY,
+        currency="USD",
+        customer_id="sim_cus_policy",
+        subscription_id="sim_sub_policy",
+        status=SubscriptionStatus.PAST_DUE,
+        current_period_start=occurred_at,
+        current_period_end=occurred_at + timedelta(days=30),
+        cancel_at_period_end=False,
+        dunning_event=ProviderDunningEvent(
+            kind="payment_failure",
+            provider_period_id="sim_period_policy",
+            occurred_at=occurred_at,
+            recovery_deadline=occurred_at + timedelta(days=5),
+        ),
+    )
+
+    with pytest.raises(ServiceUnavailable) as captured:
+        await BillingProviderSubscriptionApplicationService().apply_provider_subscription(
+            subscription=incoming,
+            provider="simulated",
+            provider_mode="test",
+            provider_account_id="platform",
+            verified_event=VerifiedBillingProviderEvent(
+                provider_event_id=event_id,
+                payload_sha256="a" * 64,
+                signature_reference=f"billing-webhook:{event_id}",
+            ),
+        )
+
+    await fixture.subscription.refresh_from_db()
+    await access.refresh_from_db()
+    assert captured.value.error == expected_error
+    assert fixture.subscription.status == SubscriptionStatus.ACTIVE
+    assert access.state == CommercialAccessState.NORMAL
+    assert await CommerceProviderEventApplication.filter(provider_event_id=event_id).count() == 0
+    assert await CommercialAccessTransition.filter(access_id=access.id).count() == 0
 
 
 async def test_completed_checkout_activates_target_revision_through_signed_lifecycle_chain(
