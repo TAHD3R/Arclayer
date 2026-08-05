@@ -7,7 +7,7 @@ from uuid import UUID
 from tortoise import fields
 
 from src.common.models.base import BaseModel
-from src.models.commerce.billing import ResourceLimitKind
+from src.models.commerce.billing import BillingProviderMode, ResourceLimitKind
 
 
 class CreditGrantSource(StrEnum):
@@ -33,6 +33,12 @@ class CreditLotMutationKind(StrEnum):
     ADJUSTMENT = "adjustment"
     REFUND = "refund"
     EXPIRATION = "expiration"
+
+
+class PlanPeriodGrantReason(StrEnum):
+    ACTIVATION = "activation"
+    RENEWAL = "renewal"
+    RECOVERY = "recovery"
 
 
 class MemberCreditCommandScopeKind(StrEnum):
@@ -144,6 +150,67 @@ class WorkspaceCreditLotMutation(BaseModel):
         abstract = False
         unique_together = (("lot_id", "ledger_entry_id"),)
         indexes = (("ledger_entry_id", "created_at"),)
+
+
+class CommercePlanPeriodGrant(BaseModel):
+    """Durable exact-once evidence for one Provider-earned Plan Credit grant."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace", related_name="commerce_plan_period_grants", on_delete=fields.RESTRICT
+    )
+    account = fields.ForeignKeyField(
+        "models.WorkspaceCreditAccount", related_name="period_grants", on_delete=fields.RESTRICT
+    )
+    subscription = fields.ForeignKeyField(
+        "models.WorkspaceSubscription", related_name="period_grants", on_delete=fields.RESTRICT
+    )
+    plan_revision = fields.ForeignKeyField(
+        "models.CommercePlanRevision", related_name="period_grants", on_delete=fields.RESTRICT
+    )
+    application = fields.OneToOneField(
+        "models.CommerceProviderEventApplication",
+        related_name="period_credit_grant",
+        on_delete=fields.RESTRICT,
+    )
+    ledger_entry = fields.OneToOneField(
+        "models.WorkspaceCreditLedger",
+        related_name="period_grant_receipt",
+        on_delete=fields.RESTRICT,
+    )
+    grant_lot = fields.OneToOneField(
+        "models.WorkspaceCreditGrantLot",
+        related_name="period_grant_receipt",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    grant_identity = fields.CharField(max_length=160, unique=True)
+    reason = fields.CharEnumField(PlanPeriodGrantReason)
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharEnumField(BillingProviderMode)
+    provider_account_id = fields.CharField(max_length=255)
+    provider_event_id = fields.CharField(max_length=255)
+    provider_period_identity = fields.CharField(max_length=255)
+    period_start = fields.DatetimeField()
+    period_end = fields.DatetimeField()
+    granted_credits = fields.BigIntField()
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        account_id: UUID
+        subscription_id: UUID
+        plan_revision_id: UUID
+        application_id: UUID
+        ledger_entry_id: UUID
+        grant_lot_id: UUID | None
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_plan_period_grants"
+        table_description = "Exact Provider period and Revision evidence for Plan Credit grants."
+        abstract = False
+        indexes = (
+            ("workspace_id", "period_start", "period_end"),
+            ("provider", "provider_mode", "provider_account_id", "provider_period_identity"),
+        )
 
 
 class WorkspaceMemberCreditPolicy(BaseModel):

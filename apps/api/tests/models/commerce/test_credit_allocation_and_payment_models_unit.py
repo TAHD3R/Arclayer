@@ -1,9 +1,11 @@
 from src.models.ai.ai_budget_reservation import AIBudgetReservation
 from src.models.commerce.credit_allocation import (
+    CommercePlanPeriodGrant,
     CreditGrantSource,
     CreditLotAllocationStatus,
     CreditLotMutationKind,
     CreditUsageEventType,
+    PlanPeriodGrantReason,
     WorkspaceCreditGrantLot,
     WorkspaceCreditLotAllocation,
     WorkspaceCreditLotMutation,
@@ -43,6 +45,25 @@ def test_credit_models_expose_source_lots_and_exact_reservation_allocations() ->
     assert {"lot", "reservation", "reserved_credits", "committed_credits", "released_credits"}.issubset(
         WorkspaceCreditLotAllocation._meta.fields_map
     )
+
+
+def test_plan_period_grant_keeps_exact_provider_application_evidence() -> None:
+    assert {reason.value for reason in PlanPeriodGrantReason} == {"activation", "renewal", "recovery"}
+    assert CommercePlanPeriodGrant._meta.db_table == "commerce_plan_period_grants"
+    assert {
+        "workspace",
+        "account",
+        "subscription",
+        "plan_revision",
+        "application",
+        "ledger_entry",
+        "grant_lot",
+        "grant_identity",
+        "provider_period_identity",
+        "period_start",
+        "period_end",
+        "granted_credits",
+    }.issubset(CommercePlanPeriodGrant._meta.fields_map)
 
 
 def test_member_credit_models_keep_current_period_limits_separate_from_append_only_usage() -> None:

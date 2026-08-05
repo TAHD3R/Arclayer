@@ -9,7 +9,6 @@ from src.config import Settings
 from src.core.exceptions import ServiceUnavailable
 from src.core.i18n import t
 from src.modules.commerce.access_state.fact_outbox import TortoiseCommercialAccessFactOutbox
-from src.modules.commerce.access_state.recovery import PaymentRecoveryGrantService
 from src.modules.commerce.access_state.repository import (
     CommercialAccessFactOutbox,
     TortoiseCommercialAccessStateRepository,
@@ -20,8 +19,6 @@ from src.modules.commerce.access_state.schema import (
     CommercialAccessRecoveryView,
     CommercialAccessStateApplyOutcome,
     CommercialAccessStateApplyResult,
-    PaymentRecoveryGrantDecision,
-    PaymentRecoveryGrantRequest,
     ProviderDunningTransitionRequest,
     ResolvedDunningPolicy,
     VerifiedProviderDunningFact,
@@ -114,26 +111,6 @@ class CommercialAccessStateComposition:
             workspace_id=workspace_id,
             conn=conn,
             for_update=for_update,
-        )
-
-    async def decide_verified_recovery_grant(
-        self,
-        *,
-        source: VerifiedProviderDunningFact,
-        expected_access_revision: int,
-        idempotency_key: str,
-    ) -> PaymentRecoveryGrantDecision:
-        if not isinstance(source, VerifiedProviderDunningFact):
-            raise TypeError("source must be a VerifiedProviderDunningFact")
-        return await PaymentRecoveryGrantService(
-            persistence=self._persistence,
-            settings=self._settings,
-        ).decide(
-            request=PaymentRecoveryGrantRequest(
-                source=source,
-                expected_access_revision=expected_access_revision,
-                idempotency_key=idempotency_key,
-            )
         )
 
 

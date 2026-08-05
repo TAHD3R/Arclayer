@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from typing import Protocol, cast
 from uuid import NAMESPACE_URL, UUID, uuid5
 
+from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
@@ -17,10 +18,13 @@ from src.models.commerce.billing import (
     CommercePlanRevision,
     CommercePlanRevisionPrice,
     CommerceProviderEventApplication,
+    CommercialAccessState,
     PlanRevisionStatus,
+    SubscriptionStatus,
     WorkspaceCreditAccount,
     WorkspaceSubscription,
 )
+from src.models.commerce.credit_allocation import PlanPeriodGrantReason
 from src.modules.commerce.access_state.composition import (
     CommercialAccessStateComposition,
     build_commercial_access_state_composition,
@@ -43,6 +47,11 @@ from src.modules.commerce.checkout_activation_repository import (
 from src.modules.commerce.convergence.composition import build_plan_access_convergence_service
 from src.modules.commerce.convergence.schema import ProviderConfirmedConvergenceApplication
 from src.modules.commerce.convergence.service import PlanAccessConvergenceService
+from src.modules.commerce.provider_period_credit_grant import (
+    ProviderPeriodCreditCommand,
+    ProviderPeriodCreditGrantService,
+    build_provider_period_credit_grant_service,
+)
 from src.modules.commerce.subscription_transitions.provider_confirmation import (
     TortoiseProviderConfirmedConvergenceResolver,
 )
@@ -91,9 +100,12 @@ class _ProviderApplicationIdentity(Protocol):
     result_code: str | None
 
 
-class _ValidatedProviderPrice(BaseSchema):
+class _ValidatedProviderPrice(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid", frozen=True)
+
     plan_code: str
     amount_micros: int
+    revision: CommercePlanRevision
 
 
 class BillingProviderSubscriptionApplicationService(BaseService):
@@ -108,6 +120,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         convergence_resolver: ProviderConfirmedConvergenceResolver | None = None,
         checkout_activation: TortoiseCheckoutActivationRepository | None = None,
         dunning_policy: DunningPolicyResolver | None = None,
+        period_credits: ProviderPeriodCreditGrantService | None = None,
     ) -> None:
         super().__init__(settings)
         self._access_state = access_state or build_commercial_access_state_composition(settings=self.settings)
@@ -115,6 +128,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         self._convergence_resolver = convergence_resolver or TortoiseProviderConfirmedConvergenceResolver()
         self._checkout_activation = checkout_activation or TortoiseCheckoutActivationRepository()
         self._dunning_policy = dunning_policy or TortoiseDunningPolicyResolver()
+        self._period_credits = period_credits or build_provider_period_credit_grant_service(settings=self.settings)
 
     async def apply_provider_subscription(
         self,
@@ -190,6 +204,10 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                     current=workspace_subscription,
                     incoming=subscription,
                 )
+                grant_reason = self._grant_reason(
+                    current=workspace_subscription,
+                    incoming=subscription,
+                )
                 dunning_outcome = await self._apply_verified_dunning_fact(
                     subscription=subscription,
                     provider=provider,
@@ -205,9 +223,44 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                         conn=conn,
                     )
                     return
+                access_projection = (
+                    dunning_outcome.result.projection
+                    if dunning_outcome is not None
+                    else await self._access_state.current_projection(
+                        workspace_id=subscription.workspace_id,
+                        conn=conn,
+                        for_update=True,
+                    )
+                )
+                if access_projection is None:
+                    raise ServiceUnavailable(error="COMMERCIAL_ACCESS_STATE_UNAVAILABLE")
+                if (
+                    subscription.status is SubscriptionStatus.ACTIVE
+                    and access_projection.state != CommercialAccessState.NORMAL
+                ):
+                    raise Conflict(error="COMMERCIAL_RECOVERY_FACT_REQUIRED")
                 credit_account = await self._lock_credit_account(
                     workspace_id=subscription.workspace_id,
                     subscription_id=workspace_subscription.id,
+                    conn=conn,
+                )
+                await self._period_credits.apply(
+                    command=ProviderPeriodCreditCommand(
+                        workspace_id=subscription.workspace_id,
+                        subscription_id=UUID(str(workspace_subscription.id)),
+                        plan_revision_id=subscription.plan_revision_id,
+                        application_id=UUID(str(application.id)),
+                        provider=provider,
+                        provider_mode=mode,
+                        provider_account_id=provider_account_id,
+                        provider_event_id=verified_event.provider_event_id,
+                        provider_period_identity=_provider_period_identity(subscription),
+                        period_start=subscription.current_period_start,
+                        period_end=subscription.current_period_end,
+                        reason=grant_reason,
+                    ),
+                    account=credit_account,
+                    revision=validated_price.revision,
                     conn=conn,
                 )
                 self._apply_subscription(
@@ -216,13 +269,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                     provider=provider,
                     provider_mode=mode,
                 )
-                self._apply_credit_account(
-                    account=credit_account,
-                    incoming=subscription,
-                    provider=provider,
-                )
                 await workspace_subscription.save(using_db=conn)
-                await credit_account.save(using_db=conn)
                 await self._complete_application(
                     application=application,
                     result_code="applied",
@@ -481,7 +528,11 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         plan = await CommercePlan.filter(id=subscription.plan_id).using_db(conn).first()
         if plan is None:
             raise BadRequest(error="BILLING_PROVIDER_REVISION_INVALID")
-        return _ValidatedProviderPrice(plan_code=plan.code, amount_micros=int(price.amount_micros))
+        return _ValidatedProviderPrice(
+            plan_code=plan.code,
+            amount_micros=int(price.amount_micros),
+            revision=revision,
+        )
 
     @staticmethod
     async def _lock_credit_account(
@@ -530,6 +581,12 @@ class BillingProviderSubscriptionApplicationService(BaseService):
             and current.current_period_end > incoming.current_period_end
         ):
             raise BadRequest(error="BILLING_PROVIDER_EVENT_OUT_OF_ORDER")
+        if (
+            current.external_subscription_id == incoming.subscription_id
+            and current.current_period_end == incoming.current_period_end
+            and current.current_period_start != incoming.current_period_start
+        ):
+            raise BadRequest(error="BILLING_PROVIDER_EVENT_OUT_OF_ORDER")
 
     @staticmethod
     def _apply_subscription(
@@ -554,13 +611,23 @@ class BillingProviderSubscriptionApplicationService(BaseService):
             current.revision += 1
 
     @staticmethod
-    def _apply_credit_account(
-        *, account: WorkspaceCreditAccount, incoming: ProviderSubscription, provider: str
-    ) -> None:
-        account.plan_revision_id = incoming.plan_revision_id
-        account.period_start = incoming.current_period_start
-        account.period_end = incoming.current_period_end
-        account.period_identity = f"provider:{provider}:{incoming.subscription_id}:{incoming.plan_revision_id}:{incoming.current_period_end.isoformat()}"
+    def _grant_reason(
+        *, current: WorkspaceSubscription, incoming: ProviderSubscription
+    ) -> PlanPeriodGrantReason | None:
+        if incoming.dunning_event is not None:
+            if incoming.dunning_event.kind == ProviderDunningFactKind.PAYMENT_RECOVERED.value:
+                return PlanPeriodGrantReason.RECOVERY
+            return None
+        if incoming.status is not SubscriptionStatus.ACTIVE:
+            return None
+        if incoming.checkout_activation is not None:
+            return PlanPeriodGrantReason.ACTIVATION
+        if (
+            incoming.current_period_start > current.current_period_start
+            or incoming.current_period_end > current.current_period_end
+        ):
+            return PlanPeriodGrantReason.RENEWAL
+        return None
 
 
 def _provider_period_identity(subscription: ProviderSubscription) -> str:

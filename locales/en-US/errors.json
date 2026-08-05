@@ -582,6 +582,8 @@
   "AUTOMATION_RELEASE_PUBLISH_INVALID": "Check the automation settings and try again.",
   "AUTOMATION_RUN_NOT_FOUND": "We could not find the automation task. Refresh and try again.",
   "COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED": "This action does not have a recognized commercial effect classification.",
+  "COMMERCIAL_CREDIT_PERIOD_RESERVATIONS_PENDING": "Complete or release pending Credit reservations before advancing the billing period.",
+  "COMMERCIAL_RECOVERY_FACT_REQUIRED": "A verified payment recovery event is required before restoring workspace access.",
   "ASSET_THUMBNAIL_TARGET_NOT_FOUND": "The asset selected for thumbnail generation was not found.",
   "BACKUP_CODE_INVALID": "That recovery code is incorrect. Try again.",
   "BACKGROUND_JOBS_UNAVAILABLE": "Background processing is temporarily unavailable.",

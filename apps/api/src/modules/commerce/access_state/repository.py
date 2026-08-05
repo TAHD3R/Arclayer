@@ -29,11 +29,7 @@ from src.modules.commerce.access_state.schema import (
     CommercialAccessTransitionWrite,
     CommercialLifecycleNotificationFact,
     HostingCommercialAccessHandoffFact,
-    PaymentRecoveryGrantDecision,
-    PaymentRecoveryGrantWrite,
 )
-
-_RECOVERY_GRANT_RECEIPT_CODE = "commerce.recovery_grant.decided"
 
 
 class _AccessIdentifiers(Protocol):
@@ -245,63 +241,6 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
         await outbox.append_access_result(result=write.result, conn=conn)
         return write.result
 
-    async def get_decision(
-        self,
-        *,
-        workspace_id: UUID,
-        provider: str,
-        provider_period_id: str,
-        subscription_revision_id: UUID,
-    ) -> PaymentRecoveryGrantDecision | None:
-        application = (
-            await CommerceProviderEventApplication
-            .filter(
-                workspace_id=workspace_id,
-                provider=provider,
-                provider_period_identity=provider_period_id,
-                plan_revision_id=subscription_revision_id,
-                result_code=_RECOVERY_GRANT_RECEIPT_CODE,
-            )
-            .order_by("created_at")
-            .first()
-        )
-        if application is None:
-            return None
-        return self._recovery_decision(
-            workspace_id=workspace_id,
-            provider=provider,
-            provider_period_id=provider_period_id,
-            subscription_revision_id=subscription_revision_id,
-            source_event_id=application.provider_event_id,
-        )
-
-    async def compare_and_decide(self, *, command: PaymentRecoveryGrantWrite) -> PaymentRecoveryGrantDecision:
-        decision = command.decision
-        async with in_transaction() as conn:
-            access = await self._load_access(
-                workspace_id=decision.workspace_id,
-                conn=conn,
-                for_update=True,
-            )
-            if access is None:
-                raise self._unavailable("COMMERCIAL_ACCESS_STATE_UNAVAILABLE")
-            if access.state_revision != command.expected_access_revision:
-                raise self._conflict("COMMERCIAL_ACCESS_STATE_REVISION_STALE")
-            existing = await self._get_decision_for_update(decision=decision, conn=conn)
-            if existing is not None:
-                return existing
-            application = await self._load_recovery_application(decision=decision, conn=conn)
-            if application is None:
-                raise self._unavailable("COMMERCIAL_PROVIDER_EVENT_APPLICATION_UNAVAILABLE")
-            if application.result_code not in {None, _RECOVERY_GRANT_RECEIPT_CODE}:
-                raise self._conflict("COMMERCIAL_PROVIDER_EVENT_APPLICATION_RESULT_CONFLICT")
-            await self.update_fields(
-                application,
-                fields={"result_code": _RECOVERY_GRANT_RECEIPT_CODE},
-                conn=conn,
-            )
-            return decision
-
     async def _load_access(
         self,
         *,
@@ -466,47 +405,6 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
         if application is None:
             raise self._unavailable("COMMERCIAL_PROVIDER_EVENT_APPLICATION_UNAVAILABLE")
 
-    async def _get_decision_for_update(
-        self,
-        *,
-        decision: PaymentRecoveryGrantDecision,
-        conn: BaseDBAsyncClient,
-    ) -> PaymentRecoveryGrantDecision | None:
-        application = await self.using_db(
-            CommerceProviderEventApplication.filter(
-                workspace_id=decision.workspace_id,
-                provider=decision.provider,
-                provider_period_identity=decision.provider_period_id,
-                plan_revision_id=decision.subscription_revision_id,
-                result_code=_RECOVERY_GRANT_RECEIPT_CODE,
-            ).select_for_update(),
-            conn,
-        ).first()
-        if application is None:
-            return None
-        return self._recovery_decision(
-            workspace_id=decision.workspace_id,
-            provider=decision.provider,
-            provider_period_id=decision.provider_period_id,
-            subscription_revision_id=decision.subscription_revision_id,
-            source_event_id=application.provider_event_id,
-        )
-
-    async def _load_recovery_application(
-        self,
-        *,
-        decision: PaymentRecoveryGrantDecision,
-        conn: BaseDBAsyncClient,
-    ) -> CommerceProviderEventApplication | None:
-        query = CommerceProviderEventApplication.filter(
-            workspace_id=decision.workspace_id,
-            provider=decision.provider,
-            provider_event_id=decision.source_event_id,
-            provider_period_identity=decision.provider_period_id,
-            plan_revision_id=decision.subscription_revision_id,
-        ).select_for_update()
-        return await self.using_db(query, conn).first()
-
     @staticmethod
     def _projection(
         *,
@@ -583,25 +481,6 @@ class TortoiseCommercialAccessStateRepository(TortoiseORMRepository[WorkspaceCom
             CommercialAccessState.PAYMENT_RESTRICTED: "payment_restricted",
             CommercialAccessState.NORMAL: "payment_recovered",
         }[state]
-
-    @staticmethod
-    def _recovery_decision(
-        *,
-        workspace_id: UUID,
-        provider: str,
-        provider_period_id: str,
-        subscription_revision_id: UUID,
-        source_event_id: str,
-    ) -> PaymentRecoveryGrantDecision:
-        return PaymentRecoveryGrantDecision(
-            workspace_id=workspace_id,
-            provider=provider,
-            provider_period_id=provider_period_id,
-            subscription_revision_id=subscription_revision_id,
-            source_event_id=source_event_id,
-            grant_required=True,
-            decision_identity=(f"provider-period:{provider}:{provider_period_id}:{subscription_revision_id}"),
-        )
 
     @staticmethod
     def _require_current_access(*, access: WorkspaceCommercialAccess, write: CommercialAccessTransitionWrite) -> None:

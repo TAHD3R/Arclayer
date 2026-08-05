@@ -317,6 +317,14 @@ async def test_simulated_connector_normalizes_checkout_activation_correlation() 
             },
             False,
         ),
+        (
+            "active",
+            {
+                "kind": "payment_recovered",
+                "provider_period_id": "sim_period_recovered123",
+            },
+            False,
+        ),
     ),
 )
 async def test_simulated_connector_normalizes_strict_dunning_facts(
@@ -394,6 +402,23 @@ async def test_simulated_connector_rejects_inconsistent_dunning_metadata() -> No
     )
     with pytest.raises(BadRequest, match="BILLING_WEBHOOK_PAYLOAD_INVALID"):
         await connector.subscription_from_event(payload=invalid_deadline, envelope=envelope)
+
+    invalid_recovery = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        dunning={
+            "kind": "payment_recovered",
+            "provider_period_id": "sim_period_invalidrecovery123",
+        },
+        status="past_due",
+    )
+    with pytest.raises(BadRequest, match="BILLING_WEBHOOK_PAYLOAD_INVALID"):
+        connector.verify_webhook(
+            payload=invalid_recovery,
+            signature=_signature(invalid_recovery, timestamp=timestamp),
+        )
 
 
 @pytest.mark.asyncio

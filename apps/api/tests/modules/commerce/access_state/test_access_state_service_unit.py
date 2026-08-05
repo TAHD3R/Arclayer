@@ -407,6 +407,23 @@ async def test_recovered_period_cannot_reenter_dunning_from_a_later_failure() ->
             idempotency_key="provider:stripe:payment-recovered",
         )
     )
+    repeated_recovery = recovered.model_copy(
+        update={
+            "provider_event_id": "invoice-payment-recovered-repeat",
+            "occurred_at": recovered.occurred_at + timedelta(seconds=1),
+        }
+    )
+    repeated_outcome = await service.apply_provider_fact(
+        request=ProviderDunningTransitionRequest(
+            source=repeated_recovery,
+            policy=_policy(projection=recovered_outcome.result.projection),
+            expected_access_revision=recovered_outcome.result.projection.access_revision,
+            idempotency_key="provider:stripe:payment-recovered-repeat",
+        )
+    )
+    assert repeated_outcome.disposition == CommercialAccessApplyDisposition.STATE_REPEAT_IGNORED
+    assert len(persistence.writes) == 1
+
     source = _provider_fact(
         projection=recovered_outcome.result.projection,
         kind=ProviderDunningFactKind.PAYMENT_FAILURE,

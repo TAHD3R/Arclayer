@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3c recovery, renewal, and closure.
+Current active part: M2.4 transaction, invoice, top-up, and refund projection.
 
 Repository baseline:
 
@@ -364,11 +364,11 @@ M2 execution parts:
    - Expose an authorized development/test-only simulator command that requires an explicit actor-selected outcome or deterministic test command.
    - Generate a signed Provider event envelope and submit it through the canonical event-acceptance service; the command itself never updates Subscription, access, invoice, transaction, or Credits.
    - Cover pending, success, failure, cancellation, duplicate, delayed, and out-of-order commands without mock-success shortcuts.
-4. M2.3 subscription, dunning, recovery, and access-state projection. — Active
+4. M2.3 subscription, dunning, recovery, and access-state projection. — Complete
    - Process simulated subscription and invoice lifecycle events through signature verification, encrypted inbox, pinned Job, normalization, and the existing Provider application service.
    - Preserve exact Plan Revision/Price evidence, Provider event claims, convergence ordering, period identity, dunning facts, recovery, and access-state transitions.
    - Keep unsupported schedule/cancellation capabilities explicitly unavailable until a Provider-neutral transition adapter exists; never fabricate a local Stripe schedule.
-5. M2.4 transaction, invoice, top-up, and refund projection. — Pending
+5. M2.4 transaction, invoice, top-up, and refund projection. — Active
    - Add one canonical payment projection service over the existing payment models with transactional Provider-event idempotency and audit evidence.
    - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
@@ -540,7 +540,7 @@ M2.3a.2 validation:
          - Verify Site settings and preview-token write paths against the same Product commercial-effect contract, and exclude unreachable legacy routers with registration evidence instead of manufacturing a false closure.
      - M2.3b.3c withheld period Credits and immutable handoff evidence. — Complete
        - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
-3. M2.3c recovery, renewal, and closure. — Active
+3. M2.3c recovery, renewal, and closure. — Complete
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
    - Close M2.3 with delayed/reordered lifecycle integration coverage, unchanged Stripe regressions, package/static gates, staged GitNexus detection, changed-scope review, execution-record update, and a focused commit.
 
@@ -659,11 +659,34 @@ M2.3b.3c validation:
 - `pnpm api:check` passed API lint and formatting. Broad typecheck remains blocked by the same `289` existing diagnostics, after which Turbo interrupted broad pytest; every M2.3b.3c focused and PostgreSQL test remains green.
 - M2.3b.3 and M2.3b are complete. The only active part is M2.3c recovery, renewal, and closure.
 
+M2.3c implementation evidence:
+
+- Replaced the disconnected recovery-grant decision branch with one transactional Provider-period Credit service and durable `CommercePlanPeriodGrant` receipt. Subscription/access convergence, exact Plan Revision, Credit account, lot/ledger evidence, Provider application completion, and recovery/renewal status now commit or roll back together.
+- Added migration `0125_commerce_plan_period_grants`. Each receipt binds one Workspace/account/subscription/Revision to the exact Provider application, period-grant ledger, optional Plan lot, Provider/mode/account/event, period identity/boundaries, grant reason, and integer Credit amount. Application, ledger, lot, and grant identity uniqueness prevent duplicate evidence.
+- Successful `payment_recovered` facts restore access only through the canonical state machine, clear the recovery deadline, create immutable notification/Hosting handoffs, and grant the withheld period Credits exactly once. A second recovery event converges to `dunning_state_repeat_ignored`; a later same-period failure cannot re-enter dunning.
+- Ordinary `active` lifecycle events cannot recover Payment Grace or Payment Restricted without a signed `payment_recovered` fact. The application transaction rolls back with `COMMERCIAL_RECOVERY_FACT_REQUIRED` instead of silently restoring access.
+- Paid Checkout activation, periodic renewal, and recovery use explicit `activation | renewal | recovery` grant reasons. New periodic Provider periods expire remaining Plan-period lots with exact expiration ledger/mutation evidence, preserve purchased top-ups, and then create the new Plan lot and period-grant ledger.
+- Pending account or Plan-lot reservations reject a period change with `COMMERCIAL_CREDIT_PERIOD_RESERVATIONS_PENDING`; Subscription, account, application, lots, and ledger remain unchanged. Revision-once (`refresh = none`) Plans advance Provider period identity without expiring or granting the same Revision twice.
+- Deleted the obsolete `PaymentRecoveryGrantService`, its repository/schema persistence path, and its unit test. Provider application lifecycle completion retains `result_code = applied`; recovery-grant evidence no longer overwrites that field.
+- Corrected two PostgreSQL/runtime defects exposed by the full chain: access projections require value equality because `BaseSchema` serializes enum values, and Plan-lot row locking now uses separate prefetch queries so PostgreSQL never applies `FOR UPDATE` to the nullable side of an outer join.
+
+M2.3c validation:
+
+- Focused simulated/Stripe Connector, access-state, model, and migration unit regression passed `43` tests.
+- Real PostgreSQL simulated lifecycle, Stripe Provider application, and `0124 -> 0125` migration regression passed `20` tests, covering activation, renewal, top-up preservation, expiration evidence, delayed periods, recovery, duplicate recovery, recovery-fact enforcement, reservation rollback, Revision-once grants, and exact migration relations/indexes.
+- Targeted Ruff lint/format and `ty` passed across all changed production, migration, plugin, and test surfaces. The active database applied `0125_commerce_plan_period_grants`; a subsequent `db:migrate` reported `No changes detected`.
+- Product error-locale parity passed across all `23` namespaces after synchronizing the two new explicit recovery/period-reservation errors and the existing filtered shared errors.
+- `pnpm api:check` passed API lint and formatting across `1863` files. Broad typecheck remains blocked by `290` existing Design System/content and unrelated test diagnostics; Turbo interrupted broad pytest after that failure. No targeted M2.3c diagnostic remains.
+- The known legacy Stripe Credit fixture still attempts a Free-to-Premium Revision rebind without completed Checkout or confirmed transition evidence and continues to fail with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`; the production authority boundary was not weakened.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `29` report-only findings are existing access-state/application localization prototypes plus the known simulated Connector lifecycle report; the new service inheritance and Pydantic contract findings were resolved before commit.
+- Final staged GitNexus detection reported `LOW` risk across `22` files and `102` indexed symbols with no affected execution flow.
+- M2.3 is complete. The only active part is M2.4 canonical transaction, invoice, top-up, and refund projection.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
-- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3b.3c package gate reports `289` diagnostics while targeted Commerce type checking passes.
+- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3c package gate reports `290` diagnostics while targeted Commerce type checking passes.
 - The M2.2a `pnpm api:check` run still fails on `294` existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
 - Product App typecheck currently fails because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside Commerce work.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
@@ -869,3 +892,13 @@ M2.3b.3c validation:
 - Applied `0124` to the active database and confirmed `db:migrate` reports no model-state changes.
 - Verified `1` migration unit test, `2` focused PostgreSQL tests, `34` access-state unit tests, `19` expanded Provider/migration integration tests, targeted static checks, and a zero-finding changed-scope review.
 - Recorded the unchanged `289` broad API type diagnostics and completed M2.3b; selected M2.3c recovery, renewal, and closure as the only active part.
+
+### 2026-08-05 — M2.3c recovery, renewal, and exact Provider-period Credits
+
+- Hard-cut the unused recovery decision branch and introduced durable exact-once Provider-period grant receipts linked to Provider application, Plan Revision, ledger, and lot evidence.
+- Completed signed recovery through the canonical access-state transaction, including immutable notification/Hosting handoffs, exact withheld-period Credit restoration, duplicate convergence, and same-period failure regression protection.
+- Completed activation and renewal grant reasons, periodic Plan-lot expiration with mutation/ledger evidence, purchased top-up preservation, delayed-event rejection, reservation-safe rollback, and Revision-once grant behavior.
+- Added and applied `0125_commerce_plan_period_grants`, verified its PostgreSQL FK/unique/index contract, and confirmed migration generation has no remaining drift.
+- Verified `43` focused unit tests and `20` PostgreSQL lifecycle/Provider/migration tests plus targeted lint, format, type, and Product locale checks. The package gate retains the existing `290` unrelated type diagnostics.
+- Changed-scope review completed with zero blockers; staged GitNexus detection reported `LOW` risk and no affected execution flow.
+- Completed M2.3 and selected M2.4 transaction, invoice, top-up, and refund projection as the only active part.

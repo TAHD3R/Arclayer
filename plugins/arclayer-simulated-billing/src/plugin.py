@@ -80,8 +80,15 @@ class _SimulatedFinalUnpaidData(BaseModel):
     provider_period_id: str = Field(..., min_length=1, max_length=255)
 
 
+class _SimulatedPaymentRecoveredData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["payment_recovered"]
+    provider_period_id: str = Field(..., min_length=1, max_length=255)
+
+
 _SimulatedDunningData = Annotated[
-    _SimulatedPaymentFailureData | _SimulatedFinalUnpaidData,
+    _SimulatedPaymentFailureData | _SimulatedPaymentRecoveredData | _SimulatedFinalUnpaidData,
     Field(discriminator="kind"),
 ]
 
@@ -114,6 +121,8 @@ class _SimulatedSubscriptionData(BaseModel):
             return self
         if self.dunning.kind == "payment_failure" and self.status != SubscriptionStatus.PAST_DUE:
             raise ValueError("payment failure requires past_due subscription status")
+        if self.dunning.kind == "payment_recovered" and self.status != SubscriptionStatus.ACTIVE:
+            raise ValueError("payment recovery requires active subscription status")
         if self.dunning.kind == "final_unpaid" and self.status not in {
             SubscriptionStatus.PAST_DUE,
             SubscriptionStatus.CANCELED,

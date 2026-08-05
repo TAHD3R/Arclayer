@@ -582,6 +582,8 @@
   "AUTOMATION_RELEASE_PUBLISH_INVALID": "请检查自动化设置是否正确，然后重试。",
   "AUTOMATION_RUN_NOT_FOUND": "未找到自动化任务。请刷新后重试。",
   "COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED": "该操作缺少可识别的商业影响分类。",
+  "COMMERCIAL_CREDIT_PERIOD_RESERVATIONS_PENDING": "请先完成或释放待处理的额度预留，再推进新的计费周期。",
+  "COMMERCIAL_RECOVERY_FACT_REQUIRED": "恢复工作空间访问前，必须收到已验证的付款恢复事件。",
   "ASSET_THUMBNAIL_TARGET_NOT_FOUND": "未找到需要生成缩略图的资源。",
   "BACKUP_CODE_INVALID": "恢复码不正确，请重试。",
   "BACKGROUND_JOBS_UNAVAILABLE": "后台处理服务暂时不可用。",

@@ -42,7 +42,14 @@ from src.models.commerce.billing import (
     WorkspaceCreditLedger,
     WorkspaceSubscription,
 )
-from src.models.commerce.credit_allocation import CreditGrantSource, WorkspaceCreditGrantLot
+from src.models.commerce.credit_allocation import (
+    CommercePlanPeriodGrant,
+    CreditGrantSource,
+    CreditLotMutationKind,
+    PlanPeriodGrantReason,
+    WorkspaceCreditGrantLot,
+    WorkspaceCreditLotMutation,
+)
 from src.models.commerce.payments import (
     CommerceCheckoutKind,
     CommerceCheckoutOutcome,
@@ -218,7 +225,10 @@ def _signature(payload: bytes, *, timestamp: int, secret: str) -> str:
     return f"t={timestamp},v1={digest}"
 
 
-async def _fixture() -> _SubscriptionFixture:
+async def _fixture(
+    *,
+    credit_refresh_interval: CreditRefreshInterval = CreditRefreshInterval.MONTHLY,
+) -> _SubscriptionFixture:
     now = datetime.now(UTC).replace(microsecond=0)
     suffix = uuid4().hex[:16]
     organization = await Organization.create(slug=f"sim-sub-{suffix}", name="Simulated subscription")
@@ -236,7 +246,7 @@ async def _fixture() -> _SubscriptionFixture:
         name_i18n_key=f"commerce:PLAN_SIM_{suffix}",
         description_i18n_key=f"commerce:PLAN_SIM_DESCRIPTION_{suffix}",
         credit_grant_amount=100,
-        credit_refresh_interval=CreditRefreshInterval.MONTHLY,
+        credit_refresh_interval=credit_refresh_interval,
         credit_value_micros=1_000,
         currency="USD",
         content_hash=uuid4().hex,
@@ -268,6 +278,12 @@ async def _fixture() -> _SubscriptionFixture:
         period_start=subscription.current_period_start,
         period_end=subscription.current_period_end,
         period_identity=f"bootstrap:{subscription.id}",
+    )
+    await WorkspaceCommercialAccess.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        state=CommercialAccessState.NORMAL,
+        source_identity=f"bootstrap:{subscription.id}",
     )
     return _SubscriptionFixture(workspace, plan, revision, price, subscription, account)
 
@@ -331,6 +347,12 @@ async def _activation_fixture(
         period_start=subscription.current_period_start,
         period_end=subscription.current_period_end,
         period_identity=f"bootstrap:{subscription.id}",
+    )
+    await WorkspaceCommercialAccess.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        state=CommercialAccessState.NORMAL,
+        source_identity=f"bootstrap:{subscription.id}",
     )
     checkout_completed_at = now if checkout_status != CommerceCheckoutStatus.EXPIRED else None
     checkout = await CommerceCheckoutSession.create(
@@ -518,6 +540,9 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     await fixture.account.refresh_from_db()
     inbox = await ConnectorEventInbox.get(id=inbox.id)
     application = await CommerceProviderEventApplication.get(provider_event_id="sim_evt_subscriptionintegration")
+    grant = await CommercePlanPeriodGrant.get(application_id=application.id)
+    lot = await WorkspaceCreditGrantLot.get(id=grant.grant_lot_id)
+    ledger = await WorkspaceCreditLedger.get(id=grant.ledger_entry_id)
     assert inbox.status == ConnectorEventInboxStatus.PROCESSED
     assert fixture.subscription.plan_revision_id == fixture.revision.id
     assert fixture.subscription.external_customer_id == "sim_cus_integration"
@@ -525,8 +550,22 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     assert fixture.subscription.current_period_start == event_time
     assert fixture.subscription.current_period_end == period_end
     assert fixture.account.plan_revision_id == fixture.revision.id
+    assert fixture.account.balance_credits == 100
     assert fixture.account.period_start == event_time
     assert fixture.account.period_end == period_end
+    assert fixture.account.revision == 2
+    assert grant.reason == PlanPeriodGrantReason.RENEWAL
+    assert grant.provider_period_identity == f"subscription:sim_sub_integration:{event_time.isoformat()}"
+    assert grant.period_start == event_time
+    assert grant.period_end == period_end
+    assert grant.granted_credits == 100
+    assert lot.source == CreditGrantSource.PLAN_PERIOD
+    assert lot.granted_credits == 100
+    assert lot.remaining_credits == 100
+    assert lot.expires_at == period_end
+    assert ledger.entry_type == CreditLedgerEntryType.PERIOD_GRANT
+    assert ledger.delta_balance_credits == 100
+    assert ledger.balance_after_credits == 100
     assert application.result_code == "applied"
     assert application.applied_at is not None
     assert await CommerceProviderEventApplication.all().count() == 1
@@ -558,6 +597,322 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     assert fixture.subscription.current_period_end == period_end
     assert await CommerceProviderEventApplication.all().count() == 1
 
+    top_up_ledger = await WorkspaceCreditLedger.create(
+        workspace_id=fixture.workspace.id,
+        account_id=fixture.account.id,
+        subscription_id=fixture.subscription.id,
+        plan_revision_id=fixture.revision.id,
+        entry_type=CreditLedgerEntryType.TOP_UP,
+        request_id=None,
+        provider_period_identity=None,
+        estimated_cost_micros=None,
+        actual_cost_micros=None,
+        applied_credit_value_micros=fixture.revision.credit_value_micros,
+        reserved_credits=0,
+        committed_credits=0,
+        delta_balance_credits=50,
+        delta_reserved_credits=0,
+        balance_after_credits=150,
+        reserved_after_credits=0,
+        idempotency_key=f"integration-top-up-{uuid4().hex}",
+        actor_user_id=None,
+        description_key="LEDGER_TOP_UP",
+    )
+    top_up_lot = await WorkspaceCreditGrantLot.create(
+        workspace_id=fixture.workspace.id,
+        account_id=fixture.account.id,
+        subscription_id=fixture.subscription.id,
+        plan_revision_id=fixture.revision.id,
+        source=CreditGrantSource.TOP_UP,
+        source_identity=f"integration-top-up:{top_up_ledger.id}",
+        granted_credits=50,
+        remaining_credits=50,
+        reserved_credits=0,
+        issued_at=event_time,
+        expires_at=None,
+        actor_user_id=None,
+        description_key="LEDGER_TOP_UP",
+    )
+    fixture.account.balance_credits = 150
+    fixture.account.revision += 1
+    await fixture.account.save(update_fields=["balance_credits", "revision", "updated_at"])
+
+    renewal_time = event_time + timedelta(seconds=5)
+    renewal_start = period_end
+    renewal_end = renewal_start + timedelta(days=30)
+    renewal_event_id = f"sim_evt_subscriptionrenewal{uuid4().hex[:16]}"
+    renewal_payload = _payload(
+        fixture=fixture,
+        event_id=renewal_event_id,
+        event_timestamp=int(renewal_time.timestamp()),
+        period_start=renewal_start,
+        period_end=renewal_end,
+    )
+    renewal = await acceptance.accept(
+        payload=renewal_payload,
+        signature=_signature(renewal_payload, timestamp=int(renewal_time.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=renewal.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    await lot.refresh_from_db()
+    await top_up_lot.refresh_from_db()
+    renewal_application = await CommerceProviderEventApplication.get(provider_event_id=renewal_event_id)
+    renewal_grant = await CommercePlanPeriodGrant.get(application_id=renewal_application.id)
+    renewal_lot = await WorkspaceCreditGrantLot.get(id=renewal_grant.grant_lot_id)
+    renewal_ledger = await WorkspaceCreditLedger.get(id=renewal_grant.ledger_entry_id)
+    expiration_mutation = await WorkspaceCreditLotMutation.get(
+        lot_id=lot.id,
+        kind=CreditLotMutationKind.EXPIRATION,
+    )
+    expiration_ledger = await WorkspaceCreditLedger.get(id=expiration_mutation.ledger_entry_id)
+    assert fixture.subscription.current_period_start == renewal_start
+    assert fixture.subscription.current_period_end == renewal_end
+    assert fixture.account.balance_credits == 150
+    assert fixture.account.period_start == renewal_start
+    assert fixture.account.period_end == renewal_end
+    assert fixture.account.revision == 4
+    assert lot.remaining_credits == 0
+    assert top_up_lot.remaining_credits == 50
+    assert renewal_grant.reason == PlanPeriodGrantReason.RENEWAL
+    assert renewal_grant.period_start == renewal_start
+    assert renewal_grant.period_end == renewal_end
+    assert renewal_lot.remaining_credits == 100
+    assert renewal_lot.expires_at == renewal_end
+    assert expiration_ledger.entry_type == CreditLedgerEntryType.EXPIRATION
+    assert expiration_ledger.delta_balance_credits == -100
+    assert expiration_ledger.balance_after_credits == 50
+    assert renewal_ledger.entry_type == CreditLedgerEntryType.PERIOD_GRANT
+    assert renewal_ledger.delta_balance_credits == 100
+    assert renewal_ledger.balance_after_credits == 150
+    assert await CommercePlanPeriodGrant.filter(workspace_id=fixture.workspace.id).count() == 2
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 2
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.EXPIRATION,
+        ).count()
+        == 1
+    )
+
+    delayed_event_id = f"sim_evt_subscriptiondelayed{uuid4().hex[:16]}"
+    delayed_payload = _payload(
+        fixture=fixture,
+        event_id=delayed_event_id,
+        event_timestamp=int((renewal_time + timedelta(seconds=1)).timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+    )
+    delayed = await acceptance.accept(
+        payload=delayed_payload,
+        signature=_signature(
+            delayed_payload,
+            timestamp=int((renewal_time + timedelta(seconds=1)).timestamp()),
+            secret=secret,
+        ),
+    )
+    delayed_context = _context(await ConnectorEventInbox.get(id=delayed.inbox_id))
+    with pytest.raises(PermanentJobExecutionError):
+        await handler.execute(context=delayed_context)
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    assert fixture.subscription.current_period_start == renewal_start
+    assert fixture.subscription.current_period_end == renewal_end
+    assert fixture.account.balance_credits == 150
+    assert await CommerceProviderEventApplication.filter(provider_event_id=delayed_event_id).count() == 0
+
+
+async def test_provider_period_renewal_rolls_back_while_credit_reservations_are_pending(
+    db_schema,
+    tmp_path: Path,
+) -> None:
+    _ = db_schema
+    fixture = await _fixture()
+    secret = "integration-simulated-reserved-renewal-secret"
+    settings = _settings(tmp_path, secret=secret)
+    connector = cast(
+        BillingConnector,
+        SimulatedBillingConnector(signing_secret=secret, webhook_tolerance_seconds=300),
+    )
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="simulated",
+        connector_key="billing.simulated",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.outcome", "subscription.lifecycle"),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    period_start = datetime.now(UTC).replace(microsecond=0)
+    period_end = period_start + timedelta(days=30)
+    activation_event_id = f"sim_evt_reservationbaseline{uuid4().hex[:16]}"
+    activation_payload = _payload(
+        fixture=fixture,
+        event_id=activation_event_id,
+        event_timestamp=int(period_start.timestamp()),
+        period_start=period_start,
+        period_end=period_end,
+    )
+    activation = await acceptance.accept(
+        payload=activation_payload,
+        signature=_signature(activation_payload, timestamp=int(period_start.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=activation.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    grant = await CommercePlanPeriodGrant.get(workspace_id=fixture.workspace.id)
+    lot = await WorkspaceCreditGrantLot.get(id=grant.grant_lot_id)
+    fixture.account.reserved_credits = 10
+    fixture.account.revision += 1
+    await fixture.account.save(update_fields=["reserved_credits", "revision", "updated_at"])
+    lot.reserved_credits = 10
+    await lot.save(update_fields=["reserved_credits", "updated_at"])
+
+    renewal_time = period_start + timedelta(seconds=1)
+    renewal_event_id = f"sim_evt_reservationrenewal{uuid4().hex[:16]}"
+    renewal_payload = _payload(
+        fixture=fixture,
+        event_id=renewal_event_id,
+        event_timestamp=int(renewal_time.timestamp()),
+        period_start=period_end,
+        period_end=period_end + timedelta(days=30),
+    )
+    renewal = await acceptance.accept(
+        payload=renewal_payload,
+        signature=_signature(renewal_payload, timestamp=int(renewal_time.timestamp()), secret=secret),
+    )
+    renewal_inbox = await ConnectorEventInbox.get(id=renewal.inbox_id)
+    renewal_context = _context(renewal_inbox)
+    with pytest.raises(PermanentJobExecutionError) as captured:
+        await handler.execute(context=renewal_context)
+    await handler.project_failure(context=renewal_context, error=captured.value)
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    await lot.refresh_from_db()
+    renewal_inbox = await ConnectorEventInbox.get(id=renewal_inbox.id)
+    assert captured.value.code == BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE
+    assert renewal_inbox.status == ConnectorEventInboxStatus.FAILED
+    assert fixture.subscription.current_period_start == period_start
+    assert fixture.subscription.current_period_end == period_end
+    assert fixture.account.period_start == period_start
+    assert fixture.account.period_end == period_end
+    assert fixture.account.balance_credits == 100
+    assert fixture.account.reserved_credits == 10
+    assert fixture.account.revision == 3
+    assert lot.remaining_credits == 100
+    assert lot.reserved_credits == 10
+    assert await CommercePlanPeriodGrant.filter(workspace_id=fixture.workspace.id).count() == 1
+    assert await WorkspaceCreditLotMutation.filter(lot_id=lot.id).count() == 0
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.EXPIRATION,
+        ).count()
+        == 0
+    )
+    assert await CommerceProviderEventApplication.filter(provider_event_id=renewal_event_id).count() == 0
+
+
+async def test_revision_once_credit_grant_advances_provider_period_without_duplicate_credits(
+    db_schema,
+    tmp_path: Path,
+) -> None:
+    _ = db_schema
+    fixture = await _fixture(credit_refresh_interval=CreditRefreshInterval.NONE)
+    secret = "integration-simulated-revision-once-secret"
+    settings = _settings(tmp_path, secret=secret)
+    connector = cast(
+        BillingConnector,
+        SimulatedBillingConnector(signing_secret=secret, webhook_tolerance_seconds=300),
+    )
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="simulated",
+        connector_key="billing.simulated",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.outcome", "subscription.lifecycle"),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    first_start = datetime.now(UTC).replace(microsecond=0)
+    first_end = first_start + timedelta(days=30)
+    first_event_id = f"sim_evt_revisiononcefirst{uuid4().hex[:16]}"
+    first_payload = _payload(
+        fixture=fixture,
+        event_id=first_event_id,
+        event_timestamp=int(first_start.timestamp()),
+        period_start=first_start,
+        period_end=first_end,
+    )
+    first = await acceptance.accept(
+        payload=first_payload,
+        signature=_signature(first_payload, timestamp=int(first_start.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=first.inbox_id)))
+
+    second_event_time = first_start + timedelta(seconds=1)
+    second_end = first_end + timedelta(days=30)
+    second_event_id = f"sim_evt_revisiononcesecond{uuid4().hex[:16]}"
+    second_payload = _payload(
+        fixture=fixture,
+        event_id=second_event_id,
+        event_timestamp=int(second_event_time.timestamp()),
+        period_start=first_end,
+        period_end=second_end,
+    )
+    second = await acceptance.accept(
+        payload=second_payload,
+        signature=_signature(second_payload, timestamp=int(second_event_time.timestamp()), secret=secret),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=second.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    grant = await CommercePlanPeriodGrant.get(workspace_id=fixture.workspace.id)
+    lot = await WorkspaceCreditGrantLot.get(id=grant.grant_lot_id)
+    second_application = await CommerceProviderEventApplication.get(provider_event_id=second_event_id)
+    assert fixture.subscription.current_period_start == first_end
+    assert fixture.subscription.current_period_end == second_end
+    assert fixture.account.balance_credits == 100
+    assert fixture.account.period_start == first_end
+    assert fixture.account.period_end == second_end
+    assert fixture.account.revision == 3
+    assert grant.reason == PlanPeriodGrantReason.RENEWAL
+    assert grant.period_start == first_start
+    assert grant.period_end == first_end
+    assert lot.remaining_credits == 100
+    assert lot.expires_at is None
+    assert second_application.result_code == "applied"
+    assert await CommercePlanPeriodGrant.filter(workspace_id=fixture.workspace.id).count() == 1
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 1
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.EXPIRATION,
+        ).count()
+        == 0
+    )
+
 
 async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     db_schema,
@@ -576,12 +931,7 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
             "paymentRestrictedEffects": {"valueExpansion": "blocked"},
         },
     )
-    access = await WorkspaceCommercialAccess.create(
-        workspace_id=fixture.workspace.id,
-        subscription_id=fixture.subscription.id,
-        state=CommercialAccessState.NORMAL,
-        source_identity=f"bootstrap:{fixture.subscription.id}",
-    )
+    access = await WorkspaceCommercialAccess.get(workspace_id=fixture.workspace.id)
     assert (
         await WorkspaceCreditGrantLot.filter(
             workspace_id=fixture.workspace.id,
@@ -849,6 +1199,187 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     assert await CommercialAccessTransition.filter(access_id=access.id).count() == 2
     assert await CommercialAccessFact.filter(workspace_id=fixture.workspace.id).count() == 3
 
+    unverified_active_time = regression_time + timedelta(seconds=1)
+    unverified_active_event_id = f"sim_evt_dunningunverifiedactive{uuid4().hex[:16]}"
+    unverified_active_payload = _payload(
+        fixture=fixture,
+        event_id=unverified_active_event_id,
+        event_timestamp=int(unverified_active_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="active",
+    )
+    unverified_active = await acceptance.accept(
+        payload=unverified_active_payload,
+        signature=_signature(
+            unverified_active_payload,
+            timestamp=int(unverified_active_time.timestamp()),
+            secret=secret,
+        ),
+    )
+    unverified_context = _context(await ConnectorEventInbox.get(id=unverified_active.inbox_id))
+    with pytest.raises(PermanentJobExecutionError) as unverified_error:
+        await handler.execute(context=unverified_context)
+    await handler.project_failure(context=unverified_context, error=unverified_error.value)
+
+    await fixture.subscription.refresh_from_db()
+    await access.refresh_from_db()
+    assert unverified_error.value.code == BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE
+    assert fixture.subscription.status == SubscriptionStatus.CANCELED
+    assert access.state == CommercialAccessState.PAYMENT_RESTRICTED
+    assert await CommerceProviderEventApplication.filter(provider_event_id=unverified_active_event_id).count() == 0
+
+    recovery_time = unverified_active_time + timedelta(seconds=1)
+    recovery_event_id = f"sim_evt_dunningrecovery{uuid4().hex[:16]}"
+    recovery_payload = _payload(
+        fixture=fixture,
+        event_id=recovery_event_id,
+        event_timestamp=int(recovery_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="active",
+        dunning={
+            "kind": "payment_recovered",
+            "provider_period_id": "sim_period_dunning",
+        },
+    )
+    recovery = await acceptance.accept(
+        payload=recovery_payload,
+        signature=_signature(recovery_payload, timestamp=int(recovery_time.timestamp()), secret=secret),
+    )
+    recovery_result = await handler.execute(context=_context(await ConnectorEventInbox.get(id=recovery.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    await access.refresh_from_db()
+    recovery_application = await CommerceProviderEventApplication.get(provider_event_id=recovery_event_id)
+    recovery_transition = await CommercialAccessTransition.get(provider_event_id=recovery_event_id)
+    recovery_facts = await CommercialAccessFact.filter(source_identity=recovery_transition.source_identity)
+    recovery_grant = await CommercePlanPeriodGrant.get(application_id=recovery_application.id)
+    recovery_lot = await WorkspaceCreditGrantLot.get(id=recovery_grant.grant_lot_id)
+    recovery_ledger = await WorkspaceCreditLedger.get(id=recovery_grant.ledger_entry_id)
+    assert recovery_result.applied is True
+    assert fixture.subscription.status == SubscriptionStatus.ACTIVE
+    assert access.state == CommercialAccessState.NORMAL
+    assert access.deadline_at is None
+    assert access.state_revision == 4
+    assert access.source_occurred_at == recovery_time
+    assert fixture.account.balance_credits == 100
+    assert fixture.account.revision == 3
+    assert recovery_transition.from_state == CommercialAccessState.PAYMENT_RESTRICTED
+    assert recovery_transition.to_state == CommercialAccessState.NORMAL
+    assert recovery_transition.resulting_state_revision == 4
+    assert recovery_grant.reason == PlanPeriodGrantReason.RECOVERY
+    assert recovery_grant.plan_revision_id == fixture.revision.id
+    assert recovery_grant.provider_period_identity == "sim_period_dunning"
+    assert recovery_grant.period_start == event_time
+    assert recovery_grant.period_end == period_end
+    assert recovery_grant.granted_credits == 100
+    assert recovery_lot.source == CreditGrantSource.PLAN_PERIOD
+    assert recovery_lot.plan_revision_id == fixture.revision.id
+    assert recovery_lot.remaining_credits == 100
+    assert recovery_lot.expires_at == period_end
+    assert recovery_ledger.entry_type == CreditLedgerEntryType.PERIOD_GRANT
+    assert recovery_ledger.delta_balance_credits == 100
+    assert recovery_ledger.balance_after_credits == 100
+    assert recovery_application.result_code == "applied"
+    assert {fact.kind for fact in recovery_facts} == {
+        CommercialAccessFactKind.LIFECYCLE_NOTIFICATION,
+        CommercialAccessFactKind.HOSTING_HANDOFF,
+    }
+    recovery_fact_by_kind = {fact.kind: fact for fact in recovery_facts}
+    assert recovery_fact_by_kind[CommercialAccessFactKind.LIFECYCLE_NOTIFICATION].payload == {
+        "milestone": "payment_recovered",
+        "recovery_deadline": None,
+    }
+    assert recovery_fact_by_kind[CommercialAccessFactKind.HOSTING_HANDOFF].payload == {
+        "state": "normal",
+        "cause": "provider_payment_recovered",
+    }
+
+    duplicate_recovery_time = recovery_time + timedelta(seconds=1)
+    duplicate_recovery_event_id = f"sim_evt_dunningrecoveryrepeat{uuid4().hex[:16]}"
+    duplicate_recovery_payload = _payload(
+        fixture=fixture,
+        event_id=duplicate_recovery_event_id,
+        event_timestamp=int(duplicate_recovery_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="active",
+        dunning={
+            "kind": "payment_recovered",
+            "provider_period_id": "sim_period_dunning",
+        },
+    )
+    duplicate_recovery = await acceptance.accept(
+        payload=duplicate_recovery_payload,
+        signature=_signature(
+            duplicate_recovery_payload,
+            timestamp=int(duplicate_recovery_time.timestamp()),
+            secret=secret,
+        ),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=duplicate_recovery.inbox_id)))
+
+    post_recovery_failure_time = duplicate_recovery_time + timedelta(seconds=1)
+    post_recovery_failure_id = f"sim_evt_dunningafterrecovery{uuid4().hex[:16]}"
+    post_recovery_failure_payload = _payload(
+        fixture=fixture,
+        event_id=post_recovery_failure_id,
+        event_timestamp=int(post_recovery_failure_time.timestamp()),
+        period_start=event_time,
+        period_end=period_end,
+        status="past_due",
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_dunning",
+            "recovery_deadline": int((recovery_deadline + timedelta(days=40)).timestamp()),
+        },
+    )
+    post_recovery_failure = await acceptance.accept(
+        payload=post_recovery_failure_payload,
+        signature=_signature(
+            post_recovery_failure_payload,
+            timestamp=int(post_recovery_failure_time.timestamp()),
+            secret=secret,
+        ),
+    )
+    await handler.execute(context=_context(await ConnectorEventInbox.get(id=post_recovery_failure.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    await access.refresh_from_db()
+    duplicate_recovery_application = await CommerceProviderEventApplication.get(
+        provider_event_id=duplicate_recovery_event_id
+    )
+    post_recovery_failure_application = await CommerceProviderEventApplication.get(
+        provider_event_id=post_recovery_failure_id
+    )
+    assert duplicate_recovery_application.result_code == "dunning_state_repeat_ignored"
+    assert post_recovery_failure_application.result_code == "dunning_state_regression_ignored"
+    assert fixture.subscription.status == SubscriptionStatus.ACTIVE
+    assert fixture.account.balance_credits == 100
+    assert fixture.account.revision == 3
+    assert access.state == CommercialAccessState.NORMAL
+    assert access.state_revision == 4
+    assert await CommercePlanPeriodGrant.filter(workspace_id=fixture.workspace.id).count() == 1
+    assert (
+        await WorkspaceCreditGrantLot.filter(
+            workspace_id=fixture.workspace.id,
+            source=CreditGrantSource.PLAN_PERIOD,
+        ).count()
+        == 1
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 1
+    )
+    assert await CommercialAccessTransition.filter(access_id=access.id).count() == 3
+    assert await CommercialAccessFact.filter(workspace_id=fixture.workspace.id).count() == 5
+
     fixture.subscription.provider_mode = BillingProviderMode.LIVE
     await fixture.subscription.save(update_fields=["provider_mode"])
     historical_receipt = await TortoiseCommercialAccessStateRepository().get_transition_receipt(
@@ -893,12 +1424,7 @@ async def test_dunning_rejects_missing_or_inconsistent_provider_policy(
 ) -> None:
     _ = db_schema
     fixture = await _fixture()
-    access = await WorkspaceCommercialAccess.create(
-        workspace_id=fixture.workspace.id,
-        subscription_id=fixture.subscription.id,
-        state=CommercialAccessState.NORMAL,
-        source_identity=f"bootstrap:{fixture.subscription.id}",
-    )
+    access = await WorkspaceCommercialAccess.get(workspace_id=fixture.workspace.id)
     if policy_payload is not None:
         await CommerceDunningPolicy.create(
             provider="simulated",
@@ -991,6 +1517,9 @@ async def test_completed_checkout_activates_target_revision_through_signed_lifec
     await fixture.subscription.refresh_from_db()
     await fixture.account.refresh_from_db()
     application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
+    grant = await CommercePlanPeriodGrant.get(application_id=application.id)
+    lot = await WorkspaceCreditGrantLot.get(id=grant.grant_lot_id)
+    ledger = await WorkspaceCreditLedger.get(id=grant.ledger_entry_id)
     assert accepted.created is True
     assert replayed_acceptance.created is False
     assert result == replayed_result
@@ -1000,8 +1529,21 @@ async def test_completed_checkout_activates_target_revision_through_signed_lifec
     assert fixture.subscription.external_customer_id == "sim_cus_activation"
     assert fixture.subscription.external_subscription_id == "sim_sub_activation"
     assert fixture.account.plan_revision_id == fixture.target_revision.id
+    assert fixture.account.balance_credits == 100
+    assert fixture.account.revision == 2
     assert fixture.account.period_start == event_time
     assert fixture.account.period_end == event_time + timedelta(days=30)
+    assert grant.reason == PlanPeriodGrantReason.ACTIVATION
+    assert grant.plan_revision_id == fixture.target_revision.id
+    assert grant.period_start == event_time
+    assert grant.period_end == event_time + timedelta(days=30)
+    assert grant.granted_credits == 100
+    assert lot.source == CreditGrantSource.PLAN_PERIOD
+    assert lot.plan_revision_id == fixture.target_revision.id
+    assert lot.remaining_credits == 100
+    assert ledger.entry_type == CreditLedgerEntryType.PERIOD_GRANT
+    assert ledger.delta_balance_credits == 100
+    assert ledger.balance_after_credits == 100
     assert application.checkout_session_id == fixture.checkout.id
     assert application.checkout_outcome_command_id == fixture.command.id
     assert application.result_code == "applied"

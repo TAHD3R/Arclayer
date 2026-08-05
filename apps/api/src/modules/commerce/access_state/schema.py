@@ -170,30 +170,6 @@ class CommercialAccessTransitionWrite(BaseSchema):
     result: CommercialAccessStateApplyResult
 
 
-class PaymentRecoveryGrantRequest(BaseSchema):
-    """Grant decision input accepted only after Provider signature verification."""
-
-    source: VerifiedProviderDunningFact
-    expected_access_revision: int = Field(ge=1)
-    idempotency_key: str = Field(min_length=1, max_length=160)
-
-
-class PaymentRecoveryGrantDecision(BaseSchema):
-    workspace_id: UUID
-    provider: str
-    provider_period_id: str
-    subscription_revision_id: UUID
-    source_event_id: str
-    grant_required: bool
-    decision_identity: str
-
-
-class PaymentRecoveryGrantWrite(BaseSchema):
-    expected_access_revision: int = Field(ge=1)
-    idempotency_key: str = Field(min_length=1, max_length=160)
-    decision: PaymentRecoveryGrantDecision
-
-
 class CommercialAccessMemberView(BaseSchema):
     """Sanitized access state visible to every active Workspace member."""
 

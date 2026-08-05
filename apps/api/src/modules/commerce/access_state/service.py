@@ -188,6 +188,13 @@ class CommercialAccessStateService(BaseService):
             and source.kind in {ProviderDunningFactKind.PAYMENT_FAILURE, ProviderDunningFactKind.FINAL_UNPAID}
         ):
             return CommercialAccessApplyDisposition.STATE_REGRESSION_IGNORED
+        if (
+            current.state == CommercialAccessState.NORMAL
+            and current.source_occurred_at is not None
+            and source.provider_period_id == current.provider_period_id
+            and source.kind == ProviderDunningFactKind.PAYMENT_RECOVERED
+        ):
+            return CommercialAccessApplyDisposition.STATE_REPEAT_IGNORED
         if source.kind == ProviderDunningFactKind.PAYMENT_FAILURE:
             if current.state == CommercialAccessState.PAYMENT_RESTRICTED:
                 return CommercialAccessApplyDisposition.STATE_REGRESSION_IGNORED

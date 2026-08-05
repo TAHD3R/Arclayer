@@ -120,6 +120,12 @@ async def _scheduled_transition_fixture() -> tuple[
         period_end=effective_at,
         period_identity=f"provider:stripe:sub-{suffix}:{source.id}:{effective_at.isoformat()}",
     )
+    await WorkspaceCommercialAccess.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        state=CommercialAccessState.NORMAL,
+        source_identity=f"provider:stripe:evt-bootstrap-{suffix}",
+    )
     convergence = await PlanAccessConvergence.create(
         workspace_id=workspace.id,
         source_plan_revision_id=source.id,
@@ -291,12 +297,7 @@ async def test_verified_dunning_uses_the_eager_loaded_plan_revision_for_current_
             "paymentRestrictedEffects": {"valueExpansion": "blocked"},
         },
     )
-    access = await WorkspaceCommercialAccess.create(
-        workspace_id=workspace.id,
-        subscription_id=current.id,
-        state=CommercialAccessState.NORMAL,
-        source_identity=f"provider:stripe:evt-bootstrap-{uuid4().hex}",
-    )
+    access = await WorkspaceCommercialAccess.get(workspace_id=workspace.id)
     incoming = ProviderSubscription(
         event_id=event_id,
         workspace_id=workspace.id,
@@ -307,7 +308,7 @@ async def test_verified_dunning_uses_the_eager_loaded_plan_revision_for_current_
         currency="USD",
         customer_id=current.external_customer_id,
         subscription_id=current.external_subscription_id,
-        status=SubscriptionStatus.ACTIVE,
+        status=SubscriptionStatus.PAST_DUE,
         current_period_start=current.current_period_start,
         current_period_end=current.current_period_end,
         cancel_at_period_end=False,
