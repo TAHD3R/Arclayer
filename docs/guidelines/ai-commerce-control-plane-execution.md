@@ -518,10 +518,33 @@ M2.3a.2 validation:
 2. M2.3b dunning and restricted-access projection. — Active
    - Normalize a failed-payment dunning fact with Provider period identity, occurrence time, and explicit recovery deadline; apply it through the existing access-state composition and configured Provider-aware dunning policy.
    - Verify warning/restricted/suspended transitions, optimistic access revision, duplicate/out-of-order convergence, entitlement/Credit denial behavior, and immutable signed evidence.
-   - First active slice: map the canonical dunning fact/state-machine contracts and add the strict simulated Provider normalization plus full signed-event application baseline without implementing recovery or renewal.
+   - M2.3b.1 strict simulated dunning normalization and signed application baseline. — Complete
+     - Extend only `subscription.lifecycle` with a closed `payment_failure | final_unpaid` dunning union. Payment failure requires `past_due`, exact Provider period identity, event occurrence time, and an explicit later recovery deadline; final unpaid carries no deadline.
+     - Apply the normalized fact only through signature verification, encrypted inbox, pinned Billing Job, Subscription application, `VerifiedProviderDunningFact`, the canonical access-state composition, immutable transition/outbox facts, and optimistic access revision.
+     - Prove `normal -> payment_grace` and `payment_grace -> payment_restricted` without changing the bound Plan Revision, granting Credits, implementing recovery/renewal, or adding Platform simulator APIs.
+   - M2.3b.2 Provider-aware policy enforcement and dunning ordering. — Active
+     - Resolve the active Provider/mode Dunning Policy, reject missing or inconsistent policy/recovery metadata explicitly, and prevent duplicate or stale Provider facts from extending or regressing the current state.
+   - M2.3b.3 Restricted Recovery denial projection and closure. — Pending
+     - Verify the existing Product API/Job command matrix against the projected state, withheld period Credit behavior, immutable Hosting/notification handoffs, and the complete focused/package regression before advancing to recovery.
 3. M2.3c recovery, renewal, and closure. — Pending
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
    - Close M2.3 with delayed/reordered lifecycle integration coverage, unchanged Stripe regressions, package/static gates, staged GitNexus detection, changed-scope review, execution-record update, and a focused commit.
+
+M2.3b.1 implementation evidence:
+
+- Extended the strict simulated `subscription.lifecycle` contract with a closed dunning union. `payment_failure` requires `past_due`, exact Provider period identity, and a recovery deadline later than the signed event occurrence time; `final_unpaid` permits only `past_due | canceled` and forbids recovery metadata.
+- Dunning and Checkout activation evidence are mutually exclusive. The occurrence time comes only from signed `event.created`, so callers cannot inject a second ordering clock.
+- Applied dunning through the complete HMAC signature, encrypted inbox, pinned Billing Job, Connector normalization, Subscription application, `VerifiedProviderDunningFact`, access-state transition, and immutable notification/Hosting outbox chain.
+- Proved `normal -> payment_grace -> payment_restricted` while preserving the bound Plan Revision and Credit-account Revision, advancing the optimistic access revision from `1` to `3`, and creating no Credit grant or recovery behavior.
+- Fixed the first real Payment Restricted Hosting handoff: `BaseSchema` materializes enum values as strings, so the outbox now serializes `str(handoff.state)` instead of dereferencing a nonexistent `.value` attribute.
+
+M2.3b.1 validation:
+
+- Focused Connector, Stripe, Billing Job, access-state, and restricted-recovery unit regression passed `51` tests.
+- Real PostgreSQL regression passed `14` integration tests across simulated lifecycle and Provider subscription application paths.
+- Targeted Ruff lint/format and `ty` passed for the four changed code/test files. GitNexus impact for the Hosting outbox fix was `LOW`, with one direct test caller and zero affected execution flows.
+- `pnpm api:check` passed lint and formatting across `1861` files. Broad typecheck remains blocked by `290` existing diagnostics, so Turbo interrupted broad pytest; no fallback or suppression was added.
+- Changed-scope Code Review Engine reported zero blocking findings and only the existing i18n and simulated Connector lifecycle prototype reports.
 
 ## Known unrelated repository failures
 
@@ -677,3 +700,11 @@ M2.3a.2 validation:
 - Verified `45` unit tests, `15` PostgreSQL integration tests, targeted lint/format/type checks, active database migration state, and zero changed-scope Code Review Engine blockers.
 - Recorded the unchanged legacy Stripe fixture failure rather than adding a fallback or weakening Subscription authority.
 - Advanced the only active implementation part to M2.3b dunning and restricted-access projection.
+
+### 2026-08-05 — M2.3b.1 strict simulated dunning baseline
+
+- Added the closed simulated `payment_failure | final_unpaid` contract and projected signed dunning evidence through the canonical Subscription and access-state chain.
+- Proved Payment Grace and Payment Restricted transitions with immutable notification/Hosting handoffs, stable Plan/Credit Revision bindings, and optimistic access revision advancement.
+- Fixed Hosting handoff state serialization exposed by the first real restricted-access projection.
+- Verified `51` focused unit tests, `14` PostgreSQL integration tests, targeted static checks, and zero changed-scope Code Review Engine blockers.
+- Advanced the only active implementation part to M2.3b.2 Provider-aware policy enforcement and dunning ordering.

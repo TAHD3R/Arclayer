@@ -50,7 +50,7 @@ class TortoiseCommercialAccessFactOutbox:
             source_identity=handoff.transition_identity,
             workspace_id=handoff.workspace_id,
             effective_at=handoff.effective_at,
-            payload={"state": handoff.state.value, "cause": handoff.cause},
+            payload={"state": str(handoff.state), "cause": handoff.cause},
             conn=conn,
         )
 

@@ -70,6 +70,8 @@ def _subscription_payload(
     plan_id: str,
     plan_revision_id: str,
     checkout_activation: dict[str, str] | None = None,
+    dunning: dict[str, object] | None = None,
+    status: str = "active",
 ) -> bytes:
     data: dict[str, object] = {
         "billing_cycle": "monthly",
@@ -81,12 +83,14 @@ def _subscription_payload(
         "external_price_id": "sim_price_premium_monthly",
         "plan_id": plan_id,
         "plan_revision_id": plan_revision_id,
-        "status": "active",
+        "status": status,
         "subscription_id": "sim_sub_unit123",
         "workspace_id": workspace_id,
     }
     if checkout_activation is not None:
         data["checkout_activation"] = checkout_activation
+    if dunning is not None:
+        data["dunning"] = dunning
     return json.dumps(
         {
             "id": "sim_evt_subscription123",
@@ -290,6 +294,106 @@ async def test_simulated_connector_normalizes_checkout_activation_correlation() 
     assert subscription.checkout_activation.external_session_id == "sim_cs_activation123"
     assert subscription.checkout_activation.checkout_outcome_event_id == "sim_evt_checkoutactivation123"
     assert int(subscription.checkout_activation.occurred_at.timestamp()) == timestamp
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "dunning", "expected_deadline"),
+    (
+        (
+            "past_due",
+            {
+                "kind": "payment_failure",
+                "provider_period_id": "sim_period_failure123",
+                "recovery_deadline": 1,
+            },
+            True,
+        ),
+        (
+            "canceled",
+            {
+                "kind": "final_unpaid",
+                "provider_period_id": "sim_period_final123",
+            },
+            False,
+        ),
+    ),
+)
+async def test_simulated_connector_normalizes_strict_dunning_facts(
+    status: str,
+    dunning: dict[str, object],
+    expected_deadline: bool,
+) -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    if expected_deadline:
+        dunning["recovery_deadline"] = timestamp + 86_400
+    payload = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        dunning=dunning,
+        status=status,
+    )
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert subscription is not None
+    assert subscription.dunning_event is not None
+    assert subscription.dunning_event.kind == dunning["kind"]
+    assert subscription.dunning_event.provider_period_id == dunning["provider_period_id"]
+    assert int(subscription.dunning_event.occurred_at.timestamp()) == timestamp
+    if expected_deadline:
+        assert subscription.dunning_event.recovery_deadline is not None
+        assert int(subscription.dunning_event.recovery_deadline.timestamp()) == timestamp + 86_400
+    else:
+        assert subscription.dunning_event.recovery_deadline is None
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_rejects_inconsistent_dunning_metadata() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    missing_deadline = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_missingdeadline123",
+        },
+        status="past_due",
+    )
+    with pytest.raises(BadRequest, match="BILLING_WEBHOOK_PAYLOAD_INVALID"):
+        connector.verify_webhook(
+            payload=missing_deadline,
+            signature=_signature(missing_deadline, timestamp=timestamp),
+        )
+
+    invalid_deadline = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        dunning={
+            "kind": "payment_failure",
+            "provider_period_id": "sim_period_invaliddeadline123",
+            "recovery_deadline": timestamp,
+        },
+        status="past_due",
+    )
+    envelope = connector.verify_webhook(
+        payload=invalid_deadline,
+        signature=_signature(invalid_deadline, timestamp=timestamp),
+    )
+    with pytest.raises(BadRequest, match="BILLING_WEBHOOK_PAYLOAD_INVALID"):
+        await connector.subscription_from_event(payload=invalid_deadline, envelope=envelope)
 
 
 @pytest.mark.asyncio

@@ -5,7 +5,7 @@ import hmac
 import json
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -27,6 +27,7 @@ from src.modules.commerce.billing_connector import (
     CheckoutSession,
     ProviderCheckoutActivationEvidence,
     ProviderCheckoutOutcome,
+    ProviderDunningEvent,
     ProviderSubscription,
 )
 
@@ -64,6 +65,27 @@ class _SimulatedCheckoutActivationData(BaseModel):
     checkout_outcome_event_id: str = Field(..., min_length=1, max_length=255)
 
 
+class _SimulatedPaymentFailureData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["payment_failure"]
+    provider_period_id: str = Field(..., min_length=1, max_length=255)
+    recovery_deadline: int
+
+
+class _SimulatedFinalUnpaidData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["final_unpaid"]
+    provider_period_id: str = Field(..., min_length=1, max_length=255)
+
+
+_SimulatedDunningData = Annotated[
+    _SimulatedPaymentFailureData | _SimulatedFinalUnpaidData,
+    Field(discriminator="kind"),
+]
+
+
 class _SimulatedSubscriptionData(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -80,11 +102,23 @@ class _SimulatedSubscriptionData(BaseModel):
     current_period_end: int
     cancel_at_period_end: bool = False
     checkout_activation: _SimulatedCheckoutActivationData | None = None
+    dunning: _SimulatedDunningData | None = None
 
     @model_validator(mode="after")
     def validate_period(self) -> "_SimulatedSubscriptionData":
         if self.current_period_end <= self.current_period_start:
             raise ValueError("subscription period end must be later than its start")
+        if self.checkout_activation is not None and self.dunning is not None:
+            raise ValueError("subscription event cannot combine Checkout activation and dunning")
+        if self.dunning is None:
+            return self
+        if self.dunning.kind == "payment_failure" and self.status != SubscriptionStatus.PAST_DUE:
+            raise ValueError("payment failure requires past_due subscription status")
+        if self.dunning.kind == "final_unpaid" and self.status not in {
+            SubscriptionStatus.PAST_DUE,
+            SubscriptionStatus.CANCELED,
+        }:
+            raise ValueError("final unpaid requires past_due or canceled subscription status")
         return self
 
 
@@ -173,6 +207,7 @@ class SimulatedBillingConnector:
             raise ServiceUnavailable(error="BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE")
         data = self._require_subscription_data(event)
         activation = data.checkout_activation
+        occurred_at = _provider_timestamp(event.created)
         return ProviderSubscription(
             event_id=event.id,
             workspace_id=data.workspace_id,
@@ -187,12 +222,13 @@ class SimulatedBillingConnector:
             current_period_start=_provider_timestamp(data.current_period_start),
             current_period_end=_provider_timestamp(data.current_period_end),
             cancel_at_period_end=data.cancel_at_period_end,
+            dunning_event=_provider_dunning_event(data.dunning, occurred_at=occurred_at),
             checkout_activation=(
                 ProviderCheckoutActivationEvidence(
                     checkout_session_id=activation.checkout_session_id,
                     external_session_id=activation.external_session_id,
                     checkout_outcome_event_id=activation.checkout_outcome_event_id,
-                    occurred_at=_provider_timestamp(event.created),
+                    occurred_at=occurred_at,
                 )
                 if activation is not None
                 else None
@@ -331,6 +367,27 @@ class SimulatedBillingExtension:
 
 def create_plugin() -> SimulatedBillingExtension:
     return SimulatedBillingExtension()
+
+
+def _provider_dunning_event(
+    data: _SimulatedDunningData | None,
+    *,
+    occurred_at: datetime,
+) -> ProviderDunningEvent | None:
+    if data is None:
+        return None
+    recovery_deadline = (
+        _provider_timestamp(data.recovery_deadline) if isinstance(data, _SimulatedPaymentFailureData) else None
+    )
+    try:
+        return ProviderDunningEvent(
+            kind=data.kind,
+            provider_period_id=data.provider_period_id,
+            occurred_at=occurred_at,
+            recovery_deadline=recovery_deadline,
+        )
+    except ValidationError as exc:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
 
 def _provider_timestamp(value: int) -> datetime:
