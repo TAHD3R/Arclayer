@@ -16,7 +16,7 @@ def _projection(*, workspace_id: UUID, state: str = "payment_restricted"):
         provider_mode="test",
         provider_period_id="period-4",
         state=CommercialAccessState(state),
-        recovery_deadline=None,
+        recovery_deadline=(datetime(2026, 8, 5, tzinfo=UTC) if state == "payment_grace" else None),
         access_revision=4,
         source_event_id="invoice-final-4",
         effective_at=datetime(2026, 7, 31, tzinfo=UTC),
@@ -163,5 +163,33 @@ async def test_job_authorizer_converts_the_restricted_402_to_a_terminal_error() 
     assert exc.value.metadata == {
         "commercialAccessState": "payment_restricted",
         "explanationKey": "commerce:PAYMENT_RESTRICTED",
+        "permittedRecoveryAction": "open_payment_recovery",
+    }
+
+
+@pytest.mark.asyncio
+async def test_job_authorizer_converts_payment_grace_metering_denial_to_a_terminal_error() -> None:
+    from src.modules.commerce.dunning.command_policy import (
+        CommercialAccessJobAuthorizer,
+        RestrictedRecoveryCommandPolicy,
+    )
+    from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+    from src.modules.jobs.execution_errors import PermanentJobExecutionError
+
+    workspace_id = uuid4()
+    reader = _Reader(_projection(workspace_id=workspace_id, state="payment_grace"))
+    authorizer = CommercialAccessJobAuthorizer(policy=RestrictedRecoveryCommandPolicy(reader=reader))
+
+    with pytest.raises(PermanentJobExecutionError) as exc:
+        await authorizer.authorize(
+            workspace_id=workspace_id,
+            effects={RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT},
+        )
+
+    assert exc.value.code == "WORKSPACE_PAYMENT_RECOVERY_REQUIRED"
+    assert exc.value.metadata == {
+        "commercialAccessState": "payment_grace",
+        "recoveryDeadline": "2026-08-05T00:00:00Z",
+        "explanationKey": "commerce:PAYMENT_GRACE",
         "permittedRecoveryAction": "open_payment_recovery",
     }

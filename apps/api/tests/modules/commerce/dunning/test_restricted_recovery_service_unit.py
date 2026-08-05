@@ -91,7 +91,7 @@ def test_restricted_recovery_allows_recovery_security_and_lifecycle_commands(
 
 
 @pytest.mark.parametrize("state", ["normal", "payment_grace"])
-def test_non_restricted_access_does_not_block_value_expansion(state: str) -> None:
+def test_non_restricted_access_allows_content_mutation(state: str) -> None:
     from src.modules.commerce.dunning.restricted_recovery import RestrictedRecoveryService
     from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 
@@ -103,6 +103,27 @@ def test_non_restricted_access_does_not_block_value_expansion(state: str) -> Non
     assert decision.allowed is True
     assert decision.command_class == "value_expansion"
     assert decision.explanation_key is None
+
+
+def test_payment_grace_rejects_metered_external_effect_with_recovery_deadline() -> None:
+    from src.core.exceptions import APIError
+    from src.modules.commerce.dunning.restricted_recovery import RestrictedRecoveryService
+    from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+
+    with pytest.raises(APIError) as exc:
+        RestrictedRecoveryService().classify(
+            projection=_projection(state="payment_grace"),
+            effects={RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT},
+        )
+
+    assert exc.value.status_code == 402
+    assert exc.value.error == "WORKSPACE_PAYMENT_RECOVERY_REQUIRED"
+    assert exc.value.meta == {
+        "commercialAccessState": "payment_grace",
+        "recoveryDeadline": "2026-08-05T00:00:00Z",
+        "explanationKey": "commerce:PAYMENT_GRACE",
+        "permittedRecoveryAction": "open_payment_recovery",
+    }
 
 
 def test_restricted_recovery_requires_a_commercial_access_projection() -> None:

@@ -526,6 +526,13 @@ M2.3a.2 validation:
      - Resolve the active Provider/mode Dunning Policy, reject missing or inconsistent policy/recovery metadata explicitly, and prevent duplicate or stale Provider facts from extending or regressing the current state.
    - M2.3b.3 Restricted Recovery denial projection and closure. — Active
      - Verify the existing Product API/Job command matrix against the projected state, withheld period Credit behavior, immutable Hosting/notification handoffs, and the complete focused/package regression before advancing to recovery.
+     - M2.3b.3a Payment Grace metered-effect denial and Job terminal contract. — Complete
+       - Keep ordinary Product content mutation available during Grace while rejecting every newly dispatched metered external-cost effect with an explicit 402 recovery error and Provider recovery deadline.
+       - Project the same denial into permanent Job failure metadata so retry, schedule, Agent, and Job paths cannot reinterpret the payment state as transient.
+     - M2.3b.3b Product API/automation denial matrix closure. — Active
+       - Close unguarded Product HTTP and event-driven execution paths while preserving payment recovery, cancellation, revocation, deletion, and other reducing actions.
+     - M2.3b.3c withheld period Credits and immutable handoff evidence. — Pending
+       - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
 3. M2.3c recovery, renewal, and closure. — Pending
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
    - Close M2.3 with delayed/reordered lifecycle integration coverage, unchanged Stripe regressions, package/static gates, staged GitNexus detection, changed-scope review, execution-record update, and a focused commit.
@@ -566,6 +573,20 @@ M2.3b.2 validation:
 - Targeted Ruff lint/format and `ty` checks passed across the changed model, migration, access-state/application runtime, and tests.
 - `pnpm api:check`: API lint and formatting passed across `1862` files. Broad typecheck remains blocked by `289` existing diagnostics in Design System/content and unrelated test surfaces; Turbo interrupted broad pytest after that failure. All M2.3b.2 focused and PostgreSQL tests remain green.
 - Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `25` report-only findings are the existing prototype backend error-localization pattern on changed access-state/application files; no architecture or lifecycle blocker was reported.
+
+M2.3b.3a implementation evidence:
+
+- Added a distinct `WORKSPACE_PAYMENT_RECOVERY_REQUIRED` 402 contract for Payment Grace. Its immutable metadata identifies `payment_grace`, the exact recovery deadline, `commerce:PAYMENT_GRACE`, and the permitted payment-recovery action.
+- `RestrictedRecoveryService` now rejects only `METERED_EXTERNAL_EFFECT` during Grace. Ordinary content mutation remains available, while Payment Restricted continues to reject every value-expanding command.
+- `CommercialAccessJobAuthorizer` converts both Grace metering denial and Payment Restricted denial into permanent Job execution errors. The common Job registry now requires the exact metadata schema for both codes across every registered Job type.
+- Added stable bilingual API/Product error copy without changing the existing Payment Restricted message.
+
+M2.3b.3a validation:
+
+- Focused Restricted Recovery, command policy, and Job registry regression passed `46` tests.
+- Targeted Ruff lint and formatting passed after formatting the single changed test file; targeted `ty` passed for all changed production modules.
+- Product locale parity passed for all `23` namespaces.
+- GitNexus pre-edit impact for `RestrictedRecoveryService.classify`, `CommercialAccessJobAuthorizer.authorize`, and the common Job terminal contract was `LOW`, with at most one direct test caller and zero affected execution flows.
 
 ## Known unrelated repository failures
 
@@ -739,3 +760,10 @@ M2.3b.2 validation:
 - Verified `37` focused access/policy tests, `33` Connector/Job regressions, `17` PostgreSQL lifecycle tests, `1` PostgreSQL migration test, targeted static checks, final database upgrade, and zero migration drift.
 - Recorded the existing `289` broad API type diagnostics and `25` report-only Code Review Engine localization findings without suppression or fallback.
 - Advanced the only active implementation part to M2.3b.3 Restricted Recovery denial projection and closure.
+
+### 2026-08-05 — M2.3b.3a Payment Grace metered denial
+
+- Added an explicit Payment Grace recovery-required error with the durable recovery deadline while preserving ordinary content editing during the Grace window.
+- Projected the same denial into the common permanent Job terminal contract so Agent, retry, and scheduled Job execution cannot bypass the payment state.
+- Verified `46` focused tests, targeted Ruff/format/`ty`, and Product locale parity across `23` namespaces.
+- Split the remaining closure into Product API/automation matrix work followed by withheld-period Credit and immutable handoff database evidence; selected M2.3b.3b as the only active part.

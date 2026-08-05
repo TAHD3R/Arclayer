@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import ConfigDict, Field
@@ -54,4 +55,13 @@ class PaymentRestrictedErrorMeta(BaseSchema):
 
     commercial_access_state: CommercialAccessState = CommercialAccessState.PAYMENT_RESTRICTED
     explanation_key: str = "commerce:PAYMENT_RESTRICTED"
+    permitted_recovery_action: str = "open_payment_recovery"
+
+
+class PaymentRecoveryRequiredErrorMeta(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    commercial_access_state: CommercialAccessState = CommercialAccessState.PAYMENT_GRACE
+    recovery_deadline: datetime
+    explanation_key: str = "commerce:PAYMENT_GRACE"
     permitted_recovery_action: str = "open_payment_recovery"

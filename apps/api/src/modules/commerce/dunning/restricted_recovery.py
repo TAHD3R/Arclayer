@@ -5,6 +5,7 @@ from src.core.exceptions import APIError, Conflict, ServiceUnavailable
 from src.core.services import BaseService
 from src.modules.commerce.access_state.schema import CommercialAccessProjection, CommercialAccessState
 from src.modules.commerce.dunning.schema import (
+    PaymentRecoveryRequiredErrorMeta,
     PaymentRestrictedErrorMeta,
     RestrictedRecoveryCommand,
     RestrictedRecoveryCommandClass,
@@ -51,6 +52,19 @@ class RestrictedRecoveryService(BaseService):
             raise ServiceUnavailable(error="COMMERCIAL_ACCESS_STATE_UNAVAILABLE")
         command = RestrictedRecoveryCommand(effects=effects)
         command_class = self._single_command_class(command=command)
+        if (
+            projection.state == CommercialAccessState.PAYMENT_GRACE
+            and RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT in command.effects
+        ):
+            recovery_deadline = projection.recovery_deadline
+            if recovery_deadline is None:
+                raise ServiceUnavailable(error="COMMERCIAL_ACCESS_STATE_UNAVAILABLE")
+            metadata = PaymentRecoveryRequiredErrorMeta(recovery_deadline=recovery_deadline)
+            raise APIError(
+                error="WORKSPACE_PAYMENT_RECOVERY_REQUIRED",
+                status_code=402,
+                meta=metadata.model_dump(mode="json", by_alias=True),
+            )
         if projection.state != CommercialAccessState.PAYMENT_RESTRICTED:
             return RestrictedRecoveryDecision(allowed=True, command_class=command_class)
         if command_class == RestrictedRecoveryCommandClass.VALUE_EXPANSION:

@@ -78,11 +78,14 @@ class CommercialAccessJobAuthorizer:
         try:
             await self._policy.authorize(workspace_id=workspace_id, effects=effects)
         except APIError as error:
-            if error.error != "WORKSPACE_PAYMENT_RESTRICTED":
+            if error.error not in {
+                "WORKSPACE_PAYMENT_RECOVERY_REQUIRED",
+                "WORKSPACE_PAYMENT_RESTRICTED",
+            }:
                 raise
             raise PermanentJobExecutionError(
                 code=error.error,
-                safe_message="Workspace payment restriction prevents this Job from creating a new effect",
+                safe_message="Workspace payment state prevents this Job from creating a new billable effect",
                 metadata=error.meta,
             ) from error
 

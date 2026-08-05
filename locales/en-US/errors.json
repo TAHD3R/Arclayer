@@ -1071,6 +1071,7 @@
   "WORKSPACE_OWNER_ACTIVE_MEMBER_REQUIRED": "The new owner must be an active member of this workspace.",
   "WORKSPACE_OWNER_ALREADY_ASSIGNED": "This member is already the workspace owner.",
   "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE": "The workspace owner cannot be disabled or assigned member roles. Transfer ownership first.",
+  "WORKSPACE_PAYMENT_RECOVERY_REQUIRED": "Resolve the workspace payment issue before starting another usage-based action.",
   "WORKSPACE_PAYMENT_RESTRICTED": "This workspace has a payment issue to resolve, so this action is temporarily unavailable.",
   "WORKSPACE_ROLE_MANAGEMENT_PLAN_REQUIRED": "Custom role management is not included in the current plan.",
   "WORKSPACE_OWNER_REQUIRED": "Only the current workspace owner can perform this action.",

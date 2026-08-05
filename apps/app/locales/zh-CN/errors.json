@@ -946,6 +946,7 @@
   "WORKSPACE_OWNER_ACTIVE_MEMBER_REQUIRED": "新所有者必须是当前工作空间的活跃成员。",
   "WORKSPACE_OWNER_ALREADY_ASSIGNED": "该成员已经是工作空间所有者。",
   "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE": "工作空间所有者不能作为普通成员停用或调整角色。请先转移所有权。",
+  "WORKSPACE_PAYMENT_RECOVERY_REQUIRED": "请先处理工作空间付款问题，再发起新的按量计费操作。",
   "WORKSPACE_PAYMENT_RESTRICTED": "当前工作空间的付款需要处理，此操作暂时不可用。",
   "WORKSPACE_ROLE_MANAGEMENT_PLAN_REQUIRED": "当前套餐不包含自定义角色管理。",
   "WORKSPACE_OWNER_REQUIRED": "只有当前工作空间所有者可以执行此操作。",
