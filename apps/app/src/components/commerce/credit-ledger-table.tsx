@@ -14,10 +14,13 @@ import { useDataTable } from "@arclayer/ui/data-table";
 
 const ENTRY_LABEL_KEYS: Record<CreditLedgerEntryType, string> = {
   period_grant: "LEDGER_TYPE_PERIOD_GRANT",
+  promotional_grant: "LEDGER_TYPE_PROMOTIONAL_GRANT",
+  top_up: "LEDGER_TYPE_TOP_UP",
   reservation: "LEDGER_TYPE_RESERVATION",
   commit: "LEDGER_TYPE_COMMIT",
   release: "LEDGER_TYPE_RELEASE",
   adjustment: "LEDGER_TYPE_ADJUSTMENT",
+  refund: "LEDGER_TYPE_REFUND",
   expiration: "LEDGER_TYPE_EXPIRATION",
 };
 

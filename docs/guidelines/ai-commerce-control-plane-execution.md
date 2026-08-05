@@ -103,8 +103,8 @@ Active implementation parts:
 
 1. M1.1 schemas, repository/service, receipts, and migration extension. — Complete
 2. M1.2 Product router contracts and authorization tests. — Complete
-3. M1.3 OpenAPI synchronization and Product API wrappers. — Active
-4. M1.4 Plan & Usage default-limit/usage surface.
+3. M1.3 OpenAPI synchronization and Product API wrappers. — Complete
+4. M1.4 Plan & Usage default-limit/usage surface. — Active
 5. M1.5 People Usage column and per-member override dialog.
 
 M1.1 acceptance criteria:
@@ -164,12 +164,43 @@ M1.3 active boundary:
 - Preserve PublicUUID path encoding, camelCase payloads, pagination query parameters, optimistic revision, and body-scoped idempotency keys exactly.
 - Add focused wrapper/contract tests for paths, query/body serialization, output typing, and stable API error propagation. No M1.4 or M1.5 UI work belongs in this part.
 
+M1.3 status: Complete
+
+M1.3 implementation evidence:
+
+- Regenerated only the Product OpenAPI package with the canonical export pipeline. The generated SDK now exports all four member-Credit operations, their request data contracts, response envelopes, and PublicUUID/camelCase schemas.
+- Preserved the concurrent AI thread `pinned` schema additions during generation and did not modify Platform OpenAPI artifacts.
+- Extended the Product Commerce API module with typed member Usage and limits pagination wrappers, default-limit writes, and member-override set/clear commands.
+- Workspace and membership path values are encoded independently. GET wrappers apply canonical `page = 1` and `size = 20` defaults and forward `AbortSignal`.
+- Added discriminated limited/unlimited command inputs. Clear-override commands rebuild the exact body without `limitKind` or `limitCredits`; optimistic revision and idempotency remain camelCase body fields with no idempotency header.
+- Page wrappers reject successful responses that omit the canonical `items` array. Existing `ApiError` instances, including management denial and revision conflict, propagate unchanged.
+- Synchronized the existing Credit Ledger entry-type mapping with the generated `promotional_grant`, `top_up`, and `refund` contract and added stable bilingual Commerce keys.
+
+M1.3 validation:
+
+- Product OpenAPI generation: `pnpm --filter @arclayer/openapi generate` passed.
+- Product OpenAPI typecheck: `pnpm --filter @arclayer/openapi typecheck` passed.
+- Focused Product tests: `7 passed` across `test/api/commerce.test.ts` and `test/components/commerce/credit-ledger-table.test.tsx`.
+- Product lint, format check, and locale parity passed; locale parity covers all `23` namespaces.
+- Code Review Engine changed-scope audit exited successfully. All `49` report-only findings belong to unrelated API/AI/Platform files in the shared worktree; no M1.3 file received a finding.
+- `pnpm app:check`: lint, format, and locale tasks passed. Typecheck and the broad Vitest run failed on the existing `test/browser/product-acceptance.spec.ts` import of missing `../../../../tests/browser/support`; M1.3 focused tests and OpenAPI typecheck remain green.
+
+M1.4 active boundary:
+
+- Replace the current `apps/app/src/pages/workspaces/settings/workspace/plan-usage/plan-usage-view.tsx` composition with the approved Operational Ledger layout using canonical shadcn and shared `@arclayer/ui` primitives.
+- Present current plan, current-period Workspace Credit state, member Usage, and the Credit ledger from canonical Product Commerce APIs without duplicated estimates.
+- Add an Owner/Billing Manager default member-limit editor with explicit limited versus unlimited choices, optimistic revision, body-scoped idempotency, visible loading/error/conflict states, and query invalidation after success.
+- Ordinary members receive their self-only Usage projection and no management controls. M1.4 does not add the People table Usage column or per-member override dialog; those remain M1.5.
+- Keep plan selection, checkout, and customer-portal actions on their real Commerce paths. Do not introduce simulated success behavior in the Product Application.
+- Add stable `zh-CN` and `en-US` copy plus focused view/controller tests for loading, empty, limited, unlimited, permission, mutation, revision-conflict, and responsive presentation states.
+
 ## Known unrelated repository failures
 
 - API Ruff currently reports five existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, Platform Jobs composition, and a Workspace team notification test outside M1.2.
 - API format check currently passes all `1843` files.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
+- Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.3.
 - Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
 
 ## Progress log
@@ -203,3 +234,12 @@ M1.3 active boundary:
 - Verified `18` authorization/router unit tests and `14` schema plus PostgreSQL configuration/read integration tests; targeted lint, format, and type checks passed.
 - Ran the affected package gate: formatting passed; five unrelated Ruff findings caused `pnpm api:check` to fail and Turbo interrupted the remaining broad gates.
 - Advanced the active implementation part to M1.3 OpenAPI synchronization and Product API wrappers.
+
+### 2026-08-05 — M1.3 Product OpenAPI and Commerce wrappers
+
+- Regenerated the Product SDK with all four member-Credit routes and preserved concurrent AI thread pinning schema work.
+- Added strict Product wrappers for member Usage, limits, default-limit writes, and member override set/clear commands.
+- Added wrapper contract coverage for PublicUUID encoding, pagination, AbortSignal forwarding, exact camelCase bodies, body-scoped idempotency, invalid success envelopes, and stable API errors.
+- Closed the generated Credit Ledger enum integration gap with bilingual labels for promotional grants, purchased top-ups, and refunds.
+- Verified `7` focused Product tests, Product OpenAPI typecheck, App lint/format, and locale parity; the affected package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.4 Plan & Usage default-limit and member Usage surface.

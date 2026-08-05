@@ -10088,7 +10088,7 @@ export type ConvergencePreviewRequest = {
 /**
  * CreditLedgerEntryType
  */
-export type CreditLedgerEntryType = 'period_grant' | 'reservation' | 'commit' | 'release' | 'adjustment' | 'expiration';
+export type CreditLedgerEntryType = 'period_grant' | 'promotional_grant' | 'top_up' | 'reservation' | 'commit' | 'release' | 'adjustment' | 'refund' | 'expiration';
 
 /**
  * CreditLedgerOut
@@ -13731,6 +13731,258 @@ export type ManualKnowledgeVersionCreateRequest = {
      * Title
      */
     title?: string | null;
+};
+
+/**
+ * MemberCreditConfigurationMutationOut
+ */
+export type MemberCreditConfigurationMutationOut = {
+    /**
+     * Configurationrevision
+     */
+    configurationRevision: number;
+    defaultLimit: MemberCreditLimitOut;
+    effectiveLimit: MemberCreditLimitOut;
+    /**
+     * Membershipid
+     */
+    membershipId: string | null;
+    overrideLimit: MemberCreditLimitOut | null;
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * MemberCreditDefaultLimitWrite
+ */
+export type MemberCreditDefaultLimitWrite = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Limitcredits
+     */
+    limitCredits: number | null;
+    limitKind: ResourceLimitKind;
+};
+
+/**
+ * MemberCreditLimitItemOut
+ */
+export type MemberCreditLimitItemOut = {
+    /**
+     * Availablecredits
+     */
+    availableCredits?: number | null;
+    /**
+     * Committedcredits
+     */
+    committedCredits: number;
+    effectiveLimit: MemberCreditLimitOut;
+    /**
+     * Isowner
+     */
+    isOwner: boolean;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    overrideLimit: MemberCreditLimitOut | null;
+    /**
+     * Reservedcredits
+     */
+    reservedCredits: number;
+    user: WorkspaceTeamUserRefOut;
+};
+
+/**
+ * MemberCreditLimitOut
+ */
+export type MemberCreditLimitOut = {
+    /**
+     * Limitcredits
+     */
+    limitCredits: number | null;
+    limitKind: ResourceLimitKind;
+};
+
+/**
+ * MemberCreditLimitsPageOut
+ */
+export type MemberCreditLimitsPageOut = {
+    /**
+     * Configurationrevision
+     */
+    configurationRevision: number;
+    defaultLimit: MemberCreditLimitOut;
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<MemberCreditLimitItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Periodend
+     */
+    periodEnd: string;
+    /**
+     * Periodstart
+     */
+    periodStart: string;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * MemberCreditOverrideWrite
+ */
+export type MemberCreditOverrideWrite = {
+    /**
+     * Action
+     */
+    action: 'set' | 'clear';
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Limitcredits
+     */
+    limitCredits?: number | null;
+    limitKind?: ResourceLimitKind | null;
+};
+
+/**
+ * MemberCreditUsageItemOut
+ */
+export type MemberCreditUsageItemOut = {
+    /**
+     * Availablecredits
+     */
+    availableCredits?: number | null;
+    /**
+     * Committedcredits
+     */
+    committedCredits: number;
+    effectiveLimit: MemberCreditLimitOut;
+    /**
+     * Isowner
+     */
+    isOwner: boolean;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Reservedcredits
+     */
+    reservedCredits: number;
+    user: WorkspaceTeamUserRefOut;
+};
+
+/**
+ * MemberCreditUsagePageOut
+ */
+export type MemberCreditUsagePageOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<MemberCreditUsageItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Periodend
+     */
+    periodEnd: string;
+    /**
+     * Periodstart
+     */
+    periodStart: string;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
 };
 
 /**
@@ -22448,6 +22700,81 @@ export type ResponseModelLeaveWorkspaceResult = {
  */
 export type ResponseModelLoginEmailCodeRequestOut = {
     data?: LoginEmailCodeRequestOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MemberCreditConfigurationMutationOut]
+ */
+export type ResponseModelMemberCreditConfigurationMutationOut = {
+    data?: MemberCreditConfigurationMutationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MemberCreditLimitsPageOut]
+ */
+export type ResponseModelMemberCreditLimitsPageOut = {
+    data?: MemberCreditLimitsPageOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MemberCreditUsagePageOut]
+ */
+export type ResponseModelMemberCreditUsagePageOut = {
+    data?: MemberCreditUsagePageOut | null;
     /**
      * Error
      */
@@ -45294,6 +45621,164 @@ export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses = {
 };
 
 export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponse = DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses[keyof DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses];
+
+export type DomainWorkspacesListMemberCreditLimitsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/commerce/member-limits';
+};
+
+export type DomainWorkspacesListMemberCreditLimitsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListMemberCreditLimitsError = DomainWorkspacesListMemberCreditLimitsErrors[keyof DomainWorkspacesListMemberCreditLimitsErrors];
+
+export type DomainWorkspacesListMemberCreditLimitsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMemberCreditLimitsPageOut;
+};
+
+export type DomainWorkspacesListMemberCreditLimitsResponse = DomainWorkspacesListMemberCreditLimitsResponses[keyof DomainWorkspacesListMemberCreditLimitsResponses];
+
+export type DomainWorkspacesSetDefaultMemberCreditLimitData = {
+    body: MemberCreditDefaultLimitWrite;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/member-limits/default';
+};
+
+export type DomainWorkspacesSetDefaultMemberCreditLimitErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSetDefaultMemberCreditLimitError = DomainWorkspacesSetDefaultMemberCreditLimitErrors[keyof DomainWorkspacesSetDefaultMemberCreditLimitErrors];
+
+export type DomainWorkspacesSetDefaultMemberCreditLimitResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMemberCreditConfigurationMutationOut;
+};
+
+export type DomainWorkspacesSetDefaultMemberCreditLimitResponse = DomainWorkspacesSetDefaultMemberCreditLimitResponses[keyof DomainWorkspacesSetDefaultMemberCreditLimitResponses];
+
+export type DomainWorkspacesSetMemberCreditOverrideData = {
+    body: MemberCreditOverrideWrite;
+    path: {
+        /**
+         * Membership Id
+         */
+        membership_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/member-limits/{membership_id}';
+};
+
+export type DomainWorkspacesSetMemberCreditOverrideErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSetMemberCreditOverrideError = DomainWorkspacesSetMemberCreditOverrideErrors[keyof DomainWorkspacesSetMemberCreditOverrideErrors];
+
+export type DomainWorkspacesSetMemberCreditOverrideResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMemberCreditConfigurationMutationOut;
+};
+
+export type DomainWorkspacesSetMemberCreditOverrideResponse = DomainWorkspacesSetMemberCreditOverrideResponses[keyof DomainWorkspacesSetMemberCreditOverrideResponses];
+
+export type DomainWorkspacesListMemberCreditUsageData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/commerce/member-usage';
+};
+
+export type DomainWorkspacesListMemberCreditUsageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListMemberCreditUsageError = DomainWorkspacesListMemberCreditUsageErrors[keyof DomainWorkspacesListMemberCreditUsageErrors];
+
+export type DomainWorkspacesListMemberCreditUsageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMemberCreditUsagePageOut;
+};
+
+export type DomainWorkspacesListMemberCreditUsageResponse = DomainWorkspacesListMemberCreditUsageResponses[keyof DomainWorkspacesListMemberCreditUsageResponses];
 
 export type DomainWorkspacesGetWorkspaceCommerceOverviewData = {
     body?: never;

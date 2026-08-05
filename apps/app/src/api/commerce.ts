@@ -4,21 +4,69 @@ import type {
   BillingRedirectOut as BillingRedirect,
   CheckoutSessionCreate,
   CommercialAccessMemberView,
+  DomainWorkspacesListMemberCreditLimitsData,
+  DomainWorkspacesListMemberCreditUsageData,
+  DomainWorkspacesListWorkspaceCreditLedgerData,
+  MemberCreditConfigurationMutationOut,
+  MemberCreditDefaultLimitWrite,
+  MemberCreditLimitsPageOut,
+  MemberCreditOverrideWrite,
+  MemberCreditUsagePageOut,
+  PageDataCreditLedgerOut,
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
-  PageDataCreditLedgerOut,
-  DomainWorkspacesListWorkspaceCreditLedgerData,
 } from "@arclayer/openapi";
 
 type ListCreditLedgerParams = NonNullable<DomainWorkspacesListWorkspaceCreditLedgerData["query"]>;
+type ListMemberCreditLimitsParams = NonNullable<
+  DomainWorkspacesListMemberCreditLimitsData["query"]
+>;
+type ListMemberCreditUsageParams = NonNullable<DomainWorkspacesListMemberCreditUsageData["query"]>;
+type MemberCreditCommandMetadata = Pick<
+  MemberCreditDefaultLimitWrite,
+  "expectedRevision" | "idempotencyKey"
+>;
 
 type CreditLedgerPage = Omit<PageDataCreditLedgerOut, "items"> & {
   items: NonNullable<PageDataCreditLedgerOut["items"]>;
 };
 
+export type MemberCreditLimitsPage = Omit<MemberCreditLimitsPageOut, "items"> & {
+  items: NonNullable<MemberCreditLimitsPageOut["items"]>;
+};
+
+export type MemberCreditUsagePage = Omit<MemberCreditUsagePageOut, "items"> & {
+  items: NonNullable<MemberCreditUsagePageOut["items"]>;
+};
+
+export type MemberCreditLimitInput =
+  | Readonly<{ limitKind: "limited"; limitCredits: number }>
+  | Readonly<{ limitKind: "unlimited"; limitCredits: null }>;
+
+export type WorkspaceDefaultMemberCreditLimitCommand = MemberCreditCommandMetadata &
+  MemberCreditLimitInput;
+
+export type WorkspaceMemberCreditOverrideCommand =
+  | (MemberCreditCommandMetadata & MemberCreditLimitInput & Readonly<{ action: "set" }>)
+  | (MemberCreditCommandMetadata & Readonly<{ action: "clear" }>);
+
 function requireCreditLedgerPage(page: PageDataCreditLedgerOut): CreditLedgerPage {
   if (!Array.isArray(page.items)) {
     throw new Error("Invalid credit ledger pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireMemberCreditLimitsPage(page: MemberCreditLimitsPageOut): MemberCreditLimitsPage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid member credit limits pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireMemberCreditUsagePage(page: MemberCreditUsagePageOut): MemberCreditUsagePage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid member credit usage pagination response");
   }
   return { ...page, items: page.items };
 }
@@ -34,6 +82,10 @@ export type {
   CreditLedgerOut as CreditLedgerEntry,
   CreditLedgerEntryType,
   CreditRefreshInterval,
+  MemberCreditConfigurationMutationOut,
+  MemberCreditLimitItemOut,
+  MemberCreditLimitOut,
+  MemberCreditUsageItemOut,
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
   WorkspacePlanOptionOut as WorkspacePlanOption,
@@ -96,4 +148,63 @@ export async function listWorkspaceCreditLedger(
     { signal },
   );
   return requireCreditLedgerPage(page);
+}
+
+export async function listWorkspaceMemberCreditUsage(
+  workspaceId: string,
+  params: ListMemberCreditUsageParams = {},
+  signal?: AbortSignal,
+): Promise<MemberCreditUsagePage> {
+  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 20 });
+  const page = await api.get<MemberCreditUsagePageOut>(
+    workspacePath(workspaceId, `/commerce/member-usage${query}`),
+    { signal },
+  );
+  return requireMemberCreditUsagePage(page);
+}
+
+export async function listWorkspaceMemberCreditLimits(
+  workspaceId: string,
+  params: ListMemberCreditLimitsParams = {},
+  signal?: AbortSignal,
+): Promise<MemberCreditLimitsPage> {
+  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 20 });
+  const page = await api.get<MemberCreditLimitsPageOut>(
+    workspacePath(workspaceId, `/commerce/member-limits${query}`),
+    { signal },
+  );
+  return requireMemberCreditLimitsPage(page);
+}
+
+export function setWorkspaceDefaultMemberCreditLimit(
+  workspaceId: string,
+  payload: WorkspaceDefaultMemberCreditLimitCommand,
+): Promise<MemberCreditConfigurationMutationOut> {
+  const body: MemberCreditDefaultLimitWrite = { ...payload };
+  return api.put<MemberCreditConfigurationMutationOut>(
+    workspacePath(workspaceId, "/commerce/member-limits/default"),
+    body,
+  );
+}
+
+export function setWorkspaceMemberCreditOverride(
+  workspaceId: string,
+  membershipId: string,
+  payload: WorkspaceMemberCreditOverrideCommand,
+): Promise<MemberCreditConfigurationMutationOut> {
+  const body: MemberCreditOverrideWrite =
+    payload.action === "clear"
+      ? {
+          action: "clear",
+          expectedRevision: payload.expectedRevision,
+          idempotencyKey: payload.idempotencyKey,
+        }
+      : { ...payload };
+  return api.put<MemberCreditConfigurationMutationOut>(
+    workspacePath(
+      workspaceId,
+      `/commerce/member-limits/${encodeURIComponent(String(membershipId))}`,
+    ),
+    body,
+  );
 }
