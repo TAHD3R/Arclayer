@@ -29,6 +29,15 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-commerce-panel",
+  () => ({
+    WorkspaceSettingsBasicsCommercePanel: () => (
+      <div data-testid="workspace-settings-commerce-panel" />
+    ),
+  }),
+);
+
 function createController() {
   return {
     form: {},
@@ -42,6 +51,7 @@ describe("WorkspaceSettingsBasicsForm", () => {
 
     expect(screen.getByTestId("workspace-settings-core-panels")).toBeInTheDocument();
     expect(screen.getByTestId("workspace-settings-access-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-settings-commerce-panel")).toBeInTheDocument();
     expect(screen.getByTestId("workspace-settings-danger-section")).toBeInTheDocument();
   });
 });

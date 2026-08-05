@@ -252,11 +252,11 @@ M1.5b execution parts:
    - Keep `inherit`, explicit positive-integer `limited`, and explicit `unlimited` as three distinct states.
    - Owner may edit their own row; Billing Managers require both the role-management Entitlement and exact Commerce permission; ordinary members receive no action.
    - Keep roles, Feature Seat assignment, member activation, and member removal as separate actions and authorities.
-3. M1.5b.3 canonical Workspace settings entry and focus target. — Active
+3. M1.5b.3 canonical Workspace settings entry and focus target. — Complete
    - Add an authorized Workspace-basics entry that opens `workspace.plan-usage` at `default-member-credit-limit`.
    - Add one `SettingsSectionAnchor` around the existing M1.4 editor.
    - Do not add another default-limit form, mutation, cache, or policy store.
-4. M1.5b.4 validation, execution-record update, and focused commit. — Pending
+4. M1.5b.4 validation, execution-record update, and focused commit. — Active
    - Run focused controller/dialog/People/settings tests, App lint/format/locale checks, Product OpenAPI typecheck, the affected package gate, Code Review Engine, and staged GitNexus detection.
    - Record exact results and known unrelated failures here before the M1.5b commit.
 
@@ -308,6 +308,23 @@ M1.5b.2 validation:
 - `pnpm app:check`: lint, format, and locale tasks passed; typecheck and broad Vitest remain blocked by `test/browser/product-acceptance.spec.ts` importing the missing `../../../../tests/browser/support` module.
 - Staged GitNexus change detection reported `HIGH` risk because `TeamMembersView` is a shared People/roles/Usage integration hub; the `7` affected flows are the expected existing Team Members API, permission, and projection paths. The expanded team regression suite and exact authority tests passed before commit.
 - Code Review Engine changed-scope audit exited successfully with zero findings.
+
+M1.5b.3 implementation evidence:
+
+- Added an authorized Workspace basics Commerce panel that reuses the shared Commerce authority and renders only for Owner/superuser or fully authorized Billing Managers.
+- The panel contains no limit fields, form state, mutation, or cache. Its only action opens `workspace.plan-usage` at `default-member-credit-limit`.
+- Wrapped the existing M1.4 default member-limit editor in one `SettingsSectionAnchor` using the same stable section and DOM identifier.
+- Ordinary members receive no Workspace basics Commerce entry and continue to have no default-limit editor or mutation access.
+
+M1.5b.3 validation:
+
+- Focused Product tests: `19 passed` across the authorized basics entry, form composition, Plan & Usage manager/view projection, section focus/flash, and the canonical default-limit controller.
+- Product App lint and format checks passed; locale parity passed for all `23` namespaces.
+- Product OpenAPI typecheck passed.
+- Product App typecheck contains only the known unrelated browser acceptance support import error; no M1.5b.3 type error remains.
+- `pnpm app:check`: lint, format, and locale tasks passed; typecheck and broad Vitest remain blocked by the same missing `../../../../tests/browser/support` module.
+- Staged GitNexus change detection reported `LOW` risk across `9` indexed symbols with no affected execution flow.
+- Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its sole report-only finding is the existing prototype directory-structure suggestion for `plan-usage`.
 
 ## Known unrelated repository failures
 
@@ -399,3 +416,11 @@ M1.5b.2 validation:
 - Kept role assignment, Feature Access, activation, and deactivation as separate actions with their existing authorities.
 - Verified `24` focused member-limit tests and `51` expanded Workspace team regression tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.5b.3 canonical Workspace settings entry and Plan & Usage focus target.
+
+### 2026-08-05 — M1.5b.3 Workspace settings deep-link
+
+- Added a manager-only Workspace basics summary row that navigates to the existing Plan & Usage default member-limit control.
+- Added the single canonical `default-member-credit-limit` section anchor around the existing editor, including scroll, focus, and flash behavior.
+- Confirmed that the basics surface adds no second limit form, mutation, query cache, or policy store.
+- Verified `19` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.5b.4 final validation, execution record, and commit closure.

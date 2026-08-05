@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { WorkspaceCommerceOverview } from "@/api/commerce";
 import { CreditLedgerTable } from "@/components/commerce/credit-ledger-table";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
@@ -198,14 +199,16 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
               loadingVariant="form"
             >
               {controller.limitsQuery.data ? (
-                <DefaultMemberCreditLimitEditor
-                  limit={controller.limitsQuery.data.defaultLimit}
-                  configurationRevision={controller.limitsQuery.data.configurationRevision}
-                  pending={controller.defaultLimitPending}
-                  feedback={controller.defaultLimitFeedback}
-                  onEdit={controller.clearDefaultLimitFeedback}
-                  onSave={controller.saveDefaultLimit}
-                />
+                <SettingsSectionAnchor section="default-member-credit-limit">
+                  <DefaultMemberCreditLimitEditor
+                    limit={controller.limitsQuery.data.defaultLimit}
+                    configurationRevision={controller.limitsQuery.data.configurationRevision}
+                    pending={controller.defaultLimitPending}
+                    feedback={controller.defaultLimitFeedback}
+                    onEdit={controller.clearDefaultLimitFeedback}
+                    onSave={controller.saveDefaultLimit}
+                  />
+                </SettingsSectionAnchor>
               ) : null}
             </ContentGuard>
           ) : null}

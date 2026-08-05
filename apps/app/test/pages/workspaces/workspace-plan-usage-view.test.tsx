@@ -2,6 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MemberCreditLimitsPage, WorkspaceCommerceOverview } from "@/api/commerce";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
 import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
 
 const { controllerMock, retryPermissionMock } = vi.hoisted(() => ({
@@ -147,8 +151,30 @@ function controller(
   };
 }
 
+function FocusDefaultMemberLimitButton() {
+  const settings = useSettingsScreen();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        settings.openSettings({
+          screen: "workspace.plan-usage",
+          section: "default-member-credit-limit",
+        })
+      }
+    >
+      Focus default member limit
+    </button>
+  );
+}
+
 function renderView() {
-  return render(<WorkspacePlanUsageView workspaceId="workspace-1" />);
+  return render(
+    <SettingsScreenProvider>
+      <FocusDefaultMemberLimitButton />
+      <WorkspacePlanUsageView workspaceId="workspace-1" />
+    </SettingsScreenProvider>,
+  );
 }
 
 describe("WorkspacePlanUsageView", () => {
@@ -166,10 +192,27 @@ describe("WorkspacePlanUsageView", () => {
     expect(screen.getByText(/commerce:CREDITS_REFRESH_DATE:/)).toBeVisible();
     expect(screen.getByText(/commerce:SUBSCRIPTION_RENEWS_AT:/)).toBeVisible();
     expect(screen.getByTestId("default-limit-editor")).toHaveTextContent("limited:4");
+    expect(screen.getByTestId("default-limit-editor").parentElement).toHaveAttribute(
+      "data-settings-section",
+      "default-member-credit-limit",
+    );
     expect(screen.getByText("commerce:MEMBER_USAGE_WORKSPACE_DESCRIPTION")).toBeVisible();
     expect(screen.getByTestId("member-credit-usage-table")).toHaveTextContent("workspace-1");
     expect(screen.getByText("commerce:LEDGER_SECONDARY_DESCRIPTION")).toBeVisible();
     expect(screen.getByTestId("credit-ledger-table")).toHaveTextContent("workspace-1");
+  });
+
+  it("focuses the canonical default-limit editor from a section deep-link", async () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    renderView();
+
+    fireEvent.click(screen.getByRole("button", { name: "Focus default member limit" }));
+
+    const anchor = screen.getByTestId("default-limit-editor").parentElement;
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(anchor).toHaveClass("settings-section-flash");
+    expect(document.activeElement).toBe(anchor);
   });
 
   it("keeps ordinary members on self Usage without billing or configuration controls", () => {
@@ -180,6 +223,9 @@ describe("WorkspacePlanUsageView", () => {
     expect(screen.getByText("commerce:MEMBER_USAGE_SELF_DESCRIPTION")).toBeVisible();
     expect(screen.getByTestId("member-credit-usage-table")).toBeVisible();
     expect(screen.queryByTestId("default-limit-editor")).not.toBeInTheDocument();
+    expect(
+      document.querySelector('[data-settings-section="default-member-credit-limit"]'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("credit-ledger-table")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "commerce:PLAN_MANAGE_SUBSCRIPTION" }),
