@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation.
+Current active part: M2.4b.2 simulated top-up settlement and exact Credit grant.
 
 Repository baseline:
 
@@ -376,8 +376,8 @@ M2 execution parts:
    - M2.4a.2 Stripe invoice normalization and projection. — Complete
    - M2.4b purchased top-up, refund, and payment reconciliation. — Active
      - M2.4b.0 canonical top-up/refund contract freeze. — Complete
-     - M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation. — Active
-     - M2.4b.2 simulated top-up settlement and exact Credit grant.
+     - M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation. — Complete
+     - M2.4b.2 simulated top-up settlement and exact Credit grant. — Active
      - M2.4b.3 Stripe top-up Checkout and settlement.
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
      - M2.4b.5 payment reconciliation/correction and M2.4 closure.
@@ -728,7 +728,7 @@ M2.4a.2 validation:
 - `pnpm api:check` passed API lint and formatting across `1867` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4a.2 unit and PostgreSQL tests remain green.
 - Changed-scope Code Review Engine exited successfully with zero blockers. Its `17` report-only findings are existing application-service localization prototypes and the known simulated/Stripe Connector lifecycle prototype reports.
 - Final staged GitNexus detection reported `LOW` risk across `8` files and `168` indexed symbols, with no affected execution flow.
-- M2.4a.2 is complete. M2.4b.0 froze the purchased top-up, refund, and payment-reconciliation contracts; the only active part is M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation.
+- M2.4a.2 is complete. M2.4b.0 froze the purchased top-up, refund, and payment-reconciliation contracts. M2.4b.1 completed immutable top-up Checkout snapshots and strict settlement evidence; the only active part is M2.4b.2 simulated top-up settlement and exact Credit grant.
 
 M2.4b.0 contract freeze:
 
@@ -739,13 +739,24 @@ M2.4b.0 contract freeze:
 - Subscription and renewal refunds remain Subscription Commercial Corrections. M2.4 payment correction means append-only Provider payment/Credit consequence reconciliation and is distinct from Subscription Commercial Correction, Commerce/Hosting Domain State Correction, and Platform Credit adjustment.
 - A Provider-confirmed refund without the exact pending hold and matching Workspace, transaction, amount, currency, and Credit consequence enters reconciliation required. The system never fabricates success, produces a negative Credit balance, or reverses unrelated lots.
 
-M2.4b.1 active boundary:
+M2.4b.1 implementation evidence:
 
-- Extend durable Checkout evidence for `kind = top_up` with an immutable top-up offer/revision snapshot and exact integer Credit, Provider Price, currency, amount, Workspace, actor, Provider mode/account, expiry, idempotency, and fingerprint facts.
-- Define strict normalized accepted-event facts that can identify a top-up Checkout and complete Provider settlement without requiring Subscription, Plan Revision, or application identities that belong only to recurring Billing.
-- Preserve one canonical Provider signature/inbox/pinned-Job/application path. Checkout creation, Provider return, Product polling, and simulator commands cannot grant Credits or directly project a succeeded transaction.
-- Add the smallest migration and focused schema/repository/model/Job tests needed for the snapshot/evidence foundation. Simulated outcome execution, Stripe Checkout mode changes, Credit grant application, refund execution, Platform APIs, and OpenAPI remain outside M2.4b.1.
-- Acceptance requires immutable snapshot fidelity, Workspace/actor/provider ownership checks, exact idempotent replay, changed-request conflict, strict event-to-Checkout correlation, explicit unsupported/mismatched evidence errors, PostgreSQL migration coverage, and no regression in subscription Checkout or M2.4a payment projection.
+- Added `top_up_offer_revision` to durable Checkout evidence. A top-up Checkout now has a complete provider-neutral record containing Workspace, actor, offer id/revision, integer Credits, Provider/mode/account, exact Price, currency, money micros, external session, expiry, idempotency key, fingerprint, and revision.
+- Added a dedicated top-up Checkout repository that transactionally locks the idempotency scope, active Workspace, active actor membership, active Offer, and exact Provider Price before persistence. Archived/inactive Workspaces and non-members fail explicitly; changed fingerprints conflict, stale Offer/Price facts conflict, and exact replay returns the original snapshot even after later Offer or Price edits.
+- Added a strict Connector-normalized top-up settlement contract and correlation validator. Provider event identity, Checkout/session, Workspace, actor, Offer revision, Price, currency, amount, Credits, fingerprint, Provider scope, and expiry must all match before a later application service may project settlement.
+- Added state-aware migration `0127_top_up_checkout_snapshot_evidence`. It backfills existing top-up Checkout revisions, fails explicitly when evidence cannot be recovered, and hardens subscription versus top-up target shapes so top-ups cannot carry Subscription, Plan Revision, Plan code, or billing-cycle authority.
+- Kept settlement execution unavailable in this slice. No Checkout creation, return URL, Product poll, simulator command, repository call, or migration grants Credits or creates a succeeded transaction. Signature/inbox/pinned-Job dispatch, simulated settlement, Stripe Checkout mode, refund execution, Platform APIs, and OpenAPI remain in later parts.
+
+M2.4b.1 validation:
+
+- New snapshot/settlement/model/migration unit tests passed `4`; new PostgreSQL repository and independent `0126 → 0127` migration tests passed `2`.
+- Existing subscription Checkout, outcome, Billing service, payment-model, and migration unit regression passed `26`; existing Checkout persistence/outcome PostgreSQL regression passed `2`.
+- Targeted Ruff lint/format and `ty` passed across all changed API, migration, locale, and test files. API i18n regression passed `8`; Product locale parity passed all `23` namespaces.
+- `db:migrate` reported `No changes detected`. `db:upgrade` applied `models.0127_top_up_checkout_snapshot_evidence` successfully to the active database.
+- `pnpm api:check` passed API lint and formatting across `1872` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4b.1 tests remain green.
+- Changed-scope Code Review Engine reported zero findings across all `41` rules after adding complete shared/Product `en-US` and `zh-CN` error coverage.
+- Final staged GitNexus detection reported `LOW` risk across `14` files and `4` indexed symbols, with no affected execution flow.
+- M2.4b.1 is complete. The only active part is M2.4b.2 simulated top-up settlement and exact Credit grant.
 
 ## Known unrelated repository failures
 
@@ -995,3 +1006,12 @@ M2.4b.1 active boundary:
 - Defined mismatched or consequence-impossible Provider refund facts as reconciliation required without fabricated success, negative Credits, or reversal of unrelated lots.
 - Kept payment reconciliation distinct from Subscription Commercial Correction, Commerce/Hosting Domain State Correction, and Platform Credit adjustment.
 - Split implementation into M2.4b.1 Checkout snapshot/evidence, M2.4b.2 simulated settlement, M2.4b.3 Stripe settlement, M2.4b.4 confirmed full refund, and M2.4b.5 reconciliation/closure; selected M2.4b.1 as the only active part.
+
+### 2026-08-05 — M2.4b.1 immutable top-up Checkout snapshot and settlement evidence
+
+- Added provider-neutral durable top-up Checkout persistence with exact Offer revision, Credits, Price, money, Workspace, actor, Provider scope, expiry, idempotency, and fingerprint snapshots.
+- Serialized new Checkout creation against the active Offer and exact Provider Price, rejected stale selections and changed idempotency payloads, and preserved original replay evidence after catalog edits.
+- Added strict normalized settlement evidence and exact Checkout correlation without activating a simulated/Stripe payment or granting Credits in this foundation slice.
+- Added and applied `0127_top_up_checkout_snapshot_evidence`, hardened subscription/top-up target shapes, and confirmed migration generation has no model-state drift.
+- Verified `30` focused unit/regression tests, `4` PostgreSQL tests, `8` API i18n tests, Product locale parity, targeted static checks, and a zero-finding changed-scope review. The package gate retains the existing `289` unrelated type diagnostics.
+- Completed M2.4b.1 and selected M2.4b.2 simulated top-up settlement and exact Credit grant as the only active part.

@@ -124,6 +124,7 @@ class CommerceCheckoutSession(BaseModel):
         on_delete=fields.RESTRICT,
         null=True,
     )
+    top_up_offer_revision = fields.BigIntField(null=True)
     plan_code = fields.CharField(max_length=48, null=True)
     provider = fields.CharField(max_length=32)
     provider_mode = fields.CharEnumField(BillingProviderMode)
