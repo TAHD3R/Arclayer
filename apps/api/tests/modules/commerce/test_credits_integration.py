@@ -9,6 +9,8 @@ from tortoise.transactions import in_transaction
 
 from src.config import get_settings
 from src.core.exceptions import Conflict
+from src.models.ai.ai_budget import AIBudget, BudgetSourceType
+from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
 from src.models.commerce.billing import (
     BillingCycle,
     CommercePlan,
@@ -23,9 +25,16 @@ from src.models.commerce.billing import (
     WorkspaceCreditLedger,
     WorkspaceSubscription,
 )
+from src.models.commerce.credit_allocation import (
+    WorkspaceCreditGrantLot,
+    WorkspaceCreditLotAllocation,
+    WorkspaceCreditUsageEvent,
+    WorkspaceMemberCreditPolicy,
+    WorkspaceMemberCreditUsagePeriod,
+)
 from src.models.connectors.inbox import ConnectorEventInbox
 from src.models.organization.user import User
-from src.models.workspaces.workspace import Workspace
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership
 from src.modules.commerce.access_state.composition import build_commercial_access_state_reader
 from src.modules.commerce.billing_connector import ProviderSubscription
 from src.modules.commerce.billing_provider_application_service import (
@@ -116,9 +125,13 @@ async def test_concurrent_workspace_billing_initialization_creates_one_account(d
         workspace_id=workspace.id,
         entry_type=CreditLedgerEntryType.PERIOD_GRANT,
     ).all()
+    grant_lots = await WorkspaceCreditGrantLot.filter(workspace_id=workspace.id).all()
+    member_policies = await WorkspaceMemberCreditPolicy.filter(workspace_id=workspace.id).all()
     assert len(subscriptions) == 1
     assert len(accounts) == 1
     assert len(grants) == 1
+    assert len(grant_lots) == 1
+    assert len(member_policies) == 1
     assert {result[0].id for result in results if not isinstance(result, BaseException)} == {
         subscriptions[0].id,
     }
@@ -127,6 +140,9 @@ async def test_concurrent_workspace_billing_initialization_creates_one_account(d
     assert accounts[0].plan_revision_id == free_revision.id
     assert grants[0].plan_revision_id == free_revision.id
     assert grants[0].subscription_id == subscriptions[0].id
+    assert grant_lots[0].source == "plan_period"
+    assert grant_lots[0].remaining_credits == 70
+    assert grant_lots[0].reserved_credits == 0
     access = await build_commercial_access_state_reader().member_view(workspace_id=workspace.id)
     assert access.state == "normal"
     assert access.billing_contact_required is False
@@ -282,20 +298,42 @@ async def test_concurrent_credit_reservations_cannot_make_available_balance_nega
         owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
+    membership = await WorkspaceMembership.create(workspace_id=workspace.id, user_id=owner.id)
     settings = get_settings()
     service = build_commerce_service(settings)
     subscription, account, _ = await _initialize_free_workspace(workspace_id=workspace.id)
     account.balance_credits = 5
     account.reserved_credits = 0
     await account.save(update_fields=["balance_credits", "reserved_credits", "updated_at"])
+    budget = await AIBudget.create(
+        source_type=BudgetSourceType.WORKSPACE,
+        source_id=workspace.id,
+        limit_micros=1_000_000,
+        period_start=datetime.now(UTC).date(),
+    )
 
     async def reserve(request_id: UUID):
         async with in_transaction() as connection:
+            reservation = await AIBudgetReservation.create(
+                budget_id=budget.id,
+                request_id=request_id,
+                estimated_cost_micros=5_000,
+                reserved_cost_micros=5_000,
+                actor_user_id=owner.id,
+                capability_key="ai.agents",
+                status=ReservationStatus.RESERVED,
+                expires_at=datetime.now(UTC) + timedelta(minutes=5),
+                using_db=connection,
+            )
             return await reserve_workspace_credits(
                 commerce=service,
                 conn=connection,
+                reservation=reservation,
                 workspace_id=workspace.id,
-                request_id=request_id,
+                actor_user_id=owner.id,
+                project_id=None,
+                agent_run_id=None,
+                capability_key="ai.agents",
                 estimated_cost_micros=5_000,
             )
 
@@ -320,3 +358,16 @@ async def test_concurrent_credit_reservations_cannot_make_available_balance_nega
     assert reservation_entries[0].reserved_after_credits == 5
     assert reservation_entries[0].subscription_id == subscription.id
     assert reservation_entries[0].plan_revision_id == free_revision.id
+    allocations = await WorkspaceCreditLotAllocation.all()
+    usage_period = await WorkspaceMemberCreditUsagePeriod.get(
+        workspace_id=workspace.id,
+        membership_id=membership.id,
+    )
+    usage_events = await WorkspaceCreditUsageEvent.filter(workspace_id=workspace.id).all()
+    assert len(allocations) == 1
+    assert allocations[0].reserved_credits == 5
+    assert usage_period.reserved_credits == 5
+    assert usage_period.committed_credits == 0
+    assert len(usage_events) == 1
+    assert usage_events[0].membership_id == membership.id
+    assert usage_events[0].actor_user_id == owner.id

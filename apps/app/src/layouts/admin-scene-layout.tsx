@@ -36,8 +36,9 @@ import { cn } from "@arclayer/lib/utils";
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const NOTIFICATION_TOAST_PREVIEW_LIMIT = 20;
 const AI_DRAWER_MIN_WIDTH_PX = 380;
-const AI_DRAWER_PANEL_MARGIN_PX = 16;
-const AI_DRAWER_LAYOUT_GUTTER_PX = 64;
+const AI_DRAWER_OUTER_MARGIN_PX = 16;
+const MAIN_PANEL_HORIZONTAL_MARGIN_PX = 24;
+const AI_DRAWER_LAYOUT_GUTTER_PX = MAIN_PANEL_HORIZONTAL_MARGIN_PX * 2 + AI_DRAWER_OUTER_MARGIN_PX;
 type AdminSceneLayoutProps = PropsWithChildren<{
   renderTopbar: () => ReactNode;
   mainItems: readonly AdminNavItem[];
@@ -129,7 +130,11 @@ export function AdminSceneLayout({
       const handlePointerMove = (moveEvent: PointerEvent) => {
         const containerRect = sceneContainerRef.current?.getBoundingClientRect();
         if (!containerRect) return;
-        const nextWidth = containerRect.right - moveEvent.clientX - AI_DRAWER_PANEL_MARGIN_PX * 2;
+        const nextWidth =
+          containerRect.right -
+          moveEvent.clientX -
+          MAIN_PANEL_HORIZONTAL_MARGIN_PX -
+          AI_DRAWER_OUTER_MARGIN_PX;
         setAiDrawerWidthPx(clampAiDrawerWidth(nextWidth));
       };
 
@@ -328,7 +333,7 @@ export function AdminSceneLayout({
               className={cn(
                 "relative flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
                 aiDrawerOpen
-                  ? "m-0 rounded-none border-transparent shadow-none min-[769px]:m-4 min-[769px]:rounded-3xl min-[769px]:border-border"
+                  ? "m-0 rounded-none border-transparent shadow-none min-[769px]:mx-6 min-[769px]:my-4 min-[769px]:rounded-3xl min-[769px]:border-border"
                   : "m-0 rounded-none border-transparent shadow-none",
               )}
               data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}

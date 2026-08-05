@@ -11,7 +11,7 @@ from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
 from src.core.exceptions import Conflict, NotFound
 from src.core.services import BaseService
-from src.llm.runtime import LLMRequestContext
+from src.llm.runtime import LLMCapability, LLMRequestContext
 from src.modules.ai.service import AIChatService
 from src.modules.projects.agents.approval_schema import (
     AgentContentModelApprovalDryRunRequest,
@@ -103,6 +103,7 @@ class AgentContentModelProposalService(BaseService):
             ],
             context=LLMRequestContext(
                 workspace_id=workspace_id,
+                capability_key=LLMCapability.CONTENT,
                 project_id=project_id,
                 user_id=requester_user_id,
                 correlation_id=correlation_id,

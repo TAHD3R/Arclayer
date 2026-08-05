@@ -18,7 +18,7 @@ AI Services opens **AI tasks** by default and contains these peer operational su
 2. **Models & providers**: Provider readiness and health, configured models, routing rules, defaults, safe secret rotation, connection testing, and unresolved configuration blockers.
 3. **Built-in assistants**: official Agent templates and versions, availability, assignments, default assistant selection, compatibility, and publication or disable operations.
 4. **Built-in skills**: the Arclayer-maintained Skill package catalog, immutable versions, validation evidence, publication state, Workspace adoption impact, disabling, and retirement. Package metadata may be edited; changing instructions or resources always creates a new immutable version.
-5. **Actions & policies**: official Tool catalog, write/external effects, maximum Platform policy, approval requirements, data-egress disclosure, routing/recovery policy, and policy conflicts. Queue, worker, recovery-storage, interruption, cancellation, and retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
+5. **Actions & policies**: one deployment-wide, revisioned AI policy plus the official Tool catalog. The policy owns permitted models, default routing, per-task Credit ceiling, per-Workspace concurrency, effect-class approval requirements, external-data-egress permission, and runtime recovery boundaries. Queue, worker, recovery-storage, interruption, cancellation, and retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
 
 The domain has no metric-card Overview. A condition appears in AI tasks or Needs attention only when it identifies affected work, operational consequence, and a real resolution path.
 
@@ -49,6 +49,10 @@ Provider request ids, framework names, checkpoint ids, model-routing evidence, t
 - Provider/model readiness distinguishes installed, configured, reachable, permitted, routable, and healthy instead of collapsing them into `enabled`.
 - A Workspace approval wait is not automatically a platform incident. It becomes an Operational Signal only when an owning policy defines a breached deadline or infrastructure fault requiring operator action.
 - Sensitive prompts, generated content, Knowledge, Tool arguments/results, and secrets remain redacted unless a narrower diagnostic permission and audit contract explicitly authorize access.
+- AI Services is globally available when the deployment AI capability is installed, enabled, configured, and healthy. It has no selected-Workspace rollout, percentage, cohort, or hidden exception. Workspace Plan Entitlement, member allocation where applicable, Workspace Permission, member Credit limit, Workspace Credits, and runtime readiness remain independent Product API and worker gates.
+- AI policy changes are Draft-to-published immutable revisions. Publishing requires validation against the current model/provider and Tool catalogs, a revision-bound impact preview, explicit apply, and Audit evidence. A published policy is the one maximum deployment policy; Workspaces cannot create, weaken, or override it.
+- The runtime re-evaluates the current published policy before accepting a Run and before every model, Tool, external-egress, retry, resume, or worker effect. A queued request does not preserve a model, Tool, approval, concurrency, egress, or Credit ceiling that the new policy removed.
+- Policy fields appear only when their owning runtime boundary enforces them. Unsupported retention, routing, Tool, or approval controls fail policy validation and do not appear as saved-but-ineffective settings.
 
 ## 7. Non-goals
 

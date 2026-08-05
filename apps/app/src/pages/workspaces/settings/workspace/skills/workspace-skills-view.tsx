@@ -11,9 +11,15 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
+import { unstable_defaultDirectiveFormatter } from "@assistant-ui/react";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
+import {
+  AI_COMPOSER_SKILL_CREATOR_COMMAND,
+  useAIComposerDirectiveStore,
+} from "@/components/ai/ai-composer-directives";
+import { useEnabledAIComposerSkills } from "@/components/ai/ai-composer-skill-menu";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
@@ -51,6 +57,10 @@ export function WorkspaceSkillsView({
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const controller = useWorkspaceSkillsController(workspaceId);
+  const creatorSkillsQuery = useEnabledAIComposerSkills({ workspaceId });
+  const skillCreator = creatorSkillsQuery.skills.find(
+    (skill) => skill.command === AI_COMPOSER_SKILL_CREATOR_COMMAND,
+  );
   const {
     capabilitiesQuery,
     packagesQuery,
@@ -101,9 +111,23 @@ export function WorkspaceSkillsView({
             </p>
           </div>
           <WorkspaceSkillCreateMenu
-            onBuild={() =>
-              void navigate({ to: "/", search: { prompt: "/skill-creator " } as never })
-            }
+            buildDisabled={creatorSkillsQuery.isLoading || !skillCreator}
+            onBuild={() => {
+              if (!skillCreator) throw new Error("AI_COMPOSER_SKILL_CREATOR_UNAVAILABLE");
+              const directive = {
+                type: "skill" as const,
+                id: skillCreator.id,
+                label: skillCreator.label,
+                command: AI_COMPOSER_SKILL_CREATOR_COMMAND,
+              };
+              useAIComposerDirectiveStore.getState().addDirectives("home", [directive]);
+              void navigate({
+                to: "/",
+                search: {
+                  prompt: `${unstable_defaultDirectiveFormatter.serialize(directive)} `,
+                } as never,
+              });
+            }}
             onSelect={setDialog}
           />
         </header>
@@ -216,9 +240,11 @@ export function WorkspaceSkillsView({
 }
 
 function WorkspaceSkillCreateMenu({
+  buildDisabled,
   onBuild,
   onSelect,
 }: Readonly<{
+  buildDisabled: boolean;
   onBuild: () => void;
   onSelect: (action: WorkspaceSkillCreateAction) => void;
 }>) {
@@ -235,6 +261,7 @@ function WorkspaceSkillCreateMenu({
         <SkillCreateMenuItem
           icon={<Bot className="size-4" />}
           label={t("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER")}
+          disabled={buildDisabled}
           onSelect={onBuild}
         />
         <SkillCreateMenuItem
@@ -257,9 +284,14 @@ function WorkspaceSkillCreateMenu({
   );
 }
 
-function SkillCreateMenuItem(props: { icon: ReactNode; label: string; onSelect: () => void }) {
+function SkillCreateMenuItem(props: {
+  icon: ReactNode;
+  label: string;
+  disabled?: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <DropdownMenuItem className="gap-2" onSelect={props.onSelect}>
+    <DropdownMenuItem className="gap-2" disabled={props.disabled} onSelect={props.onSelect}>
       <span className="text-label-secondary">{props.icon}</span>
       <span>{props.label}</span>
     </DropdownMenuItem>

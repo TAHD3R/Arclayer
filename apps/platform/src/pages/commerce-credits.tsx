@@ -1,7 +1,11 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { CreditAdjustmentOut, WorkspaceCreditsOut } from "@arclayer/platform-openapi";
+import type {
+  CreditAdjustmentOut,
+  CreditAdjustmentRequest,
+  WorkspaceCreditsOut,
+} from "@arclayer/platform-openapi";
 
 import {
   adjustWorkspaceCredits,
@@ -156,13 +160,15 @@ function CreditAdjustmentDialog({
       requestRef.current = { fingerprint, idempotencyKey: crypto.randomUUID() };
     }
     try {
-      const result = await adjustWorkspaceCredits(workspaceId, {
+      const request: CreditAdjustmentRequest & { expiresAt: null } = {
         deltaCredits,
         evidenceReference: evidenceReference.trim(),
+        expiresAt: null,
         expectedAccountRevision: credits.accountRevision,
         idempotencyKey: requestRef.current.idempotencyKey,
         reason: reason.trim(),
-      });
+      };
+      const result = await adjustWorkspaceCredits(workspaceId, request);
       onCompleted(result);
       onOpenChange(false);
       setDelta("");

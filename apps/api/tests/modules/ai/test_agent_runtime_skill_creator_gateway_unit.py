@@ -93,6 +93,7 @@ def _request() -> AgentRunExecutionRequest:
         messages=({"role": "user", "content": "/skill-creator Create an editorial brief Skill."},),
         context=LLMRequestContext(
             workspace_id=uuid4(),
+            capability_key="ai.agents",
             project_id=uuid4(),
             agent_run_id=uuid4(),
             user_id=uuid4(),

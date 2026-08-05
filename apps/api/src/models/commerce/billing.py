@@ -50,10 +50,13 @@ class EntitlementAllocationMode(StrEnum):
 
 class CreditLedgerEntryType(StrEnum):
     PERIOD_GRANT = "period_grant"
+    PROMOTIONAL_GRANT = "promotional_grant"
+    TOP_UP = "top_up"
     RESERVATION = "reservation"
     COMMIT = "commit"
     RELEASE = "release"
     ADJUSTMENT = "adjustment"
+    REFUND = "refund"
     EXPIRATION = "expiration"
 
 

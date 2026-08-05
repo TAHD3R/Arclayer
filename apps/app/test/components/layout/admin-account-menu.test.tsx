@@ -104,7 +104,7 @@ async function openAccountMenu(user: ReturnType<typeof userEvent.setup>) {
   if (!trigger) throw new Error("Missing account menu trigger");
   await user.click(trigger);
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" })).toBeVisible();
   });
 }
 
@@ -179,14 +179,20 @@ describe("AdminAccountMenu", () => {
 
     await openAccountMenu(user);
 
-    expect(await screen.findByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_WORKSPACE_SETTINGS" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_SUBSCRIPTION" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_DOCS_RESOURCES" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_TERMS_PRIVACY" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_LOGOUT" })).toBeVisible();
+    expect(
+      within(screen.getByRole("dialog"))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual([
+      "ACCOUNT_MENU_PERSONAL_SETTINGS",
+      "ACCOUNT_MENU_WORKSPACE_SETTINGS",
+      "ACCOUNT_MENU_PLAN_USAGE",
+      "ACCOUNT_MENU_APPEARANCE",
+      "ACCOUNT_MENU_LANGUAGE",
+      "ACCOUNT_MENU_DOCS_RESOURCES",
+      "ACCOUNT_MENU_TERMS_PRIVACY",
+      "ACCOUNT_LOGOUT",
+    ]);
     expect(screen.queryByText("ACCOUNT_MENU_WORKSPACE_SETTINGS_DESC")).toBeNull();
     expect(screen.queryByText("ACCOUNT_MENU_DOCS_RESOURCES_DESC")).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_SYSTEM" })).toBeNull();
@@ -209,7 +215,7 @@ describe("AdminAccountMenu", () => {
 
     await openAccountMenu(user);
 
-    const accountAction = screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" });
+    const accountAction = screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" });
     expect(accountAction.querySelector(".size-4")).not.toBeNull();
   });
 
@@ -236,7 +242,7 @@ describe("AdminAccountMenu", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
-      expect(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" })).toBeVisible();
     });
     expect(document.body.querySelector(".fi-cn")).not.toBeNull();
     expect(document.body.querySelector(".fi-us")).not.toBeNull();
@@ -312,7 +318,7 @@ describe("AdminAccountMenu", () => {
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" })).toBeNull();
       expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeNull();
       expect(document.body.querySelector('[data-slot="popover-content"]')).toBeNull();
     });
@@ -338,7 +344,7 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" }));
 
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");
@@ -357,12 +363,12 @@ describe("AdminAccountMenu", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("点击 Subscription 会打开工作空间套餐与用量设置", async () => {
+  it("点击套餐与用量会打开工作空间套餐与用量设置", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_SUBSCRIPTION" }));
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_PLAN_USAGE" }));
 
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
@@ -377,7 +383,23 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(await screen.findByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" }));
+    const platformAction = await screen.findByRole("button", { name: "OPEN_PLATFORM_CONSOLE" });
+    expect(
+      within(screen.getByRole("dialog"))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual([
+      "ACCOUNT_MENU_PERSONAL_SETTINGS",
+      "ACCOUNT_MENU_WORKSPACE_SETTINGS",
+      "ACCOUNT_MENU_PLAN_USAGE",
+      "ACCOUNT_MENU_APPEARANCE",
+      "ACCOUNT_MENU_LANGUAGE",
+      "OPEN_PLATFORM_CONSOLE",
+      "ACCOUNT_MENU_DOCS_RESOURCES",
+      "ACCOUNT_MENU_TERMS_PRIVACY",
+      "ACCOUNT_LOGOUT",
+    ]);
+    await user.click(platformAction);
 
     expect(openMock).toHaveBeenCalledWith(
       "https://platform.arclayer.localhost",
@@ -394,25 +416,23 @@ describe("AdminAccountMenu", () => {
     await waitFor(() =>
       expect(platformEntryApi.getPlatformEntryEligibility).toHaveBeenCalledTimes(1),
     );
-    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "OPEN_PLATFORM_CONSOLE" })).toBeNull();
   });
 
-  it("Platform eligibility 请求失败时显式显示可重试状态", async () => {
-    vi.mocked(platformEntryApi.getPlatformEntryEligibility)
-      .mockRejectedValueOnce(new Error("eligibility failed"))
-      .mockResolvedValueOnce({ eligible: false });
+  it("Platform eligibility 请求失败时隐藏控制台入口及相关内容", async () => {
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockRejectedValue(
+      new Error("eligibility failed"),
+    );
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(
-      await screen.findByRole("button", { name: "ACCOUNT_MENU_PLATFORM_LOAD_ERROR" }),
-    );
-
     await waitFor(() => {
-      expect(platformEntryApi.getPlatformEntryEligibility).toHaveBeenCalledTimes(2);
-      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_LOAD_ERROR" })).toBeNull();
+      expect(platformEntryApi.getPlatformEntryEligibility).toHaveBeenCalledTimes(1);
     });
+    expect(screen.queryByRole("button", { name: "OPEN_PLATFORM_CONSOLE" })).toBeNull();
+    expect(screen.queryByText("ACCOUNT_MENU_PLATFORM_LOAD_ERROR")).toBeNull();
+    expect(screen.queryByText("ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR")).toBeNull();
   });
 
   it("eligible 用户缺少 Platform origin 配置时显式显示配置错误", async () => {
@@ -426,7 +446,7 @@ describe("AdminAccountMenu", () => {
     await openAccountMenu(user);
 
     expect(await screen.findByText("ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "OPEN_PLATFORM_CONSOLE" })).toBeNull();
   });
 
   it("eligibility 查询未完成时隐藏 Platform Console 入口", async () => {
@@ -438,7 +458,7 @@ describe("AdminAccountMenu", () => {
 
     await openAccountMenu(user);
 
-    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "OPEN_PLATFORM_CONSOLE" })).toBeNull();
   });
 
   it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {
@@ -447,7 +467,7 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" }));
 
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");

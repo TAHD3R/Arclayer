@@ -1,16 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useAui } from "@assistant-ui/react";
 import { BlocksIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WORKSPACE_SKILLS_QUERY_KEY, listWorkspaceSkillGrantOptions } from "@/api/workspace-skills";
-import {
-  skillInstallationIdsForComposerScope,
-  useAIComposerDirectiveStore,
-  type AIComposerDirectiveScope,
-} from "@/components/ai/ai-composer-directives";
+import { AI_COMPOSER_SKILL_CREATOR_COMMAND } from "@/components/ai/ai-composer-directives";
 import { useAIComposerDirectiveInsertion } from "@/components/ai/ai-composer-rich-input";
 import {
   AIComposerSkillPanelContent,
@@ -24,9 +19,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@arclaye
 
 export type { AIComposerSkillOption } from "@/components/ai/ai-composer-skill-panel";
 
-export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) {
+export function useEnabledAIComposerSkills(
+  options: { enabled?: boolean; workspaceId?: string | null } = {},
+) {
   const { i18n } = useTranslation(["ai", "settings"]);
-  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const workspaceId = options.workspaceId ?? currentWorkspaceId;
   const query = useQuery({
     queryKey: [...WORKSPACE_SKILLS_QUERY_KEY, "composer", workspaceId],
     enabled: Boolean(workspaceId && (options.enabled ?? true)),
@@ -48,9 +46,10 @@ export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) 
       .map((installation) => {
         const workspacePackage = workspacePackages.get(installation.packageId);
         const officialPackage = officialPackages.get(installation.packageId);
+        const slug = workspacePackage?.slug ?? officialPackage?.slug ?? installation.packageId;
         return {
           id: installation.id,
-          slug: workspacePackage?.slug ?? officialPackage?.slug ?? installation.packageId,
+          slug,
           label:
             workspacePackage?.displayName ??
             (officialPackage
@@ -73,6 +72,7 @@ export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) 
                   )
                 : officialPackage.description
               : installation.packageId),
+          ...(slug === AI_COMPOSER_SKILL_CREATOR_COMMAND ? { command: slug } : {}),
         };
       });
   }, [i18n, query.data]);
@@ -80,47 +80,28 @@ export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) 
   return { ...query, skills, workspaceId };
 }
 
-export function AIComposerSkillMenu(props: {
-  compact?: boolean;
-  iconOnly?: boolean;
-  scope?: AIComposerDirectiveScope;
-}) {
+export function AIComposerSkillMenu(props: { compact?: boolean; iconOnly?: boolean }) {
   const { t } = useTranslation("ai");
-  const aui = useAui();
   const { insertDirective } = useAIComposerDirectiveInsertion();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isError, isLoading, skills, workspaceId } = useEnabledAIComposerSkills({ enabled: open });
+  const skillCreator = skills.find((skill) => skill.command === AI_COMPOSER_SKILL_CREATOR_COMMAND);
 
   const selectSkill = (skill: AIComposerSkillOption) => {
-    const scope = props.scope ?? "thread";
-    useAIComposerDirectiveStore.getState().addDirectives(scope, [
-      {
-        type: "skill",
-        id: skill.id,
-        label: skill.label,
-      },
-    ]);
     insertDirective({
       type: "skill",
       id: skill.id,
       label: skill.label,
-    });
-    const composer = aui.composer();
-    const current = composer.getState().runConfig;
-    composer.setRunConfig({
-      ...current,
-      custom: {
-        ...current.custom,
-        selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
-      },
+      description: skill.description,
+      ...(skill.command ? { metadata: { command: skill.command } } : {}),
     });
     setOpen(false);
   };
 
   const createSkillWithArclayer = () => {
-    aui.composer().setText("/skill-creator ");
-    setOpen(false);
+    if (!skillCreator) throw new Error("AI_COMPOSER_SKILL_CREATOR_UNAVAILABLE");
+    selectSkill(skillCreator);
   };
 
   return (
@@ -157,6 +138,7 @@ export function AIComposerSkillMenu(props: {
           skills={skills}
           isLoading={isLoading}
           isError={isError}
+          buildWithArclayerDisabled={!skillCreator}
           onSelectSkill={selectSkill}
           onManage={() => {
             setOpen(false);

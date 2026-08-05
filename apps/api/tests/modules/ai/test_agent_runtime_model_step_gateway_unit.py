@@ -218,6 +218,7 @@ async def test_model_step_turns_function_call_into_human_interrupt_and_consumes_
         messages=({"role": "user", "content": "Build a homepage."},),
         context=LLMRequestContext(
             workspace_id=uuid4(),
+            capability_key="ai.agents",
             project_id=uuid4(),
             agent_run_id=uuid4(),
             user_id=uuid4(),
@@ -503,6 +504,7 @@ def _style_guide_request() -> AgentRunExecutionRequest:
         messages=({"role": "user", "content": "Create a Style Guide."},),
         context=LLMRequestContext(
             workspace_id=workspace_id,
+            capability_key="ai.agents",
             project_id=project_id,
             agent_run_id=uuid4(),
             user_id=uuid4(),

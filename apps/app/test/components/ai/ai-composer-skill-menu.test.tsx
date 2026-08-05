@@ -77,6 +77,7 @@ vi.mock("react-i18next", () => ({
         AI_CHAT_SKILL_EMPTY: "暂无技能",
         AI_CHAT_SKILL_ADD: "添加技能",
         AI_CHAT_SKILL_CREATE_WITH_ARCLAYER: "通过 Arclayer 创建",
+        AI_CHAT_SKILL_CREATOR: "技能创建器",
         AI_CHAT_SKILL_WRITE_MANUALLY: "手动编写",
         AI_CHAT_SKILL_IMPORT_GITHUB: "从 GitHub 导入",
         AI_CHAT_SKILL_UPLOAD_ZIP: "上传 ZIP",
@@ -131,6 +132,25 @@ describe("AIComposerSkillMenu", () => {
           versionId: "version-1",
           workspaceId: "workspace-1",
         },
+        {
+          acceptedDataEgress: [],
+          acceptedPermissions: [],
+          acceptedRequiredTools: ["workspace.skill.create"],
+          createdAt: "2026-07-23T00:00:00Z",
+          id: "installation-skill-creator",
+          installedByUserId: null,
+          metadataRevision: 1,
+          packageChecksum: "creator-checksum",
+          packageId: "package-skill-creator",
+          packageScope: "workspace",
+          safeReasonCode: null,
+          status: "enabled",
+          updatedAt: "2026-07-23T00:00:00Z",
+          updatedByUserId: null,
+          validationFindingHash: "creator-finding-hash",
+          versionId: "version-skill-creator",
+          workspaceId: "workspace-1",
+        },
       ],
       officialPackages: [],
       workspacePackages: [
@@ -145,6 +165,25 @@ describe("AIComposerSkillMenu", () => {
           publisherId: "workspace-1",
           publisherName: "Workspace",
           slug: "commerce-content",
+          sourceKind: "workspace",
+          status: "active",
+          trustLevel: "workspace",
+          updatedAt: "2026-07-23T00:00:00Z",
+          updatedByUserId: null,
+          versionCount: 1,
+          workspaceId: "workspace-1",
+        },
+        {
+          createdAt: "2026-07-23T00:00:00Z",
+          createdByUserId: null,
+          description: "创建并启用可复用技能",
+          displayName: "技能创建器",
+          id: "package-skill-creator",
+          latestValidVersionId: "version-skill-creator",
+          metadataRevision: 1,
+          publisherId: "workspace-1",
+          publisherName: "Workspace",
+          slug: "skill-creator",
           sourceKind: "workspace",
           status: "active",
           trustLevel: "workspace",
@@ -169,17 +208,8 @@ describe("AIComposerSkillMenu", () => {
       type: "skill",
       id: "installation-1",
       label: "电商内容",
+      description: "生成结构化电商内容",
     });
-    expect(composerMocks.setRunConfig).toHaveBeenCalledWith({
-      custom: { existing: "value", selectedSkillInstallationIds: ["installation-1"] },
-    });
-    expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
-      {
-        type: "skill",
-        id: "installation-1",
-        label: "电商内容",
-      },
-    ]);
   });
 
   it("keeps the Skill menu inside a padded viewport collision boundary", async () => {
@@ -216,7 +246,16 @@ describe("AIComposerSkillMenu", () => {
     createItem.focus();
     await user.keyboard("{Enter}");
 
-    await waitFor(() => expect(composerMocks.setText).toHaveBeenCalledWith("/skill-creator "));
+    await waitFor(() =>
+      expect(composerMocks.insertDirective).toHaveBeenCalledWith({
+        type: "skill",
+        id: "installation-skill-creator",
+        label: "技能创建器",
+        description: "创建并启用可复用技能",
+        metadata: { command: "skill-creator" },
+      }),
+    );
+    expect(composerMocks.setText).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "选择技能" }));
     const reopenedAddSkillItem = await screen.findByRole("menuitem", { name: "添加技能" });

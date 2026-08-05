@@ -28,12 +28,8 @@ vi.mock("@/components/ai/ai-agent-selector", () => ({
 }));
 
 vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
-  AIComposerSkillMenu: ({ iconOnly, scope }: { iconOnly?: boolean; scope?: string }) => (
-    <div
-      data-testid="ai-skill-selector"
-      data-icon-only={String(Boolean(iconOnly))}
-      data-scope={scope}
-    />
+  AIComposerSkillMenu: ({ iconOnly }: { iconOnly?: boolean }) => (
+    <div data-testid="ai-skill-selector" data-icon-only={String(Boolean(iconOnly))} />
   ),
 }));
 
@@ -77,9 +73,10 @@ vi.mock("react-i18next", () => ({
       const labels: Record<string, string> = {
         "ai:AI_CHAT_MODE_SELECT": "Select work mode",
         "ai:AI_CHAT_MODE_BUILD": "Build",
-        "ai:AI_CHAT_MODE_BUILD_DESC": "Apply focused code and UI changes",
+        "ai:AI_CHAT_MODE_BUILD_DESC": "Create or update content, pages, and settings",
         "ai:AI_CHAT_MODE_PLAN": "Plan",
-        "ai:AI_CHAT_MODE_PLAN_DESC": "Shape the approach before editing",
+        "ai:AI_CHAT_MODE_PLAN_DESC":
+          "Analyze the request and propose a plan without making changes",
         "ai:AI_CHAT_MODE_UNAVAILABLE_DESC": `${values?.description ?? ""} · Unavailable`,
         "ai:AI_CHAT_COMPOSER_ADD_MENU": "Add context",
         "ai:AI_CHAT_UPLOAD_FILE": "Upload file",
@@ -158,6 +155,10 @@ describe("AIComposerContextControls", () => {
     expect(useAiChatStore.getState().composerMode).toBe("build");
     expect(buildItem).not.toHaveAttribute("data-disabled");
     expect(planItem).not.toHaveAttribute("data-disabled");
+    expect(screen.getByText("Create or update content, pages, and settings")).toBeInTheDocument();
+    expect(
+      screen.getByText("Analyze the request and propose a plan without making changes"),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: /Project Copilot/ })).not.toBeInTheDocument();
     expect(listAIProjectAgents).not.toHaveBeenCalled();
   });
@@ -190,7 +191,6 @@ describe("AIComposerContextControls", () => {
     expect(leftGroup.children[0]).toContainElement(addButton);
     expect(leftGroup.children[1]).toContainElement(projectSelector);
     expect(leftGroup.children[2]).toContainElement(skillSelector);
-    expect(skillSelector).toHaveAttribute("data-scope", "home");
     expect(skillSelector).toHaveAttribute("data-icon-only", "false");
     expect(modelSelector).toHaveAttribute("data-icon-only", "false");
     expect(modeButton).toHaveTextContent("Build");
@@ -211,7 +211,6 @@ describe("AIComposerContextControls", () => {
     expect(toolbar.children[0]).toContainElement(addButton);
     expect(toolbar.children[1]).toContainElement(modelSelector);
     expect(toolbar.children[2]).toContainElement(skillSelector);
-    expect(skillSelector).toHaveAttribute("data-scope", "thread");
     expect(skillSelector).toHaveAttribute("data-icon-only", "true");
     expect(modelSelector).toHaveAttribute("data-icon-only", "true");
     expect(toolbar.children[4]).toContainElement(modeButton);

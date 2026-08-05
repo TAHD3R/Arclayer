@@ -27,6 +27,7 @@ export type AIComposerSkillOption = Readonly<{
   slug: string;
   label: string;
   description: string;
+  command?: string;
 }>;
 
 type AIComposerSkillPanelContentProps = Readonly<{
@@ -37,6 +38,7 @@ type AIComposerSkillPanelContentProps = Readonly<{
   onSelectSkill?: (skill: AIComposerSkillOption) => void;
   onManage: () => void;
   onBuildWithArclayer: () => void;
+  buildWithArclayerDisabled?: boolean;
   onWriteManually: () => void;
   onImportGitHub: () => void;
   onUploadZip: () => void;
@@ -61,6 +63,7 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
           icon={WandSparklesIcon}
           label={t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER")}
           description={t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER_DESC")}
+          disabled={props.buildWithArclayerDisabled}
           onClick={props.onBuildWithArclayer}
         />
         <SkillAddAction
@@ -175,7 +178,10 @@ function SkillPanelFooter(
             {t("AI_CHAT_SKILL_ADD")}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-56">
-            <DropdownMenuItem onSelect={props.onBuildWithArclayer}>
+            <DropdownMenuItem
+              disabled={props.buildWithArclayerDisabled}
+              onSelect={props.onBuildWithArclayer}
+            >
               <WandSparklesIcon className="size-4" aria-hidden="true" />
               {t("AI_CHAT_SKILL_CREATE_WITH_ARCLAYER")}
             </DropdownMenuItem>
@@ -261,13 +267,15 @@ function SkillAddAction(props: {
   icon: typeof WandSparklesIcon;
   label: string;
   description: string;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const Icon = props.icon;
   return (
     <button
       type="button"
-      className="flex min-h-11 w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      disabled={props.disabled}
+      className="flex min-h-11 w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
       onClick={props.onClick}
     >
       <Icon className="mt-0.5 size-4 text-label-secondary" aria-hidden="true" />

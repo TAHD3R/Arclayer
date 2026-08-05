@@ -48,6 +48,11 @@ class AIBudgetReservation(BaseModel):
     reserved_cost_micros = fields.BigIntField()  # Amount actually reserved
     actual_cost_micros = fields.BigIntField(null=True)  # Post-call actual (only when committed)
     credit_account_id = fields.UUIDField(null=True, db_index=True)
+    workspace_membership_id = fields.UUIDField(null=True, db_index=True)
+    actor_user_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
+    capability_key = fields.CharField(max_length=160, null=True, db_index=True)
+    credit_attribution_version = fields.SmallIntField(default=1)
     credit_value_micros = fields.BigIntField(null=True)
     reserved_credits = fields.BigIntField(null=True)
     actual_credits = fields.BigIntField(null=True)

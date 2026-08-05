@@ -96,6 +96,7 @@ function mergeRegisteredDirectiveMetadata(
   if (!match) return directive;
   return {
     ...directive,
+    command: match.command,
     previewUrl: match.previewUrl,
     mime: match.mime,
   };

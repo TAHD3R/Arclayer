@@ -348,7 +348,7 @@ class TestMockLLMIntegration:
 
         settings = get_settings()
         service = AIChatService(settings, runtime=mock_runtime)
-        context = LLMRequestContext(workspace_id=uuid4())
+        context = LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents")
         with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
             result = await service.chat(
                 [{"role": "user", "content": "Hello"}],
@@ -414,7 +414,7 @@ class TestMockLLMIntegration:
             with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
                 await service.chat(
                     [{"role": "user", "content": "Hello"}],
-                    context=LLMRequestContext(workspace_id=uuid4()),
+                    context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
                     model="deepseek-v4-pro",
                     reasoning_effort=effort,
                 )
@@ -454,7 +454,7 @@ class TestMockLLMIntegration:
         with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
             await service.chat(
                 [{"role": "user", "content": "Submit one typed candidate."}],
-                context=LLMRequestContext(workspace_id=uuid4()),
+                context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
                 model="deepseek-v4-pro",
                 provider_params=forced_tool_params,
             )
@@ -473,7 +473,7 @@ class TestMockLLMIntegration:
         settings = get_settings()
 
         service = AIChatService(settings)
-        context = LLMRequestContext(workspace_id=uuid4())
+        context = LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents")
         events = []
         async for event in service.chat_stream(
             [{"role": "user", "content": "Hello streaming"}],
@@ -499,7 +499,7 @@ class TestMockLLMIntegration:
 
         settings = get_settings()
         service = AIChatService(settings, runtime=mock_runtime)
-        context = LLMRequestContext(workspace_id=uuid4())
+        context = LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents")
 
         with pytest.raises(LLMRuntimeError) as exc_info:
             with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
@@ -532,7 +532,7 @@ class TestLLMRuntimeBudgetCancellation:
             patch.object(
                 runtime,
                 "_resolve_call_context",
-                new=AsyncMock(return_value=("virtual-key", 4, 100, 4096, {})),
+                new=AsyncMock(return_value=("virtual-key", 4, 100, 4096, {}, None)),
             ),
             patch(
                 "src.llm.budget.reserve",
@@ -544,7 +544,11 @@ class TestLLMRuntimeBudgetCancellation:
             chat_task = asyncio.create_task(
                 runtime.chat(
                     [{"role": "user", "content": "Hello"}],
-                    context=LLMRequestContext(workspace_id=uuid4(), user_id=uuid4()),
+                    context=LLMRequestContext(
+                        workspace_id=uuid4(),
+                        capability_key="ai.agents",
+                        user_id=uuid4(),
+                    ),
                     model="gpt-4o-mini",
                     budget_id=uuid4(),
                 )
@@ -652,7 +656,7 @@ class TestSSEDisconnectCancel:
         settings = get_settings()
 
         service = AIChatService(settings)
-        context = LLMRequestContext(workspace_id=uuid4())
+        context = LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents")
 
         async def consume_stream():
             events = []
@@ -684,7 +688,7 @@ class TestSSEDisconnectCancel:
         settings = get_settings()
 
         service = AIChatService(settings)
-        context = LLMRequestContext(workspace_id=uuid4())
+        context = LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents")
 
         async def consume_partial():
             count = 0

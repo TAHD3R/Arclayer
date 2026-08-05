@@ -316,8 +316,8 @@ vi.mock("@/stores/use-workspace-store", () => ({
 
 const labels: Record<string, string> = {
   "auth:SLOGAN_TITLE": "Arclayer",
-  "auth:SLOGAN_SUBTITLE": "结构化内容，可视化构建。",
   "ai:AI_CHAT_HOME_PRODUCT_PROMISE": "让内容构建更简单",
+  "ai:AI_CHAT_HOME_PRODUCT_SUBTITLE": "从想法到发布，用 AI 完成内容与网站构建。",
   "ai:AI_CHAT_HOME_USER_FALLBACK": "朋友",
   "ai:AI_CHAT_HOME_GREETING": "How can I help you today, 朋友?",
   "ai:AI_CHAT_HOME_SUBTITLE": "从一个问题开始",
@@ -479,7 +479,7 @@ describe("HomePage", () => {
     const { container } = renderHomePage();
 
     expect(screen.getByRole("heading", { name: "Arclayer 让内容构建更简单" })).toBeInTheDocument();
-    expect(screen.getByText("结构化内容，可视化构建。")).toBeInTheDocument();
+    expect(screen.getByText("从想法到发布，用 AI 完成内容与网站构建。")).toBeInTheDocument();
     const aurora = screen.getByTestId("home-ai-aurora");
     expect(aurora).toBeInTheDocument();
     expect(aurora).toHaveClass("sticky", "top-0", "z-0", "-mb-[100dvh]", "h-[100dvh]");
@@ -720,12 +720,21 @@ describe("HomePage", () => {
     expect(assistantUiMockState.runtimeStore?.queue?.items).toEqual([]);
   });
 
-  it("preserves the trailing space in a routed slash command", async () => {
-    searchMock.mockReturnValue({ prompt: "/skill-creator " });
+  it("hydrates a routed Skill Creator through the registered Skill directive", async () => {
+    const prompt = ":skill[技能创建器]{name=installation-skill-creator} ";
+    useAIComposerDirectiveStore.getState().addDirectives("home", [
+      {
+        type: "skill",
+        id: "installation-skill-creator",
+        label: "技能创建器",
+        command: "skill-creator",
+      },
+    ]);
+    searchMock.mockReturnValue({ prompt });
 
     renderHomePage();
 
-    await waitFor(() => expect(assistantUiMockState.composerText).toBe("/skill-creator "));
+    await waitFor(() => expect(assistantUiMockState.composerText).toBe(prompt));
   });
 
   it("moves the AI entry upward while preserving recent projects and inspiration", async () => {

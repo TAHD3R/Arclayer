@@ -334,6 +334,8 @@ describe("AdminSceneLayout", () => {
 
     const mainPanel = container.querySelector("[data-floating-panel-boundary]");
     expect(mainPanel).toHaveClass("min-[769px]:rounded-3xl");
+    expect(mainPanel).toHaveClass("min-[769px]:mx-6", "min-[769px]:my-4");
+    expect(mainPanel).not.toHaveClass("min-[769px]:m-4");
     expect(mainPanel).not.toHaveClass("min-[769px]:rounded-md");
 
     expect(sidebarProviderSpy).toHaveBeenLastCalledWith(
@@ -617,7 +619,7 @@ describe("AdminSceneLayout", () => {
       window.dispatchEvent(createPointerEvent("pointermove", { clientX: 480 }));
     });
 
-    expect(preferencesState.setAiDrawerWidthPx).toHaveBeenLastCalledWith(448);
+    expect(preferencesState.setAiDrawerWidthPx).toHaveBeenLastCalledWith(440);
 
     act(() => {
       window.dispatchEvent(createPointerEvent("pointermove", { clientX: 760 }));

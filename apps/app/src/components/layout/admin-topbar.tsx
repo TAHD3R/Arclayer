@@ -32,7 +32,8 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-const TOPBAR_CONTENT_PADDING_CLASSNAME = "px-4 py-2 sm:px-6 sm:py-3";
+const TOPBAR_CONTENT_PADDING_CLASSNAME =
+  "px-4 py-2 sm:px-6 sm:py-3 min-[769px]:[[data-floating-panel-boundary]_&]:pr-3";
 const MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME =
   "min-h-11 min-w-11 min-[769px]:min-h-0 min-[769px]:min-w-0";
 

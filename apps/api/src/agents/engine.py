@@ -21,7 +21,7 @@ from src.common.types.json_types import JsonObject
 from src.core.exceptions import APIError, Conflict, Forbidden
 from src.core.i18n import t
 from src.core.logging import get_logger
-from src.llm.runtime import LLMRequestContext, LLMRuntimeError
+from src.llm.runtime import LLMCapability, LLMRequestContext, LLMRuntimeError
 from src.modules.ai.schema import AIReasoningEffort
 
 logger = get_logger(__name__)
@@ -224,6 +224,7 @@ class AgentRunEngine:
                 messages=self._messages(system_prompt=system_prompt, prompt=prompt, tool_outputs=tool_outputs),
                 context=LLMRequestContext(
                     workspace_id=context.workspace_id,
+                    capability_key=LLMCapability.AGENTS,
                     project_id=context.project_id,
                     user_id=context.user_id,
                     correlation_id=context.correlation_id,
@@ -451,6 +452,7 @@ class AgentRunEngine:
             messages=self._messages(system_prompt=system_prompt, prompt=prompt, tool_outputs=tool_outputs),
             context=LLMRequestContext(
                 workspace_id=context.workspace_id,
+                capability_key=LLMCapability.AGENTS,
                 project_id=context.project_id,
                 user_id=context.user_id,
                 correlation_id=context.correlation_id,

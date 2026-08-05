@@ -88,6 +88,7 @@ def test_credit_adjustment_rejects_a_noop_before_any_ledger_write() -> None:
             delta_credits=0,
             reason="no-op",
             evidence_reference="case-1",
+            expires_at=None,
             expected_account_revision=1,
             idempotency_key="credit-adjustment-1",
         )

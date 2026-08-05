@@ -120,7 +120,7 @@ async def test_deepseek_tool_request_reservation_covers_observed_style_guide_usa
             _pricing,
         ) = await runtime._resolve_call_context(
             messages,
-            context=LLMRequestContext(workspace_id=uuid4()),
+            context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
             model="deepseek-v4-pro",
             max_tokens=_OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS,
             provider_params=_provider_params(),
@@ -152,7 +152,7 @@ async def test_stream_commits_before_exposing_terminal_success() -> None:
     ):
         async for _chunk in runtime.chat_stream(
             [{"role": "user", "content": "hello"}],
-            context=LLMRequestContext(workspace_id=uuid4()),
+            context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
             model="gpt-4o-mini",
             budget_id=uuid4(),
         ):
@@ -180,7 +180,7 @@ async def test_closing_stream_after_terminal_chunk_does_not_release_committed_ho
             AsyncGenerator[dict[str, Any], None],
             runtime.chat_stream(
                 [{"role": "user", "content": "hello"}],
-                context=LLMRequestContext(workspace_id=uuid4()),
+                context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
                 model="gpt-4o-mini",
                 budget_id=uuid4(),
             ),
@@ -206,7 +206,7 @@ async def test_empty_provider_stream_releases_reservation() -> None:
             chunk
             async for chunk in runtime.chat_stream(
                 [{"role": "user", "content": "hello"}],
-                context=LLMRequestContext(workspace_id=uuid4()),
+                context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
                 model="gpt-4o-mini",
                 budget_id=uuid4(),
             )

@@ -15,7 +15,7 @@
   "ACCOUNT_LANGUAGE_SYSTEM_DEFAULT": "Follow system default",
   "ACCOUNT_LANGUAGE_ZH": "Chinese",
   "ACCOUNT_LOGOUT": "Sign out",
-  "ACCOUNT_MENU_ACCOUNT": "Settings",
+  "ACCOUNT_MENU_PERSONAL_SETTINGS": "Personal settings",
   "ACCOUNT_MENU_APPEARANCE": "Appearance",
   "ACCOUNT_MENU_CHANGELOG": "Changelog",
   "ACCOUNT_MENU_DOCS_RESOURCES": "Docs and resources",
@@ -24,7 +24,7 @@
   "ACCOUNT_MENU_LANGUAGE": "Language",
   "ACCOUNT_MENU_LANGUAGE_PREFERENCES": "Language preferences",
   "ACCOUNT_MENU_PRIVACY_POLICY": "Privacy policy",
-  "ACCOUNT_MENU_SUBSCRIPTION": "Subscription",
+  "ACCOUNT_MENU_PLAN_USAGE": "Plan & usage",
   "ACCOUNT_MENU_TERMS": "Terms",
   "ACCOUNT_MENU_TERMS_PRIVACY": "Terms and privacy",
   "ACCOUNT_MENU_WORKSPACE_SETTINGS": "Workspace settings",
@@ -1743,8 +1743,6 @@
   "SETTINGS_SHELL_NAVIGATION_DESC": "Switch between personal and workspace settings.",
   "SETTINGS_SHELL_NAVIGATION_HINT": "Browse settings",
   "SETTINGS_SHELL_TITLE": "Settings",
-  "ACCOUNT_MENU_PLATFORM_OPEN": "Open Platform Console",
-  "ACCOUNT_MENU_PLATFORM_LOAD_ERROR": "Couldn’t check Platform access. Retry",
-  "ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR": "Platform Console address isn’t configured",
-  "ACCOUNT_MENU_PLATFORM_RETRY": "Retry"
+  "OPEN_PLATFORM_CONSOLE": "Open Platform Console",
+  "ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR": "Platform Console isn’t configured for this deployment"
 }

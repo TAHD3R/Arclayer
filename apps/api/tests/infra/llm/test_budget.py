@@ -129,6 +129,8 @@ class TestReserve:
         budget = _make_budget()
         workspace_id = uuid4()
         agent_run_id = uuid4()
+        actor_user_id = uuid4()
+        project_id = uuid4()
         reservation = _make_reservation(budget, agent_run_id=agent_run_id)
         connection = MagicMock()
         connection.execute_query = AsyncMock(
@@ -144,6 +146,8 @@ class TestReserve:
         run_query.using_db.return_value.select_for_update.return_value.first = AsyncMock(
             return_value=SimpleNamespace(
                 workspace_id=workspace_id,
+                project_id=project_id,
+                owner_user_id=actor_user_id,
                 status=AgentRunStatusV1.INTERRUPTED,
             )
         )
@@ -179,6 +183,9 @@ class TestReserve:
                 estimated_cost_micros=5000,
                 workspace_id=workspace_id,
                 agent_run_id=agent_run_id,
+                actor_user_id=actor_user_id,
+                project_id=project_id,
+                capability_key="ai.agents",
             )
 
         assert result is reservation

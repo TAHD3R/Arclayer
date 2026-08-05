@@ -40,6 +40,7 @@ import {
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
   skillInstallationIdsForComposerScope,
+  useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
 import { formatAIChatError } from "@/api/ai";
 import { HomeAIBackground } from "@/pages/home/home-ai-background";
@@ -136,7 +137,8 @@ function HomeComposer({
   const sendHomePrompt = useCallback(
     async (text: string) => {
       const textWithDirectives = applyWebSearchDirective(text.trim());
-      const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
+      const registered = useAIComposerDirectiveStore.getState().directivesByScope.home;
+      const trimmed = cleanAIComposerDirectiveText(textWithDirectives, registered);
       if (!trimmed) return;
 
       onSubmitStart();
@@ -213,7 +215,7 @@ function HomeComposer({
         onApplied={onInitialPromptApplied}
       />
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
-        <AIComposerDirectiveInsertionProvider>
+        <AIComposerDirectiveInsertionProvider scope="home">
           <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
             <ComposerQueue />
             <div
@@ -231,7 +233,7 @@ function HomeComposer({
                 />
                 <AIComposerRotatingPlaceholder />
               </div>
-              <AIComposerTriggers placement="bottom" scope="home" />
+              <AIComposerTriggers placement="bottom" />
               <AIComposerToolbar surface="home" />
             </div>
             <HomeAIPromptStarters inputRef={inputRef} />

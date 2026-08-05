@@ -73,7 +73,7 @@ export function AIComposerToolbar({
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <AIComposerAttachmentMenu />
           <AIProjectSelector compact />
-          <AIComposerSkillMenu compact scope="home" />
+          <AIComposerSkillMenu compact />
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <AIModelSelector compact />
@@ -89,7 +89,7 @@ export function AIComposerToolbar({
       <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
         <AIComposerAttachmentMenu />
         <AIModelSelector compact iconOnly />
-        <AIComposerSkillMenu compact iconOnly scope="thread" />
+        <AIComposerSkillMenu compact iconOnly />
         <div className="min-w-0 flex-1" />
         <AIComposerModeSelect compact iconOnly />
         <AIComposerPrimaryAction />

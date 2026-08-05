@@ -21,6 +21,11 @@ from src.models.commerce.billing import (
     WorkspaceCreditLedger,
     WorkspaceSubscription,
 )
+from src.models.commerce.credit_allocation import (
+    CreditGrantSource,
+    WorkspaceCreditGrantLot,
+    WorkspaceMemberCreditPolicy,
+)
 from src.modules.commerce.free_workspace_allowance import (
     FreeWorkspaceAllowanceAuthority,
     build_free_workspace_allowance_authority,
@@ -286,6 +291,33 @@ class CommerceService(BaseService):
             },
             conn=conn,
         )
+        await WorkspaceMemberCreditPolicy.get_or_create(
+            workspace_id=workspace_id,
+            defaults={
+                "default_limit_kind": "unlimited",
+                "default_limit_credits": None,
+                "revision": 1,
+                "updated_by_user_id": owner_user_id,
+            },
+            using_db=conn,
+        )
+        if int(revision.credit_grant_amount) > 0:
+            await WorkspaceCreditGrantLot.create(
+                workspace_id=workspace_id,
+                account_id=account.id,
+                subscription_id=subscription.id,
+                plan_revision_id=revision.id,
+                source=CreditGrantSource.PLAN_PERIOD,
+                source_identity=f"plan-period:{account.period_identity}",
+                granted_credits=int(revision.credit_grant_amount),
+                remaining_credits=int(revision.credit_grant_amount),
+                reserved_credits=0,
+                issued_at=now,
+                expires_at=(None if revision.credit_refresh_interval is CreditRefreshInterval.NONE else period_end),
+                actor_user_id=owner_user_id,
+                description_key="LEDGER_PERIOD_GRANT",
+                using_db=conn,
+            )
         await self._write_ledger(
             conn=conn,
             account=account,

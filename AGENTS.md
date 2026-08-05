@@ -98,7 +98,7 @@ Prefer live repo truth if indexes are stale or unavailable.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Arclayer**. Use the GitNexus tools to understand code, assess impact, and navigate safely; run `npx gitnexus status` instead of relying on copied symbol counts.
+This project is indexed by GitNexus as **Arclayer** (99768 symbols, 158839 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

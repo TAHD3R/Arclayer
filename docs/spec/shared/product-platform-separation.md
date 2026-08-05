@@ -152,7 +152,7 @@ Paid-only features remain honestly discoverable. Their controls show a localized
 - unsupported or uninstalled capability;
 - instance disabled;
 - configuration not ready;
-- Workspace rollout exclusion;
+- rollout exclusion only when the capability's owning contract explicitly requires controlled adoption; AI Services has no rollout gate;
 - Plan Entitlement missing;
 - member allocation missing;
 - Workspace Permission denied;
@@ -172,7 +172,7 @@ A member-assigned paid capability uses Workspace-owned Feature Seats and active-
 - role and permission editors contain no capacity or assignment controls.
 - the Workspace Owner always manages assignments.
 - a non-Owner requires the exact `workspace:feature-seats:manage` permission, available only when role management exists.
-- assignment grants no role, permission, rollout inclusion, readiness, Credits, or runtime health.
+- assignment grants no role, permission, controlled-adoption inclusion where applicable, readiness, Credits, or runtime health.
 - membership termination releases assignments transactionally; rejoining restores nothing implicitly.
 
 ### 6.5 Plan Access Convergence
@@ -209,7 +209,7 @@ Domain landing pages exist only when they present actionable work, readiness, or
 
 The Platform API owns one trusted Platform Capability Catalog. Each record has a stable capability id and owning domain, localized metadata keys, support state, enablement state, configuration readiness and missing prerequisites, runtime health, build-registered route target, and required Platform Permissions.
 
-Support, installation, enablement, readiness, rollout, commercial Entitlement, member allocation, Workspace Permission, resource allowance, and runtime health are independent gates. They never collapse into one `enabled` flag.
+Support, installation, enablement, readiness, explicitly contracted rollout, commercial Entitlement, member allocation, Workspace Permission, member Credit limit, resource allowance, and runtime health are independent gates. They never collapse into one `enabled` flag. AI Services does not register or evaluate a Workspace rollout gate.
 
 Configuration changes use the owning domain's risk tier:
 
@@ -220,13 +220,13 @@ Configuration changes use the owning domain's risk tier:
 
 There is no global approval queue. A currently authorized actor applies a change after the controls required by its owning domain. Multiple participants are required only when the domain invariant itself needs distinct actors, such as Instance Ownership Transfer.
 
-Workspace-facing Platform capabilities use exactly three rollout stages:
+Workspace-facing Platform capabilities use exactly three rollout stages only when their owning contract explicitly requires controlled adoption:
 
 1. not available;
 2. available to explicitly selected eligible Workspaces;
 3. available to all eligible Workspaces.
 
-Every rollout change uses a revision-bound impact preview, explicit apply, Platform Audit, and Product API plus worker enforcement. Per-User targeting, random percentages, arbitrary expressions, hidden exceptions, implicit cohorts, and compatibility feature flags are forbidden. Feature Seat Assignment remains a separate commercial allocation and never becomes rollout targeting.
+Every such rollout change uses a revision-bound impact preview, explicit apply, Platform Audit, and Product API plus worker enforcement. Capabilities without staged-adoption requirements have no rollout record or control. Per-User targeting, random percentages, arbitrary expressions, hidden exceptions, implicit cohorts, and compatibility feature flags are forbidden. Feature Seat Assignment remains a separate commercial allocation and never becomes rollout targeting.
 
 ## 9. Platform identity and security
 
@@ -299,7 +299,7 @@ Primary copy explains the object, outcome, consequence, and recovery action in n
 - Each mutation has an exact owning domain, action-scoped permission or non-delegable authority, idempotency identity, expected revision when state can drift, Audit evidence, and explicit failure behavior.
 - Preview never grants authority and never substitutes for apply-time validation.
 - Background acceptance is not completion. Durable operations expose queued, running, partially completed, failed, cancelled-when-safe, and terminal results honestly.
-- Authorization is re-evaluated at every command and effect boundary required by the domain contract. A queued request does not preserve a revoked Feature Seat, Workspace permission, rollout inclusion, Platform role, or configuration readiness.
+- Authorization is re-evaluated at every command and effect boundary required by the domain contract. A queued request does not preserve a revoked Feature Seat, Workspace permission, contracted rollout inclusion, Platform role, member Credit limit, or configuration readiness.
 - Generated OpenAPI clients remain the frontend type source. Handwritten duplicate request or response types and shared compatibility envelopes are forbidden.
 - Database migrations fail explicitly on ambiguous ownership, unresolved trial state, mismatched Plan/Price mappings, invalid role bindings, or impossible authority invariants. They do not guess, discard, or silently normalize conflicting state.
 

@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
 import { WorkspaceSkillsView } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
 
 const mocks = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   notifyInfo: vi.fn(),
   notifyError: vi.fn(),
   notifyErrorText: vi.fn(),
+  navigate: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -42,7 +44,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mocks.navigate,
 }));
 
 vi.mock("@/api/workspace-skills", () => ({
@@ -87,6 +89,20 @@ vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-install-di
 }));
 vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-official-skills-catalog", () => ({
   WorkspaceOfficialSkillsCatalog: () => <div data-testid="official-skills-table" />,
+}));
+vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
+  useEnabledAIComposerSkills: () => ({
+    isLoading: false,
+    skills: [
+      {
+        id: "installation-skill-creator",
+        slug: "skill-creator",
+        label: "Skill Creator",
+        description: "Create reusable Skills",
+        command: "skill-creator",
+      },
+    ],
+  }),
 }));
 
 const packageSummary = {
@@ -186,6 +202,7 @@ function renderView() {
 describe("WorkspaceSkillsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAIComposerDirectiveStore.getState().clearDirectives("home");
     mocks.capabilities.mockResolvedValue({
       inlineAuthoringAvailable: true,
       immutableVersions: true,
@@ -291,6 +308,26 @@ describe("WorkspaceSkillsView", () => {
     expect(
       screen.queryByText("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER_DESC"),
     ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER",
+      }),
+    );
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/",
+      search: {
+        prompt: ":skill[Skill Creator]{name=installation-skill-creator} ",
+      },
+    });
+    expect(useAIComposerDirectiveStore.getState().directivesByScope.home).toEqual([
+      {
+        type: "skill",
+        id: "installation-skill-creator",
+        label: "Skill Creator",
+        command: "skill-creator",
+      },
+    ]);
   });
 
   it("runs a real validation command and refreshes the governed projection", async () => {

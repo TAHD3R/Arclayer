@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
@@ -111,10 +112,19 @@ def estimate_cost_micros(
     return max(int(round(cost)), 1)
 
 
+class LLMCapability(StrEnum):
+    AGENTS = "ai.agents"
+    WORKSPACE_ACTIONS = "ai.workspace_actions"
+    DESIGN_SYSTEMS = "ai.design_systems"
+    BUILDER = "ai.builder"
+    CONTENT = "ai.content"
+
+
 class LLMRequestContext(BaseSchema):
     """Context bundled with every LLM call — no caller should pass raw keys."""
 
     workspace_id: UUID
+    capability_key: str = Field(min_length=1, max_length=160)
     project_id: UUID | None = None
     agent_run_id: UUID | None = None
     user_id: UUID | None = None
@@ -294,6 +304,9 @@ class LLMRuntime:
                 estimated_cost_micros=estimated_cost,
                 workspace_id=context.workspace_id,
                 agent_run_id=context.agent_run_id,
+                actor_user_id=context.user_id,
+                project_id=context.project_id,
+                capability_key=context.capability_key,
             )
 
         try:
@@ -379,6 +392,9 @@ class LLMRuntime:
                 estimated_cost_micros=estimated_cost,
                 workspace_id=context.workspace_id,
                 agent_run_id=context.agent_run_id,
+                actor_user_id=context.user_id,
+                project_id=context.project_id,
+                capability_key=context.capability_key,
             )
 
         try:

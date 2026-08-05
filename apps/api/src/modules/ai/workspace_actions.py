@@ -18,7 +18,7 @@ from src.core.exceptions import APIError, BadRequest, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
-from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError
+from src.llm.runtime import LLMCapability, LLMRequestContext, LLMRuntime, LLMRuntimeError
 from src.models.agents.conversation import AgentConversationMode
 from src.models.content._enums import ContentVersionState
 from src.models.projects._enums import ProjectAuthoringMode
@@ -610,6 +610,7 @@ class WorkspaceActionPlanner:
                 _planner_messages(payload),
                 context=LLMRequestContext(
                     workspace_id=payload.workspace_id,
+                    capability_key=LLMCapability.WORKSPACE_ACTIONS,
                     project_id=payload.project_id,
                     user_id=user_id,
                     source="agent",

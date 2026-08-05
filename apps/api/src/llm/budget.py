@@ -81,6 +81,10 @@ class ReservationRunScopeError(Exception):
     """Raised when a reservation cannot be owned by the requested Agent Run."""
 
 
+class ReservationAttributionError(Exception):
+    """Raised when a Workspace reservation lacks immutable member attribution."""
+
+
 def _reservation_advisory_lock_key(request_id: UUID) -> int:
     """Map a request UUID to a signed Postgres advisory-transaction lock key."""
 
@@ -125,6 +129,9 @@ async def reserve(
     estimated_cost_micros: int,
     workspace_id: UUID | None = None,
     agent_run_id: UUID | None = None,
+    actor_user_id: UUID | None = None,
+    project_id: UUID | None = None,
+    capability_key: str | None = None,
     ttl_seconds: int = 300,
     _execute: QueryExecutor | None = None,
 ) -> AIBudgetReservation:
@@ -136,6 +143,8 @@ async def reserve(
     reserve_amount = estimated_cost_micros
 
     async def _perform(executor: QueryExecutor, conn: Any) -> AIBudgetReservation:
+        resolved_actor_user_id = actor_user_id
+        resolved_project_id = project_id
         if conn is not None:
             existing = await AIBudgetReservation.get_or_none(request_id=request_id, using_db=conn)
             if existing is not None:
@@ -143,6 +152,9 @@ async def reserve(
                     UUID(str(existing.budget_id)) == budget_id
                     and int(existing.estimated_cost_micros) == estimated_cost_micros
                     and existing.agent_run_id == agent_run_id
+                    and existing.actor_user_id == actor_user_id
+                    and existing.project_id == project_id
+                    and existing.capability_key == capability_key
                 )
                 if not same_request:
                     raise ReservationRequestConflictError(request_id)
@@ -165,6 +177,25 @@ async def reserve(
                 raise ReservationRunScopeError(
                     f"Agent Run {agent_run_id} cannot create a reservation from status {agent_run.status}"
                 )
+            run_actor_user_id = UUID(str(agent_run.owner_user_id))
+            if resolved_actor_user_id is not None and resolved_actor_user_id != run_actor_user_id:
+                raise ReservationRunScopeError(
+                    f"Agent Run {agent_run_id} is not owned by User {resolved_actor_user_id}"
+                )
+            resolved_actor_user_id = run_actor_user_id
+            run_project_id = None if agent_run.project_id is None else UUID(str(agent_run.project_id))
+            if resolved_project_id is not None and resolved_project_id != run_project_id:
+                raise ReservationRunScopeError(
+                    f"Agent Run {agent_run_id} does not belong to Project {resolved_project_id}"
+                )
+            resolved_project_id = run_project_id
+
+        if workspace_id is not None and (resolved_actor_user_id is None or not capability_key):
+            raise ReservationAttributionError(
+                "Workspace reservations require an actor User and an explicit AI capability key"
+            )
+        workspace_actor_user_id = resolved_actor_user_id
+        workspace_capability_key = capability_key
 
         result = await executor(
             """
@@ -186,27 +217,6 @@ async def reserve(
                 requested_micros=reserve_amount,
             )
 
-        credit_account_id = None
-        credit_value_micros = None
-        reserved_credits = None
-        if workspace_id is not None:
-            if conn is None:
-                raise RuntimeError("workspace credit reservations require a database transaction")
-            from src.config import get_settings
-            from src.modules.commerce.credits import reserve_workspace_credits
-            from src.modules.commerce.service import build_commerce_service
-
-            credit_details = await reserve_workspace_credits(
-                commerce=build_commerce_service(get_settings()),
-                conn=conn,
-                workspace_id=workspace_id,
-                request_id=request_id,
-                estimated_cost_micros=estimated_cost_micros,
-            )
-            credit_account_id = credit_details.account_id
-            credit_value_micros = credit_details.credit_value_micros
-            reserved_credits = credit_details.reserved_credits
-
         expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
         reservation = await AIBudgetReservation.create(
             id=uuid.uuid4(),
@@ -215,13 +225,35 @@ async def reserve(
             request_id=request_id,
             estimated_cost_micros=estimated_cost_micros,
             reserved_cost_micros=reserve_amount,
-            credit_account_id=credit_account_id,
-            credit_value_micros=credit_value_micros,
-            reserved_credits=reserved_credits,
+            actor_user_id=resolved_actor_user_id,
+            project_id=resolved_project_id,
+            capability_key=capability_key,
             status=ReservationStatus.RESERVED,
             expires_at=expires_at,
             using_db=conn,
         )
+        if workspace_id is not None:
+            if conn is None:
+                raise RuntimeError("workspace credit reservations require a database transaction")
+            assert workspace_actor_user_id is not None
+            assert workspace_capability_key is not None
+            from src.config import get_settings
+            from src.modules.commerce.credits import reserve_workspace_credits
+            from src.modules.commerce.service import build_commerce_service
+
+            credit_details = await reserve_workspace_credits(
+                commerce=build_commerce_service(get_settings()),
+                conn=conn,
+                reservation=reservation,
+                workspace_id=workspace_id,
+                actor_user_id=workspace_actor_user_id,
+                project_id=resolved_project_id,
+                agent_run_id=agent_run_id,
+                capability_key=workspace_capability_key,
+                estimated_cost_micros=estimated_cost_micros,
+            )
+            if credit_details.account_id != reservation.credit_account_id:
+                raise RuntimeError("Workspace credit reservation did not bind the expected Credit account")
         return reservation
 
     if _execute is not None:

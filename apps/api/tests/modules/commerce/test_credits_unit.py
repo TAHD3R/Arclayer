@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from src.models.ai.ai_budget_reservation import AIBudgetReservation
 from src.models.commerce.billing import CreditRefreshInterval, SubscriptionStatus
+from src.modules.commerce.credit_allocation import CreditAllocationResult
 from src.modules.commerce.credits import (
     CreditsExceededError,
     commit_workspace_credits,
@@ -75,8 +76,12 @@ async def test_reserve_workspace_credits_rejects_insufficient_available_balance(
         await reserve_workspace_credits(
             commerce=service,
             conn=MagicMock(),
+            reservation=cast(AIBudgetReservation, SimpleNamespace()),
             workspace_id=workspace_id,
-            request_id=uuid4(),
+            actor_user_id=uuid4(),
+            project_id=None,
+            agent_run_id=None,
+            capability_key="ai.agents",
             estimated_cost_micros=2_001,
         )
 
@@ -88,6 +93,7 @@ async def test_reserve_workspace_credits_rejects_insufficient_available_balance(
 async def test_reserve_workspace_credits_updates_hold_and_immutable_ledger() -> None:
     workspace_id = uuid4()
     request_id = uuid4()
+    membership_id = uuid4()
     account = SimpleNamespace(
         id=uuid4(),
         balance_credits=100,
@@ -102,14 +108,37 @@ async def test_reserve_workspace_credits_updates_hold_and_immutable_ledger() -> 
     )
     service.save_credit_account = AsyncMock()
     service.write_credit_ledger_entry = AsyncMock()
-
-    details = await reserve_workspace_credits(
-        commerce=service,
-        conn=MagicMock(),
-        workspace_id=workspace_id,
-        request_id=request_id,
-        estimated_cost_micros=2_001,
+    reservation = cast(
+        AIBudgetReservation,
+        SimpleNamespace(
+            id=uuid4(),
+            request_id=request_id,
+            credit_account_id=None,
+            workspace_membership_id=None,
+            actor_user_id=None,
+            project_id=None,
+            capability_key=None,
+            credit_value_micros=None,
+            reserved_credits=None,
+            save=AsyncMock(),
+        ),
     )
+
+    with patch(
+        "src.modules.commerce.credit_allocation.reserve_member_credits",
+        new=AsyncMock(return_value=CreditAllocationResult(membership_id=membership_id, reserved_credits=3)),
+    ):
+        details = await reserve_workspace_credits(
+            commerce=service,
+            conn=MagicMock(),
+            reservation=reservation,
+            workspace_id=workspace_id,
+            actor_user_id=uuid4(),
+            project_id=None,
+            agent_run_id=None,
+            capability_key="ai.agents",
+            estimated_cost_micros=2_001,
+        )
 
     assert details.reserved_credits == 3
     assert account.reserved_credits == 13
@@ -126,8 +155,9 @@ async def test_reserve_workspace_credits_updates_hold_and_immutable_ledger() -> 
 
 
 @pytest.mark.asyncio
-async def test_commit_rejects_actual_usage_above_reserved_upper_bound() -> None:
-    account = SimpleNamespace(id=uuid4(), reserved_credits=2, balance_credits=10)
+async def test_commit_rejects_additional_usage_when_workspace_has_no_available_credits() -> None:
+    workspace_id = uuid4()
+    account = SimpleNamespace(id=uuid4(), workspace_id=workspace_id, reserved_credits=2, balance_credits=2)
     reservation = cast(
         AIBudgetReservation,
         SimpleNamespace(
@@ -140,10 +170,14 @@ async def test_commit_rejects_actual_usage_above_reserved_upper_bound() -> None:
     service = MagicMock()
     service.lock_credit_account = AsyncMock(return_value=account)
 
-    with pytest.raises(RuntimeError, match="exceeds the reserved amount"):
+    with pytest.raises(CreditsExceededError) as exc_info:
         await commit_workspace_credits(
             commerce=service,
             conn=MagicMock(),
             reservation=reservation,
             actual_cost_micros=2_001,
         )
+
+    assert exc_info.value.workspace_id == workspace_id
+    assert exc_info.value.available == 0
+    assert exc_info.value.requested == 1

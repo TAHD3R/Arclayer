@@ -27,8 +27,8 @@ import {
   LifeBuoy,
   LogOut,
   Monitor,
+  MonitorCog,
   Moon,
-  RefreshCw,
   Settings,
   Shield,
   SquareStack,
@@ -105,7 +105,7 @@ type AdminAccountMenuModel = {
   onLogout: () => Promise<void>;
   onAccountSettings: () => void;
   onWorkspaceSettings: () => void;
-  onSubscription: () => void;
+  onPlanUsage: () => void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void>;
   onLocaleChange: (next: AppLocale) => void;
   onOpenResource: (resource: AccountMenuResource) => void;
@@ -114,7 +114,6 @@ type AdminAccountMenuModel = {
 
 type PlatformEntryState =
   | { status: "hidden" }
-  | { status: "load-error"; retry: () => void }
   | { status: "configuration-error" }
   | { status: "available"; open: () => void };
 
@@ -137,7 +136,7 @@ type AdminAccountPanelContentProps = {
   onLogout: () => Promise<void>;
   onAccountSettings: () => Promise<void> | void;
   onWorkspaceSettings: () => Promise<void> | void;
-  onSubscription: () => Promise<void> | void;
+  onPlanUsage: () => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
@@ -195,16 +194,6 @@ function MenuStatus(props: { icon: ReactNode; label: string }) {
 function PlatformEntryMenuItem(props: { entry: PlatformEntryState }) {
   const { t } = useTranslation("account");
   if (props.entry.status === "hidden") return null;
-  if (props.entry.status === "load-error") {
-    return (
-      <MenuAction
-        icon={<TriangleAlert />}
-        label={t("ACCOUNT_MENU_PLATFORM_LOAD_ERROR")}
-        right={<RefreshCw />}
-        onClick={props.entry.retry}
-      />
-    );
-  }
   if (props.entry.status === "configuration-error") {
     return (
       <MenuStatus icon={<TriangleAlert />} label={t("ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR")} />
@@ -212,8 +201,8 @@ function PlatformEntryMenuItem(props: { entry: PlatformEntryState }) {
   }
   return (
     <MenuAction
-      icon={<SquareStack />}
-      label={t("ACCOUNT_MENU_PLATFORM_OPEN")}
+      icon={<MonitorCog />}
+      label={t("OPEN_PLATFORM_CONSOLE")}
       right={<ExternalLink />}
       onClick={props.entry.open}
     />
@@ -270,7 +259,7 @@ function RootMenu(props: {
   themePreference: ThemePreference;
   onAccountSettings: () => Promise<void> | void;
   onWorkspaceSettings: () => Promise<void> | void;
-  onSubscription: () => Promise<void> | void;
+  onPlanUsage: () => Promise<void> | void;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
   onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
@@ -285,7 +274,7 @@ function RootMenu(props: {
       <div className="py-1">
         <MenuAction
           icon={<Settings />}
-          label={t("ACCOUNT_MENU_ACCOUNT")}
+          label={t("ACCOUNT_MENU_PERSONAL_SETTINGS")}
           onClick={props.onAccountSettings}
         />
         <MenuAction
@@ -295,22 +284,8 @@ function RootMenu(props: {
         />
         <MenuAction
           icon={<CreditCard />}
-          label={t("ACCOUNT_MENU_SUBSCRIPTION")}
-          onClick={props.onSubscription}
-        />
-        <PlatformEntryMenuItem entry={props.platformEntry} />
-        <AccountSubmenuAction
-          panelOpen={props.panelOpen}
-          icon={<Languages />}
-          label={t("ACCOUNT_MENU_LANGUAGE")}
-          submenu="language"
-          locale={props.locale}
-          themePreference={props.themePreference}
-          onLocaleChange={props.onLocaleChange}
-          onThemePreferenceChange={props.onThemePreferenceChange}
-          onOpenResource={props.onOpenResource}
-          onOpenLegal={props.onOpenLegal}
-          onSelectAndClose={props.onSelectAndClose}
+          label={t("ACCOUNT_MENU_PLAN_USAGE")}
+          onClick={props.onPlanUsage}
         />
         <AccountSubmenuAction
           panelOpen={props.panelOpen}
@@ -325,9 +300,23 @@ function RootMenu(props: {
           onOpenLegal={props.onOpenLegal}
           onSelectAndClose={props.onSelectAndClose}
         />
+        <AccountSubmenuAction
+          panelOpen={props.panelOpen}
+          icon={<Languages />}
+          label={t("ACCOUNT_MENU_LANGUAGE")}
+          submenu="language"
+          locale={props.locale}
+          themePreference={props.themePreference}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
+          onSelectAndClose={props.onSelectAndClose}
+        />
       </div>
       <MenuDivider />
       <div className="py-1">
+        <PlatformEntryMenuItem entry={props.platformEntry} />
         <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<LifeBuoy />}
@@ -637,7 +626,7 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         themePreference={props.themePreference}
         onAccountSettings={() => onClickAndClose(props.onAccountSettings)}
         onWorkspaceSettings={() => onClickAndClose(props.onWorkspaceSettings)}
-        onSubscription={() => onClickAndClose(props.onSubscription)}
+        onPlanUsage={() => onClickAndClose(props.onPlanUsage)}
         onLocaleChange={props.onLocaleChange}
         onThemePreferenceChange={props.onThemePreferenceChange}
         onSelectAndClose={onClickAndClose}
@@ -700,9 +689,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
 
   const platformEntry: PlatformEntryState = (() => {
     if (platformEntryQuery.isPending) return { status: "hidden" };
-    if (platformEntryQuery.isError) {
-      return { status: "load-error", retry: () => void platformEntryQuery.refetch() };
-    }
+    if (platformEntryQuery.isError) return { status: "hidden" };
     if (!platformEntryQuery.data.eligible) return { status: "hidden" };
 
     try {
@@ -729,7 +716,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     onWorkspaceSettings: () => {
       settingsScreen.openSettings({ screen: "workspace.general" });
     },
-    onSubscription: () => {
+    onPlanUsage: () => {
       settingsScreen.openSettings({ screen: "workspace.plan-usage" });
     },
     onThemePreferenceChange: async (next) => {
@@ -829,7 +816,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
               onLogout={model.onLogout}
               onAccountSettings={model.onAccountSettings}
               onWorkspaceSettings={model.onWorkspaceSettings}
-              onSubscription={model.onSubscription}
+              onPlanUsage={model.onPlanUsage}
               onThemePreferenceChange={model.onThemePreferenceChange}
               onLocaleChange={model.onLocaleChange}
               onOpenResource={model.onOpenResource}
@@ -863,7 +850,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
             onLogout={model.onLogout}
             onAccountSettings={model.onAccountSettings}
             onWorkspaceSettings={model.onWorkspaceSettings}
-            onSubscription={model.onSubscription}
+            onPlanUsage={model.onPlanUsage}
             onThemePreferenceChange={model.onThemePreferenceChange}
             onLocaleChange={model.onLocaleChange}
             onOpenResource={model.onOpenResource}

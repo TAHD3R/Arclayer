@@ -7,7 +7,7 @@ they never act as tenant billing contacts.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -99,6 +99,7 @@ class CreditAdjustmentRequest(BaseSchema):
     delta_credits: int
     reason: str = Field(min_length=1, max_length=1000)
     evidence_reference: str = Field(min_length=1, max_length=255)
+    expires_at: datetime | None
     expected_account_revision: int = Field(ge=1)
     idempotency_key: str = Field(min_length=1, max_length=128)
 
@@ -106,6 +107,13 @@ class CreditAdjustmentRequest(BaseSchema):
     def _require_nonzero_delta(self) -> CreditAdjustmentRequest:
         if self.delta_credits == 0:
             raise ValueError("delta_credits must not be zero")
+        if self.delta_credits < 0 and self.expires_at is not None:
+            raise ValueError("expires_at is only valid for positive adjustments")
+        if self.expires_at is not None:
+            if self.expires_at.tzinfo is None:
+                raise ValueError("expires_at must include a timezone")
+            if self.expires_at <= datetime.now(UTC):
+                raise ValueError("expires_at must be in the future")
         return self
 
 

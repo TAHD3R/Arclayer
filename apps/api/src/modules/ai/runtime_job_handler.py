@@ -11,7 +11,7 @@ from pydantic import TypeAdapter
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.i18n import t
-from src.llm.runtime import LLMRequestContext, LLMRuntimeError
+from src.llm.runtime import LLMCapability, LLMRequestContext, LLMRuntimeError
 from src.models.agents.catalog import AgentVersionRecord
 from src.models.agents.runtime_recovery_v1 import (
     AgentRunExecutionEffectDisposition,
@@ -266,6 +266,7 @@ class AgentRunJobHandler:
             ),
             context=LLMRequestContext(
                 workspace_id=state.workspace_id,
+                capability_key=LLMCapability.AGENTS,
                 project_id=state.project_id,
                 agent_run_id=state.run_id,
                 user_id=actor_user_id,

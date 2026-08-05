@@ -14,6 +14,7 @@ export interface AIComposerDirectiveChip {
   type: AIComposerDirectiveType;
   id: string;
   label: string;
+  command?: string;
   previewUrl?: string;
   mime?: string;
 }
@@ -33,6 +34,8 @@ const EMPTY_DIRECTIVES_BY_SCOPE: Record<AIComposerDirectiveScope, AIComposerDire
 
 const DIRECTIVE_PATTERN =
   /:([a-zA-Z][\w-]{0,63})\[([^\]\n]{1,1024})\]\s*(?:\{name=([^}\n]{1,1024})\})?/gu;
+
+export const AI_COMPOSER_SKILL_CREATOR_COMMAND = "skill-creator";
 
 export const useAIComposerDirectiveStore = create<AIComposerDirectiveState>()((set) => ({
   directivesByScope: EMPTY_DIRECTIVES_BY_SCOPE,
@@ -110,12 +113,46 @@ export function filterTrustedAIComposerDirectives(
   );
 }
 
-export function cleanAIComposerDirectiveText(text: string): string {
-  return text
+export function cleanAIComposerDirectiveText(
+  text: string,
+  registered: readonly AIComposerDirectiveChip[] = [],
+): string {
+  return materializeAIComposerDirectiveCommands(text, registered)
     .replace(DIRECTIVE_PATTERN, " ")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function materializeAIComposerDirectiveCommands(
+  text: string,
+  registered: readonly AIComposerDirectiveChip[] = [],
+): string {
+  const commandsByDirective = new Map<string, string>();
+  for (const directive of registered) {
+    if (directive.command) {
+      commandsByDirective.set(`${directive.type}:${directive.id}`, directive.command);
+    }
+  }
+  const commands: string[] = [];
+  const seenCommands = new Set<string>();
+  const body = text.replace(
+    DIRECTIVE_PATTERN,
+    (match, rawType: string, label: string, rawId: string | undefined) => {
+      const id = rawId?.trim() || label.trim();
+      const command = commandsByDirective.get(`${rawType}:${id}`);
+      if (!command) return match;
+      if (!seenCommands.has(command)) {
+        seenCommands.add(command);
+        commands.push(command);
+      }
+      return "";
+    },
+  );
+  if (commands.length === 0) return text;
+  const prefix = commands.map((command) => `/${command}`).join(" ");
+  const trimmedBody = body.replace(/[ \t]+/gu, " ").trim();
+  return trimmedBody ? `${prefix} ${trimmedBody}` : prefix;
 }
 
 export function removeAIComposerDirectiveByIdentity(
@@ -197,6 +234,7 @@ function equalDirectives(
         candidate?.type === directive.type &&
         candidate.id === directive.id &&
         candidate.label === directive.label &&
+        candidate.command === directive.command &&
         candidate.previewUrl === directive.previewUrl &&
         candidate.mime === directive.mime
       );

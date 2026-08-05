@@ -69,7 +69,12 @@ describe("feedback entry surfaces", () => {
 
     const composerHeader = screen.getByText("feedback:FEEDBACK_COMPOSER_TITLE").parentElement
       ?.parentElement;
+    const intentOptions = screen.getByRole("radiogroup", {
+      name: "feedback:FEEDBACK_DIALOG_INTENT_LABEL",
+    });
     expect(composerHeader?.querySelector("svg")).toBeNull();
+    expect(intentOptions).toHaveClass("grid-cols-2");
+    expect(intentOptions).not.toHaveClass("sm:grid-cols-4");
     expect(screen.queryByRole("button", { name: "common:CLOSE" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "common:CANCEL" })).toBeInTheDocument();
   });

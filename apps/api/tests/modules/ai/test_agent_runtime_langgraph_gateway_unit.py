@@ -59,6 +59,7 @@ async def test_langgraph_gateway_checkpoints_interrupt_and_resumes_without_reexe
         messages=({"role": "user", "content": "Build a portfolio."},),
         context=LLMRequestContext(
             workspace_id=uuid4(),
+            capability_key="ai.agents",
             project_id=uuid4(),
             agent_run_id=run_id,
             user_id=uuid4(),

@@ -30,11 +30,15 @@ type MentionAdapterOptions = {
 const mentionMocks = vi.hoisted(() => ({
   mentionOptions: null as MentionAdapterOptions | null,
   skillOptions: null as MentionAdapterOptions | null,
+  currentScope: "thread" as "thread" | "home",
   popoverOpen: false,
   runConfig: { custom: { existing: "value" } } as { custom?: Record<string, unknown> },
   setRunConfig: vi.fn(),
   setText: vi.fn(),
+  onDirectiveInserted: vi.fn(),
   selectCategory: vi.fn(),
+  selectItem: vi.fn(),
+  close: vi.fn(),
 }));
 
 vi.mock("@assistant-ui/react", async () => {
@@ -111,6 +115,8 @@ vi.mock("@assistant-ui/react", async () => {
       ],
       activeCategoryId: "agents",
       selectCategory: mentionMocks.selectCategory,
+      selectItem: mentionMocks.selectItem,
+      close: mentionMocks.close,
       items: [
         {
           id: "agent-1",
@@ -133,6 +139,12 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock("@/components/ai/ai-composer-rich-input", () => ({
+  useAIComposerDirectiveInsertion: () => ({
+    onDirectiveInserted: mentionMocks.onDirectiveInserted,
+  }),
+}));
+
 vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
   useEnabledAIComposerSkills: () => ({
     isError: false,
@@ -140,8 +152,16 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
     skills: [
       {
         id: "installation-1",
+        slug: "commerce-skill",
         label: "Commerce Skill",
         description: "Create commerce content",
+      },
+      {
+        id: "installation-skill-creator",
+        slug: "skill-creator",
+        label: "Skill Creator",
+        description: "Create reusable Skills",
+        command: "skill-creator",
       },
     ],
   }),
@@ -149,7 +169,11 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
 
 const AGENT_ID = "A1b2C3d4E5f6G7h8I9j0K1";
 
-function renderTriggers(props: ComponentProps<typeof AIComposerTriggers>) {
+function renderTriggers(
+  props: ComponentProps<typeof AIComposerTriggers> & { scope?: "thread" | "home" },
+) {
+  const { scope = "thread", ...triggerProps } = props;
+  mentionMocks.currentScope = scope;
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -160,7 +184,7 @@ function renderTriggers(props: ComponentProps<typeof AIComposerTriggers>) {
         <SettingsScreenProvider>
           <div data-ai-composer-shell data-testid="composer-shell">
             <textarea aria-label="Composer input" />
-            <AIComposerTriggers {...props} />
+            <AIComposerTriggers {...triggerProps} />
           </div>
         </SettingsScreenProvider>
       </ChromeTabsProvider>
@@ -177,6 +201,47 @@ describe("AIComposerTriggers", () => {
     mentionMocks.runConfig = { custom: { existing: "value" } };
     mentionMocks.setRunConfig.mockImplementation((runConfig) => {
       mentionMocks.runConfig = runConfig as { custom?: Record<string, unknown> };
+    });
+    mentionMocks.onDirectiveInserted.mockImplementation((item: Unstable_Mention) => {
+      if (
+        item.type !== "agent" &&
+        item.type !== "skill" &&
+        item.type !== "project" &&
+        item.type !== "asset" &&
+        item.type !== "content"
+      ) {
+        return;
+      }
+      const metadata = item.metadata as Record<string, unknown> | undefined;
+      const command = typeof metadata?.command === "string" ? metadata.command : undefined;
+      const scope = mentionMocks.currentScope;
+      useAIComposerDirectiveStore.getState().addDirectives(scope, [
+        {
+          type: item.type,
+          id: item.id,
+          label: item.label,
+          ...(command ? { command } : {}),
+        },
+      ]);
+      const current = mentionMocks.runConfig;
+      if (item.type === "agent") {
+        mentionMocks.setRunConfig({
+          ...current,
+          custom: {
+            ...current.custom,
+            mentionedAgentIds: [...agentIdsForComposerScope(scope)],
+          },
+        });
+      }
+      if (item.type === "skill") {
+        mentionMocks.setRunConfig({
+          ...current,
+          custom: {
+            ...current.custom,
+            selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
+          },
+        });
+      }
     });
     mentionMocks.selectCategory.mockReset();
     useAIComposerDirectiveStore.getState().clearDirectives("thread");
@@ -313,7 +378,7 @@ describe("AIComposerTriggers", () => {
         >
           <SettingsScreenProvider>
             <div data-ai-composer-shell data-testid="composer-shell">
-              <AIComposerTriggers scope="home" />
+              <AIComposerTriggers />
             </div>
           </SettingsScreenProvider>
         </ChromeTabsProvider>
@@ -363,7 +428,7 @@ describe("AIComposerTriggers", () => {
         >
           <SettingsScreenProvider>
             <div data-ai-composer-shell data-testid="composer-shell">
-              <AIComposerTriggers scope="home" />
+              <AIComposerTriggers />
             </div>
           </SettingsScreenProvider>
         </ChromeTabsProvider>
@@ -371,6 +436,25 @@ describe("AIComposerTriggers", () => {
     );
 
     expect(screen.getByTestId("composer-shell")).not.toHaveAttribute("data-trigger-open");
+  });
+
+  it("selects the installed Skill Creator through the same slash directive path", async () => {
+    const user = userEvent.setup();
+    mentionMocks.popoverOpen = true;
+    renderTriggers({ scope: "home" });
+
+    await user.click(screen.getByRole("button", { name: "AI_CHAT_SKILL_ADD" }));
+    await user.click(screen.getByRole("button", { name: /AI_CHAT_SKILL_CREATE_WITH_ARCLAYER/ }));
+
+    expect(mentionMocks.selectItem).toHaveBeenCalledWith({
+      type: "skill",
+      id: "installation-skill-creator",
+      label: "Skill Creator",
+      description: "Create reusable Skills",
+      metadata: { command: "skill-creator" },
+    });
+    expect(mentionMocks.setText).not.toHaveBeenCalled();
+    expect(mentionMocks.close).not.toHaveBeenCalled();
   });
 
   it("switches mention tabs with the horizontal arrow keys", async () => {

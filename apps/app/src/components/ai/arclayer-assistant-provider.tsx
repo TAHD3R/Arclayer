@@ -38,7 +38,9 @@ import {
 import {
   agentIdsForComposerScope,
   consumeAIComposerDirectives,
+  materializeAIComposerDirectiveCommands,
   skillInstallationIdsForComposerScope,
+  useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
 
 interface ArclayerThreadRuntimeOptions {
@@ -59,12 +61,11 @@ function commandKey(): string {
 }
 
 function readComposerText(message: AppendMessage): string {
-  const text = message.content
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("")
-    .trim();
-  if (!text) throw new AgentRuntimeProtocolError("AGENT_MESSAGE_EMPTY");
-  return text;
+  const text = message.content.map((part) => (part.type === "text" ? part.text : "")).join("");
+  const registered = useAIComposerDirectiveStore.getState().directivesByScope.thread;
+  const materializedText = materializeAIComposerDirectiveCommands(text, registered).trim();
+  if (!materializedText) throw new AgentRuntimeProtocolError("AGENT_MESSAGE_EMPTY");
+  return materializedText;
 }
 
 function readMentionedAgentIds(message: AppendMessage): readonly string[] {

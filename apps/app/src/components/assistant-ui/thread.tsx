@@ -286,7 +286,7 @@ const Composer: FC = () => {
 
   return (
     <ComposerPrimitive.Unstable_TriggerPopoverRoot>
-      <AIComposerDirectiveInsertionProvider>
+      <AIComposerDirectiveInsertionProvider scope="thread">
         <ComposerPrimitive.Root
           className={cn(
             "aui-composer-root relative flex w-full min-w-0 flex-col",
@@ -317,7 +317,7 @@ const Composer: FC = () => {
               />
               <AIComposerRotatingPlaceholder className="top-1 px-0" multiline={isSidebar} />
             </div>
-            <AIComposerTriggers scope="thread" />
+            <AIComposerTriggers />
             <AIComposerToolbar surface={isSidebar ? "sidebar" : "default"} />
           </div>
         </ComposerPrimitive.Root>

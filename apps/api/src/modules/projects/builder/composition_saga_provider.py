@@ -8,7 +8,7 @@ from pydantic import ConfigDict, Field, ValidationError
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
-from src.llm.runtime import LLMRequestContext, LLMRuntimeError
+from src.llm.runtime import LLMCapability, LLMRequestContext, LLMRuntimeError
 from src.modules.ai.service import AIChatService
 from src.modules.projects.builder.change_set_schema import (
     BuilderGlobalSectionIntentReplaceOperationV1,
@@ -79,6 +79,7 @@ class LLMBuilderPlanningGenerator:
                 _messages(request),
                 context=LLMRequestContext(
                     workspace_id=request.workspace_id,
+                    capability_key=LLMCapability.BUILDER,
                     project_id=request.project_id,
                     agent_run_id=request.agent_run_id,
                     user_id=request.actor_user_id,

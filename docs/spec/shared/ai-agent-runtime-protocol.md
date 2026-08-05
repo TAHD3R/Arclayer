@@ -128,12 +128,12 @@ The following shapes are normative for event payloads and snapshots.
   "totalTokens": 168,
   "providerCost": "0.0042",
   "currency": "USD",
-  "credits": "4.2",
+  "credits": 5,
   "settlement": "provisional"
 }
 ```
 
-Missing provider values remain absent; they are never estimated for a public usage event. `settlement` is `provisional` on `usage.updated` and `committed` only inside a successfully completed terminal projection. Decimal money and Credits values are JSON strings.
+Missing provider values remain absent; they are never estimated for a public usage event. `settlement` is `provisional` on `usage.updated` and `committed` only inside a successfully completed terminal projection. Decimal money values are JSON strings. Credits are non-negative JSON integers produced by the canonical `ceil(actual_cost_micros / credit_value_micros)` Commerce rule; protocol adapters never expose fractional Credits or reinterpret a settled ledger value.
 
 `SettlementV1` records the durable commercial outcome before cancellation or failure becomes terminal:
 
@@ -141,12 +141,12 @@ Missing provider values remain absent; they are never estimated for a public usa
 {
   "outcome": "released",
   "usage": null,
-  "creditsCommitted": "0",
-  "creditsReleased": "100"
+  "creditsCommitted": 0,
+  "creditsReleased": 100
 }
 ```
 
-`outcome` is `committed | released | reconciled`. The optional `usage` is a real `UsageV1`; committed and released Credits values are decimal strings. A cancelled or failed terminal event cannot carry a pending or unknown settlement.
+`outcome` is `committed | released | reconciled`. The optional `usage` is a real `UsageV1`; committed and released Credits values are non-negative integers. A cancelled or failed terminal event cannot carry a pending or unknown settlement.
 
 `ApprovalV1`:
 

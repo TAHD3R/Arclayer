@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Protocol
 from uuid import UUID
@@ -14,10 +15,17 @@ from src.models.commerce.billing import (
     CommerceCreditAdjustmentReceipt,
     CommerceDunningPolicy,
     CommerceDunningPolicyCommandReceipt,
+    CommercePlanRevision,
     CreditLedgerEntryType,
     WorkspaceCreditAccount,
     WorkspaceCreditLedger,
     WorkspaceSubscription,
+)
+from src.models.commerce.credit_allocation import (
+    CreditGrantSource,
+    CreditLotMutationKind,
+    WorkspaceCreditGrantLot,
+    WorkspaceCreditLotMutation,
 )
 from src.models.connectors.inbox import ConnectorEventInbox
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
@@ -246,33 +254,54 @@ class PlatformCommerceOperationsService(BaseService):
         fingerprint = _fingerprint(actor_user_id, request.model_dump(mode="json"))
         key_hash = _digest(request.idempotency_key)
         async with self.tx() as conn:
+            account = await (
+                WorkspaceCreditAccount.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
+            )
+            if account is None:
+                raise NotFound(error="WORKSPACE_CREDIT_ACCOUNT_NOT_FOUND")
+            plan_revision = await CommercePlanRevision.filter(id=account.plan_revision_id).using_db(conn).get()
             receipt = await (
                 CommerceCreditAdjustmentReceipt
                 .filter(workspace_id=workspace_id, idempotency_key_hash=key_hash)
                 .using_db(conn)
                 .select_for_update()
-                .select_related("ledger_entry", "audit_event")
                 .first()
             )
             if receipt is not None:
                 if receipt.request_fingerprint != fingerprint:
                     raise Conflict(error="CREDIT_ADJUSTMENT_IDEMPOTENCY_CONFLICT")
                 return CreditAdjustmentOut.model_validate(receipt.result_snapshot)
-            account = await (
-                WorkspaceCreditAccount
-                .filter(workspace_id=workspace_id)
-                .using_db(conn)
-                .select_for_update()
-                .select_related("plan_revision")
-                .first()
-            )
-            if account is None:
-                raise NotFound(error="WORKSPACE_CREDIT_ACCOUNT_NOT_FOUND")
             if account.revision != request.expected_account_revision:
                 raise Conflict(error="WORKSPACE_CREDIT_ACCOUNT_REVISION_STALE")
             balance = int(account.balance_credits) + request.delta_credits
             if balance < int(account.reserved_credits):
                 raise Conflict(error="CREDIT_ADJUSTMENT_WOULD_OVERDRAW_RESERVED_CREDITS")
+            lot_debits = ()
+            if request.delta_credits < 0:
+                from src.modules.commerce.credit_lot_mutations import deplete_unreserved_credit_lots
+
+                lot_debits = await deplete_unreserved_credit_lots(
+                    account_id=UUID(str(account.id)),
+                    credits=-request.delta_credits,
+                    conn=conn,
+                )
+            else:
+                await WorkspaceCreditGrantLot.create(
+                    workspace_id=workspace_id,
+                    account_id=account.id,
+                    subscription_id=account.subscription_id,
+                    plan_revision_id=account.plan_revision_id,
+                    source=CreditGrantSource.ADJUSTMENT,
+                    source_identity=f"platform-adjustment:{workspace_id}:{key_hash}",
+                    granted_credits=request.delta_credits,
+                    remaining_credits=request.delta_credits,
+                    reserved_credits=0,
+                    issued_at=datetime.now(UTC),
+                    expires_at=request.expires_at,
+                    actor_user_id=actor_user_id,
+                    description_key="LEDGER_PLATFORM_ADJUSTMENT",
+                    using_db=conn,
+                )
             account.balance_credits = balance
             account.revision += 1
             await account.save(using_db=conn, update_fields=["balance_credits", "revision", "updated_at"])
@@ -282,7 +311,7 @@ class PlatformCommerceOperationsService(BaseService):
                 subscription_id=account.subscription_id,
                 plan_revision_id=account.plan_revision_id,
                 entry_type=CreditLedgerEntryType.ADJUSTMENT,
-                applied_credit_value_micros=int(account.plan_revision.credit_value_micros),
+                applied_credit_value_micros=int(plan_revision.credit_value_micros),
                 delta_balance_credits=request.delta_credits,
                 delta_reserved_credits=0,
                 balance_after_credits=balance,
@@ -292,6 +321,19 @@ class PlatformCommerceOperationsService(BaseService):
                 description_key="LEDGER_PLATFORM_ADJUSTMENT",
                 using_db=conn,
             )
+            for debit in lot_debits:
+                await WorkspaceCreditLotMutation.create(
+                    lot_id=debit.lot_id,
+                    ledger_entry_id=ledger.id,
+                    kind=CreditLotMutationKind.ADJUSTMENT,
+                    delta_remaining_credits=-debit.credits,
+                    source_identity=f"platform-adjustment:{key_hash}:{debit.lot_id}",
+                    actor_user_id=actor_user_id,
+                    reason=request.reason,
+                    evidence_reference=request.evidence_reference,
+                    occurred_at=datetime.now(UTC),
+                    using_db=conn,
+                )
             audit = await write_required_activity_event(
                 settings=self.settings,
                 payload=ActivityAuditPayload(

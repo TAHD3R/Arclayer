@@ -39,8 +39,13 @@ import {
 import { useShallow } from "zustand/shallow";
 
 import {
+  agentIdsForComposerScope,
   parseAIComposerDirectives,
   removeAIComposerDirectiveByIdentity,
+  skillInstallationIdsForComposerScope,
+  useAIComposerDirectiveStore,
+  type AIComposerDirectiveChip,
+  type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
 import { AttachmentPreviewDialog } from "@/components/assistant-ui/attachment";
 import { cn } from "@arclayer/lib/utils";
@@ -49,6 +54,7 @@ type DirectiveIdentity = Readonly<{ type: string; id: string }>;
 
 type AIComposerDirectiveInsertionContextValue = Readonly<{
   insertDirective: (item: Unstable_TriggerItem) => void;
+  onDirectiveInserted: (item: Unstable_TriggerItem) => void;
   removeDirective: (identity: DirectiveIdentity) => void;
   setEditorRoot: (element: HTMLDivElement | null) => void;
 }>;
@@ -100,10 +106,13 @@ export function insertSerializedDirectiveAtCursor(
   return `${text.slice(0, cursor)}${directiveText}${text.slice(cursor)}`;
 }
 
-export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChildren) {
+export function AIComposerDirectiveInsertionProvider({
+  children,
+  scope,
+}: PropsWithChildren<{ scope: AIComposerDirectiveScope }>) {
   const aui = useAui();
   const pluginRegistry = INTERNAL.useComposerInputPluginRegistryOptional();
-  const cursorPositionRef = useRef(0);
+  const cursorPositionRef = useRef<number | null>(null);
   const editorRootRef = useRef<HTMLDivElement | null>(null);
 
   if (!pluginRegistry) {
@@ -119,9 +128,8 @@ export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChil
           handleKeyDown: (event) => {
             if (event.key !== "Backspace" || event.nativeEvent?.isComposing) return false;
             const composerText = aui.composer().getState().text;
-            if (
-              !shouldPreserveNativeEmptyTriggerBackspace(composerText, cursorPositionRef.current)
-            ) {
+            const cursorPosition = cursorPositionRef.current ?? composerText.length;
+            if (!shouldPreserveNativeEmptyTriggerBackspace(composerText, cursorPosition)) {
               return false;
             }
 
@@ -130,7 +138,7 @@ export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChil
             return true;
           },
           setCursorPosition: (position) => {
-            cursorPositionRef.current = position;
+            if (editorOwnsFocus(editorRootRef.current)) cursorPositionRef.current = position;
           },
         },
         { priority: EMPTY_TRIGGER_BACKSPACE_PRIORITY },
@@ -138,50 +146,86 @@ export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChil
     [aui, pluginRegistry],
   );
 
-  const focusAfterDirective = useCallback((identity: DirectiveIdentity) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const root = editorRootRef.current;
-        const editable = root?.querySelector<HTMLElement>("[contenteditable='true']");
-        if (!root || !editable) return;
+  const onDirectiveInserted = useCallback(
+    (item: Unstable_TriggerItem) => {
+      const directive = toAIComposerDirectiveChip(item);
+      if (!directive) return;
+      useAIComposerDirectiveStore.getState().addDirectives(scope, [directive]);
+      if (directive.type !== "agent" && directive.type !== "skill") return;
 
-        const matches = [...root.querySelectorAll<HTMLElement>("[data-directive-id]")].filter(
-          (element) =>
-            element.dataset.directiveId === identity.id &&
-            element.dataset.directiveType === identity.type,
-        );
-        const chip = matches.at(-1)?.closest<HTMLElement>("[data-lexical-decorator='true']");
-        if (!chip) return;
-
-        editable.focus({ preventScroll: true });
-        const selection = window.getSelection();
-        if (!selection) return;
-        const range = document.createRange();
-        range.setStartAfter(chip);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
-        document.dispatchEvent(new Event("selectionchange"));
+      const composer = aui.composer();
+      const current = composer.getState().runConfig;
+      composer.setRunConfig({
+        ...current,
+        custom: {
+          ...current.custom,
+          ...(directive.type === "agent"
+            ? { mentionedAgentIds: [...agentIdsForComposerScope(scope)] }
+            : {
+                selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
+              }),
+        },
       });
-    });
-  }, []);
+    },
+    [aui, scope],
+  );
+
+  const focusAfterDirective = useCallback(
+    (identity: DirectiveIdentity, occurrenceIndex: number) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const root = editorRootRef.current;
+          const editable = root?.querySelector<HTMLElement>("[contenteditable='true']");
+          if (!root || !editable) return;
+
+          const matches = [...root.querySelectorAll<HTMLElement>("[data-directive-id]")].filter(
+            (element) =>
+              element.dataset.directiveId === identity.id &&
+              element.dataset.directiveType === identity.type,
+          );
+          const chip = matches[occurrenceIndex]?.closest<HTMLElement>(
+            "[data-lexical-decorator='true']",
+          );
+          if (!chip) return;
+
+          editable.focus({ preventScroll: true });
+          const selection = window.getSelection();
+          if (!selection) return;
+          const range = document.createRange();
+          range.setStartAfter(chip);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          document.dispatchEvent(new Event("selectionchange"));
+        });
+      });
+    },
+    [],
+  );
 
   const insertDirective = useCallback(
     (item: Unstable_TriggerItem) => {
       const composer = aui.composer();
       const directiveText = unstable_defaultDirectiveFormatter.serialize(item);
       const currentText = composer.getState().text;
+      const cursorPosition = Math.min(
+        cursorPositionRef.current ?? currentText.length,
+        currentText.length,
+      );
+      const occurrenceIndex = parseAIComposerDirectives(
+        currentText.slice(0, cursorPosition),
+      ).filter((directive) => directive.type === item.type && directive.id === item.id).length;
       const nextText = insertSerializedDirectiveAtCursor(
         currentText,
-        cursorPositionRef.current,
+        cursorPosition,
         directiveText,
       );
-      cursorPositionRef.current =
-        Math.min(cursorPositionRef.current, currentText.length) + directiveText.length;
+      cursorPositionRef.current = cursorPosition + directiveText.length;
       composer.setText(nextText);
-      focusAfterDirective({ type: item.type, id: item.id });
+      onDirectiveInserted(item);
+      focusAfterDirective({ type: item.type, id: item.id }, occurrenceIndex);
     },
-    [aui, focusAfterDirective],
+    [aui, focusAfterDirective, onDirectiveInserted],
   );
 
   const removeDirective = useCallback(
@@ -197,12 +241,13 @@ export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChil
   const value = useMemo<AIComposerDirectiveInsertionContextValue>(
     () => ({
       insertDirective,
+      onDirectiveInserted,
       removeDirective,
       setEditorRoot: (element) => {
         editorRootRef.current = element;
       },
     }),
-    [insertDirective, removeDirective],
+    [insertDirective, onDirectiveInserted, removeDirective],
   );
 
   return (
@@ -215,12 +260,12 @@ export function AIComposerDirectiveInsertionProvider({ children }: PropsWithChil
 
 type AIComposerRichInputProps = Omit<
   LexicalComposerInputProps,
-  "directiveChip" | "formatter" | "placeholder"
+  "directiveChip" | "directivePluginProps" | "formatter" | "placeholder"
 >;
 
 export const AIComposerRichInput = forwardRef<HTMLDivElement, AIComposerRichInputProps>(
   function AIComposerRichInput({ className, onFocus, ...props }, forwardedRef) {
-    const { setEditorRoot } = useAIComposerDirectiveInsertion();
+    const { onDirectiveInserted, setEditorRoot } = useAIComposerDirectiveInsertion();
     const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null);
     const ariaLabel = props["aria-label"];
 
@@ -241,6 +286,7 @@ export const AIComposerRichInput = forwardRef<HTMLDivElement, AIComposerRichInpu
           assignRef(forwardedRef, element);
         }}
         directiveChip={AIComposerDirectiveChip}
+        directivePluginProps={{ onDirectiveSelect: onDirectiveInserted }}
         formatter={unstable_defaultDirectiveFormatter}
         tabIndex={-1}
         className={cn(
@@ -388,13 +434,18 @@ function DirectiveChipSurface(props: PropsWithChildren<{ type: string; id: strin
       data-ai-directive-chip
       data-directive-type={props.type}
       data-directive-id={props.id}
-      className={cn(
-        "mx-[0.25em] inline-flex h-[1.45em] max-w-[min(14rem,55vw)] items-center gap-[0.3em] align-baseline",
-        "rounded-[0.4em] border px-[0.42em] text-[0.86em] font-semibold leading-none",
-        AI_COMPOSER_DIRECTIVE_CHIP_STYLES[props.type] ?? DEFAULT_CHIP_STYLE,
-      )}
+      className="inline-flex max-w-[min(14rem,55vw)] px-[0.25em] align-baseline"
     >
-      {props.children}
+      <span
+        data-ai-directive-surface
+        className={cn(
+          "inline-flex h-[1.45em] min-w-0 max-w-full items-center gap-[0.3em]",
+          "rounded-[0.4em] border px-[0.42em] text-[0.86em] font-semibold leading-none",
+          AI_COMPOSER_DIRECTIVE_CHIP_STYLES[props.type] ?? DEFAULT_CHIP_STYLE,
+        )}
+      >
+        {props.children}
+      </span>
     </span>
   );
 }
@@ -407,6 +458,43 @@ function directiveIcon(type: string): LucideIcon {
   if (type === "content") return FileTextIcon;
   if (type === "attachment") return PaperclipIcon;
   return CommandIcon;
+}
+
+function editorOwnsFocus(root: HTMLDivElement | null): boolean {
+  const editable = root?.querySelector<HTMLElement>("[contenteditable='true']");
+  return Boolean(
+    editable && (editable === document.activeElement || editable.contains(document.activeElement)),
+  );
+}
+
+function toAIComposerDirectiveChip(item: Unstable_TriggerItem): AIComposerDirectiveChip | null {
+  if (
+    item.type !== "project" &&
+    item.type !== "agent" &&
+    item.type !== "skill" &&
+    item.type !== "attachment" &&
+    item.type !== "asset" &&
+    item.type !== "content" &&
+    item.type !== "action"
+  ) {
+    return null;
+  }
+  const metadata = item.metadata;
+  const readMetadata = (key: string) => {
+    const value = metadata?.[key];
+    return typeof value === "string" && value ? value : undefined;
+  };
+  const command = readMetadata("command");
+  const previewUrl = readMetadata("previewUrl");
+  const mime = readMetadata("mime");
+  return {
+    type: item.type,
+    id: item.id,
+    label: item.label,
+    ...(command ? { command } : {}),
+    ...(previewUrl ? { previewUrl } : {}),
+    ...(mime ? { mime } : {}),
+  };
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {

@@ -191,11 +191,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
         <div
           role="radiogroup"
           aria-label={t("feedback:FEEDBACK_DIALOG_INTENT_LABEL")}
-          className={cn(
-            "grid grid-cols-2 gap-1.5 pb-3",
-            sectionPaddingClassName,
-            !isHeaderPopover && "sm:grid-cols-4",
-          )}
+          className={cn("grid grid-cols-2 gap-1.5 pb-3", sectionPaddingClassName)}
         >
           {FEEDBACK_INTENTS.map((option, index) => {
             const Icon = option.icon;

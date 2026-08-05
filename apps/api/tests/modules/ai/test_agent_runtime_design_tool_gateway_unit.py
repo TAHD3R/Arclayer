@@ -128,6 +128,7 @@ def _request() -> AgentRunExecutionRequest:
         messages=({"role": "user", "content": "Create Design directions for the homepage."},),
         context=LLMRequestContext(
             workspace_id=workspace_id,
+            capability_key="ai.agents",
             project_id=project_id,
             agent_run_id=uuid4(),
             user_id=uuid4(),

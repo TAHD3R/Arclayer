@@ -67,6 +67,7 @@ const SITE_ARCHITECT_AGENT_ID = "tLTD4kqITA2PGQobLD1OAg";
 const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
 const CONTENT_SKILL_INSTALLATION_ID = "installation-content";
 const SEO_SKILL_INSTALLATION_ID = "installation-seo";
+const SKILL_CREATOR_INSTALLATION_ID = "installation-skill-creator";
 
 describe("ArclayerAssistantProvider", () => {
   beforeEach(() => {
@@ -219,6 +220,61 @@ describe("ArclayerAssistantProvider", () => {
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
       { type: "skill", id: CONTENT_SKILL_INSTALLATION_ID, label: "Content modeling" },
     ]);
+  });
+
+  it("materializes the registered Skill Creator chip as the backend slash command", async () => {
+    useAIComposerDirectiveStore.getState().addDirectives("thread", [
+      {
+        type: "skill",
+        id: SKILL_CREATOR_INSTALLATION_ID,
+        label: "Skill Creator",
+        command: "skill-creator",
+      },
+    ]);
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId="project-1"
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    const onNew = runtimeCapture.external?.onNew as
+      | ((message: {
+          content: readonly { type: "text"; text: string }[];
+          runConfig?: { custom?: Record<string, unknown> };
+        }) => Promise<void>)
+      | undefined;
+
+    await act(async () => {
+      await onNew?.({
+        content: [
+          {
+            type: "text",
+            text: `Plan first :skill[Skill Creator]{name=${SKILL_CREATOR_INSTALLATION_ID}} Build a review Skill`,
+          },
+        ],
+        runConfig: {
+          custom: {
+            mentionedAgentIds: [],
+            selectedSkillInstallationIds: [SKILL_CREATOR_INSTALLATION_ID],
+          },
+        },
+      });
+    });
+
+    expect(apiMocks.createAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "/skill-creator Plan first Build a review Skill",
+        selectedSkillInstallationIds: [SKILL_CREATOR_INSTALLATION_ID],
+      }),
+      expect.any(Object),
+    );
   });
 
   it("initializes a fresh Thread before creating its first server-owned Run", async () => {

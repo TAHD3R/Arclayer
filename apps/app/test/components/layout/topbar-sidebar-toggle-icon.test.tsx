@@ -138,6 +138,7 @@ describe("topbar sidebar toggle icon", () => {
 
     const topbarContent = screen.getByRole("banner").firstElementChild;
     expect(topbarContent).toHaveClass("flex", "items-center", "gap-2", "min-[769px]:gap-4");
+    expect(topbarContent).toHaveClass("min-[769px]:[[data-floating-panel-boundary]_&]:pr-3");
     expect(screen.getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })).toHaveClass(
       "max-[768px]:hidden",
     );

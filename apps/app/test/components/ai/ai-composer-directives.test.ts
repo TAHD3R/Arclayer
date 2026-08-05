@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   agentIdsForComposerScope,
+  cleanAIComposerDirectiveText,
   consumeAIComposerDirectives,
   filterTrustedAIComposerDirectives,
+  materializeAIComposerDirectiveCommands,
   parseAIComposerDirectives,
   removeAIComposerDirectiveByIdentity,
   skillInstallationIdsForComposerScope,
@@ -43,6 +45,23 @@ describe("AI composer directive trust boundary", () => {
       { type: "project", id: "project-1", label: "Marketing" },
       { type: "action", id: "audit", label: "Audit" },
     ]);
+  });
+
+  it("materializes a registered Skill command ahead of text regardless of Chip position", () => {
+    const creator = {
+      type: "skill" as const,
+      id: "installation-skill-creator",
+      label: "技能创建器",
+      command: "skill-creator",
+    };
+    const text = `先描述需求 :skill[技能创建器]{name=${creator.id}} 再补充约束`;
+
+    expect(materializeAIComposerDirectiveCommands(text, [creator])).toBe(
+      "/skill-creator 先描述需求 再补充约束",
+    );
+    expect(cleanAIComposerDirectiveText(text, [creator])).toBe(
+      "/skill-creator 先描述需求 再补充约束",
+    );
   });
 
   it("parses attachment nodes and removes only the matching runtime attachment identity", () => {

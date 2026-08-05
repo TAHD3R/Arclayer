@@ -1,8 +1,4 @@
-import {
-  ComposerPrimitive,
-  unstable_useTriggerPopoverScopeContext,
-  useAui,
-} from "@assistant-ui/react";
+import { ComposerPrimitive, unstable_useTriggerPopoverScopeContext } from "@assistant-ui/react";
 import { useNavigate } from "@tanstack/react-router";
 import { BotIcon, FileTextIcon, FolderIcon, ImageIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef } from "react";
@@ -12,6 +8,7 @@ import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
 } from "@/components/ai/ai-composer-skill-panel";
+import { AI_COMPOSER_SKILL_CREATOR_COMMAND } from "@/components/ai/ai-composer-directives";
 import { AIComposerTriggerScrollArea } from "@/components/ai/ai-composer-trigger-scroll-area";
 import { cn } from "@arclayer/lib/utils";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
@@ -220,10 +217,12 @@ export function AIComposerSlashPopoverContent(props: {
   placement: TriggerPopoverPlacement;
   skills: readonly AIComposerSkillOption[];
 }) {
-  const aui = useAui();
   const navigate = useNavigate();
   const scope = unstable_useTriggerPopoverScopeContext();
   const markerRef = useViewportBoundedPopover(scope.open, props.placement);
+  const skillCreator = props.skills.find(
+    (skill) => skill.command === AI_COMPOSER_SKILL_CREATOR_COMMAND,
+  );
 
   if (!scope.open) return null;
 
@@ -235,13 +234,20 @@ export function AIComposerSlashPopoverContent(props: {
         skills={props.skills}
         isLoading={props.isLoadingSkills}
         isError={props.isErrorSkills}
+        buildWithArclayerDisabled={!skillCreator}
         onManage={() => {
           void navigate({ to: "/customization/skills" });
           scope.close();
         }}
         onBuildWithArclayer={() => {
-          aui.composer().setText("/skill-creator ");
-          scope.close();
+          if (!skillCreator) throw new Error("AI_COMPOSER_SKILL_CREATOR_UNAVAILABLE");
+          scope.selectItem({
+            type: "skill",
+            id: skillCreator.id,
+            label: skillCreator.label,
+            description: skillCreator.description,
+            ...(skillCreator.command ? { metadata: { command: skillCreator.command } } : {}),
+          });
         }}
         onWriteManually={() => {
           void navigate({ to: "/customization/skills", search: { action: "manual" } });

@@ -16,7 +16,9 @@ export function HomeBrandHero() {
           <span>{t("ai:AI_CHAT_HOME_PRODUCT_PROMISE")}</span>
         </h1>
       </div>
-      <p className="text-title3 font-medium text-label-secondary">{t("auth:SLOGAN_SUBTITLE")}</p>
+      <p className="text-title3 font-medium text-label-secondary">
+        {t("ai:AI_CHAT_HOME_PRODUCT_SUBTITLE")}
+      </p>
     </header>
   );
 }

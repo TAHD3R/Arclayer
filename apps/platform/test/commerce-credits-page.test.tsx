@@ -84,6 +84,7 @@ describe("Commerce credits lookup", () => {
       expect(adjustWorkspaceCredits).toHaveBeenCalledWith("workspace-1", {
         deltaCredits: 10,
         evidenceReference: "case-42",
+        expiresAt: null,
         expectedAccountRevision: 4,
         idempotencyKey: expect.any(String),
         reason: "Support correction",

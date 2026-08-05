@@ -5,7 +5,6 @@ import {
   ComposerPrimitive,
   unstable_defaultDirectiveFormatter,
   unstable_useMentionAdapter,
-  useAui,
   type Unstable_Mention,
 } from "@assistant-ui/react";
 import { useMemo } from "react";
@@ -15,12 +14,7 @@ import { listAIWorkspaceAgents } from "@/api/ai";
 import { listAssets } from "@/api/assets";
 import { listContentItems } from "@/api/content";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
-import {
-  agentIdsForComposerScope,
-  skillInstallationIdsForComposerScope,
-  useAIComposerDirectiveStore,
-  type AIComposerDirectiveScope,
-} from "@/components/ai/ai-composer-directives";
+import { useAIComposerDirectiveInsertion } from "@/components/ai/ai-composer-rich-input";
 import {
   AIComposerMentionPopoverContent,
   AIComposerSlashPopoverContent,
@@ -34,7 +28,6 @@ import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "@arclayer/ui/layer-shadow";
 
 type AIComposerTriggersProps = {
   placement?: "top" | "bottom";
-  scope: AIComposerDirectiveScope;
 };
 
 function composerTriggerPopoverClassName(
@@ -49,9 +42,9 @@ function composerTriggerPopoverClassName(
   );
 }
 
-export function AIComposerTriggers({ placement = "top", scope }: AIComposerTriggersProps) {
+export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProps) {
   const { t } = useTranslation(["ai"]);
-  const aui = useAui();
+  const { onDirectiveInserted } = useAIComposerDirectiveInsertion();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -129,17 +122,21 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
   });
   const assetMentions = useMemo<Unstable_Mention[]>(
     () =>
-      (assetsData?.items ?? []).map((asset) => ({
-        id: asset.id,
-        type: "asset",
-        label: asset.title ?? asset.originalFilename ?? asset.slug ?? asset.id,
-        description: asset.mime ?? asset.originalFilename ?? asset.slug ?? undefined,
-        icon: "asset",
-      })),
-    [assetsData?.items],
-  );
-  const assetPreviewById = useMemo(
-    () => new Map((assetsData?.items ?? []).map((asset) => [asset.id, toMasonryItem(asset)])),
+      (assetsData?.items ?? []).map((asset) => {
+        const preview = toMasonryItem(asset);
+        const metadata = {
+          ...(preview.previewUrl ? { previewUrl: preview.previewUrl } : {}),
+          ...(preview.mimeType ? { mime: preview.mimeType } : {}),
+        };
+        return {
+          id: asset.id,
+          type: "asset",
+          label: asset.title ?? asset.originalFilename ?? asset.slug ?? asset.id,
+          description: asset.mime ?? asset.originalFilename ?? asset.slug ?? undefined,
+          icon: "asset",
+          ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+        };
+      }),
     [assetsData?.items],
   );
   const { data: contentData, isFetching: isFetchingContent } = useQuery({
@@ -195,36 +192,7 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
     categories: mentionCategories,
     includeModelContextTools: false,
     formatter: unstable_defaultDirectiveFormatter,
-    onInserted: (item) => {
-      if (
-        item.type !== "agent" &&
-        item.type !== "project" &&
-        item.type !== "asset" &&
-        item.type !== "content"
-      ) {
-        return;
-      }
-      const assetPreview = item.type === "asset" ? assetPreviewById.get(item.id) : undefined;
-      useAIComposerDirectiveStore.getState().addDirectives(scope, [
-        {
-          type: item.type,
-          id: item.id,
-          label: item.label,
-          previewUrl: assetPreview?.previewUrl,
-          mime: assetPreview?.mimeType,
-        },
-      ]);
-      if (item.type !== "agent") return;
-      const composer = aui.composer();
-      const current = composer.getState().runConfig;
-      composer.setRunConfig({
-        ...current,
-        custom: {
-          ...current.custom,
-          mentionedAgentIds: [...agentIdsForComposerScope(scope)],
-        },
-      });
-    },
+    onInserted: onDirectiveInserted,
   });
 
   const {
@@ -241,6 +209,7 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
         label: skill.label,
         description: skill.description,
         icon: "skill",
+        ...(skill.command ? { metadata: { command: skill.command } } : {}),
       })),
     [skills],
   );
@@ -249,25 +218,7 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
     items: skillMentions,
     includeModelContextTools: false,
     formatter: unstable_defaultDirectiveFormatter,
-    onInserted: (item) => {
-      if (item.type !== "skill") return;
-      useAIComposerDirectiveStore.getState().addDirectives(scope, [
-        {
-          type: "skill",
-          id: item.id,
-          label: item.label,
-        },
-      ]);
-      const composer = aui.composer();
-      const current = composer.getState().runConfig;
-      composer.setRunConfig({
-        ...current,
-        custom: {
-          ...current.custom,
-          selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
-        },
-      });
-    },
+    onInserted: onDirectiveInserted,
   });
 
   return (

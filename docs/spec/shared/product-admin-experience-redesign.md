@@ -148,8 +148,8 @@ Desktop directories use route-backed master-detail or dedicated detail routes. A
 | Needs attention | filter, sort, save view, claim, assign, transfer, mark in progress, wait with reminder, add notes, open canonical remediation, observe source-confirmed recovery, preserve list context |
 | Workspaces | search and inspect Workspace/User/Project relationships; view restrictions and lifecycle state; apply or remove supported restrictions with impact; start and track legal/lifecycle operations; review commercial/hosting/monitoring projections; create, inspect, revoke, and audit customer-authorized read-only Support Access |
 | AI tasks | inspect cross-Workspace task state; retry eligible failed work; request safe cancellation; reconcile partial or unknown outcomes; observe actual metering and verification; open owning Workspace only through an authority-free Product link |
-| AI providers | connect credentials through a non-disclosing secret flow; edit routing and availability; test readiness; enable or disable; preview rollout impact; diagnose and recover failures; rotate or remove credentials safely; review use and change history |
-| Built-in assistants and policies | create or revise supported definitions; validate and test realistic cases; publish or enable; preview affected scope; disable or retire; review adoption, failures, and change history |
+| AI providers | connect credentials through a non-disclosing secret flow; edit global routing and availability; test readiness; enable or disable; preview affected models, assistants, and running work; diagnose and recover failures; rotate or remove credentials safely; review use and change history |
+| Built-in assistants and policies | create or revise supported definitions; validate and test realistic cases; publish or enable; preview affected scope; disable or retire; review adoption, failures, and change history. The AI policy is deployment-wide and has no Workspace rollout or Workspace override. |
 | Hosting issues | investigate affected sites and domains; invoke source-owned retry, certificate, routing, storage, suspension, or restoration actions; track partial outcomes and verification |
 | Domains and certificates | add and verify domain ownership; inspect effective routing and certificate state; renew or recover; change routing with impact preview; remove only after dependency and consequence review |
 | Storage and delivery policies | configure and test; show effective source, capacity, readiness, and health; preview and apply cross-Workspace changes; reconcile drift; restore supported prior state |
@@ -201,9 +201,9 @@ The lifecycle is draft, representative real-page preview and validation, release
 
 Plan & Usage is one Workspace commercial control loop answering what the Workspace has, what it can do, what it has consumed, what will happen next, and how an authorized Owner can act.
 
-It connects current Plan and billing state, Credits and other real capacities, current-period usage, forecast, attribution, invoices, plan and refill actions, cancellation, and recovery. Credits show their source, applicability, issue or refresh event, expiry or rollover, and depletion order. Usage attributes consumption to Projects, people, Agent work, and meaningful capabilities under exact visibility permissions.
+It connects current Plan and billing state, Credits and other real capacities, current-period usage, forecast, attribution, invoices, plan and refill actions, cancellation, and recovery. Credits show their source, applicability, issue or refresh event, expiry or rollover, remaining amount, and deterministic depletion order. Usage attributes consumption to Projects, people, Agent work, and meaningful capabilities under exact visibility permissions.
 
-Owners can upgrade, downgrade, refill, configure automatic refill with an explicit monetary ceiling, manage billing, inspect invoices, cancel, and recover payment failures. A Plan change previews timing, billing consequence, changed capabilities and limits, affected Projects and people, preserved data, and access convergence before checkout.
+Owners and Billing Managers can upgrade, downgrade, refill, configure automatic refill with an explicit monetary ceiling, manage billing, inspect invoices, cancel, and recover payment failures. They can also set one default monthly member Credit limit and explicit active-member overrides. Every member, including the Owner, is constrained by the effective limit; an empty value means unlimited member usage within the Workspace balance. A Plan change previews timing, billing consequence, changed capabilities and limits, affected Projects and people, preserved data, and access convergence before checkout.
 
 Materially variable Agent, generation, build, or publish actions show an estimated Credit range and assumptions at the point of use. Completion records actual Credits, balance source, variance, Workspace, actor, Project, and operation. Partial, cancelled, retried, or failed work exposes the actual metered and reconciliation outcome.
 
@@ -213,7 +213,7 @@ Invalid dates, missing limits, stale usage, Provider synchronization failure, an
 
 People represents a person's relationship to the Workspace across active membership, Project-only collaboration, pending named invitation, reusable invite link, and supported access request while preserving each authority source.
 
-- People view manages active members and Project-only collaborators, roles or Fixed Member Access, feature allocation, source, state, usage, and removal impact.
+- People view manages active members and Project-only collaborators, roles or Fixed Member Access, feature allocation, source, state, current-period Usage, total Usage, effective member Credit limit, limit override, and removal impact.
 - Pending view shows recipient, intended access, delivery state, expiry, sender, resend, revoke, conflict, acceptance, and Audit evidence. Accepted people move into active membership.
 - Invite links view shows resulting access, forwarding risk, verified-domain policy, expiry, capacity or redemption policy, redemption history, rotation, and disablement.
 - Requests view supports approve or reject with exact resulting access and commercial impact when the deployed identity capability supports it.
@@ -328,7 +328,7 @@ A requirement is complete only when:
 - the lifecycle in sections 6–9 is available through real server-enforced contracts;
 - all states in section 11 have correct semantics and recovery;
 - copy is natural in both locales with no primary technical leakage;
-- permission, capability, readiness, rollout, commercial, health, and evidence failures remain distinct;
+- permission, capability, readiness, explicitly contracted rollout, commercial, member-limit, health, and evidence failures remain distinct;
 - desktop, tablet, narrow, zoom, reflow, keyboard, focus, reduced-motion, light, and dark evidence passes;
 - `pnpm platform:check`, `pnpm app:check`, API checks for changed contracts, and final `pnpm check` pass without hiding pre-existing or new failures;
 - representative browser evidence covers Overview, Workspaces, AI Services, Knowledge, Design Systems, Plan & Usage, and People in both locales and includes populated, empty, filtered-empty, partial, stale, permission, error, editing, operation-progress, and recovery states as applicable;
