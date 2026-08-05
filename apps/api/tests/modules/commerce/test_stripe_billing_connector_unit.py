@@ -84,7 +84,14 @@ async def test_stripe_checkout_uses_exact_revision_price_and_subscription_metada
         assert request.url == "https://stripe.test/v1/checkout/sessions"
         assert request.headers["Idempotency-Key"] == "arclayer:checkout:test-key"
         captured.update(dict(httpx.QueryParams(request.content.decode())))
-        return httpx.Response(200, json={"id": "cs_test", "url": "https://checkout.stripe.test/cs_test"})
+        return httpx.Response(
+            200,
+            json={
+                "id": "cs_test",
+                "url": "https://checkout.stripe.test/cs_test",
+                "expires_at": 1_800_000_000,
+            },
+        )
 
     provider = _provider(httpx.MockTransport(handler))
     workspace_id = str(uuid4())
@@ -92,6 +99,7 @@ async def test_stripe_checkout_uses_exact_revision_price_and_subscription_metada
     plan_revision_id = str(uuid4())
     result = await provider.create_checkout_session(
         workspace_id=workspace_id,
+        plan_code="premium",
         plan_id=plan_id,
         plan_revision_id=plan_revision_id,
         external_price_id="price_premiumYearly",
@@ -104,13 +112,16 @@ async def test_stripe_checkout_uses_exact_revision_price_and_subscription_metada
     )
 
     assert result.url == "https://checkout.stripe.test/cs_test"
+    assert result.external_session_id == "cs_test"
+    assert result.provider_account_id == "platform"
+    assert int(result.expires_at.timestamp()) == 1_800_000_000
     assert captured["line_items[0][price]"] == "price_premiumYearly"
     assert not any(key.startswith("line_items[0][price_data]") for key in captured)
     assert captured["subscription_data[metadata][workspace_id]"] == workspace_id
     assert captured["subscription_data[metadata][plan_id]"] == plan_id
     assert captured["subscription_data[metadata][plan_revision_id]"] == plan_revision_id
     assert captured["subscription_data[metadata][external_price_id]"] == "price_premiumYearly"
-    assert "subscription_data[metadata][plan_code]" not in captured
+    assert captured["subscription_data[metadata][plan_code]"] == "premium"
 
 
 @pytest.mark.asyncio
@@ -120,6 +131,7 @@ async def test_stripe_checkout_rejects_an_invalid_catalog_external_price_id() ->
     with pytest.raises(BadRequest) as captured:
         await provider.create_checkout_session(
             workspace_id=str(uuid4()),
+            plan_code="premium",
             plan_id=str(uuid4()),
             plan_revision_id=str(uuid4()),
             external_price_id="not-a-price",

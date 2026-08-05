@@ -1,5 +1,7 @@
 {
   "AI_CREDITS_EXHAUSTED": "This workspace has no AI credits available. Wait for the next refresh or request a higher-tier plan.",
+  "BILLING_CHECKOUT_IDEMPOTENCY_CONFLICT": "This checkout idempotency key was already used for different checkout details.",
+  "BILLING_CHECKOUT_IDEMPOTENCY_KEY_INVALID": "A valid idempotency key is required for checkout.",
   "BILLING_CONNECTOR_INVALID": "The configured billing Connector does not implement the required billing contract.",
   "BILLING_CUSTOMER_NOT_FOUND": "No billing customer is associated with this workspace.",
   "BILLING_PRICE_NOT_SUPPORTED": "The selected plan price cannot be processed by the billing provider.",

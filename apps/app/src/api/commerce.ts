@@ -121,10 +121,12 @@ export function getWorkspaceCommercialAccess(
 export function createWorkspaceCheckoutSession(
   workspaceId: string,
   payload: CheckoutSessionCreate,
+  idempotencyKey: string,
 ): Promise<BillingRedirect> {
   return api.post<BillingRedirect>(
     workspacePath(workspaceId, "/commerce/checkout-session"),
     payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
   );
 }
 

@@ -128,23 +128,33 @@ async def test_simulated_acceptance_resolves_its_connector_without_creating_an_e
 
 
 @pytest.mark.asyncio
-async def test_simulated_connector_exposes_unimplemented_lifecycle_operations() -> None:
+async def test_simulated_connector_creates_visible_pending_checkout_facts() -> None:
     connector = _connector()
 
-    with pytest.raises(ServiceUnavailable) as checkout:
-        await connector.create_checkout_session(
-            workspace_id="workspace",
-            plan_id="plan",
-            plan_revision_id="revision",
-            external_price_id="sim_price",
-            billing_cycle="monthly",
-            currency="USD",
-            success_url="https://app.example.test/success",
-            cancel_url="https://app.example.test/cancel",
-            customer_id=None,
-            idempotency_key="checkout-key",
-        )
-    assert checkout.value.error == "BILLING_SIMULATOR_CHECKOUT_NOT_AVAILABLE"
+    checkout = await connector.create_checkout_session(
+        workspace_id="workspace",
+        plan_code="premium",
+        plan_id="plan",
+        plan_revision_id="revision",
+        external_price_id="sim_price",
+        billing_cycle="monthly",
+        currency="USD",
+        success_url="https://app.example.test/success?billing=success",
+        cancel_url="https://app.example.test/cancel",
+        customer_id=None,
+        idempotency_key="checkout-key",
+    )
+
+    assert checkout.external_session_id.startswith("sim_cs_")
+    assert checkout.provider_account_id == "platform"
+    assert "billingProvider=simulated" in checkout.url
+    assert f"simulatedCheckout={checkout.external_session_id}" in checkout.url
+    assert checkout.expires_at.timestamp() > time.time()
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_keeps_portal_and_event_normalization_unavailable() -> None:
+    connector = _connector()
 
     with pytest.raises(ServiceUnavailable) as portal:
         await connector.create_portal_session(

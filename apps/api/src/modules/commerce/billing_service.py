@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Protocol
 from uuid import UUID
 
@@ -19,8 +21,10 @@ from src.models.commerce.billing import (
     WorkspaceSubscription,
 )
 from src.modules.commerce.billing_connector import BillingConnector, build_billing_operation_idempotency_key
+from src.modules.commerce.checkout_session_repository import TortoiseCheckoutSessionRepository
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
 from src.modules.commerce.service import build_commerce_service
+from src.modules.commerce.simulated_checkout_service import SimulatedCheckoutRequest, SimulatedCheckoutService
 
 
 class BillingCheckoutSelection(BaseSchema):
@@ -28,10 +32,12 @@ class BillingCheckoutSelection(BaseSchema):
 
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
+    plan_code: str = Field(min_length=1, max_length=48)
     plan_id: UUID
     plan_revision_id: UUID
     external_price_id: str = Field(min_length=1, max_length=255)
     currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    amount_micros: int = Field(gt=0)
 
 
 class BillingCheckoutReader(Protocol):
@@ -82,10 +88,12 @@ class BillingCheckoutCatalogReader:
         if price is None:
             return None
         return BillingCheckoutSelection(
+            plan_code=plan_code,
             plan_id=revision.plan_id,
             plan_revision_id=revision.id,
             external_price_id=price.external_price_id,
             currency=price.currency,
+            amount_micros=price.amount_micros,
         )
 
     async def list_checkout_revision_ids(
@@ -113,6 +121,10 @@ class WorkspaceBillingReader(Protocol):
     ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlanRevision]: ...
 
 
+class SimulatedCheckoutCreator(Protocol):
+    async def create(self, *, request: SimulatedCheckoutRequest) -> BillingRedirectOut: ...
+
+
 class BillingService(BaseService):
     def __init__(
         self,
@@ -122,6 +134,7 @@ class BillingService(BaseService):
         provider_name: str,
         plans: BillingCheckoutReader,
         commerce: WorkspaceBillingReader,
+        simulated_checkouts: SimulatedCheckoutCreator,
     ) -> None:
         super().__init__(settings)
         self._settings = settings
@@ -129,6 +142,7 @@ class BillingService(BaseService):
         self._provider_name = provider_name
         self._plans = plans
         self._commerce = commerce
+        self._simulated_checkouts = simulated_checkouts
 
     async def list_checkout_revision_ids(self, *, revision_ids: set[UUID]) -> set[UUID]:
         return await self._plans.list_checkout_revision_ids(
@@ -141,8 +155,13 @@ class BillingService(BaseService):
         self,
         *,
         workspace_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
         payload: CheckoutSessionCreate,
     ) -> BillingRedirectOut:
+        caller_idempotency_key = idempotency_key.strip()
+        if not caller_idempotency_key:
+            raise BadRequest(error="BILLING_CHECKOUT_IDEMPOTENCY_KEY_INVALID")
         subscription, _, current_revision = await self._commerce.ensure_workspace_billing(workspace_id=workspace_id)
         selection = await self._plans.get_published_checkout_selection(
             plan_code=payload.plan_code,
@@ -158,8 +177,40 @@ class BillingService(BaseService):
         ):
             raise BadRequest(error="COMMERCE_PLAN_ALREADY_ACTIVE")
         admin_url = self._settings.saas.admin_url.rstrip("/")
+        provider_idempotency_key = build_billing_operation_idempotency_key(
+            operation="checkout",
+            business_identity=(str(workspace_id), str(actor_user_id), caller_idempotency_key),
+        )
+        request_fingerprint = _checkout_request_fingerprint(
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            subscription_id=subscription.id,
+            current_plan_revision_id=current_revision.id,
+            selection=selection,
+            billing_cycle=payload.billing_interval,
+        )
+        if self._provider_name == "simulated":
+            return await self._simulated_checkouts.create(
+                request=SimulatedCheckoutRequest(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    subscription_id=subscription.id,
+                    plan_code=selection.plan_code,
+                    plan_id=selection.plan_id,
+                    plan_revision_id=selection.plan_revision_id,
+                    external_price_id=selection.external_price_id,
+                    billing_cycle=payload.billing_interval,
+                    currency=selection.currency,
+                    amount_micros=selection.amount_micros,
+                    provider_idempotency_key=provider_idempotency_key,
+                    request_fingerprint=request_fingerprint,
+                    success_url=f"{admin_url}/?billing=success",
+                    cancel_url=f"{admin_url}/?billing=canceled",
+                )
+            )
         session = await self._provider.create_checkout_session(
             workspace_id=str(workspace_id),
+            plan_code=selection.plan_code,
             plan_id=str(selection.plan_id),
             plan_revision_id=str(selection.plan_revision_id),
             external_price_id=selection.external_price_id,
@@ -168,18 +219,7 @@ class BillingService(BaseService):
             success_url=f"{admin_url}/?billing=success",
             cancel_url=f"{admin_url}/?billing=canceled",
             customer_id=subscription.external_customer_id,
-            idempotency_key=build_billing_operation_idempotency_key(
-                operation="checkout",
-                business_identity=(
-                    str(workspace_id),
-                    str(subscription.id),
-                    str(current_revision.id),
-                    str(selection.plan_id),
-                    str(selection.plan_revision_id),
-                    selection.external_price_id,
-                    str(payload.billing_interval),
-                ),
-            ),
+            idempotency_key=provider_idempotency_key,
         )
         return BillingRedirectOut(url=session.url)
 
@@ -219,4 +259,30 @@ def build_billing_service(settings: Settings, connector_registry: ConnectorRegis
         provider_name=billing.provider,
         plans=BillingCheckoutCatalogReader(),
         commerce=build_commerce_service(settings),
+        simulated_checkouts=SimulatedCheckoutService(
+            settings=settings,
+            provider=connector,
+            repository=TortoiseCheckoutSessionRepository(),
+        ),
     )
+
+
+def _checkout_request_fingerprint(
+    *,
+    workspace_id: UUID,
+    actor_user_id: UUID,
+    subscription_id: UUID,
+    current_plan_revision_id: UUID,
+    selection: BillingCheckoutSelection,
+    billing_cycle: BillingCycle,
+) -> str:
+    payload = {
+        "actor_user_id": str(actor_user_id),
+        "billing_cycle": str(billing_cycle),
+        "current_plan_revision_id": str(current_plan_revision_id),
+        "selection": selection.model_dump(mode="json"),
+        "subscription_id": str(subscription_id),
+        "workspace_id": str(workspace_id),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()

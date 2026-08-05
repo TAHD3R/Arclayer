@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 
 from src.config import Settings, get_settings
 from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
+from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.authorization import require_workspace_commerce_manage_access
 from src.modules.commerce.billing_service import build_billing_service
 from src.modules.commerce.schema import (
@@ -28,6 +30,9 @@ router = APIRouter(
     prefix="/workspaces/{workspace_id}/commerce",
     tags=["domain.commerce"],
 )
+
+ActorUserId = Annotated[UUID, Depends(get_current_user_id)]
+IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)]
 
 
 @router.get(
@@ -97,12 +102,16 @@ async def get_workspace_commerce_overview(
 )
 async def create_workspace_checkout_session(
     payload: CheckoutSessionCreate,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
     ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
     settings: Settings = Depends(get_settings),
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[BillingRedirectOut]:
     redirect = await build_billing_service(settings, connector_registry).create_checkout(
         workspace_id=ctx.workspace_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
         payload=payload,
     )
     return ApiResponse.success(data=redirect)

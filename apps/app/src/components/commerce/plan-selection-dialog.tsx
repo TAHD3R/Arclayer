@@ -128,10 +128,14 @@ export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSel
   const plans = catalogQuery.data?.items ?? [];
   const checkoutMutation = useMutation({
     mutationFn: async (choice: PlanCheckoutChoice) => {
-      const redirect = await createWorkspaceCheckoutSession(workspaceId, {
-        planCode: choice.plan.planCode,
-        billingInterval: choice.billingCycle,
-      });
+      const redirect = await createWorkspaceCheckoutSession(
+        workspaceId,
+        {
+          planCode: choice.plan.planCode,
+          billingInterval: choice.billingCycle,
+        },
+        globalThis.crypto.randomUUID(),
+      );
       window.location.assign(redirect.url);
     },
   });

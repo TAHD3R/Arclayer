@@ -23,6 +23,7 @@ from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
 from src.models.commerce.billing import BillingCycle, SubscriptionStatus
 from src.modules.commerce.billing_connector import (
+    BillingRedirectSession,
     BillingWebhookEnvelope,
     CheckoutSession,
     ProviderDunningEvent,
@@ -39,6 +40,7 @@ _CONNECTOR_KEY = "billing.stripe"
 _EXTENSION_NAME = "arclayer-stripe"
 _STRIPE_SUBSCRIPTION_ID_PATTERN = re.compile(r"sub_[A-Za-z0-9]+")
 _STRIPE_PRICE_ID_PATTERN = re.compile(r"price_[A-Za-z0-9]+")
+_PROVIDER_ACCOUNT_ID = "platform"
 _STRIPE_STATUS_MAP = {
     "trialing": SubscriptionStatus.ACTIVE,
     "active": SubscriptionStatus.ACTIVE,
@@ -225,6 +227,7 @@ class StripeBillingConnector:
         self,
         *,
         workspace_id: str,
+        plan_code: str,
         plan_id: str,
         plan_revision_id: str,
         external_price_id: str,
@@ -238,6 +241,7 @@ class StripeBillingConnector:
         price_id = self._require_external_price_id(external_price_id)
         metadata = {
             "workspace_id": workspace_id,
+            "plan_code": plan_code,
             "plan_id": plan_id,
             "plan_revision_id": plan_revision_id,
             "external_price_id": price_id,
@@ -263,7 +267,7 @@ class StripeBillingConnector:
             data=data,
             idempotency_key=idempotency_key,
         )
-        return self._session_from_body(body)
+        return self._checkout_session_from_body(body)
 
     async def create_portal_session(
         self,
@@ -271,14 +275,14 @@ class StripeBillingConnector:
         customer_id: str,
         return_url: str,
         idempotency_key: str,
-    ) -> CheckoutSession:
+    ) -> BillingRedirectSession:
         body = await self._request(
             "POST",
             "/billing_portal/sessions",
             data={"customer": customer_id, "return_url": return_url},
             idempotency_key=idempotency_key,
         )
-        return self._session_from_body(body)
+        return self._redirect_session_from_body(body)
 
     async def schedule_subscription_revision(
         self,
@@ -313,11 +317,32 @@ class StripeBillingConnector:
         return schedule.id
 
     @staticmethod
-    def _session_from_body(body: dict) -> CheckoutSession:
+    def _checkout_session_from_body(body: dict) -> CheckoutSession:
+        external_session_id = body.get("id")
+        url = body.get("url")
+        expires_at = body.get("expires_at")
+        if (
+            not isinstance(external_session_id, str)
+            or not external_session_id.startswith("cs_")
+            or not isinstance(url, str)
+            or not url.startswith("https://")
+            or not isinstance(expires_at, int)
+            or expires_at <= 0
+        ):
+            raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE")
+        return CheckoutSession(
+            url=url,
+            external_session_id=external_session_id,
+            provider_account_id=_PROVIDER_ACCOUNT_ID,
+            expires_at=datetime.fromtimestamp(expires_at, tz=UTC),
+        )
+
+    @staticmethod
+    def _redirect_session_from_body(body: dict) -> BillingRedirectSession:
         url = body.get("url")
         if not isinstance(url, str) or not url.startswith("https://"):
             raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE")
-        return CheckoutSession(url=url)
+        return BillingRedirectSession(url=url)
 
     def _verify_signature(self, *, payload: bytes, signature: str) -> int:
         if not self._webhook_secret:

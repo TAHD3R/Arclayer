@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.2 durable simulated checkout and explicit outcome command.
+Current active part: M2.2b explicit simulated checkout outcome command.
 
 Repository baseline:
 
@@ -356,24 +356,27 @@ M2 execution parts:
    - Make Billing readiness and event-acceptance prerequisites Provider-neutral while retaining all current Stripe requirements and error behavior.
    - Define explicit simulator signing configuration and capabilities. Do not add outcome commands or simulated success behavior in this part.
    - Verify configuration rejection, registry ownership, connector resolution, readiness, and unchanged Stripe behavior with focused tests.
-2. M2.2 durable simulated checkout and explicit outcome command. — Active
+2. M2.2a durable simulated checkout. — Complete
    - Persist every simulated checkout as a real `CommerceCheckoutSession` with actor, exact Plan Revision Price, Provider mode/account, idempotency identity, expiry, and visible simulated state.
+   - Keep the durable checkout in `pending`; creating or returning from Checkout must not update Subscription, access, invoice, transaction, refund, or Credits.
+   - Serialize the Provider idempotency scope and replay an identical request without creating a second Provider or database session; reject reuse for different checkout facts.
+3. M2.2b explicit simulated checkout outcome command. — Active
    - Expose an authorized development/test-only simulator command that requires an explicit actor-selected outcome or deterministic test command.
    - Generate a signed Provider event envelope and submit it through the canonical event-acceptance service; the command itself never updates Subscription, access, invoice, transaction, or Credits.
    - Cover pending, success, failure, cancellation, duplicate, delayed, and out-of-order commands without mock-success shortcuts.
-3. M2.3 subscription, dunning, recovery, and access-state projection. — Pending
+4. M2.3 subscription, dunning, recovery, and access-state projection. — Pending
    - Process simulated subscription and invoice lifecycle events through signature verification, encrypted inbox, pinned Job, normalization, and the existing Provider application service.
    - Preserve exact Plan Revision/Price evidence, Provider event claims, convergence ordering, period identity, dunning facts, recovery, and access-state transitions.
    - Keep unsupported schedule/cancellation capabilities explicitly unavailable until a Provider-neutral transition adapter exists; never fabricate a local Stripe schedule.
-4. M2.4 transaction, invoice, top-up, and refund projection. — Pending
+5. M2.4 transaction, invoice, top-up, and refund projection. — Pending
    - Add one canonical payment projection service over the existing payment models with transactional Provider-event idempotency and audit evidence.
    - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
-5. M2.5 simulator control plane and OpenAPI surfaces. — Pending
+6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
    - Expose durable checkout, transaction, invoice, refund, inbox, Job, and application outcomes rather than templated success responses.
-6. M2.6 full lifecycle and Stripe regression closure. — Pending
+7. M2.6 full lifecycle and Stripe regression closure. — Pending
    - Verify success/failure/pending/cancel/duplicate/delay/out-of-order, renewal, dunning recovery, top-up, refund, retry, and reconciliation lifecycles.
    - Verify production rejection, no Stripe secret dependency, no Stripe or Connect impersonation, exact connector-version pinning, and unchanged real Stripe Checkout/Portal/webhook paths.
    - Run API/OpenAPI/package gates, staged GitNexus detection, changed-scope Code Review Engine, update this record, and commit M2.
@@ -405,15 +408,58 @@ M2.1 validation:
 - Final staged GitNexus detection reported `LOW` risk across `39` indexed symbols and no affected execution flow.
 - Code Review Engine reported zero blocking findings. Eight report-only i18n findings are pre-existing errors in the already changed Platform Commerce operations file. The single new prototype lifecycle finding conflicts with the canonical extension contract: Connector-only extensions register capabilities through `arclayer_register`, while bootstrap/ready/destroy hooks are optional; the new plugin follows the same lifecycle shape as the existing Stripe Connector.
 
+M2.2a status: Complete
+
+M2.2a acceptance criteria:
+
+- Every simulated subscription Checkout persists one real `CommerceCheckoutSession` in `pending` with exact Workspace, Subscription, Plan code, Plan Revision, Price, Provider mode/account, amount, currency, actor, expiry, external session identity, and request fingerprint evidence.
+- Checkout selection is pinned to one published Plan Revision Price before the Provider call. Stripe and simulated Checkout metadata carry Plan code plus Plan and Revision identity.
+- The Product caller supplies a non-empty `Idempotency-Key`. The Provider key includes Workspace, actor, and caller identity; the request fingerprint includes the current Subscription/Revision and exact selected Price.
+- Simulated Checkout creation is serialized transactionally. Identical retries replay the same durable session; reuse with different checkout facts returns an explicit conflict.
+- Checkout creation and return URLs never manufacture success and never mutate Subscription, access, invoice, transaction, refund, or Credits.
+- Stripe Checkout, Customer Portal, webhook verification, and event application remain unchanged except for the required pinned Plan metadata.
+
+M2.2a implementation evidence:
+
+- Extended `CommerceCheckoutSession` and migration `0119_commerce_checkout_session_evidence` with Plan code, Provider account, external Price, request fingerprint, and optimistic revision evidence. The migration maps existing subscription and top-up checkout rows back to their exact Price and fails explicitly when evidence cannot be recovered.
+- Added a canonical `TortoiseCheckoutSessionRepository` plus `SimulatedCheckoutStore` port. PostgreSQL advisory transaction locking serializes each Provider idempotency identity; replay checks the immutable request fingerprint before returning the existing session.
+- Added `SimulatedCheckoutService` to create the Provider session and durable database row in one transaction. The simulated Connector returns only a test URL, external session identity, Provider account, and a named 30-minute expiry; the database status remains `pending`.
+- `BillingService.create_checkout` now pins the exact published Plan Revision Price, derives actor-scoped Provider idempotency and a complete request fingerprint, and routes only the simulated Provider through durable persistence. Stripe continues through its existing Connector path.
+- The Product Commerce wrapper sends the caller idempotency identity in the `Idempotency-Key` header, and the Plan selection dialog generates one identity per user action before redirecting.
+- Added bilingual stable errors for invalid and conflicting Checkout idempotency identities and regenerated the Product OpenAPI SDK.
+
+M2.2a validation:
+
+- Targeted API Ruff check/format and `ty` checks across the changed checkout model, migration, services, repository, router, and focused tests passed with zero diagnostics.
+- Focused checkout model, migration, Billing service, simulated Connector/service, and Stripe Connector unit coverage passed `32` tests.
+- Billing service, Stripe Connector, Billing event Job, reconciliation, and router regression passed `33` tests.
+- Real PostgreSQL checkout concurrency/replay and `0118 -> 0119` migration coverage passed `2` integration tests in `24.56s`.
+- Product checkout wrapper/dialog coverage passed `11` tests. The isolated Workspace guidance test that failed during the earlier broad Product run passed `5/5`, confirming that failure is unrelated and nondeterministic.
+- Product OpenAPI generation and typecheck passed; Product lint, format check across `1242` files, and locale parity across `23` namespaces passed.
+- `pnpm api:check`: lint and format passed; broad typecheck remains blocked by `294` existing Design System publication/content-route diagnostics, and Turbo interrupted broad pytest after that failure. The targeted Commerce type surface is green.
+- `pnpm app:check`: lint, format, and locale parity passed; typecheck remains blocked by the existing missing `tests/browser/support` import from `test/browser/product-acceptance.spec.ts`. The broad Vitest run also observed the unrelated Workspace guidance failure whose isolated rerun passed.
+- Final staged GitNexus detection reported `LOW` risk across `27` files and `85` indexed symbols, with no affected execution flow.
+- Changed-scope Code Review Engine reported zero blocking findings. Its only two report-only findings are the same prototype lifecycle rule for the simulated and Stripe Connector plugins; the canonical Connector contract registers them through `arclayer_register` and does not require optional lifecycle hooks.
+
+M2.2b active boundary:
+
+- Primary implementation targets are the simulated billing Connector, a focused Commerce outcome application service/store, the Workspace Commerce router command surface, canonical Billing event acceptance composition, and their API/integration tests. Do not broaden this part into the later Platform simulator control plane or payment projection milestones.
+- Accept only an existing `pending`, unexpired simulated Checkout owned by the requested Workspace. Require an authenticated actor with Commerce management authority, explicit `pending | succeeded | failed | canceled` outcome input, request idempotency, and optimistic Checkout revision.
+- Reject the command outside `development` and `test`, for Stripe sessions, for mismatched Workspace/actor authority, or for invalid terminal transitions. No production fallback or Provider impersonation is permitted.
+- Build the strict simulated Provider event envelope, sign the exact raw bytes with the configured simulated signing secret, and submit it to the canonical acceptance service so signature verification, encrypted inbox identity, payload hash, pinned Connector version, and Job creation remain mandatory.
+- The command may record the selected simulated Checkout outcome only through the accepted event Job contract. It must not directly update Subscription, access, invoice, transaction, refund, or Credits; those projections remain M2.3/M2.4.
+- Acceptance requires focused authorization/environment/transition tests plus duplicate, delayed, and out-of-order event integration coverage, unchanged Stripe regressions, generated contract checks, staged GitNexus detection, changed-scope Code Review Engine, execution-record update, and a focused commit.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
-- The M2.1 `pnpm api:check` run still fails on existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
-- Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.4.
+- The M2.2a `pnpm api:check` run still fails on `294` existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
+- Product App typecheck currently fails because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside Commerce work.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
-- Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
+- The M2.2a broad Product Vitest run observed one nondeterministic `workspace-guidance-view.test.tsx` failure; its immediate isolated rerun passed `5/5`.
+- Changed-scope Code Review Engine currently has zero blockers and only the two Connector lifecycle prototype reports documented in M2.2a validation.
 
 ## Progress log
 
@@ -522,3 +568,12 @@ M2.1 validation:
 - Fixed the stable Stripe webhook route to resolve only `billing.stripe`; it cannot dispatch to the active simulated Provider.
 - Verified `32` focused M2.1 tests and `23` Stripe/Billing regressions, plus targeted Ruff and `ty`; recorded the existing broad API typecheck blockers without adding fallback behavior.
 - Advanced the only active implementation part to M2.2 durable simulated checkout and explicit outcome command.
+
+### 2026-08-05 — M2.2a durable simulated checkout
+
+- Persisted exact simulated Checkout evidence with actor-scoped idempotency, PostgreSQL serialization, replay/conflict semantics, Provider account/session identity, pinned Plan Revision Price, and explicit 30-minute expiry.
+- Kept all newly created sessions in `pending`; neither Checkout creation nor redirect return mutates Subscription, access, payment projections, or Credits.
+- Preserved Stripe Checkout, Portal, and webhook behavior while adding required Plan code and Revision metadata, and added explicit Product `Idempotency-Key` handling.
+- Verified `32` focused unit tests, `33` Billing/Stripe/Job/router regressions, `2` PostgreSQL integration tests, `11` Product checkout tests, `5` isolated Workspace guidance tests, targeted API static checks, Product OpenAPI generation/typecheck, lint, format, and locale parity.
+- Recorded the existing broad API typecheck and Product browser-support import blockers without fallback behavior. Final staged GitNexus risk is `LOW` with no affected execution flow; changed-scope Code Review Engine has zero blocking findings and only the two known Connector lifecycle prototype reports.
+- Advanced the only active implementation part to M2.2b explicit simulated checkout outcome command.

@@ -45527,6 +45527,12 @@ export type DomainWorkspacesSchedulePlanAccessConvergenceResponse = DomainWorksp
 
 export type DomainWorkspacesCreateWorkspaceCheckoutSessionData = {
     body: CheckoutSessionCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id

@@ -255,10 +255,14 @@ describe("PlanSelectionDialog", () => {
           effectiveAt,
         }),
       );
-      expect(createWorkspaceCheckoutSession).toHaveBeenCalledWith(workspaceId, {
-        planCode: "premium",
-        billingInterval: "yearly",
-      });
+      expect(createWorkspaceCheckoutSession).toHaveBeenCalledWith(
+        workspaceId,
+        {
+          planCode: "premium",
+          billingInterval: "yearly",
+        },
+        expect.any(String),
+      );
     });
     expect(schedulePlanAccessConvergence).not.toHaveBeenCalled();
     expect(locationAssign).toHaveBeenCalledWith("https://checkout.stripe.test/session");

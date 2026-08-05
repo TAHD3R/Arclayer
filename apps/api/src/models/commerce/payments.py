@@ -117,8 +117,10 @@ class CommerceCheckoutSession(BaseModel):
         on_delete=fields.RESTRICT,
         null=True,
     )
+    plan_code = fields.CharField(max_length=48, null=True)
     provider = fields.CharField(max_length=32)
     provider_mode = fields.CharEnumField(BillingProviderMode)
+    provider_account_id = fields.CharField(max_length=255)
     kind = fields.CharEnumField(CommerceCheckoutKind, db_index=True)
     status = fields.CharEnumField(
         CommerceCheckoutStatus,
@@ -129,12 +131,15 @@ class CommerceCheckoutSession(BaseModel):
     currency = fields.CharField(max_length=3)
     amount_micros = fields.BigIntField()
     credit_amount = fields.BigIntField(null=True)
+    external_price_id = fields.CharField(max_length=255)
     external_session_id = fields.CharField(max_length=255, unique=True)
     checkout_url = fields.TextField()
     idempotency_key = fields.CharField(max_length=160, unique=True)
+    request_fingerprint = fields.CharField(max_length=64)
     actor_user_id = fields.UUIDField(db_index=True)
     expires_at = fields.DatetimeField(db_index=True)
     completed_at = fields.DatetimeField(null=True)
+    revision = fields.BigIntField(default=1)
 
     if TYPE_CHECKING:
         workspace_id: UUID
@@ -146,7 +151,10 @@ class CommerceCheckoutSession(BaseModel):
         table = "commerce_checkout_sessions"
         table_description = "Durable subscription and top-up checkout sessions."
         abstract = False
-        indexes = (("workspace_id", "created_at"), ("provider", "provider_mode", "status"))
+        indexes = (
+            ("workspace_id", "created_at"),
+            ("provider", "provider_mode", "provider_account_id", "status"),
+        )
 
 
 class CommerceInvoice(BaseModel):

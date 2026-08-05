@@ -94,3 +94,10 @@ def test_payment_models_keep_provider_projections_and_workspace_automation_disti
     }
     for model, table in expected_tables.items():
         assert model._meta.db_table == table
+    assert {
+        "plan_code",
+        "provider_account_id",
+        "external_price_id",
+        "request_fingerprint",
+        "revision",
+    }.issubset(CommerceCheckoutSession._meta.fields_map)

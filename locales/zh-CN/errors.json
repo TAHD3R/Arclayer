@@ -1,5 +1,7 @@
 {
   "AI_CREDITS_EXHAUSTED": "当前工作空间的 AI 积分已用尽。请等待下次刷新或升级套餐。",
+  "BILLING_CHECKOUT_IDEMPOTENCY_CONFLICT": "该结账请求标识已用于不同的结账内容。",
+  "BILLING_CHECKOUT_IDEMPOTENCY_KEY_INVALID": "结账请求需要有效的幂等标识。",
   "BILLING_CONNECTOR_INVALID": "已配置的计费连接器未实现必需的计费契约。",
   "BILLING_CUSTOMER_NOT_FOUND": "当前工作空间尚未关联支付客户。",
   "BILLING_PRICE_NOT_SUPPORTED": "支付提供商无法处理所选套餐价格。",

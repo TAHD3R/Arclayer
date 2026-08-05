@@ -11,10 +11,16 @@ from src.models.commerce.billing import BillingCycle, SubscriptionStatus
 from src.modules.commerce.subscription_transitions.schema import ProviderConfirmedTransitionEvidence
 
 
-class CheckoutSession(BaseModel):
-    model_config = ConfigDict(frozen=True)
+class BillingRedirectSession(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     url: str
+
+
+class CheckoutSession(BillingRedirectSession):
+    external_session_id: str = Field(..., min_length=1, max_length=255)
+    provider_account_id: str = Field(..., min_length=1, max_length=255)
+    expires_at: AwareDatetime
 
 
 class ProviderDunningEvent(BaseModel):
@@ -89,6 +95,7 @@ class BillingConnector(Protocol):
         self,
         *,
         workspace_id: str,
+        plan_code: str,
         plan_id: str,
         plan_revision_id: str,
         external_price_id: str,
@@ -106,7 +113,7 @@ class BillingConnector(Protocol):
         customer_id: str,
         return_url: str,
         idempotency_key: str,
-    ) -> CheckoutSession: ...
+    ) -> BillingRedirectSession: ...
 
     def verify_webhook(
         self,

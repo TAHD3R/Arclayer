@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import json
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -20,6 +20,7 @@ from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
 from src.modules.commerce.billing_connector import (
+    BillingRedirectSession,
     BillingWebhookEnvelope,
     CheckoutSession,
     ProviderSubscription,
@@ -29,6 +30,8 @@ logger = get_logger(__name__)
 
 _CONNECTOR_KEY = "billing.simulated"
 _EXTENSION_NAME = "arclayer-simulated-billing"
+_CHECKOUT_SESSION_TTL = timedelta(minutes=30)
+_PROVIDER_ACCOUNT_ID = "platform"
 
 
 class _SimulatedWebhookEvent(BaseModel):
@@ -57,6 +60,7 @@ class SimulatedBillingConnector:
         self,
         *,
         workspace_id: str,
+        plan_code: str,
         plan_id: str,
         plan_revision_id: str,
         external_price_id: str,
@@ -67,19 +71,17 @@ class SimulatedBillingConnector:
         customer_id: str | None,
         idempotency_key: str,
     ) -> CheckoutSession:
-        del (
-            workspace_id,
-            plan_id,
-            plan_revision_id,
-            external_price_id,
-            billing_cycle,
-            currency,
-            success_url,
-            cancel_url,
-            customer_id,
-            idempotency_key,
+        del workspace_id, plan_code, plan_id, plan_revision_id, external_price_id, billing_cycle, currency
+        del cancel_url, customer_id
+        digest = hashlib.sha256(idempotency_key.encode()).hexdigest()[:32]
+        external_session_id = f"sim_cs_{digest}"
+        separator = "&" if "?" in success_url else "?"
+        return CheckoutSession(
+            url=(f"{success_url}{separator}billingProvider=simulated&simulatedCheckout={external_session_id}"),
+            external_session_id=external_session_id,
+            provider_account_id=_PROVIDER_ACCOUNT_ID,
+            expires_at=datetime.now(UTC) + _CHECKOUT_SESSION_TTL,
         )
-        raise ServiceUnavailable(error="BILLING_SIMULATOR_CHECKOUT_NOT_AVAILABLE")
 
     async def create_portal_session(
         self,
@@ -87,7 +89,7 @@ class SimulatedBillingConnector:
         customer_id: str,
         return_url: str,
         idempotency_key: str,
-    ) -> CheckoutSession:
+    ) -> BillingRedirectSession:
         del customer_id, return_url, idempotency_key
         raise ServiceUnavailable(error="BILLING_SIMULATOR_PORTAL_NOT_AVAILABLE")
 
@@ -161,7 +163,7 @@ class SimulatedBillingExtension:
                 kind=ConnectorKind.BILLING,
                 version="1.0.0",
                 trust_level=ConnectorTrustLevel.OFFICIAL,
-                capabilities=("subscription_webhook",),
+                capabilities=("checkout", "subscription_webhook"),
                 config_schema={
                     "webhookToleranceSeconds": {"type": "integer", "minimum": 30, "maximum": 3600},
                 },

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { apiGetMock, apiPutMock } = vi.hoisted(() => ({
+const { apiGetMock, apiPostMock, apiPutMock } = vi.hoisted(() => ({
   apiGetMock: vi.fn(),
+  apiPostMock: vi.fn(),
   apiPutMock: vi.fn(),
 }));
 
@@ -12,12 +13,14 @@ vi.mock("@/lib/http", async (importOriginal) => {
     api: {
       ...original.api,
       get: apiGetMock,
+      post: apiPostMock,
       put: apiPutMock,
     },
   };
 });
 
 import {
+  createWorkspaceCheckoutSession,
   listWorkspaceMemberCreditLimits,
   listWorkspaceMemberCreditUsage,
   setWorkspaceDefaultMemberCreditLimit,
@@ -74,6 +77,23 @@ const mutationResult = {
 
 describe("commerce member Credit API", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("creates checkout with encoded Workspace ID and an explicit idempotency header", async () => {
+    apiPostMock.mockResolvedValueOnce({ url: "https://checkout.example.test/session" });
+
+    const result = await createWorkspaceCheckoutSession(
+      "workspace/id",
+      { planCode: "premium", billingInterval: "yearly" },
+      "checkout-command-1",
+    );
+
+    expect(result.url).toBe("https://checkout.example.test/session");
+    expect(apiPostMock).toHaveBeenCalledWith(
+      "/workspaces/workspace%2Fid/commerce/checkout-session",
+      { planCode: "premium", billingInterval: "yearly" },
+      { headers: { "Idempotency-Key": "checkout-command-1" } },
+    );
+  });
 
   it("lists usage with encoded Workspace ID, default pagination, and AbortSignal", async () => {
     const controller = new AbortController();
