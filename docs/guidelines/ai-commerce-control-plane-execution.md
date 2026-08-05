@@ -239,10 +239,41 @@ M1.5b active boundary:
 - Keep ordinary members read-only/self-only, and keep role assignment, feature-seat allocation, and M1.4 Workspace default-limit ownership outside the per-member dialog.
 - Add stable bilingual copy and focused tests for inherited/limited/unlimited overrides, Owner self-edit, permission gating, exact set/clear commands, stale revision, idempotent retry, and the Workspace setting route.
 
+M1.5b execution parts:
+
+1. M1.5b.1 shared client contracts and member-limit controller. — Active
+   - Extract one Commerce-management authority hook used by Plan & Usage, People, and the Workspace settings entry.
+   - Define non-colliding query keys for Commerce overview, member-limit configuration, full member limits, People Usage, and the Plan & Usage member table.
+   - Add a manager-only paginated member-limits controller keyed by `membershipId`.
+   - Preserve one Workspace-wide `configurationRevision`; reject inconsistent pages and duplicate member rows explicitly.
+   - Implement per-member revision-bound set/clear mutations, response-scope validation, target-aware idempotency fingerprints, conflict refresh, and canonical cache invalidation.
+2. M1.5b.2 focused per-member override dialog and People row action. — Pending
+   - Use `SettingDialog`, React Hook Form, Zod, and canonical shared fields.
+   - Keep `inherit`, explicit positive-integer `limited`, and explicit `unlimited` as three distinct states.
+   - Owner may edit their own row; Billing Managers require both the role-management Entitlement and exact Commerce permission; ordinary members receive no action.
+   - Keep roles, Feature Seat assignment, member activation, and member removal as separate actions and authorities.
+3. M1.5b.3 canonical Workspace settings entry and focus target. — Pending
+   - Add an authorized Workspace-basics entry that opens `workspace.plan-usage` at `default-member-credit-limit`.
+   - Add one `SettingsSectionAnchor` around the existing M1.4 editor.
+   - Do not add another default-limit form, mutation, cache, or policy store.
+4. M1.5b.4 validation, execution-record update, and focused commit. — Pending
+   - Run focused controller/dialog/People/settings tests, App lint/format/locale checks, Product OpenAPI typecheck, the affected package gate, Code Review Engine, and staged GitNexus detection.
+   - Record exact results and known unrelated failures here before the M1.5b commit.
+
+M1.5b implementation constraints:
+
+- `overrideLimit === null` means inherited Workspace default; explicit unlimited is a persisted override with `limitKind = "unlimited"` and `limitCredits = null`.
+- Clear commands contain only `action`, `expectedRevision`, and `idempotencyKey`; they never carry limit fields.
+- Dialog state comes from manager-only `member-limits`, never inferred from effective Usage because inherited unlimited and explicit unlimited have the same effective value.
+- One failed target/revision/action/value fingerprint reuses its idempotency key. Changing any fingerprint component creates a new key.
+- A successful mutation must validate Workspace id, membership id, configuration revision, override limit, and effective limit before updating client state.
+- A revision or idempotency conflict refreshes canonical limits and Usage, keeps the dialog available, and reports that the attempted change was not applied.
+- Mutation success invalidates full member limits, the M1.4 configuration snapshot, People Usage, and the Plan & Usage member table without resetting durable Usage counters.
+- Workspace settings may navigate to the canonical Plan & Usage control only; Product and Platform specs forbid a second Workspace Commerce mutation form.
+
 ## Known unrelated repository failures
 
-- API Ruff currently reports five existing import-order/type-annotation findings in Jobs, Notifications, Design Systems publication, Platform Jobs composition, and a Workspace team notification test outside M1.2.
-- API format check currently passes all `1843` files.
+- API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
 - Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.4.
@@ -306,3 +337,11 @@ M1.5b active boundary:
 - Removed the three People tab icons locally while preserving Radix keyboard activation, active state, invite flows, and the invite-link action icon.
 - Verified `23` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck; the package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.5b per-member overrides and the canonical Workspace setting entry.
+
+### 2026-08-05 — M1.5b preparation checkpoint
+
+- Committed the previously accumulated AI thread pinning and grouped-history vertical as `3de7dceb feat(ai): add pinned grouped thread history` before beginning M1.5b.
+- Committed the remaining API formatting and Ruff cleanup as `70e0ed9f chore(api): normalize formatting and lint`; API lint and format checks now pass.
+- Re-read the approved administration experience, Workspace commercialization, Product UI toolchain, frontend design guideline, and `DESIGN.md` contracts before changing the Product surfaces.
+- Split M1.5b into four recoverable execution parts and selected M1.5b.1 as the only active implementation part.
+- Confirmed that M1.5b adds no backend route or second policy store: it consumes the M1 APIs completed in M1.2/M1.3 and deep-links Workspace basics to the existing M1.4 default-limit editor.
