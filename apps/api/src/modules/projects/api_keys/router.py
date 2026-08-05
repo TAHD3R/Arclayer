@@ -9,6 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.api_keys.schema import (
     ApiKeyCreateOut,
     ApiKeyListOut,
@@ -19,6 +20,7 @@ from src.modules.projects.api_keys.service import ProjectApiKeysService
 from src.modules.projects.http.router_helpers import (
     get_project_runtime_context,
     get_project_runtime_service,
+    require_project_commercial_effect,
     require_project_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
@@ -60,7 +62,10 @@ async def list_project_api_keys(
     "",
     response_model=ResponseModel[ApiKeyCreateOut],
     summary="Create a project service or delivery API key",
-    dependencies=[require_project_permission("project:api-keys:manage")],
+    dependencies=[
+        require_project_permission("project:api-keys:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.ACCESS_EXPANSION),
+    ],
 )
 async def create_project_api_key(
     payload: ProjectApiKeyCreateIn,

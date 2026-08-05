@@ -31,6 +31,7 @@ from src.core.i18n import t
 from src.models.agents.approval import AgentApprovalStatus
 from src.modules.ai.service import AIChatService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.agents.approval_repository import AgentApprovalRepository
 from src.modules.projects.agents.approval_schema import (
     AgentApprovalApplyOut,
@@ -67,6 +68,7 @@ from src.modules.projects.content.shared.router import (
     require_project_content_manage_context,
     require_project_content_read_context,
 )
+from src.modules.projects.http.router_helpers import require_project_commercial_effect
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
@@ -308,6 +310,7 @@ async def list_project_agents(
     response_model=ResponseModel[AgentContentDraftProposalOut],
     response_model_exclude_none=True,
     summary="Generate a content draft proposal and create an approval checkpoint",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT)],
 )
 async def create_project_agent_content_draft_proposal(
     payload: Annotated[AgentContentDraftProposalRequest, Body(description="Content writer proposal request.")],
@@ -334,6 +337,7 @@ async def create_project_agent_content_draft_proposal(
     response_model=ResponseModel[AgentContentModelDraftProposalOut],
     response_model_exclude_none=True,
     summary="Generate a content model schema proposal and create an approval checkpoint",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT)],
 )
 async def create_project_agent_content_model_draft_proposal(
     payload: Annotated[AgentContentModelDraftProposalRequest, Body(description="Content modeler proposal request.")],
@@ -360,6 +364,7 @@ async def create_project_agent_content_model_draft_proposal(
     response_model=ResponseModel[AgentApprovalOut],
     response_model_exclude_none=True,
     summary="Create a dry-run approval checkpoint for a proposed Agent write",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def create_project_agent_approval_dry_run(
     payload: Annotated[AgentContentApprovalDryRunRequest, Body(description="Agent write dry-run request.")],
@@ -404,6 +409,7 @@ async def list_project_agent_approvals(
     response_model=ResponseModel[AgentApprovalOut],
     response_model_exclude_none=True,
     summary="Modify a pending Agent content approval checkpoint",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def modify_project_agent_approval(
     approval_id: PublicUUID,
@@ -439,6 +445,7 @@ async def modify_project_agent_approval(
     response_model=ResponseModel[AgentApprovalOut],
     response_model_exclude_none=True,
     summary="Approve a pending Agent write checkpoint without applying it",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def approve_project_agent_approval(
     approval_id: PublicUUID,
@@ -499,6 +506,7 @@ async def reject_project_agent_approval(
     response_model=ResponseModel[AgentApprovalApplyOut],
     response_model_exclude_none=True,
     summary="Apply an approved Agent write checkpoint through the canonical content draft writer",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def apply_project_agent_approval(
     approval_id: PublicUUID,
@@ -539,6 +547,7 @@ async def apply_project_agent_approval(
     "/runs",
     response_model=ResponseModel[AgentRunOut],
     summary="Run a read-only project agent",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT)],
 )
 async def create_project_agent_run(
     payload: AgentRunCreateRequest,
@@ -565,6 +574,7 @@ async def create_project_agent_run(
     "/runs/{run_id}/resume",
     response_model=ResponseModel[AgentRunOut],
     summary="Resume an interrupted project agent run",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT)],
 )
 async def resume_project_agent_run(
     run_id: UUID,
@@ -588,6 +598,7 @@ async def resume_project_agent_run(
 @router.post(
     "/runs/stream",
     summary="Stream a read-only project agent run",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT)],
 )
 async def stream_project_agent_run(
     payload: AgentRunCreateRequest,

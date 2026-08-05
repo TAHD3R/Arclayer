@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.environments.schema import (
     ProjectEnvironmentAliasOut,
     ProjectEnvironmentAliasSwitchIn,
@@ -19,7 +20,7 @@ from src.modules.projects.environments.schema import (
     ProjectEnvironmentPromoteIn,
 )
 from src.modules.projects.environments.service import ProjectEnvironmentsService
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.projects.http.router_helpers import require_project_commercial_effect, require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 
@@ -50,7 +51,10 @@ async def list_project_environments(
     response_model=ResponseModel[ProjectEnvironmentOut],
     response_model_exclude_none=True,
     summary="Update project environment",
-    dependencies=[require_project_permission("project:settings:manage")],
+    dependencies=[
+        require_project_permission("project:settings:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def patch_project_environment(
     environment_id: PublicUUID,
@@ -76,7 +80,10 @@ async def patch_project_environment(
     response_model=ResponseModel[ProjectEnvironmentAliasOut],
     response_model_exclude_none=True,
     summary="Switch project environment alias",
-    dependencies=[require_project_permission("project:settings:manage")],
+    dependencies=[
+        require_project_permission("project:settings:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def switch_project_environment_alias(
     alias_key: str,
@@ -101,7 +108,10 @@ async def switch_project_environment_alias(
     response_model=ResponseModel[ProjectEnvironmentCopyOut],
     response_model_exclude_none=True,
     summary="Clone project content environment",
-    dependencies=[require_project_permission("project:settings:manage")],
+    dependencies=[
+        require_project_permission("project:settings:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def clone_project_environment(
     payload: ProjectEnvironmentCloneIn,
@@ -117,7 +127,10 @@ async def clone_project_environment(
     response_model=ResponseModel[ProjectEnvironmentCopyOut],
     response_model_exclude_none=True,
     summary="Promote project content environment",
-    dependencies=[require_project_permission("project:settings:manage")],
+    dependencies=[
+        require_project_permission("project:settings:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def promote_project_environment(
     payload: ProjectEnvironmentPromoteIn,

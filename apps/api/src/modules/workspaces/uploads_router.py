@@ -22,7 +22,8 @@ from src.modules.assets.admin.uploads.schema import (
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import get_current_user
-from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context
 
@@ -52,7 +53,10 @@ def _ensure_workspace_upload_purpose(purpose: str | None) -> None:
     "/uploads/init",
     response_model=ResponseModel[UploadInitOut],
     summary="Initialize workspace upload session",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def init_upload(
     payload: UploadInitRequest,
@@ -123,7 +127,10 @@ async def get_upload_status(
     "/uploads/{upload_id}/parts/{part_number}",
     response_model=ResponseModel[None],
     summary="Upload a workspace asset part",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def upload_part(
     request: Request,
@@ -147,7 +154,10 @@ async def upload_part(
     "/uploads/{upload_id}/complete",
     response_model=ResponseModel[UploadCompleteOut],
     summary="Complete workspace upload",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def complete_upload(
     upload_id: PublicUUID,
@@ -181,7 +191,10 @@ async def abort_upload(
     "/uploads/{upload_id}/parts/{part_number}/presign",
     response_model=ResponseModel[UploadPartPresignOut],
     summary="Presign workspace upload part",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def presign_upload_part(
     upload_id: PublicUUID,
@@ -199,7 +212,10 @@ async def presign_upload_part(
     "/uploads/{upload_id}/parts/{part_number}/commit",
     response_model=ResponseModel[None],
     summary="Commit workspace upload part",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def commit_upload_part(
     upload_id: PublicUUID,

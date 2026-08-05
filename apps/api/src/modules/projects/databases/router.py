@@ -9,6 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.databases.provisioning import get_project_database_provisioner
 from src.modules.projects.databases.schema import (
     ProjectDatabaseCreateIn,
@@ -17,7 +18,7 @@ from src.modules.projects.databases.schema import (
     ProjectDatabaseRotateCredentialIn,
 )
 from src.modules.projects.databases.service import ProjectDatabasesService
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.projects.http.router_helpers import require_project_commercial_effect, require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 
@@ -47,7 +48,10 @@ async def list_project_databases(
     response_model=ResponseModel[ProjectDatabaseDetailOut],
     response_model_exclude_none=True,
     summary="Create project database",
-    dependencies=[require_project_permission("project:settings:manage")],
+    dependencies=[
+        require_project_permission("project:settings:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def create_project_database(
     payload: ProjectDatabaseCreateIn,

@@ -531,6 +531,11 @@ M2.3a.2 validation:
        - Project the same denial into permanent Job failure metadata so retry, schedule, Agent, and Job paths cannot reinterpret the payment state as transient.
      - M2.3b.3b Product API/automation denial matrix closure. — Active
        - Close unguarded Product HTTP and event-driven execution paths while preserving payment recovery, cancellation, revocation, deletion, and other reducing actions.
+       - M2.3b.3b.1 Product HTTP command matrix. — Complete
+         - Classify every reachable Product mutation route by its actual commercial effect, including storage, AI runtime, legacy Agent, environment, database, API-key, Automation configuration, Knowledge, Skill, and Design System surfaces.
+         - Keep abort, cancel, reject, revoke, rotate, delete, and other reducing or safety actions available during recovery.
+       - M2.3b.3b.2 Event-driven Automation execution preflight. — Active
+         - Pre-authorize every distinct operation effect before creating an Automation run or dispatching any operation so mixed flows cannot partially execute under Grace or Restricted access.
      - M2.3b.3c withheld period Credits and immutable handoff evidence. — Pending
        - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
 3. M2.3c recovery, renewal, and closure. — Pending
@@ -587,6 +592,21 @@ M2.3b.3a validation:
 - Targeted Ruff lint and formatting passed after formatting the single changed test file; targeted `ty` passed for all changed production modules.
 - Product locale parity passed for all `23` namespaces.
 - GitNexus pre-edit impact for `RestrictedRecoveryService.classify`, `CommercialAccessJobAuthorizer.authorize`, and the common Job terminal contract was `LOW`, with at most one direct test caller and zero affected execution flows.
+
+M2.3b.3b.1 implementation evidence:
+
+- Added explicit commercial-effect dependencies to every newly identified reachable Product mutation route. Storage and rendering/AI dispatch paths use `METERED_EXTERNAL_EFFECT`; content/configuration writes use `CONTENT_MUTATION`; API-key creation uses `ACCESS_EXPANSION`.
+- Reclassified project and Workspace upload init/part/complete/presign/commit operations as metered external effects because they allocate or write storage. Upload status/policy reads remain read-only and abort remains available without a commercial blocker.
+- Classified durable AI Run create/resume, legacy Agent proposal/run/resume/stream, project database creation, and representative Design System preview as metered effects. Thread metadata, Agent approval mutation/apply, environments, and Automation flow configuration remain ordinary content mutations.
+- Preserved recovery and risk-reducing actions without commercial blockers, including AI/Agent cancel, Tool response, thread deletion, upload abort, API-key revoke/rotate, database credential rotation, Automation deletion, and Agent rejection.
+- Expanded the route contract test into an exact mutation matrix. `None` is an explicit assertion that the route intentionally has no commercial blocker rather than an omitted classification.
+
+M2.3b.3b.1 validation:
+
+- Exact Product command-route matrix passed `5` tests after synchronizing all reachable Knowledge Guidance, ZIP Skill import, Design System publication/preview, storage, AI runtime, legacy Agent, API-key, database, environment, and Automation mutations.
+- Targeted Ruff lint/format and `ty` passed across all ten changed production/test files.
+- GitNexus pre-edit impact for every changed route function was `LOW`, with zero affected execution processes.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its only report-only finding is the existing prototype module-structure suggestion for `apps/api/src/modules/ai`.
 
 ## Known unrelated repository failures
 
@@ -767,3 +787,10 @@ M2.3b.3a validation:
 - Projected the same denial into the common permanent Job terminal contract so Agent, retry, and scheduled Job execution cannot bypass the payment state.
 - Verified `46` focused tests, targeted Ruff/format/`ty`, and Product locale parity across `23` namespaces.
 - Split the remaining closure into Product API/automation matrix work followed by withheld-period Credit and immutable handoff database evidence; selected M2.3b.3b as the only active part.
+
+### 2026-08-05 — M2.3b.3b.1 Product HTTP command matrix
+
+- Closed the reachable Product HTTP mutation matrix across storage, AI runtime, legacy Agent, API-key, database, environment, Automation configuration, Knowledge, Skill, and Design System routes.
+- Classified new external-cost dispatch as metered while retaining ordinary content mutation during Grace and preserving reducing/recovery actions without a commercial blocker.
+- Verified the exact route matrix with `5` tests plus targeted Ruff/format/`ty` checks and a zero-blocker changed-scope review.
+- Advanced the only active implementation part to M2.3b.3b.2 event-driven Automation execution preflight.

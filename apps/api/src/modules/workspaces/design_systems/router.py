@@ -347,7 +347,10 @@ async def list_workspace_design_system_validations(
 @router.post(
     "/{system_id}/versions/{version_id}/previews",
     response_model=ResponseModel[WorkspaceDesignSystemRepresentativePreviewOut],
-    dependencies=[require_workspace_permission("system:settings:read")],
+    dependencies=[
+        require_workspace_permission("system:settings:read"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
     summary="Render an exact representative Builder page for a Workspace Design System version",
 )
 async def preview_workspace_design_system_version(

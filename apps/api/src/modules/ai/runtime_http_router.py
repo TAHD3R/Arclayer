@@ -34,10 +34,11 @@ from src.modules.ai.runtime_thread_schema import (
 )
 from src.modules.ai.runtime_thread_service import AgentThreadService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.builder.repository import SiteBuilderRepository
 from src.modules.projects.design_systems.repository import ProjectDesignSystemsRepository
 from src.modules.tenancy.context import require_current_tenant_context
-from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
@@ -118,7 +119,10 @@ async def respond_to_agent_tool_call(
     "/runs/{run_id}/resume",
     response_model=ResponseModel[AgentRunCommandResponseV1],
     summary="Resume an interrupted AI Run",
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def resume_agent_run(
     payload: ResumeAgentRunRequestV1,
@@ -204,7 +208,10 @@ async def list_agent_threads(
     response_model=ResponseModel[AgentThreadOutV1],
     status_code=status.HTTP_201_CREATED,
     summary="Initialize a durable AI thread",
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def create_agent_thread(
     payload: AgentThreadCreateRequestV1,
@@ -228,7 +235,10 @@ async def create_agent_thread(
     response_model=ResponseModel[AgentRunCreateResponseV1],
     status_code=status.HTTP_202_ACCEPTED,
     summary="Create a durable AI Run",
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def create_agent_run(
     payload: AgentRunCreateRequestV1,
@@ -284,7 +294,10 @@ async def get_agent_thread(
     "/threads/{thread_id}",
     response_model=ResponseModel[AgentThreadOutV1],
     summary="Update durable AI thread metadata",
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def update_agent_thread(
     payload: AgentThreadUpdateRequestV1,

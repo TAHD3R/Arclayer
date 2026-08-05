@@ -58,7 +58,7 @@ def _project_scope(ctx: ProjectRequestContext) -> AssetScope:
     summary="Initialize project upload session",
     dependencies=[
         require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
 )
 async def init_upload(
@@ -127,7 +127,7 @@ async def get_upload_status(
     summary="Upload a project asset part",
     dependencies=[
         require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
 )
 async def upload_part(
@@ -153,7 +153,7 @@ async def upload_part(
     summary="Complete project upload",
     dependencies=[
         require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
 )
 async def complete_upload(
@@ -170,10 +170,7 @@ async def complete_upload(
     "/uploads/{upload_id}/abort",
     response_model=ResponseModel[UploadAbortOut],
     summary="Abort project upload",
-    dependencies=[
-        require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
-    ],
+    dependencies=[require_project_permission("project:assets:manage")],
 )
 async def abort_upload(
     upload_id: PublicUUID,
@@ -191,7 +188,7 @@ async def abort_upload(
     summary="Presign project upload part",
     dependencies=[
         require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
 )
 async def presign_upload_part(
@@ -211,7 +208,7 @@ async def presign_upload_part(
     summary="Commit project upload part",
     dependencies=[
         require_project_permission("project:assets:manage"),
-        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
 )
 async def commit_upload_part(

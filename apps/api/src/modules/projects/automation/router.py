@@ -9,6 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.authz.router_helpers import ensure_project_permission_granted
 from src.modules.projects.automation.schema import (
     AutomationCatalogOut,
@@ -20,6 +21,7 @@ from src.modules.projects.automation.schema import (
     AutomationRunOut,
 )
 from src.modules.projects.automation.service import ProjectAutomationService
+from src.modules.projects.http.router_helpers import require_project_commercial_effect
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 
@@ -81,6 +83,7 @@ async def list_project_automation_flows(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a project automation flow",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def create_project_automation_flow(
     payload: AutomationFlowCreateIn,
@@ -107,6 +110,7 @@ async def create_project_automation_flow(
     response_model=ResponseModel[AutomationFlowOut],
     response_model_exclude_none=True,
     summary="Update a project automation flow",
+    dependencies=[require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION)],
 )
 async def update_project_automation_flow(
     flow_id: PublicUUID,
