@@ -101,6 +101,24 @@ class TortoisePlanAccessConvergenceRepository:
         self._metadata_registry = metadata_registry
         self._activity_writer = activity_writer
 
+    async def requires_transition_convergence(
+        self,
+        *,
+        workspace_id: UUID,
+        source_revision_id: UUID,
+        target_revision_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> bool:
+        source = await self._lock_published_revision(revision_id=source_revision_id, conn=conn)
+        target = await self._lock_published_revision(revision_id=target_revision_id, conn=conn)
+        members = await self._active_members(workspace_id=workspace_id, conn=conn)
+        assignments = await self._feature_assignments(workspace_id=workspace_id, members=members, conn=conn)
+        return _requires_convergence(
+            source_revision=await self._revision_ref(revision=source, conn=conn),
+            target_revision=await self._revision_ref(revision=target, conn=conn),
+            assignments=assignments,
+        )
+
     async def capture_impact_snapshot(
         self,
         *,

@@ -69,7 +69,24 @@ def _subscription_payload(
     workspace_id: str,
     plan_id: str,
     plan_revision_id: str,
+    checkout_activation: dict[str, str] | None = None,
 ) -> bytes:
+    data: dict[str, object] = {
+        "billing_cycle": "monthly",
+        "cancel_at_period_end": False,
+        "currency": "USD",
+        "current_period_end": timestamp + 2_592_000,
+        "current_period_start": timestamp,
+        "customer_id": "sim_cus_unit123",
+        "external_price_id": "sim_price_premium_monthly",
+        "plan_id": plan_id,
+        "plan_revision_id": plan_revision_id,
+        "status": "active",
+        "subscription_id": "sim_sub_unit123",
+        "workspace_id": workspace_id,
+    }
+    if checkout_activation is not None:
+        data["checkout_activation"] = checkout_activation
     return json.dumps(
         {
             "id": "sim_evt_subscription123",
@@ -77,20 +94,7 @@ def _subscription_payload(
             "mode": "test",
             "account": "platform",
             "created": timestamp,
-            "data": {
-                "billing_cycle": "monthly",
-                "cancel_at_period_end": False,
-                "currency": "USD",
-                "current_period_end": timestamp + 2_592_000,
-                "current_period_start": timestamp,
-                "customer_id": "sim_cus_unit123",
-                "external_price_id": "sim_price_premium_monthly",
-                "plan_id": plan_id,
-                "plan_revision_id": plan_revision_id,
-                "status": "active",
-                "subscription_id": "sim_sub_unit123",
-                "workspace_id": workspace_id,
-            },
+            "data": data,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -254,6 +258,38 @@ async def test_simulated_connector_normalizes_strict_subscription_lifecycle_fact
     assert subscription.cancel_at_period_end is False
     assert subscription.dunning_event is None
     assert subscription.confirmed_transition is None
+    assert subscription.checkout_activation is None
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_normalizes_checkout_activation_correlation() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    checkout_session_id = uuid4()
+    payload = _subscription_payload(
+        timestamp=timestamp,
+        workspace_id=str(uuid4()),
+        plan_id=str(uuid4()),
+        plan_revision_id=str(uuid4()),
+        checkout_activation={
+            "checkout_session_id": str(checkout_session_id),
+            "external_session_id": "sim_cs_activation123",
+            "checkout_outcome_event_id": "sim_evt_checkoutactivation123",
+        },
+    )
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert subscription is not None
+    assert subscription.checkout_activation is not None
+    assert subscription.checkout_activation.checkout_session_id == checkout_session_id
+    assert subscription.checkout_activation.external_session_id == "sim_cs_activation123"
+    assert subscription.checkout_activation.checkout_outcome_event_id == "sim_evt_checkoutactivation123"
+    assert int(subscription.checkout_activation.occurred_at.timestamp()) == timestamp
 
 
 @pytest.mark.asyncio

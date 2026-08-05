@@ -554,9 +554,28 @@ class CommerceProviderEventApplication(BaseModel):
     plan_revision = fields.ForeignKeyField(
         "models.CommercePlanRevision", related_name="provider_event_applications", on_delete=fields.RESTRICT
     )
+    checkout_session = fields.ForeignKeyField(
+        "models.CommerceCheckoutSession",
+        related_name="subscription_event_applications",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    checkout_outcome_command = fields.ForeignKeyField(
+        "models.CommerceCheckoutOutcomeCommand",
+        related_name="subscription_event_applications",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
     provider_period_identity = fields.CharField(max_length=255, null=True)
     applied_at = fields.DatetimeField(null=True)
     result_code = fields.CharField(max_length=96, null=True)
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        subscription_id: UUID
+        plan_revision_id: UUID
+        checkout_session_id: UUID | None
+        checkout_outcome_command_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "commerce_provider_event_applications"

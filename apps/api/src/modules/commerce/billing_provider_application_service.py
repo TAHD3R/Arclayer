@@ -13,6 +13,7 @@ from src.core.exceptions import BadRequest, Conflict, ServiceUnavailable
 from src.core.services.base import BaseService
 from src.models.commerce.billing import (
     BillingProviderMode,
+    CommercePlan,
     CommercePlanRevision,
     CommercePlanRevisionPrice,
     CommerceProviderEventApplication,
@@ -26,6 +27,11 @@ from src.modules.commerce.access_state.composition import (
 )
 from src.modules.commerce.access_state.schema import ProviderDunningFactKind, VerifiedProviderDunningFact
 from src.modules.commerce.billing_connector import ProviderSubscription
+from src.modules.commerce.checkout_activation_repository import (
+    CheckoutActivationRecord,
+    CheckoutActivationRequest,
+    TortoiseCheckoutActivationRepository,
+)
 from src.modules.commerce.convergence.composition import build_plan_access_convergence_service
 from src.modules.commerce.convergence.schema import ProviderConfirmedConvergenceApplication
 from src.modules.commerce.convergence.service import PlanAccessConvergenceService
@@ -71,6 +77,15 @@ class _ProviderApplicationIdentity(Protocol):
     workspace_id: UUID
     subscription_id: UUID
     plan_revision_id: UUID
+    checkout_session_id: UUID | None
+    checkout_outcome_command_id: UUID | None
+    applied_at: datetime | None
+    result_code: str | None
+
+
+class _ValidatedProviderPrice(BaseSchema):
+    plan_code: str
+    amount_micros: int
 
 
 class BillingProviderSubscriptionApplicationService(BaseService):
@@ -83,11 +98,13 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         access_state: CommercialAccessStateComposition | None = None,
         convergence: PlanAccessConvergenceService | None = None,
         convergence_resolver: ProviderConfirmedConvergenceResolver | None = None,
+        checkout_activation: TortoiseCheckoutActivationRepository | None = None,
     ) -> None:
         super().__init__(settings)
         self._access_state = access_state or build_commercial_access_state_composition(settings=self.settings)
         self._convergence = convergence or build_plan_access_convergence_service(self.settings)
         self._convergence_resolver = convergence_resolver or TortoiseProviderConfirmedConvergenceResolver()
+        self._checkout_activation = checkout_activation or TortoiseCheckoutActivationRepository()
 
     async def apply_provider_subscription(
         self,
@@ -110,7 +127,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                 workspace_id=subscription.workspace_id,
                 conn=conn,
             )
-            await self._validate_exact_price(
+            validated_price = await self._validate_exact_price(
                 subscription=subscription,
                 provider=provider,
                 provider_mode=mode,
@@ -124,23 +141,41 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                 provider_account_id=provider_account_id,
                 conn=conn,
             )
+            activation: CheckoutActivationRecord | None = None
             try:
+                activation = await self._resolve_checkout_activation(
+                    subscription=subscription,
+                    workspace_subscription=workspace_subscription,
+                    validated_price=validated_price,
+                    provider=provider,
+                    provider_mode=mode,
+                    provider_account_id=provider_account_id,
+                    conn=conn,
+                )
+                await self._persist_activation_evidence(
+                    application=application,
+                    activation=activation,
+                    conn=conn,
+                )
                 await self._apply_confirmed_convergence(
                     subscription=subscription,
                     provider_event_id=verified_event.provider_event_id,
                     workspace_subscription=workspace_subscription,
+                    activation=activation,
                     conn=conn,
                 )
             except Conflict as exc:
                 await self._record_reconciliation_failure(application=application, conn=conn)
                 reconciliation_error = exc
+            is_applied_replay = False
             if reconciliation_error is None and not is_new:
-                self._validate_existing_application(
+                is_applied_replay = self._validate_existing_application(
                     application=application,
                     workspace_subscription=workspace_subscription,
                     subscription=subscription,
+                    activation=activation,
                 )
-            elif reconciliation_error is None:
+            if reconciliation_error is None and not is_applied_replay:
                 self._validate_subscription_order(
                     current=workspace_subscription,
                     incoming=subscription,
@@ -180,14 +215,23 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         subscription: ProviderSubscription,
         provider_event_id: str,
         workspace_subscription: WorkspaceSubscription,
+        activation: CheckoutActivationRecord | None,
         conn: BaseDBAsyncClient,
     ) -> None:
         evidence = subscription.confirmed_transition
+        revision_changed = workspace_subscription.plan_revision_id != subscription.plan_revision_id
+        if evidence is None and not revision_changed:
+            return
         if evidence is None:
-            if (
-                subscription.dunning_event is None
-                and workspace_subscription.plan_revision_id != subscription.plan_revision_id
-            ):
+            if activation is None:
+                raise Conflict(error="SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED")
+            requires_convergence = await self._convergence.requires_transition_convergence(
+                workspace_id=subscription.workspace_id,
+                source_revision_id=UUID(str(workspace_subscription.plan_revision_id)),
+                target_revision_id=subscription.plan_revision_id,
+                conn=conn,
+            )
+            if requires_convergence:
                 raise Conflict(error="SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED")
             return
         request = await self._convergence_resolver.resolve(
@@ -199,6 +243,67 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         )
         await self._convergence.apply_provider_confirmed(request=request, conn=conn)
         await workspace_subscription.refresh_from_db(using_db=conn)
+
+    async def _resolve_checkout_activation(
+        self,
+        *,
+        subscription: ProviderSubscription,
+        workspace_subscription: WorkspaceSubscription,
+        validated_price: _ValidatedProviderPrice,
+        provider: str,
+        provider_mode: BillingProviderMode,
+        provider_account_id: str,
+        conn: BaseDBAsyncClient,
+    ) -> CheckoutActivationRecord | None:
+        evidence = subscription.checkout_activation
+        if evidence is None:
+            return None
+        return await self._checkout_activation.resolve(
+            request=CheckoutActivationRequest(
+                workspace_id=subscription.workspace_id,
+                subscription_id=UUID(str(workspace_subscription.id)),
+                target_plan_revision_id=subscription.plan_revision_id,
+                plan_code=validated_price.plan_code,
+                provider=provider,
+                provider_mode=provider_mode,
+                provider_account_id=provider_account_id,
+                billing_cycle=subscription.billing_cycle,
+                currency=subscription.currency,
+                amount_micros=validated_price.amount_micros,
+                external_price_id=subscription.external_price_id,
+                checkout_session_id=evidence.checkout_session_id,
+                external_session_id=evidence.external_session_id,
+                checkout_outcome_event_id=evidence.checkout_outcome_event_id,
+                lifecycle_occurred_at=evidence.occurred_at,
+            ),
+            conn=conn,
+        )
+
+    @staticmethod
+    async def _persist_activation_evidence(
+        *,
+        application: CommerceProviderEventApplication,
+        activation: CheckoutActivationRecord | None,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        identity = cast(_ProviderApplicationIdentity, application)
+        if activation is None:
+            if identity.checkout_session_id is not None or identity.checkout_outcome_command_id is not None:
+                raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
+            return
+        if identity.checkout_session_id is None and identity.checkout_outcome_command_id is None:
+            application.checkout_session_id = activation.checkout_session_id
+            application.checkout_outcome_command_id = activation.checkout_outcome_command_id
+            await application.save(
+                update_fields=["checkout_session_id", "checkout_outcome_command_id"],
+                using_db=conn,
+            )
+            return
+        if (
+            identity.checkout_session_id != activation.checkout_session_id
+            or identity.checkout_outcome_command_id != activation.checkout_outcome_command_id
+        ):
+            raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
 
     @staticmethod
     async def _record_reconciliation_failure(
@@ -294,7 +399,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         provider: str,
         provider_mode: BillingProviderMode,
         conn: BaseDBAsyncClient,
-    ) -> None:
+    ) -> _ValidatedProviderPrice:
         revision = (
             await CommercePlanRevision
             .filter(
@@ -307,7 +412,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         )
         if revision is None:
             raise BadRequest(error="BILLING_PROVIDER_REVISION_INVALID")
-        price_exists = (
+        price = (
             await CommercePlanRevisionPrice
             .filter(
                 plan_revision_id=revision.id,
@@ -318,10 +423,14 @@ class BillingProviderSubscriptionApplicationService(BaseService):
                 external_price_id=subscription.external_price_id,
             )
             .using_db(conn)
-            .exists()
+            .first()
         )
-        if not price_exists:
+        if price is None:
             raise BadRequest(error="BILLING_PROVIDER_PRICE_INVALID")
+        plan = await CommercePlan.filter(id=subscription.plan_id).using_db(conn).first()
+        if plan is None:
+            raise BadRequest(error="BILLING_PROVIDER_REVISION_INVALID")
+        return _ValidatedProviderPrice(plan_code=plan.code, amount_micros=int(price.amount_micros))
 
     @staticmethod
     async def _lock_credit_account(
@@ -340,14 +449,24 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         application: CommerceProviderEventApplication,
         workspace_subscription: WorkspaceSubscription,
         subscription: ProviderSubscription,
-    ) -> None:
+        activation: CheckoutActivationRecord | None,
+    ) -> bool:
         identity = cast(_ProviderApplicationIdentity, application)
+        activation_checkout_id = activation.checkout_session_id if activation is not None else None
+        activation_command_id = activation.checkout_outcome_command_id if activation is not None else None
         if (
             identity.workspace_id != subscription.workspace_id
             or identity.subscription_id != workspace_subscription.id
             or identity.plan_revision_id != subscription.plan_revision_id
+            or identity.checkout_session_id != activation_checkout_id
+            or identity.checkout_outcome_command_id != activation_command_id
         ):
             raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
+        if identity.applied_at is not None and identity.result_code == "applied":
+            return True
+        if identity.applied_at is None and identity.result_code == "provider_reconciliation_required":
+            return False
+        raise BadRequest(error="BILLING_WEBHOOK_EVENT_CONFLICT")
 
     @staticmethod
     def _validate_subscription_order(*, current: WorkspaceSubscription, incoming: ProviderSubscription) -> None:
@@ -367,6 +486,7 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         provider: str,
         provider_mode: BillingProviderMode,
     ) -> None:
+        revision_changed = current.plan_revision_id != incoming.plan_revision_id
         current.plan_revision_id = incoming.plan_revision_id
         current.status = incoming.status
         current.billing_cycle = incoming.billing_cycle
@@ -377,6 +497,8 @@ class BillingProviderSubscriptionApplicationService(BaseService):
         current.provider_mode = provider_mode
         current.external_customer_id = incoming.customer_id
         current.external_subscription_id = incoming.subscription_id
+        if revision_changed:
+            current.revision += 1
 
     @staticmethod
     def _apply_credit_account(

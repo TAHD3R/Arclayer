@@ -25,6 +25,7 @@ from src.modules.commerce.billing_connector import (
     BillingRedirectSession,
     BillingWebhookEnvelope,
     CheckoutSession,
+    ProviderCheckoutActivationEvidence,
     ProviderCheckoutOutcome,
     ProviderSubscription,
 )
@@ -55,6 +56,14 @@ class _SimulatedCheckoutOutcomeData(BaseModel):
     outcome: Literal["pending", "succeeded", "failed", "canceled"]
 
 
+class _SimulatedCheckoutActivationData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    checkout_session_id: UUID
+    external_session_id: str = Field(..., min_length=1, max_length=255)
+    checkout_outcome_event_id: str = Field(..., min_length=1, max_length=255)
+
+
 class _SimulatedSubscriptionData(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -70,6 +79,7 @@ class _SimulatedSubscriptionData(BaseModel):
     current_period_start: int
     current_period_end: int
     cancel_at_period_end: bool = False
+    checkout_activation: _SimulatedCheckoutActivationData | None = None
 
     @model_validator(mode="after")
     def validate_period(self) -> "_SimulatedSubscriptionData":
@@ -162,6 +172,7 @@ class SimulatedBillingConnector:
         if event.type != _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
             raise ServiceUnavailable(error="BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE")
         data = self._require_subscription_data(event)
+        activation = data.checkout_activation
         return ProviderSubscription(
             event_id=event.id,
             workspace_id=data.workspace_id,
@@ -176,6 +187,16 @@ class SimulatedBillingConnector:
             current_period_start=_provider_timestamp(data.current_period_start),
             current_period_end=_provider_timestamp(data.current_period_end),
             cancel_at_period_end=data.cancel_at_period_end,
+            checkout_activation=(
+                ProviderCheckoutActivationEvidence(
+                    checkout_session_id=activation.checkout_session_id,
+                    external_session_id=activation.external_session_id,
+                    checkout_outcome_event_id=activation.checkout_outcome_event_id,
+                    occurred_at=_provider_timestamp(event.created),
+                )
+                if activation is not None
+                else None
+            ),
         )
 
     async def checkout_outcome_from_event(

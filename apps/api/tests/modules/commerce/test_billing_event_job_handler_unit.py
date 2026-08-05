@@ -396,7 +396,8 @@ async def test_provider_confirmed_transition_applies_only_the_resolved_convergen
     await service._apply_confirmed_convergence(
         subscription=subscription,
         provider_event_id=subscription.event_id,
-        workspace_subscription=workspace_subscription,
+        workspace_subscription=cast(Any, workspace_subscription),
+        activation=None,
         conn=conn,
     )
 
@@ -425,7 +426,8 @@ async def test_provider_target_revision_without_signed_schedule_evidence_does_no
         await service._apply_confirmed_convergence(
             subscription=subscription,
             provider_event_id=subscription.event_id,
-            workspace_subscription=workspace_subscription,
+            workspace_subscription=cast(Any, workspace_subscription),
+            activation=None,
             conn=cast(Any, object()),
         )
 
@@ -456,7 +458,8 @@ async def test_provider_schedule_mismatch_does_not_apply_or_rebind() -> None:
         await service._apply_confirmed_convergence(
             subscription=subscription,
             provider_event_id=subscription.event_id,
-            workspace_subscription=workspace_subscription,
+            workspace_subscription=cast(Any, workspace_subscription),
+            activation=None,
             conn=cast(Any, object()),
         )
 

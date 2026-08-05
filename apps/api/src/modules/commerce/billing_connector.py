@@ -43,6 +43,17 @@ class ProviderDunningEvent(BaseModel):
         return self
 
 
+class ProviderCheckoutActivationEvidence(BaseModel):
+    """Connector-normalized correlation to one completed subscription Checkout."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    checkout_session_id: UUID
+    external_session_id: str = Field(..., min_length=1, max_length=255)
+    checkout_outcome_event_id: str = Field(..., min_length=1, max_length=255)
+    occurred_at: AwareDatetime
+
+
 class ProviderSubscription(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -61,6 +72,13 @@ class ProviderSubscription(BaseModel):
     cancel_at_period_end: bool
     dunning_event: ProviderDunningEvent | None = None
     confirmed_transition: ProviderConfirmedTransitionEvidence | None = None
+    checkout_activation: ProviderCheckoutActivationEvidence | None = None
+
+    @model_validator(mode="after")
+    def validate_revision_authority(self) -> ProviderSubscription:
+        if self.confirmed_transition is not None and self.checkout_activation is not None:
+            raise ValueError("subscription event cannot carry multiple Revision authorities")
+        return self
 
 
 class ProviderCheckoutOutcome(BaseModel):

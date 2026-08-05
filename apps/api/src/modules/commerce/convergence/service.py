@@ -54,6 +54,15 @@ class FeatureAccessConvergenceParticipant(Protocol):
 
 
 class ConvergenceRepository(Protocol):
+    async def requires_transition_convergence(
+        self,
+        *,
+        workspace_id: UUID,
+        source_revision_id: UUID,
+        target_revision_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> bool: ...
+
     async def capture_impact_snapshot(
         self,
         *,
@@ -99,6 +108,21 @@ class PlanAccessConvergenceService(BaseService):
         self._free_allowance = free_allowance
         self._role_access = role_access
         self._feature_access = feature_access
+
+    async def requires_transition_convergence(
+        self,
+        *,
+        workspace_id: UUID,
+        source_revision_id: UUID,
+        target_revision_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> bool:
+        return await self._repository.requires_transition_convergence(
+            workspace_id=workspace_id,
+            source_revision_id=source_revision_id,
+            target_revision_id=target_revision_id,
+            conn=conn,
+        )
 
     async def create_preview(
         self, *, request: ConvergencePreviewRequest, conn: BaseDBAsyncClient | None = None

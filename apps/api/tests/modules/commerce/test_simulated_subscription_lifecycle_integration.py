@@ -21,15 +21,25 @@ from src.core.registries import ConnectorRegistry
 from src.models.commerce.billing import (
     BillingCycle,
     BillingProviderMode,
+    CommerceEntitlementDefinition,
     CommercePlan,
     CommercePlanRevision,
+    CommercePlanRevisionEntitlement,
     CommercePlanRevisionPrice,
     CommerceProviderEventApplication,
     CreditRefreshInterval,
+    EntitlementAllocationMode,
     PlanRevisionStatus,
     SubscriptionStatus,
     WorkspaceCreditAccount,
     WorkspaceSubscription,
+)
+from src.models.commerce.payments import (
+    CommerceCheckoutKind,
+    CommerceCheckoutOutcome,
+    CommerceCheckoutOutcomeCommand,
+    CommerceCheckoutSession,
+    CommerceCheckoutStatus,
 )
 from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
 from src.models.jobs.background_job import BackgroundJobRecord, JobDispatchOutboxRecord
@@ -44,6 +54,11 @@ from src.modules.commerce.billing_event_job_contract import (
 )
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
+from src.modules.commerce.billing_provider_application_service import (
+    BillingProviderSubscriptionApplicationService,
+    VerifiedBillingProviderEvent,
+)
+from src.modules.commerce.entitlement_schema import WORKSPACE_ROLES_MANAGE_ENTITLEMENT
 from src.modules.jobs.execution_errors import PermanentJobExecutionError
 from src.modules.jobs.execution_registry import JobExecutionContext
 from src.modules.jobs.service import BackgroundJobService
@@ -60,6 +75,20 @@ class _SubscriptionFixture:
     price: CommercePlanRevisionPrice
     subscription: WorkspaceSubscription
     account: WorkspaceCreditAccount
+
+
+@dataclass(frozen=True)
+class _ActivationFixture:
+    workspace: Workspace
+    target_plan: CommercePlan
+    source_revision: CommercePlanRevision
+    target_revision: CommercePlanRevision
+    target_price: CommercePlanRevisionPrice
+    subscription: WorkspaceSubscription
+    account: WorkspaceCreditAccount
+    checkout: CommerceCheckoutSession
+    command: CommerceCheckoutOutcomeCommand | None
+    outcome_event_id: str
 
 
 def _connector_type() -> type:
@@ -228,6 +257,197 @@ async def _fixture() -> _SubscriptionFixture:
     return _SubscriptionFixture(workspace, plan, revision, price, subscription, account)
 
 
+async def _activation_fixture(
+    *,
+    reduces_access: bool = False,
+    checkout_status: CommerceCheckoutStatus = CommerceCheckoutStatus.COMPLETED,
+) -> _ActivationFixture:
+    now = datetime.now(UTC).replace(microsecond=0)
+    suffix = uuid4().hex[:16]
+    organization = await Organization.create(slug=f"sim-activation-{suffix}", name="Simulated activation")
+    actor_user_id = uuid4()
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Simulated activation",
+        owner_user_id=actor_user_id,
+        created_by_user_id=actor_user_id,
+    )
+    source_plan = await CommercePlan.create(code=f"sim-source-{suffix}")
+    target_plan = await CommercePlan.create(code=f"sim-target-{suffix}")
+    source_revision = await _activation_revision(plan=source_plan, suffix=f"source-{suffix}", now=now)
+    target_revision = await _activation_revision(plan=target_plan, suffix=f"target-{suffix}", now=now)
+    roles_manage, _ = await CommerceEntitlementDefinition.get_or_create(
+        key=WORKSPACE_ROLES_MANAGE_ENTITLEMENT,
+        defaults={"supports_workspace_allocation": True},
+    )
+    await _activation_role_decision(
+        revision=source_revision,
+        entitlement=roles_manage,
+        included=reduces_access,
+    )
+    await _activation_role_decision(
+        revision=target_revision,
+        entitlement=roles_manage,
+        included=not reduces_access,
+    )
+    target_price = await CommercePlanRevisionPrice.create(
+        plan_revision_id=target_revision.id,
+        provider="simulated",
+        provider_mode=BillingProviderMode.TEST,
+        billing_cycle=BillingCycle.MONTHLY,
+        currency="USD",
+        amount_micros=12_000_000,
+        external_price_id=f"sim_price_activation_{suffix}",
+    )
+    subscription = await WorkspaceSubscription.create(
+        workspace_id=workspace.id,
+        plan_revision_id=source_revision.id,
+        status=SubscriptionStatus.ACTIVE,
+        billing_cycle=BillingCycle.MONTHLY,
+        current_period_start=now - timedelta(days=30),
+        current_period_end=now,
+        billing_provider="simulated",
+        provider_mode=BillingProviderMode.TEST,
+    )
+    account = await WorkspaceCreditAccount.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        plan_revision_id=source_revision.id,
+        period_start=subscription.current_period_start,
+        period_end=subscription.current_period_end,
+        period_identity=f"bootstrap:{subscription.id}",
+    )
+    checkout_completed_at = now if checkout_status != CommerceCheckoutStatus.EXPIRED else None
+    checkout = await CommerceCheckoutSession.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        target_plan_revision_id=target_revision.id,
+        plan_code=target_plan.code,
+        provider="simulated",
+        provider_mode=BillingProviderMode.TEST,
+        provider_account_id="platform",
+        kind=CommerceCheckoutKind.SUBSCRIPTION,
+        status=checkout_status,
+        billing_cycle=BillingCycle.MONTHLY,
+        currency="USD",
+        amount_micros=target_price.amount_micros,
+        external_price_id=target_price.external_price_id,
+        external_session_id=f"sim_cs_activation_{suffix}",
+        checkout_url=f"https://app.example.test/activation/{suffix}",
+        idempotency_key=f"checkout-activation-{suffix}",
+        request_fingerprint="a" * 64,
+        actor_user_id=actor_user_id,
+        expires_at=now + timedelta(minutes=30),
+        completed_at=checkout_completed_at,
+        revision=2,
+    )
+    outcome_event_id = f"sim_evt_checkoutactivation{suffix}"
+    command = None
+    if checkout_status != CommerceCheckoutStatus.EXPIRED:
+        succeeded = checkout_status == CommerceCheckoutStatus.COMPLETED
+        command = await CommerceCheckoutOutcomeCommand.create(
+            checkout_session_id=checkout.id,
+            workspace_id=workspace.id,
+            actor_user_id=actor_user_id,
+            outcome=CommerceCheckoutOutcome.SUCCEEDED if succeeded else CommerceCheckoutOutcome.FAILED,
+            expected_revision=1,
+            idempotency_key=f"outcome-activation-{suffix}",
+            request_fingerprint="b" * 64,
+            provider_event_id=outcome_event_id,
+            event_created_at=now,
+            accepted_inbox_id=uuid4(),
+            accepted_job_id=uuid4(),
+            accepted_at=now,
+            processed_at=now,
+            result_status=checkout_status,
+            result_revision=2,
+            revision=3,
+        )
+    return _ActivationFixture(
+        workspace=workspace,
+        target_plan=target_plan,
+        source_revision=source_revision,
+        target_revision=target_revision,
+        target_price=target_price,
+        subscription=subscription,
+        account=account,
+        checkout=checkout,
+        command=command,
+        outcome_event_id=outcome_event_id,
+    )
+
+
+async def _activation_revision(*, plan: CommercePlan, suffix: str, now: datetime) -> CommercePlanRevision:
+    return await CommercePlanRevision.create(
+        plan_id=plan.id,
+        sequence=1,
+        status=PlanRevisionStatus.PUBLISHED,
+        name_i18n_key=f"commerce:PLAN_{suffix}",
+        description_i18n_key=f"commerce:PLAN_DESCRIPTION_{suffix}",
+        credit_grant_amount=100,
+        credit_refresh_interval=CreditRefreshInterval.MONTHLY,
+        credit_value_micros=1_000,
+        currency="USD",
+        content_hash=uuid4().hex,
+        published_at=now,
+    )
+
+
+async def _activation_role_decision(
+    *,
+    revision: CommercePlanRevision,
+    entitlement: CommerceEntitlementDefinition,
+    included: bool,
+) -> None:
+    await CommercePlanRevisionEntitlement.create(
+        plan_revision_id=revision.id,
+        entitlement_id=entitlement.id,
+        is_included=included,
+        allocation_mode=EntitlementAllocationMode.WORKSPACE if included else None,
+        seat_limit_kind=None,
+        seat_limit_value=None,
+    )
+
+
+def _activation_payload(
+    *,
+    fixture: _ActivationFixture,
+    event_id: str,
+    event_time: datetime,
+    external_session_id: str | None = None,
+) -> bytes:
+    return json.dumps(
+        {
+            "id": event_id,
+            "type": "subscription.lifecycle",
+            "mode": "test",
+            "account": "platform",
+            "created": int(event_time.timestamp()),
+            "data": {
+                "billing_cycle": "monthly",
+                "cancel_at_period_end": False,
+                "checkout_activation": {
+                    "checkout_outcome_event_id": fixture.outcome_event_id,
+                    "checkout_session_id": str(fixture.checkout.id),
+                    "external_session_id": external_session_id or fixture.checkout.external_session_id,
+                },
+                "currency": "USD",
+                "current_period_end": int((event_time + timedelta(days=30)).timestamp()),
+                "current_period_start": int(event_time.timestamp()),
+                "customer_id": "sim_cus_activation",
+                "external_price_id": fixture.target_price.external_price_id,
+                "plan_id": str(fixture.target_plan.id),
+                "plan_revision_id": str(fixture.target_revision.id),
+                "status": "active",
+                "subscription_id": "sim_sub_activation",
+                "workspace_id": str(fixture.workspace.id),
+            },
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+
+
 async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejects_stale_period(
     db_schema,
     tmp_path: Path,
@@ -322,3 +542,214 @@ async def test_signed_simulated_subscription_lifecycle_applies_replays_and_rejec
     assert fixture.subscription.current_period_start == event_time
     assert fixture.subscription.current_period_end == period_end
     assert await CommerceProviderEventApplication.all().count() == 1
+
+
+async def test_completed_checkout_activates_target_revision_through_signed_lifecycle_chain(
+    db_schema,
+    tmp_path: Path,
+) -> None:
+    _ = db_schema
+    fixture = await _activation_fixture()
+    assert fixture.checkout.completed_at is not None
+    assert fixture.command is not None
+    secret = "integration-simulated-activation-secret"
+    settings = _settings(tmp_path, secret=secret)
+    connector = cast(
+        BillingConnector,
+        SimulatedBillingConnector(signing_secret=secret, webhook_tolerance_seconds=300),
+    )
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="simulated",
+        connector_key="billing.simulated",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.outcome", "subscription.lifecycle"),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    event_time = fixture.checkout.completed_at + timedelta(seconds=1)
+    event_id = f"sim_evt_subscriptionactivation{uuid4().hex[:16]}"
+    payload = _activation_payload(fixture=fixture, event_id=event_id, event_time=event_time)
+    signature = _signature(payload, timestamp=int(event_time.timestamp()), secret=secret)
+
+    accepted = await acceptance.accept(payload=payload, signature=signature)
+    replayed_acceptance = await acceptance.accept(payload=payload, signature=signature)
+    result = await handler.execute(context=_context(await ConnectorEventInbox.get(id=accepted.inbox_id)))
+    replayed_result = await handler.execute(context=_context(await ConnectorEventInbox.get(id=accepted.inbox_id)))
+
+    await fixture.subscription.refresh_from_db()
+    await fixture.account.refresh_from_db()
+    application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
+    assert accepted.created is True
+    assert replayed_acceptance.created is False
+    assert result == replayed_result
+    assert result.applied is True
+    assert fixture.subscription.plan_revision_id == fixture.target_revision.id
+    assert fixture.subscription.revision == 2
+    assert fixture.subscription.external_customer_id == "sim_cus_activation"
+    assert fixture.subscription.external_subscription_id == "sim_sub_activation"
+    assert fixture.account.plan_revision_id == fixture.target_revision.id
+    assert fixture.account.period_start == event_time
+    assert fixture.account.period_end == event_time + timedelta(days=30)
+    assert application.checkout_session_id == fixture.checkout.id
+    assert application.checkout_outcome_command_id == fixture.command.id
+    assert application.result_code == "applied"
+    assert application.applied_at is not None
+    assert await CommerceProviderEventApplication.filter(provider_event_id=event_id).count() == 1
+
+
+@pytest.mark.parametrize(
+    "case",
+    ("failed_checkout", "expired_checkout", "session_mismatch", "event_before_checkout", "access_reducing"),
+)
+async def test_checkout_activation_rejects_invalid_or_access_reducing_evidence(
+    db_schema,
+    tmp_path: Path,
+    case: str,
+) -> None:
+    _ = db_schema
+    status = {
+        "failed_checkout": CommerceCheckoutStatus.FAILED,
+        "expired_checkout": CommerceCheckoutStatus.EXPIRED,
+    }.get(case, CommerceCheckoutStatus.COMPLETED)
+    fixture = await _activation_fixture(
+        reduces_access=case == "access_reducing",
+        checkout_status=status,
+    )
+    secret = f"integration-simulated-{case}-secret"
+    settings = _settings(tmp_path, secret=secret)
+    connector = cast(
+        BillingConnector,
+        SimulatedBillingConnector(signing_secret=secret, webhook_tolerance_seconds=300),
+    )
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="simulated",
+        connector_key="billing.simulated",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.outcome", "subscription.lifecycle"),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    completed_at = fixture.checkout.completed_at or datetime.now(UTC).replace(microsecond=0)
+    event_time = completed_at + timedelta(seconds=-1 if case == "event_before_checkout" else 1)
+    event_id = f"sim_evt_subscriptionrejected{uuid4().hex[:16]}"
+    payload = _activation_payload(
+        fixture=fixture,
+        event_id=event_id,
+        event_time=event_time,
+        external_session_id=("sim_cs_mismatch" if case == "session_mismatch" else None),
+    )
+    accepted = await acceptance.accept(
+        payload=payload,
+        signature=_signature(payload, timestamp=int(event_time.timestamp()), secret=secret),
+    )
+    inbox = await ConnectorEventInbox.get(id=accepted.inbox_id)
+    context = _context(inbox)
+
+    with pytest.raises(PermanentJobExecutionError) as captured:
+        await handler.execute(context=context)
+    await handler.project_failure(context=context, error=captured.value)
+
+    await fixture.subscription.refresh_from_db()
+    inbox = await ConnectorEventInbox.get(id=inbox.id)
+    application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
+    assert captured.value.code == BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE
+    assert inbox.status == ConnectorEventInboxStatus.FAILED
+    assert fixture.subscription.plan_revision_id == fixture.source_revision.id
+    assert fixture.subscription.revision == 1
+    assert application.result_code == "provider_reconciliation_required"
+    assert application.applied_at is None
+    if case == "access_reducing":
+        assert fixture.command is not None
+        assert application.checkout_session_id == fixture.checkout.id
+        assert application.checkout_outcome_command_id == fixture.command.id
+    else:
+        assert application.checkout_session_id is None
+        assert application.checkout_outcome_command_id is None
+
+
+async def test_reconciliation_retry_applies_after_checkout_outcome_evidence_arrives(
+    db_schema,
+    tmp_path: Path,
+) -> None:
+    _ = db_schema
+    fixture = await _activation_fixture(checkout_status=CommerceCheckoutStatus.EXPIRED)
+    secret = "integration-simulated-reconciliation-retry-secret"
+    settings = _settings(tmp_path, secret=secret)
+    connector = cast(
+        BillingConnector,
+        SimulatedBillingConnector(signing_secret=secret, webhook_tolerance_seconds=300),
+    )
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="simulated",
+        connector_key="billing.simulated",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.outcome", "subscription.lifecycle"),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    event_time = datetime.now(UTC).replace(microsecond=0) + timedelta(seconds=1)
+    event_id = f"sim_evt_subscriptionretry{uuid4().hex[:16]}"
+    payload = _activation_payload(fixture=fixture, event_id=event_id, event_time=event_time)
+    signature = _signature(payload, timestamp=int(event_time.timestamp()), secret=secret)
+    accepted = await acceptance.accept(payload=payload, signature=signature)
+    inbox = await ConnectorEventInbox.get(id=accepted.inbox_id)
+    context = _context(inbox)
+    with pytest.raises(PermanentJobExecutionError) as first_failure:
+        await handler.execute(context=context)
+    await handler.project_failure(context=context, error=first_failure.value)
+
+    completed_at = event_time - timedelta(seconds=1)
+    fixture.checkout.status = CommerceCheckoutStatus.COMPLETED
+    fixture.checkout.completed_at = completed_at
+    await fixture.checkout.save(update_fields=["status", "completed_at"])
+    command = await CommerceCheckoutOutcomeCommand.create(
+        checkout_session_id=fixture.checkout.id,
+        workspace_id=fixture.workspace.id,
+        actor_user_id=fixture.checkout.actor_user_id,
+        outcome=CommerceCheckoutOutcome.SUCCEEDED,
+        expected_revision=1,
+        idempotency_key=f"outcome-retry-{uuid4().hex}",
+        request_fingerprint="c" * 64,
+        provider_event_id=fixture.outcome_event_id,
+        event_created_at=completed_at,
+        accepted_inbox_id=uuid4(),
+        accepted_job_id=uuid4(),
+        accepted_at=completed_at,
+        processed_at=completed_at,
+        result_status=CommerceCheckoutStatus.COMPLETED,
+        result_revision=2,
+        revision=3,
+    )
+    envelope = connector.verify_webhook(payload=payload, signature=signature)
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+    assert subscription is not None
+
+    await BillingProviderSubscriptionApplicationService(settings=settings).apply_provider_subscription(
+        subscription=subscription,
+        provider="simulated",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=VerifiedBillingProviderEvent(
+            provider_event_id=event_id,
+            payload_sha256=hashlib.sha256(payload).hexdigest(),
+            signature_reference=f"billing-webhook:{event_id}",
+        ),
+    )
+
+    await fixture.subscription.refresh_from_db()
+    application = await CommerceProviderEventApplication.get(provider_event_id=event_id)
+    assert fixture.subscription.plan_revision_id == fixture.target_revision.id
+    assert fixture.subscription.revision == 2
+    assert application.checkout_session_id == fixture.checkout.id
+    assert application.checkout_outcome_command_id == command.id
+    assert application.result_code == "applied"
+    assert application.applied_at is not None

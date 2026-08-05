@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3a.2 completed-Checkout activation evidence and Revision rebinding.
+Current active part: M2.3b dunning and restricted-access projection.
 
 Repository baseline:
 
@@ -468,13 +468,13 @@ M2.2b validation:
 
 M2.3 execution parts:
 
-1. M2.3a simulated subscription lifecycle event contract and application baseline. — In progress
+1. M2.3a simulated subscription lifecycle event contract and application baseline. — Complete
    - M2.3a.1 strict simulated subscription lifecycle normalization and same-Revision application baseline. — Complete
      - Add one strict `subscription.lifecycle` simulated event shape and normalize it to the existing `ProviderSubscription` contract without changing Stripe event ownership or behavior.
      - Route a signed event through `BillingEventAcceptanceService`, encrypted `ConnectorEventInbox`, pinned `BillingConnectorEventJobHandler`, and `BillingProviderSubscriptionApplicationService`; direct Subscription mutation is not accepted as lifecycle evidence.
      - Apply only the Subscription's already-bound published Revision and exact simulated Price in this slice. Verify Provider customer/subscription identity, period, status, application identity, duplicate replay, and stale-period rejection. Dunning, Credits, payment projections, and Revision rebinding remain unavailable.
      - Primary files are the simulated Connector and focused Connector/full-chain PostgreSQL tests. No schema or migration is expected.
-   - M2.3a.2 completed-Checkout activation evidence and Revision rebinding. — Active
+   - M2.3a.2 completed-Checkout activation evidence and Revision rebinding. — Complete
      - Correlate a completed simulated subscription Checkout to the exact Workspace, current Subscription, target Plan/Revision/Price, Provider account/session, and actor command evidence before a paid activation event may rebind the Revision.
      - Require the canonical Plan Access Convergence path for any access-reducing target; an unconfirmed or mismatched Revision change remains an explicit reconciliation failure.
      - Cover initial paid activation after completed Checkout, exact Provider period identity, duplicate replay, stale/out-of-order events, and unchanged Stripe behavior.
@@ -495,9 +495,30 @@ M2.3a.1 validation:
 - Targeted Ruff check/format and `ty` passed for the simulated Connector and both focused test files. GitNexus pre-edit impact for every modified Connector symbol was `LOW`, with zero indexed upstream dependencies and zero affected execution flows; dynamic plugin behavior is covered by the focused tests above.
 - Changed-scope Code Review Engine reported zero blocking findings. Its only report-only finding is the known prototype lifecycle rule for the simulated Connector, which registers through the canonical `arclayer_register` Connector contract.
 - Final staged GitNexus detection reported `LOW` risk across `4` files and `42` indexed symbols, with no affected execution flow.
-2. M2.3b dunning and restricted-access projection. — Pending
+
+M2.3a.2 implementation evidence:
+
+- Added strict Checkout activation evidence to the Provider subscription contract. A simulated lifecycle activation identifies the exact durable Checkout, external session, accepted Checkout outcome event, and lifecycle occurrence time; it cannot also carry a confirmed Provider transition.
+- Added migration `0122_checkout_activation_evidence`. Each `CommerceProviderEventApplication` may retain the exact Checkout session and outcome-command foreign keys that authorized a Revision-changing activation.
+- Added a dedicated Checkout activation repository that locks the outcome command before the Checkout session and validates Workspace, current Subscription, Plan/Revision/Price, Plan code, Provider/mode/account, billing cycle, currency, amount, external Price/session, successful terminal outcome, actor, accepted inbox/Job processing, and event ordering.
+- Revision rebinding now requires either confirmed Provider transition evidence or an exact completed-Checkout activation whose target does not reduce access. Access-reducing targets still require canonical Plan Access Convergence and fail explicitly when convergence is absent.
+- Provider application replay distinguishes an already-applied event from a recoverable `provider_reconciliation_required` application. A failed activation can be retried after its durable Checkout outcome evidence arrives; successful Revision rebinding advances `WorkspaceSubscription.revision`.
+- Dunning no longer bypasses Revision authority. Stripe normalization remains independent and does not receive simulated Checkout activation semantics.
+
+M2.3a.2 validation:
+
+- Focused unit regression passed `45` tests across Checkout activation repository, simulated and Stripe Connectors, Billing event Job handling, and migration shape.
+- Real PostgreSQL regression passed `15` tests across Provider-confirmed convergence, simulated lifecycle application, completed Checkout activation, replay, stale/out-of-order and mismatched evidence, access-reducing rejection, reconciliation retry, and the `0119 -> 0120 -> 0121 -> 0122` migration chain.
+- Targeted Ruff lint/format and `ty` passed across all `14` changed API, plugin, migration, and test files.
+- The active database is upgraded through `0122_checkout_activation_evidence`; a repeated `db:upgrade` reports no migrations to apply and `db:migrate` reports no model-state changes.
+- `pnpm api:check`: API lint and formatting passed across `1861` files. Broad typecheck remains blocked by `290` existing diagnostics in Design System/content and unrelated test surfaces, so Turbo interrupted broad pytest; the targeted Commerce type surface is green.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `39` report-only findings are existing convergence repository/protocol and i18n prototype reports plus the known simulated Connector lifecycle report; the new Checkout activation repository is recognized as a canonical `TortoiseORMRepository`.
+- The existing Stripe Credit integration fixture still attempts a Free-to-Premium Revision rebind without completed Checkout or confirmed transition evidence and correctly fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`; the authority boundary was not weakened to preserve that legacy fixture.
+
+2. M2.3b dunning and restricted-access projection. — Active
    - Normalize a failed-payment dunning fact with Provider period identity, occurrence time, and explicit recovery deadline; apply it through the existing access-state composition and configured Provider-aware dunning policy.
    - Verify warning/restricted/suspended transitions, optimistic access revision, duplicate/out-of-order convergence, entitlement/Credit denial behavior, and immutable signed evidence.
+   - First active slice: map the canonical dunning fact/state-machine contracts and add the strict simulated Provider normalization plus full signed-event application baseline without implementing recovery or renewal.
 3. M2.3c recovery, renewal, and closure. — Pending
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
    - Close M2.3 with delayed/reordered lifecycle integration coverage, unchanged Stripe regressions, package/static gates, staged GitNexus detection, changed-scope review, execution-record update, and a focused commit.
@@ -647,3 +668,12 @@ M2.3a.1 validation:
 - Changed-scope review has zero blocking findings and only the known simulated Connector lifecycle prototype report.
 - Final staged GitNexus risk is `LOW` with no affected execution flow.
 - Advanced the only active implementation part to M2.3a.2 completed-Checkout activation evidence and Revision rebinding.
+
+### 2026-08-05 — M2.3a.2 completed Checkout activation and Revision rebinding
+
+- Added exact completed-Checkout authority evidence and persisted it on Provider event application records through migration `0122`.
+- Restricted Revision rebinding to confirmed Provider transitions or exact completed Checkout activations, while retaining mandatory Plan Access Convergence for access-reducing targets.
+- Added recoverable reconciliation retry semantics, exact actor/session/outcome/event ordering checks, duplicate replay behavior, and `WorkspaceSubscription.revision` advancement.
+- Verified `45` unit tests, `15` PostgreSQL integration tests, targeted lint/format/type checks, active database migration state, and zero changed-scope Code Review Engine blockers.
+- Recorded the unchanged legacy Stripe fixture failure rather than adding a fallback or weakening Subscription authority.
+- Advanced the only active implementation part to M2.3b dunning and restricted-access projection.

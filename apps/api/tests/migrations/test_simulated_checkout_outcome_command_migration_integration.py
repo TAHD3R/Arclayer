@@ -17,6 +17,7 @@ from tests.migrations.test_upload_completion_migration_integration import (
 MIGRATION_0119 = "0119_commerce_checkout_session_evidence"
 MIGRATION_0120 = "0120_migration_state_reconciliation"
 MIGRATION_0121 = "0121_simulated_checkout_outcome_commands"
+MIGRATION_0122 = "0122_checkout_activation_evidence"
 MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "src" / "migrations"
 pytestmark = pytest.mark.integration
 
@@ -33,6 +34,7 @@ async def _prepare_predecessor_schema(conn: asyncpg.Connection) -> None:
         );
         CREATE TABLE workspaces (id UUID PRIMARY KEY);
         CREATE TABLE commerce_checkout_sessions (id UUID PRIMARY KEY);
+        CREATE TABLE commerce_provider_event_applications (id UUID PRIMARY KEY);
         """
     )
     migration_names = sorted(
@@ -45,11 +47,11 @@ async def _prepare_predecessor_schema(conn: asyncpg.Connection) -> None:
 
 
 @pytest.mark.asyncio
-async def test_state_reconciliation_and_outcome_command_upgrade_create_only_command_table(
+async def test_checkout_outcome_and_activation_evidence_upgrade_create_exact_schema(
     integration_db_settings,
 ) -> None:
     _ = integration_db_settings
-    database = f"arclayer_checkout_outcome_0121_{uuid4().hex[:10]}"
+    database = f"arclayer_checkout_activation_0122_{uuid4().hex[:10]}"
     admin_database = os.getenv("TEST_DATABASE__ADMIN_DB", "postgres")
     await _create_database(database, admin_database)
     try:
@@ -59,7 +61,7 @@ async def test_state_reconciliation_and_outcome_command_upgrade_create_only_comm
         finally:
             await conn.close()
 
-        await _run_upgrade(database, MIGRATION_0121)
+        await _run_upgrade(database, MIGRATION_0122)
         conn = await asyncpg.connect(**_connection_kwargs(database=database))
         try:
             columns = {
@@ -89,13 +91,25 @@ async def test_state_reconciliation_and_outcome_command_upgrade_create_only_comm
                 "revision",
             }.issubset(columns)
             assert await conn.fetchval("SELECT to_regclass('public.commerce_checkout_outcome_commands')") is not None
+            application_columns = {
+                row["column_name"]
+                for row in await conn.fetch(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'commerce_provider_event_applications'
+                    """
+                )
+            }
+            assert {"checkout_session_id", "checkout_outcome_command_id"}.issubset(application_columns)
             assert (
                 await conn.fetchval(
-                    "SELECT COUNT(*) FROM tortoise_migrations WHERE app = 'models' AND name IN ($1, $2)",
+                    "SELECT COUNT(*) FROM tortoise_migrations WHERE app = 'models' AND name IN ($1, $2, $3)",
                     MIGRATION_0120,
                     MIGRATION_0121,
+                    MIGRATION_0122,
                 )
-                == 2
+                == 3
             )
         finally:
             await conn.close()
