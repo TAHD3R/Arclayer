@@ -71,6 +71,7 @@ function SettingsNavList(props: {
           const label = identityOverride?.label ?? (item.labelKey ? t(item.labelKey) : item.label);
           const leadingLabel = resolveLeadingLabel(item, t);
           const showLeadingLabel = Boolean(leadingLabel && leadingLabel !== previousLabel);
+          const isFirstGroup = showLeadingLabel && previousLabel === null;
           previousLabel = leadingLabel ?? previousLabel;
 
           return (
@@ -78,7 +79,10 @@ function SettingsNavList(props: {
               {showLeadingLabel ? (
                 <li
                   data-slot="settings-nav-group-label"
-                  className="pl-2 pr-3 pt-4 pb-2 text-footnote font-semibold text-label-secondary"
+                  className={cn(
+                    "pl-2 pr-3 pb-2 text-footnote font-semibold text-label-secondary",
+                    isFirstGroup ? "pt-0" : "pt-4",
+                  )}
                   aria-hidden="true"
                 >
                   {leadingLabel}

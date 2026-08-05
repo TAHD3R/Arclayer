@@ -232,17 +232,25 @@ describe("SettingsScreenHost", () => {
     expect(closeButton).toHaveClass("shrink-0");
     expect(closeButton.parentElement).toHaveClass("absolute", "z-30");
     expect(routeFrame).toHaveClass(
+      "[--admin-route-gutter-x:1rem]",
+      "sm:[--admin-route-gutter-x:1.5rem]",
+      "lg:[--admin-route-gutter-x:2rem]",
+    );
+    expect(routeFrame).not.toHaveClass(
       "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
     );
-    expect(spacer).toHaveAttribute("data-preset", "settings-dialog");
-    expect(spacer?.firstElementChild).toHaveClass(
-      "lg:pb-[clamp(20px,calc(10.36585366vw_-_86.146341px),88px)]",
-    );
+    expect(spacer).toBeNull();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_APPEARANCE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" })).toBeVisible();
-    expect(screen.getByText("account:SETTINGS_NAV_SECTION_PERSONAL")).toBeVisible();
-    expect(screen.getByText("account:SETTINGS_NAV_SECTION_WORKSPACE")).toBeVisible();
+    const personalGroupLabel = screen.getByText("account:SETTINGS_NAV_SECTION_PERSONAL");
+    const workspaceGroupLabel = screen.getByText("account:SETTINGS_NAV_SECTION_WORKSPACE");
+    expect(personalGroupLabel).toBeVisible();
+    expect(personalGroupLabel).toHaveClass("pt-0");
+    expect(personalGroupLabel).not.toHaveClass("pt-4");
+    expect(workspaceGroupLabel).toBeVisible();
+    expect(workspaceGroupLabel).toHaveClass("pt-4");
+    expect(workspaceGroupLabel).not.toHaveClass("pt-0");
     expect(screen.getByText("account:SETTINGS_NAV_WORKSPACE_GENERAL")).toBeVisible();
     expect(screen.getByText("account:SETTINGS_NAV_WORKSPACE_PEOPLE")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE")).toBeVisible();

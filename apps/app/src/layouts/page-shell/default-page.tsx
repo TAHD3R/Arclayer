@@ -15,27 +15,17 @@ export type DefaultPageProps = BasePageProps & {
 };
 
 const PAGE_TOP_SPACER_CLASSNAME = "xl:pb-[clamp(20px,calc(5.90277778vw_-_65px),88px)]";
-const SETTINGS_DIALOG_TOP_SPACER_CLASSNAME =
-  "lg:pb-[clamp(20px,calc(10.36585366vw_-_86.146341px),88px)]";
-const SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME =
-  "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]";
+const SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME = "lg:[--admin-route-gutter-x:2rem]";
 
-function PageShellTopSpacer(props: { preset: NonNullable<DefaultPageProps["spacingPreset"]> }) {
+function PageShellTopSpacer() {
   return (
     <div
       className="relative min-h-[20px] max-h-[88px] w-full overflow-hidden"
       aria-hidden="true"
       data-slot="page-shell-top-spacer"
-      data-preset={props.preset}
+      data-preset="page"
     >
-      <div
-        className={clsx(
-          "relative w-full pb-0",
-          props.preset === "settings-dialog"
-            ? SETTINGS_DIALOG_TOP_SPACER_CLASSNAME
-            : PAGE_TOP_SPACER_CLASSNAME,
-        )}
-      />
+      <div className={clsx("relative w-full pb-0", PAGE_TOP_SPACER_CLASSNAME)} />
     </div>
   );
 }
@@ -71,7 +61,7 @@ export function DefaultPage({
         spacingPreset === "settings-dialog" && SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME,
       )}
     >
-      <PageShellTopSpacer preset={spacingPreset} />
+      {spacingPreset === "page" ? <PageShellTopSpacer /> : null}
       <div className="flex min-h-0 min-w-0 w-full" data-slot="default-page-shell">
         <PageMainRegion
           title={hideHeader ? undefined : title}

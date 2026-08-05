@@ -322,7 +322,7 @@ describe("DefaultPage", () => {
     heightSpy.mockRestore();
   });
 
-  it("supports a tighter top spacing preset for contained settings dialogs", () => {
+  it("uses compact horizontal spacing without a scrolling top spacer in settings dialogs", () => {
     render(
       <DefaultPage title="Settings" spacingPreset="settings-dialog">
         <div>Body</div>
@@ -333,14 +333,13 @@ describe("DefaultPage", () => {
     const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
 
     expect(routeFrame).toHaveClass(
+      "[--admin-route-gutter-x:1rem]",
+      "sm:[--admin-route-gutter-x:1.5rem]",
+      "lg:[--admin-route-gutter-x:2rem]",
+    );
+    expect(routeFrame).not.toHaveClass(
       "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
     );
-    expect(spacer).toHaveAttribute("data-preset", "settings-dialog");
-    expect(spacer?.firstElementChild).toHaveClass(
-      "relative",
-      "w-full",
-      "pb-0",
-      "lg:pb-[clamp(20px,calc(10.36585366vw_-_86.146341px),88px)]",
-    );
+    expect(spacer).toBeNull();
   });
 });
