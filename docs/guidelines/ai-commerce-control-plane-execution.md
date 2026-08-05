@@ -104,8 +104,8 @@ Active implementation parts:
 1. M1.1 schemas, repository/service, receipts, and migration extension. — Complete
 2. M1.2 Product router contracts and authorization tests. — Complete
 3. M1.3 OpenAPI synchronization and Product API wrappers. — Complete
-4. M1.4 Plan & Usage default-limit/usage surface. — Active
-5. M1.5 People Usage column and per-member override dialog.
+4. M1.4 Plan & Usage default-limit/usage surface. — Complete
+5. M1.5 People Usage column and per-member override dialog. — Active
 
 M1.1 acceptance criteria:
 
@@ -185,14 +185,36 @@ M1.3 validation:
 - Code Review Engine changed-scope audit exited successfully. All `49` report-only findings belong to unrelated API/AI/Platform files in the shared worktree; no M1.3 file received a finding.
 - `pnpm app:check`: lint, format, and locale tasks passed. Typecheck and the broad Vitest run failed on the existing `test/browser/product-acceptance.spec.ts` import of missing `../../../../tests/browser/support`; M1.3 focused tests and OpenAPI typecheck remain green.
 
-M1.4 active boundary:
+M1.4 status: Complete
 
-- Replace the current `apps/app/src/pages/workspaces/settings/workspace/plan-usage/plan-usage-view.tsx` composition with the approved Operational Ledger layout using canonical shadcn and shared `@arclayer/ui` primitives.
-- Present current plan, current-period Workspace Credit state, member Usage, and the Credit ledger from canonical Product Commerce APIs without duplicated estimates.
-- Add an Owner/Billing Manager default member-limit editor with explicit limited versus unlimited choices, optimistic revision, body-scoped idempotency, visible loading/error/conflict states, and query invalidation after success.
-- Ordinary members receive their self-only Usage projection and no management controls. M1.4 does not add the People table Usage column or per-member override dialog; those remain M1.5.
-- Keep plan selection, checkout, and customer-portal actions on their real Commerce paths. Do not introduce simulated success behavior in the Product Application.
-- Add stable `zh-CN` and `en-US` copy plus focused view/controller tests for loading, empty, limited, unlimited, permission, mutation, revision-conflict, and responsive presentation states.
+M1.4 implementation evidence:
+
+- Replaced the legacy Plan & Usage composition with an Operational Ledger layout built from canonical shared Card, Badge, Button, ContentGuard, settings, and data-table primitives.
+- The plan summary now presents canonical available Credits, reserved Credits, completed tasks, Credit period, next Credit refresh, and a separate paid-subscription renewal/cancellation lifecycle. Free plans never render sentinel renewal dates.
+- Added a Workspace default member-Credit limit editor with explicit limited versus unlimited semantics, positive safe-integer validation, optimistic configuration revision, body-scoped idempotency, accessible descriptions/errors, and visible saved/conflict/error states.
+- Added a controller that grants management to the active Workspace Owner or superuser, and requires both `workspace.roles.manage` and exact `workspace:commerce:manage` for other managers. Ordinary members receive the server-enforced self-only Usage projection and no billing/configuration controls.
+- Default-limit retries reuse an idempotency key only for the same failed revision-bound payload. Successful writes validate Workspace/default scope, update the cached revision, and invalidate limits plus member Usage. Revision/idempotency conflicts refresh canonical state before another edit.
+- Added an embedded member Usage table for committed, reserved, available, and effective-limit Credits. The member identity column is pinned for narrow viewports, unlimited values remain explicit, and missing identity copy never falls back to a raw user ID.
+- Kept Checkout/plan selection and the real customer portal path for authorized managers. The Credit Ledger remains a secondary evidence surface rather than the primary Usage model.
+- Added all new Product copy as stable bilingual `commerce` keys.
+
+M1.4 validation:
+
+- Focused Product tests: `23 passed` across the Plan & Usage view, controller, default-limit editor, and member Usage table.
+- Product App lint, format check, and locale parity passed; locale parity covers all `23` namespaces.
+- Product OpenAPI typecheck passed.
+- `pnpm app:check`: lint, format, and locale tasks passed. Typecheck and the broad Vitest task remain blocked by the existing `test/browser/product-acceptance.spec.ts` import of missing `../../../../tests/browser/support`; no M1.4 type error remained and all M1.4 focused tests passed.
+- Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its report-only findings belong to unrelated shared-worktree API/AI/Platform changes, plus one existing prototype directory-structure suggestion for the overlay-mounted `plan-usage` directory; no M1.4 behavioral or architecture blocker was reported.
+
+M1.5 active boundary:
+
+- Add current-period Usage to the Product People table from the canonical all-member member-Credit projection; do not derive Usage from plan grants, balances, or the Credit Ledger.
+- Add an Owner/Billing Manager per-member limit dialog with inherited-default, explicit limited, explicit unlimited, and clear-override states. The Workspace Owner may edit their own override.
+- Reuse the M1.4 authority boundary, optimistic configuration revision, body-scoped idempotency, scope validation, conflict refresh, and visible mutation states.
+- Remove icons from the People ChromeTabs while preserving labels, counts, active state, keyboard behavior, and responsive overflow.
+- Add the approved Workspace setting entry that routes authorized managers to the canonical default member-Credit limit control rather than creating a duplicated policy store.
+- Keep ordinary members read-only/self-only, and keep role assignment, feature-seat allocation, and M1.4 Workspace default-limit ownership outside the per-member dialog.
+- Add stable bilingual copy and focused tests for Usage cells, inherited/limited/unlimited overrides, Owner self-edit, permission gating, exact set/clear commands, stale revision, idempotent retry, and tab presentation.
 
 ## Known unrelated repository failures
 
@@ -200,7 +222,7 @@ M1.4 active boundary:
 - API format check currently passes all `1843` files.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
-- Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.3.
+- Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.4.
 - Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
 
 ## Progress log
@@ -243,3 +265,12 @@ M1.4 active boundary:
 - Closed the generated Credit Ledger enum integration gap with bilingual labels for promotional grants, purchased top-ups, and refunds.
 - Verified `7` focused Product tests, Product OpenAPI typecheck, App lint/format, and locale parity; the affected package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.4 Plan & Usage default-limit and member Usage surface.
+
+### 2026-08-05 — M1.4 Product Plan & Usage
+
+- Replaced the legacy page with canonical plan, current-period Credit, member Usage, default member-limit, and secondary Credit Ledger surfaces.
+- Enforced Owner/superuser management plus the exact entitlement-and-permission boundary for other Billing Managers; ordinary members retain self-only Usage without billing actions.
+- Added revision-bound and idempotent default-limit mutation behavior with explicit limited/unlimited semantics, conflict refresh, response-scope validation, and canonical query invalidation.
+- Added responsive member Usage presentation, accessible limit controls, raw-ID-safe identity fallbacks, and complete bilingual Commerce copy.
+- Verified `23` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The affected package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.5 People Usage, per-member overrides, icon-free ChromeTabs, and the canonical Workspace setting entry.

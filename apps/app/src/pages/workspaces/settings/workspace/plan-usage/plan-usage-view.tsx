@@ -1,43 +1,18 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarClock, Coins, CreditCard, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  createWorkspaceCustomerPortalSession,
-  getWorkspaceCommerceOverview,
-  type WorkspaceCommerceOverview,
-} from "@/api/commerce";
+import type { WorkspaceCommerceOverview } from "@/api/commerce";
 import { CreditLedgerTable } from "@/components/commerce/credit-ledger-table";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyError } from "@/lib/notifications";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-
-function UsageMetric(props: {
-  label: string;
-  value: string;
-  supporting?: string;
-  icon: typeof Coins;
-}) {
-  const Icon = props.icon;
-  return (
-    <div className="min-w-0 border-b border-border/60 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
-      <div className="flex items-center justify-between gap-3 text-footnote text-label-secondary">
-        <span>{props.label}</span>
-        <Icon className="size-4" aria-hidden="true" />
-      </div>
-      <div className="mt-2 truncate text-title2 font-semibold tabular-nums text-label-primary">
-        {props.value}
-      </div>
-      {props.supporting ? (
-        <p className="mt-1 text-caption text-label-secondary">{props.supporting}</p>
-      ) : null}
-    </div>
-  );
-}
+import { Skeleton } from "@arclayer/ui/skeleton";
+import { DefaultMemberCreditLimitEditor } from "./default-member-credit-limit-editor";
+import { MemberCreditUsageTable } from "./member-credit-usage-table";
+import { usePlanUsageController } from "./use-plan-usage-controller";
 
 function subscriptionBadgeVariant(status: WorkspaceCommerceOverview["subscription"]["status"]) {
   if (status === "active") return "default" as const;
@@ -45,137 +20,237 @@ function subscriptionBadgeVariant(status: WorkspaceCommerceOverview["subscriptio
   return "secondary" as const;
 }
 
-export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string }) {
-  const { t, i18n } = useTranslation(["commerce", "common"]);
-  const [plansOpen, setPlansOpen] = useState(false);
-  const overviewQuery = useQuery({
-    queryKey: ["commerce", "workspace", workspaceId, "overview"],
-    queryFn: ({ signal }) => getWorkspaceCommerceOverview(workspaceId, signal),
-    retry: false,
-    meta: { silent: true },
-  });
+function Metric(props: { label: string; value: string; supporting: string }) {
+  return (
+    <div className="min-w-0 border-b border-border/60 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
+      <div className="text-footnote text-label-secondary">{props.label}</div>
+      <div className="mt-2 truncate text-title2 font-semibold tabular-nums text-label-primary">
+        {props.value}
+      </div>
+      <p className="mt-1 text-caption text-label-secondary">{props.supporting}</p>
+    </div>
+  );
+}
+
+function PlanSummary(props: {
+  overview: WorkspaceCommerceOverview;
+  canManage: boolean;
+  accessStatus: "loading" | "error" | "view" | "manage";
+  portalPending: boolean;
+  onManageSubscription: () => void;
+  onComparePlans: () => void;
+}) {
+  const { t, i18n } = useTranslation(["commerce"]);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }), [locale]);
-  const overview = overviewQuery.data;
-  const isFreePlan = overview?.planRevision.planCode === "free";
-  const billingPortalMutation = useMutation({
-    mutationFn: () => createWorkspaceCustomerPortalSession(workspaceId),
-    onSuccess: (redirect) => window.location.assign(redirect.url),
-    onError: notifyError,
-  });
+  const isFreePlan = props.overview.planRevision.planCode === "free";
+
+  return (
+    <Card>
+      <CardHeader className="gap-4 border-b sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-title2">
+              {t(props.overview.planRevision.nameI18NKey)}
+            </CardTitle>
+            <Badge variant={subscriptionBadgeVariant(props.overview.subscription.status)}>
+              {t(
+                `commerce:SUBSCRIPTION_STATUS_${props.overview.subscription.status.toUpperCase()}`,
+              )}
+            </Badge>
+          </div>
+          <CardDescription className="mt-1">
+            {t(props.overview.planRevision.descriptionI18NKey)}
+          </CardDescription>
+        </div>
+        {props.accessStatus === "loading" ? (
+          <div
+            className="flex gap-2"
+            aria-label={t("commerce:PLAN_ACTIONS_LOADING")}
+            aria-live="polite"
+            role="status"
+          >
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        ) : props.canManage ? (
+          <div className="flex flex-wrap gap-2">
+            {!isFreePlan ? (
+              <Button
+                variant="outline"
+                loading={props.portalPending}
+                onClick={props.onManageSubscription}
+              >
+                {t("commerce:PLAN_MANAGE_SUBSCRIPTION")}
+              </Button>
+            ) : null}
+            <Button onClick={props.onComparePlans}>{t("commerce:PLAN_COMPARE_ACTION")}</Button>
+          </div>
+        ) : null}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="grid sm:grid-cols-3">
+          <Metric
+            label={t("commerce:CREDITS_AVAILABLE_LABEL")}
+            value={number.format(props.overview.credits.available)}
+            supporting={t("commerce:PLAN_CREDITS_INCLUDED", {
+              count: number.format(props.overview.planRevision.creditGrantAmount),
+            })}
+          />
+          <Metric
+            label={t("commerce:CREDITS_RESERVED")}
+            value={number.format(props.overview.credits.reserved)}
+            supporting={t("commerce:CREDITS_RESERVED_DESCRIPTION")}
+          />
+          <Metric
+            label={t("commerce:USAGE_REQUESTS")}
+            value={number.format(props.overview.usage.requests)}
+            supporting={t("commerce:USAGE_REQUESTS_DESCRIPTION")}
+          />
+        </div>
+        <dl className="grid gap-4 border-t border-border/60 pt-5 text-footnote sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt className="text-label-secondary">{t("commerce:CREDITS_PERIOD")}</dt>
+            <dd className="mt-1 text-label-primary">
+              {t("commerce:CREDITS_PERIOD_RANGE", {
+                start: date.format(new Date(props.overview.credits.periodStart)),
+                end: date.format(new Date(props.overview.credits.periodEnd)),
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-label-secondary">{t("commerce:CREDITS_NEXT_REFRESH")}</dt>
+            <dd className="mt-1 text-label-primary">
+              {props.overview.credits.nextRefreshAt
+                ? t("commerce:CREDITS_REFRESH_DATE", {
+                    date: date.format(new Date(props.overview.credits.nextRefreshAt)),
+                  })
+                : t("commerce:CREDITS_NO_AUTOMATIC_REFRESH")}
+            </dd>
+          </div>
+          {!isFreePlan ? (
+            <div>
+              <dt className="text-label-secondary">{t("commerce:SUBSCRIPTION_STATUS_LABEL")}</dt>
+              <dd className="mt-1 text-label-primary">
+                {props.overview.subscription.cancelAtPeriodEnd
+                  ? t("commerce:SUBSCRIPTION_CANCELS_AT", {
+                      date: date.format(new Date(props.overview.subscription.currentPeriodEnd)),
+                    })
+                  : t("commerce:SUBSCRIPTION_RENEWS_AT", {
+                      date: date.format(new Date(props.overview.subscription.currentPeriodEnd)),
+                    })}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string }) {
+  const { t } = useTranslation(["commerce", "common"]);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const controller = usePlanUsageController(workspaceId);
+  const overview = controller.overviewQuery.data;
 
   return (
     <ContentGuard
-      loading={overviewQuery.isLoading}
-      error={overviewQuery.error}
-      onRetry={() => void overviewQuery.refetch()}
+      loading={controller.overviewQuery.isLoading}
+      error={controller.overviewQuery.error}
+      onRetry={() => void controller.overviewQuery.refetch()}
       loadingVariant="form"
     >
       {overview ? (
         <div className="flex flex-col gap-8 pb-8">
-          <Card>
-            <CardHeader className="gap-4 border-b sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-title2">
-                    {t(overview.planRevision.nameI18NKey)}
-                  </CardTitle>
-                  <Badge variant={subscriptionBadgeVariant(overview.subscription.status)}>
-                    {t(
-                      `commerce:SUBSCRIPTION_STATUS_${overview.subscription.status.toUpperCase()}`,
-                    )}
-                  </Badge>
-                </div>
-                <CardDescription className="mt-1">
-                  {t(overview.planRevision.descriptionI18NKey)}
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {!isFreePlan ? (
-                  <Button
-                    variant="outline"
-                    loading={billingPortalMutation.isPending}
-                    onClick={() => billingPortalMutation.mutate()}
-                  >
-                    <CreditCard data-icon="inline-start" />
-                    {t("commerce:PLAN_MANAGE_SUBSCRIPTION")}
-                  </Button>
-                ) : null}
-                <Button onClick={() => setPlansOpen(true)}>
-                  <Sparkles data-icon="inline-start" />
-                  {t("commerce:PLAN_COMPARE_ACTION")}
+          <PlanSummary
+            overview={overview}
+            canManage={controller.canManageCommerce}
+            accessStatus={controller.managementAccessStatus}
+            portalPending={controller.billingPortalMutation.isPending}
+            onManageSubscription={() => controller.billingPortalMutation.mutate()}
+            onComparePlans={() => setPlansOpen(true)}
+          />
+
+          {controller.managementAccessStatus === "error" ? (
+            <Alert>
+              <AlertTitle>{t("commerce:PLAN_MANAGEMENT_ACCESS_ERROR_TITLE")}</AlertTitle>
+              <AlertDescription>
+                <p>{t("commerce:PLAN_MANAGEMENT_ACCESS_ERROR_DESCRIPTION")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void controller.retryPermission()}
+                >
+                  {t("common:RETRY")}
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <div className="grid sm:grid-cols-2">
-                <UsageMetric
-                  label={t("commerce:CREDITS_AVAILABLE_LABEL")}
-                  value={number.format(overview.credits.available)}
-                  supporting={t("commerce:PLAN_CREDITS_INCLUDED", {
-                    count: number.format(overview.planRevision.creditGrantAmount),
-                  })}
-                  icon={Coins}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {controller.canManageCommerce ? (
+            <ContentGuard
+              loading={controller.limitsQuery.isLoading}
+              error={controller.limitsQuery.error}
+              onRetry={() => void controller.limitsQuery.refetch()}
+              loadingVariant="form"
+            >
+              {controller.limitsQuery.data ? (
+                <DefaultMemberCreditLimitEditor
+                  limit={controller.limitsQuery.data.defaultLimit}
+                  configurationRevision={controller.limitsQuery.data.configurationRevision}
+                  pending={controller.defaultLimitPending}
+                  feedback={controller.defaultLimitFeedback}
+                  onEdit={controller.clearDefaultLimitFeedback}
+                  onSave={controller.saveDefaultLimit}
                 />
-                <UsageMetric
-                  label={t("commerce:USAGE_REQUESTS")}
-                  value={number.format(overview.usage.requests)}
-                  supporting={t("commerce:USAGE_REQUESTS_DESCRIPTION")}
-                  icon={CalendarClock}
-                />
-              </div>
-              <div className="grid gap-3 rounded-lg bg-muted/45 p-4 text-footnote text-label-secondary sm:grid-cols-2">
-                <div className="flex items-center gap-2">
-                  <Coins className="size-4" aria-hidden="true" />
-                  <span>
-                    {overview.credits.nextRefreshAt
-                      ? t("commerce:CREDITS_REFRESH_DATE", {
-                          date: date.format(new Date(overview.credits.nextRefreshAt)),
-                        })
-                      : isFreePlan
-                        ? t("commerce:PLAN_FREE_NO_EXPIRATION")
-                        : t("commerce:CREDITS_NO_AUTOMATIC_REFRESH")}
-                  </span>
-                </div>
-                {!isFreePlan ? (
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="size-4" aria-hidden="true" />
-                    <span>
-                      {overview.subscription.cancelAtPeriodEnd
-                        ? t("commerce:SUBSCRIPTION_CANCELS_AT", {
-                            date: date.format(new Date(overview.subscription.currentPeriodEnd)),
-                          })
-                        : t("commerce:SUBSCRIPTION_RENEWS_AT", {
-                            date: date.format(new Date(overview.subscription.currentPeriodEnd)),
-                          })}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
+              ) : null}
+            </ContentGuard>
+          ) : null}
 
           <section
-            className="flex min-h-[30rem] flex-col gap-3"
-            aria-labelledby="credit-ledger-title"
+            className="flex min-h-[24rem] flex-col gap-3"
+            aria-labelledby="member-usage-title"
           >
             <div>
-              <h2 id="credit-ledger-title" className="text-headline text-label-primary">
-                {t("commerce:LEDGER_DIALOG_TITLE")}
+              <h2 id="member-usage-title" className="text-headline text-label-primary">
+                {t("commerce:MEMBER_USAGE_TITLE")}
               </h2>
               <p className="mt-1 text-callout text-label-secondary">
-                {t("commerce:LEDGER_DIALOG_DESCRIPTION")}
+                {controller.canManageCommerce
+                  ? t("commerce:MEMBER_USAGE_WORKSPACE_DESCRIPTION")
+                  : t("commerce:MEMBER_USAGE_SELF_DESCRIPTION")}
               </p>
             </div>
-            <CreditLedgerTable workspaceId={workspaceId} />
+            <MemberCreditUsageTable workspaceId={workspaceId} />
           </section>
 
-          <PlanSelectionDialog
-            workspaceId={workspaceId}
-            open={plansOpen}
-            onOpenChange={setPlansOpen}
-          />
+          {controller.canManageCommerce ? (
+            <section
+              className="flex min-h-[30rem] flex-col gap-3 border-t border-border/60 pt-8"
+              aria-labelledby="credit-ledger-title"
+            >
+              <div>
+                <h2 id="credit-ledger-title" className="text-headline text-label-primary">
+                  {t("commerce:LEDGER_DIALOG_TITLE")}
+                </h2>
+                <p className="mt-1 text-callout text-label-secondary">
+                  {t("commerce:LEDGER_SECONDARY_DESCRIPTION")}
+                </p>
+              </div>
+              <CreditLedgerTable workspaceId={workspaceId} />
+            </section>
+          ) : null}
+
+          {controller.canManageCommerce ? (
+            <PlanSelectionDialog
+              workspaceId={workspaceId}
+              open={plansOpen}
+              onOpenChange={setPlansOpen}
+            />
+          ) : null}
         </div>
       ) : null}
     </ContentGuard>
