@@ -37,6 +37,7 @@ export type BasePageProps = {
   className?: string;
   contentClassName?: string;
   contentContainerClassName?: string;
+  headerClassName?: string;
   headerBehavior?: "normal" | "sticky";
 };
 
@@ -177,6 +178,7 @@ export function PageMainRegion(props: {
   extra?: ReactNode;
   contentClassName?: string;
   contentContainerClassName?: string;
+  headerClassName?: string;
   paneToggles?: PagePaneToggle[];
   onOpenPane?: (side: "left" | "right") => void;
   fillAvailableHeight?: boolean;
@@ -255,6 +257,7 @@ export function PageMainRegion(props: {
               "mb-4",
               stickyHeader &&
                 "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-24 bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
+              props.headerClassName,
             )}
           >
             {props.title || props.action || paneToggles.length > 0 ? (

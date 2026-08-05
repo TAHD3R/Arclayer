@@ -15,7 +15,7 @@ export type DefaultPageProps = BasePageProps & {
 };
 
 const PAGE_TOP_SPACER_CLASSNAME = "xl:pb-[clamp(20px,calc(5.90277778vw_-_65px),88px)]";
-const SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME = "lg:[--admin-route-gutter-x:2rem]";
+const SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME = "lg:[--admin-route-gutter-x:2.5rem]";
 
 function PageShellTopSpacer() {
   return (
@@ -44,6 +44,7 @@ export function DefaultPage({
   className,
   contentClassName,
   contentContainerClassName,
+  headerClassName,
   headerBehavior,
   pageFrame = "contained",
   spacingPreset = "page",
@@ -74,6 +75,7 @@ export function DefaultPage({
           extra={hideHeader ? undefined : extra}
           contentClassName={contentClassName}
           contentContainerClassName={contentContainerClassName}
+          headerClassName={headerClassName}
           headerBehavior={headerBehavior}
         >
           {children}

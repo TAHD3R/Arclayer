@@ -57,12 +57,13 @@ function SettingsNavList(props: {
   activeScreen: SettingsScreen;
   onSelectItem: (item: SettingsNavItem) => void;
   identityOverrides?: SettingsNavIdentityOverrides;
+  className?: string;
 }) {
   const { t } = useTranslation();
   let previousLabel: string | null = null;
 
   return (
-    <nav aria-label={t("account:SETTINGS_SHELL_TITLE")} className="py-4">
+    <nav aria-label={t("account:SETTINGS_SHELL_TITLE")} className={cn("py-4", props.className)}>
       <ul className="space-y-1.5">
         {props.items.map((item) => {
           const isActive = item.screen === props.activeScreen;
@@ -231,14 +232,15 @@ export function SettingsFrame(props: SettingsFrameProps) {
         props.className,
       )}
     >
-      <aside className="hidden h-full w-60 shrink-0 border-r border-border/70 bg-muted/30 lg:flex">
-        <div className="flex min-h-0 w-full flex-col px-3">
+      <aside className="hidden h-full w-64 shrink-0 border-r border-border/70 bg-muted/30 lg:flex">
+        <div className="flex min-h-0 w-full flex-col px-5">
           <div className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
             <SettingsNavList
               items={navItems}
               activeScreen={props.activeScreen}
               identityOverrides={props.identityOverrides}
               onSelectItem={(item) => props.onSelectItem?.(item)}
+              className="py-8"
             />
           </div>
         </div>
@@ -255,7 +257,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
         </div>
 
         {props.onClose ? (
-          <div className="pointer-events-none absolute right-4 top-4 z-30">
+          <div className="pointer-events-none absolute right-4 top-4 z-30 lg:right-6 lg:top-6">
             <Button
               type="button"
               variant="ghost"
@@ -284,6 +286,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
             className="min-h-full"
             contentClassName="min-h-full"
             contentContainerClassName="min-h-full"
+            headerClassName="lg:pt-6"
           >
             <div className="mx-auto flex min-h-full w-full flex-col">{props.children}</div>
           </DefaultPage>

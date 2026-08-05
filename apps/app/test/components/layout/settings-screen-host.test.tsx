@@ -211,7 +211,9 @@ describe("SettingsScreenHost", () => {
     const overlaySurface = overlayContent.parentElement?.parentElement;
     const routeFrame = document.querySelector('[data-slot="admin-route-frame"]');
     const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
+    const pageHeader = document.querySelector('[data-slot="page-main-header"]');
     const nav = screen.getByRole("navigation", { name: "account:SETTINGS_SHELL_TITLE" });
+    const sidebar = nav.closest("aside");
 
     expect(overlayContent).toHaveClass(
       "h-full",
@@ -230,16 +232,20 @@ describe("SettingsScreenHost", () => {
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
     expect(closeButton).toHaveClass("shrink-0");
-    expect(closeButton.parentElement).toHaveClass("absolute", "z-30");
+    expect(closeButton.parentElement).toHaveClass("absolute", "z-30", "lg:right-6", "lg:top-6");
     expect(routeFrame).toHaveClass(
       "[--admin-route-gutter-x:1rem]",
       "sm:[--admin-route-gutter-x:1.5rem]",
-      "lg:[--admin-route-gutter-x:2rem]",
+      "lg:[--admin-route-gutter-x:2.5rem]",
     );
     expect(routeFrame).not.toHaveClass(
       "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
     );
     expect(spacer).toBeNull();
+    expect(pageHeader).toHaveClass("lg:pt-6");
+    expect(sidebar).toHaveClass("w-64");
+    expect(sidebar?.firstElementChild).toHaveClass("px-5");
+    expect(nav).toHaveClass("py-8");
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_APPEARANCE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" })).toBeVisible();

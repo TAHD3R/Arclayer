@@ -269,6 +269,7 @@ describe("DefaultPage", () => {
         title="System settings"
         description="Manage instance settings"
         headerBehavior="sticky"
+        headerClassName="lg:pt-6"
         contentContainerClassName="[--page-sticky-header-height:6rem]"
       >
         <div>Body</div>
@@ -294,6 +295,7 @@ describe("DefaultPage", () => {
       "bg-background/95",
       "px-[var(--admin-route-gutter-x)]",
       "py-2",
+      "lg:pt-6",
     );
   });
 
@@ -335,7 +337,7 @@ describe("DefaultPage", () => {
     expect(routeFrame).toHaveClass(
       "[--admin-route-gutter-x:1rem]",
       "sm:[--admin-route-gutter-x:1.5rem]",
-      "lg:[--admin-route-gutter-x:2rem]",
+      "lg:[--admin-route-gutter-x:2.5rem]",
     );
     expect(routeFrame).not.toHaveClass(
       "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
