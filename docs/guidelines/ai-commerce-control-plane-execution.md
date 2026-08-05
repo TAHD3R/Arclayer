@@ -36,10 +36,10 @@ After each independently verifiable part:
 | Milestone | Status | Acceptance boundary |
 | --- | --- | --- |
 | M0 Credit accounting foundation | Complete | Integer Credits, source lots, exact allocations, member attribution, legacy migration, adjustment correctness |
-| M1 Member limits and Usage API | In progress | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
-| M2 Simulated Billing Provider | Pending | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
+| M1 Member limits and Usage API | Complete | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
+| M2 Simulated Billing Provider | In progress | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
 | M3 Platform Billing redesign | Pending | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
-| M4 Product Plan & Usage / People | Pending | New Plan & Usage, People Usage column, member limits, icon-free ChromeTabs, Workspace setting |
+| M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, icon-free ChromeTabs, Workspace setting |
 | M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
 | M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
 
@@ -73,7 +73,7 @@ Validation:
 
 ## M1 — Member limits and Usage API
 
-Status: In progress
+Status: Complete
 
 Canonical Product endpoints:
 
@@ -105,7 +105,7 @@ Active implementation parts:
 2. M1.2 Product router contracts and authorization tests. — Complete
 3. M1.3 OpenAPI synchronization and Product API wrappers. — Complete
 4. M1.4 Plan & Usage default-limit/usage surface. — Complete
-5. M1.5 People Usage column and per-member override dialog. — In progress (`M1.5b` Active)
+5. M1.5 People Usage column and per-member override dialog. — Complete
 
 M1.1 acceptance criteria:
 
@@ -209,7 +209,7 @@ M1.4 validation:
 M1.5 implementation parts:
 
 1. M1.5a People current-period Usage column and icon-free ChromeTabs. — Complete
-2. M1.5b Per-member override dialog and canonical Workspace setting entry. — Active
+2. M1.5b Per-member override dialog and canonical Workspace setting entry. — Complete
 
 M1.5a status: Complete
 
@@ -256,7 +256,7 @@ M1.5b execution parts:
    - Add an authorized Workspace-basics entry that opens `workspace.plan-usage` at `default-member-credit-limit`.
    - Add one `SettingsSectionAnchor` around the existing M1.4 editor.
    - Do not add another default-limit form, mutation, cache, or policy store.
-4. M1.5b.4 validation, execution-record update, and focused commit. — Active
+4. M1.5b.4 validation, execution-record update, and focused commit. — Complete
    - Run focused controller/dialog/People/settings tests, App lint/format/locale checks, Product OpenAPI typecheck, the affected package gate, Code Review Engine, and staged GitNexus detection.
    - Record exact results and known unrelated failures here before the M1.5b commit.
 
@@ -326,12 +326,74 @@ M1.5b.3 validation:
 - Staged GitNexus change detection reported `LOW` risk across `9` indexed symbols with no affected execution flow.
 - Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its sole report-only finding is the existing prototype directory-structure suggestion for `plan-usage`.
 
+M1.5b.4 validation and closure:
+
+- Comprehensive focused Product regression passed `70` tests across `18` files covering the complete Workspace team directory plus Plan & Usage, Workspace basics Commerce entry, form composition, and settings-section focus behavior.
+- Product OpenAPI typecheck passed.
+- `pnpm app:check`: lint, format, and locale parity passed. Typecheck remains blocked only by `test/browser/product-acceptance.spec.ts` importing the missing `../../../../tests/browser/support` module.
+- The broad Product Vitest run in the package gate also reported one failure in `feedback-ticket-dialog.test.tsx`; an immediate isolated rerun passed `2/2`, so the nondeterministic package-gate failure remains visible and was not converted into a fallback.
+- M1.5b and M1 are complete. M4 is also complete because its accepted Product Plan & Usage, People Usage, member-limit, icon-free ChromeTab, and Workspace setting surfaces were delivered through M1.4 and M1.5.
+
+## M2 — Simulated Billing Provider
+
+Status: In progress
+
+Current active part: M2.1 provider contract, environment gate, and readiness foundation.
+
+Repository baseline:
+
+- The real Stripe path is a registered `billing.stripe` connector and remains the production Billing Provider. Its Checkout, Customer Portal, signature verification, normalized subscription events, pinned connector version, and Stripe-specific webhook route remain canonical and must not be aliased to simulated behavior.
+- Billing Provider resolution is already injected through `BillingConnector`, but `BillingSettings`, readiness, and webhook enablement currently encode Stripe-only assumptions.
+- Durable Provider event acceptance already verifies signatures before persistence, encrypts the raw payload, claims the unique Provider event identity, and creates a pinned Job/outbox transactionally. The Job decrypts, checks payload integrity, resolves the pinned connector version, normalizes the event, and applies the canonical subscription/access projection.
+- `CommerceCheckoutSession`, `CommerceInvoice`, `CommerceTransaction`, and `CommerceRefund` models and migration `0116` already exist. Checkout currently returns the Provider URL without persisting a checkout session, and Provider application does not yet project transaction, invoice, or refund records.
+- No Stripe Connect onboarding or connected-account funds-flow contract exists. M2 concerns the SaaS Billing installation only and does not introduce Connect semantics.
+
+M2 execution parts:
+
+1. M2.1 provider contract, environment gate, and readiness foundation. — Active
+   - Add `simulated` as a first-class Billing Provider only for `development` and `test`; production configuration must fail explicitly during settings validation or startup.
+   - Register a separate `billing.simulated` connector/plugin without Stripe credentials, Stripe endpoints, or Stripe identity.
+   - Make Billing readiness and event-acceptance prerequisites Provider-neutral while retaining all current Stripe requirements and error behavior.
+   - Define explicit simulator signing configuration and capabilities. Do not add outcome commands or simulated success behavior in this part.
+   - Verify configuration rejection, registry ownership, connector resolution, readiness, and unchanged Stripe behavior with focused tests.
+2. M2.2 durable simulated checkout and explicit outcome command. — Pending
+   - Persist every simulated checkout as a real `CommerceCheckoutSession` with actor, exact Plan Revision Price, Provider mode/account, idempotency identity, expiry, and visible simulated state.
+   - Expose an authorized development/test-only simulator command that requires an explicit actor-selected outcome or deterministic test command.
+   - Generate a signed Provider event envelope and submit it through the canonical event-acceptance service; the command itself never updates Subscription, access, invoice, transaction, or Credits.
+   - Cover pending, success, failure, cancellation, duplicate, delayed, and out-of-order commands without mock-success shortcuts.
+3. M2.3 subscription, dunning, recovery, and access-state projection. — Pending
+   - Process simulated subscription and invoice lifecycle events through signature verification, encrypted inbox, pinned Job, normalization, and the existing Provider application service.
+   - Preserve exact Plan Revision/Price evidence, Provider event claims, convergence ordering, period identity, dunning facts, recovery, and access-state transitions.
+   - Keep unsupported schedule/cancellation capabilities explicitly unavailable until a Provider-neutral transition adapter exists; never fabricate a local Stripe schedule.
+4. M2.4 transaction, invoice, top-up, and refund projection. — Pending
+   - Add one canonical payment projection service over the existing payment models with transactional Provider-event idempotency and audit evidence.
+   - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
+   - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
+5. M2.5 simulator control plane and OpenAPI surfaces. — Pending
+   - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
+   - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
+   - Expose durable checkout, transaction, invoice, refund, inbox, Job, and application outcomes rather than templated success responses.
+6. M2.6 full lifecycle and Stripe regression closure. — Pending
+   - Verify success/failure/pending/cancel/duplicate/delay/out-of-order, renewal, dunning recovery, top-up, refund, retry, and reconciliation lifecycles.
+   - Verify production rejection, no Stripe secret dependency, no Stripe or Connect impersonation, exact connector-version pinning, and unchanged real Stripe Checkout/Portal/webhook paths.
+   - Run API/OpenAPI/package gates, staged GitNexus detection, changed-scope Code Review Engine, update this record, and commit M2.
+
+M2.1 acceptance criteria:
+
+- `provider = "simulated"` is accepted only when `app_env` is `development` or `test`; production rejection is explicit and covered by tests.
+- `billing.simulated` is independently registered and resolved through the existing typed connector registry.
+- Simulated readiness never reads Stripe credentials; Stripe readiness remains strict and unchanged.
+- Event acceptance can resolve Provider-specific signing/readiness inputs without weakening signature verification, encryption, inbox uniqueness, pinned Job creation, or payload-integrity checks.
+- No simulated outcome can report success or mutate commercial state during M2.1.
+- No Stripe route, connector key, production setting, Checkout/Portal behavior, or webhook contract is removed or silently redirected.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked.
 - Product App typecheck and broad Vitest currently fail because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside M1.4.
+- The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
 - Changed-scope Code Review Engine currently reports prototype findings in unrelated Workspace, Platform Site Delivery, Platform Identity, Knowledge, Skills, Feedback, and AI files present in the shared worktree; M1.2 files have no remaining finding.
 
 ## Progress log
@@ -424,3 +486,11 @@ M1.5b.3 validation:
 - Confirmed that the basics surface adds no second limit form, mutation, query cache, or policy store.
 - Verified `19` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.5b.4 final validation, execution record, and commit closure.
+
+### 2026-08-05 — M1.5b.4 closure and M2 preparation
+
+- Verified the complete M1.5b Product regression with `70` tests across `18` files and re-ran Product OpenAPI type checking successfully.
+- Confirmed the package gate still passes lint, format, and locale parity and remains blocked by the existing browser acceptance support import; recorded the isolated passing rerun for the additional nondeterministic broad-test failure.
+- Marked M1 and M4 complete after checking their accepted API, Plan & Usage, People Usage, member-limit, ChromeTab, and Workspace setting boundaries.
+- Mapped the existing Stripe connector, typed registry, Stripe-specific configuration/readiness assumptions, durable encrypted webhook inbox, pinned Job application pipeline, and currently unpopulated payment projection models.
+- Split M2 into six recoverable implementation parts and selected M2.1 provider contract, environment gate, and readiness foundation as the only active part before changing code.
