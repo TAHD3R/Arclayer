@@ -7,11 +7,32 @@ import pytest
 from src.config import Settings
 from src.core.events import Event, EventBus
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
+from src.modules.commerce.dunning.schema import RestrictedRecoveryCommandClass, RestrictedRecoveryDecision
 from src.modules.projects.automation.runtime import AutomationRuntime
 
 
 class _FakeSettings:
     pass
+
+
+class _FakeCommercialEffectAuthorizer:
+    async def authorize(self, **_kwargs) -> RestrictedRecoveryDecision:  # type: ignore[no-untyped-def]
+        return RestrictedRecoveryDecision(
+            allowed=True,
+            command_class=RestrictedRecoveryCommandClass.VALUE_EXPANSION,
+        )
+
+
+def test_automation_runtime_injects_commercial_effect_authorizer(monkeypatch: pytest.MonkeyPatch) -> None:
+    authorizer = _FakeCommercialEffectAuthorizer()
+    monkeypatch.setattr(
+        "src.modules.projects.automation.runtime.build_restricted_recovery_command_policy",
+        lambda: authorizer,
+    )
+
+    runtime = AutomationRuntime(cast(Settings, _FakeSettings()), lifecycle_dispatcher=LifecycleDispatcher())
+
+    assert runtime.service.commercial_effect_authorizer is authorizer
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ import pytest
 from src.agents.session import AgentSessionManager
 from src.common.schemas import BaseSchema
 from src.core.events import Event
-from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.exceptions import APIError, BadRequest, Conflict, ServiceUnavailable
 from src.core.http.pagination import PageData
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.llm.runtime import LLMRequestContext
@@ -23,6 +23,11 @@ from src.models.automation.flow import (
     AutomationTriggerKind,
 )
 from src.modules.ai.schema import AIReasoningEffort
+from src.modules.commerce.dunning.schema import (
+    RestrictedRecoveryCommandClass,
+    RestrictedRecoveryDecision,
+    RestrictedRecoveryEffect,
+)
 from src.modules.projects.automation.repository import AutomationRepository
 from src.modules.projects.automation.schema import AutomationFlowCreateIn, AutomationOperationIn
 from src.modules.projects.automation.service import ProjectAutomationService
@@ -208,10 +213,62 @@ class _FakeRepo:
         ]
 
 
+class _FakeCommercialEffectAuthorizer:
+    def __init__(
+        self,
+        *,
+        denied_effect: RestrictedRecoveryEffect | None = None,
+        error_code: str | None = None,
+    ) -> None:
+        self.denied_effect = denied_effect
+        self.error_code = error_code
+        self.calls: list[tuple[UUID, set[RestrictedRecoveryEffect]]] = []
+
+    async def authorize(
+        self,
+        *,
+        workspace_id: UUID,
+        effects: set[RestrictedRecoveryEffect],
+    ) -> RestrictedRecoveryDecision:
+        self.calls.append((workspace_id, effects))
+        if self.denied_effect in effects:
+            raise APIError(error=self.error_code or "WORKSPACE_PAYMENT_RESTRICTED", status_code=402)
+        return RestrictedRecoveryDecision(
+            allowed=True,
+            command_class=RestrictedRecoveryCommandClass.VALUE_EXPANSION,
+        )
+
+
+def _flow(*, flow_id: UUID, workspace_id: UUID) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=flow_id,
+        workspace_id=workspace_id,
+        dead_letter_enabled=True,
+        retry_limit=0,
+        status=AutomationFlowStatus.ACTIVE,
+        trigger_event="content.item.created",
+    )
+
+
+def _operation(*, flow_id: UUID, kind: AutomationOperationKind) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=uuid4(),
+        flow_id=flow_id,
+        kind=kind,
+        config={},
+        sort_order=0,
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
+    )
+
+
 @pytest.mark.asyncio
 async def test_create_project_flow_out_sets_trigger_event_and_normalizes_operations() -> None:
     repo = _FakeRepo()
-    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=_FakeCommercialEffectAuthorizer(),
+    )
     workspace_id = uuid4()
     project_id = uuid4()
     actor_user_id = uuid4()
@@ -272,7 +329,10 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
             updated_at=repo._now(),
         )
     ]
-    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=_FakeCommercialEffectAuthorizer(),
+    )
 
     async def _fake_http_operation(*, config, event):  # type: ignore[no-untyped-def]
         assert config["url"] == "https://example.com/hooks/publish"
@@ -328,7 +388,10 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
             updated_at=repo._now(),
         )
     ]
-    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=_FakeCommercialEffectAuthorizer(),
+    )
 
     async def _boom(**_kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("notification down")
@@ -351,6 +414,148 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
     assert result.status == AutomationRunStatus.DEAD_LETTER
     assert result.error == "notification down"
     assert result.logs[-1].level == AutomationRunLogLevel.ERROR
+
+
+@pytest.mark.asyncio
+async def test_execute_flow_requires_commercial_authorizer_before_creating_run() -> None:
+    repo = _FakeRepo()
+    flow_id = uuid4()
+    workspace_id = uuid4()
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
+
+    with pytest.raises(ServiceUnavailable) as excinfo:
+        await service.execute_flow(
+            flow=cast(AutomationFlow, _flow(flow_id=flow_id, workspace_id=workspace_id)),
+            event=Event(name="release.published", payload={"workspace_id": str(workspace_id)}),
+        )
+
+    assert excinfo.value.error == "AUTOMATION_COMMERCIAL_EFFECT_AUTHORIZER_UNAVAILABLE"
+    assert repo.created_runs == []
+    assert repo.created_logs == []
+
+
+@pytest.mark.asyncio
+async def test_execute_flow_payment_grace_denies_metered_effect_before_any_run() -> None:
+    repo = _FakeRepo()
+    flow_id = uuid4()
+    workspace_id = uuid4()
+    repo.operations_by_flow[flow_id] = [
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.CONTENT_READ),
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.HTTP_REQUEST),
+    ]
+    authorizer = _FakeCommercialEffectAuthorizer(
+        denied_effect=RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+        error_code="WORKSPACE_PAYMENT_RECOVERY_REQUIRED",
+    )
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=authorizer,
+    )
+
+    with pytest.raises(APIError) as excinfo:
+        await service.execute_flow(
+            flow=cast(AutomationFlow, _flow(flow_id=flow_id, workspace_id=workspace_id)),
+            event=Event(name="release.published", payload={"workspace_id": str(workspace_id)}),
+        )
+
+    assert excinfo.value.error == "WORKSPACE_PAYMENT_RECOVERY_REQUIRED"
+    assert authorizer.calls == [
+        (workspace_id, {RestrictedRecoveryEffect.READ_EXISTING}),
+        (workspace_id, {RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
+    ]
+    assert repo.created_runs == []
+    assert repo.created_logs == []
+
+
+@pytest.mark.asyncio
+async def test_execute_flow_payment_restricted_denies_content_mutation_before_any_run() -> None:
+    repo = _FakeRepo()
+    flow_id = uuid4()
+    workspace_id = uuid4()
+    repo.operations_by_flow[flow_id] = [
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.CONTENT_UPDATE),
+    ]
+    authorizer = _FakeCommercialEffectAuthorizer(denied_effect=RestrictedRecoveryEffect.CONTENT_MUTATION)
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=authorizer,
+    )
+
+    with pytest.raises(APIError) as excinfo:
+        await service.execute_flow(
+            flow=cast(AutomationFlow, _flow(flow_id=flow_id, workspace_id=workspace_id)),
+            event=Event(name="content.item.created", payload={"workspace_id": str(workspace_id)}),
+        )
+
+    assert excinfo.value.error == "WORKSPACE_PAYMENT_RESTRICTED"
+    assert authorizer.calls == [(workspace_id, {RestrictedRecoveryEffect.CONTENT_MUTATION})]
+    assert repo.created_runs == []
+    assert repo.created_logs == []
+
+
+@pytest.mark.asyncio
+async def test_execute_flow_preflights_all_distinct_effects_before_first_operation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = _FakeRepo()
+    flow_id = uuid4()
+    workspace_id = uuid4()
+    repo.operations_by_flow[flow_id] = [
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.CONTENT_READ),
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.CONTENT_UPDATE),
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.HTTP_REQUEST),
+        _operation(flow_id=flow_id, kind=AutomationOperationKind.NOTIFICATION),
+    ]
+    authorizer = _FakeCommercialEffectAuthorizer()
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=authorizer,
+    )
+    operation_calls: list[UUID] = []
+
+    async def _fake_execute_operation(*, run, operation, event):  # type: ignore[no-untyped-def]
+        assert authorizer.calls == [
+            (workspace_id, {RestrictedRecoveryEffect.READ_EXISTING}),
+            (workspace_id, {RestrictedRecoveryEffect.CONTENT_MUTATION}),
+            (workspace_id, {RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
+        ]
+        operation_calls.append(operation.id)
+        return {"operationId": str(operation.id), "kind": str(operation.kind), "result": {}}
+
+    monkeypatch.setattr(service, "_execute_operation", _fake_execute_operation)
+
+    result = await service.execute_flow(
+        flow=cast(AutomationFlow, _flow(flow_id=flow_id, workspace_id=workspace_id)),
+        event=Event(name="content.item.created", payload={"workspace_id": str(workspace_id)}),
+    )
+
+    assert result.status == AutomationRunStatus.SUCCEEDED
+    assert operation_calls == [operation.id for operation in repo.operations_by_flow[flow_id]]
+
+
+@pytest.mark.asyncio
+async def test_execute_flow_rejects_unclassified_operation_before_creating_run() -> None:
+    repo = _FakeRepo()
+    flow_id = uuid4()
+    workspace_id = uuid4()
+    operation = _operation(flow_id=flow_id, kind=AutomationOperationKind.CONTENT_READ)
+    operation.kind = "future_operation"
+    repo.operations_by_flow[flow_id] = [operation]
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, repo),
+        commercial_effect_authorizer=_FakeCommercialEffectAuthorizer(),
+    )
+
+    with pytest.raises(Conflict) as excinfo:
+        await service.execute_flow(
+            flow=cast(AutomationFlow, _flow(flow_id=flow_id, workspace_id=workspace_id)),
+            event=Event(name="content.item.created", payload={"workspace_id": str(workspace_id)}),
+        )
+
+    assert excinfo.value.error == "COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED"
+    assert excinfo.value.meta == {"operationKind": "future_operation"}
+    assert repo.created_runs == []
+    assert repo.created_logs == []
 
 
 @pytest.mark.asyncio

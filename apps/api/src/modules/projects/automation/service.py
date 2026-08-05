@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 import httpx
@@ -37,6 +37,7 @@ from src.models.automation.flow import (
 )
 from src.models.system.notification import NotificationCategory
 from src.modules.ai.service import AIChatService
+from src.modules.commerce.dunning.schema import RestrictedRecoveryDecision, RestrictedRecoveryEffect
 from src.modules.projects.agents.repository import AgentRunRepository
 from src.modules.projects.automation.catalog import (
     list_global_automation_operation_kinds,
@@ -90,6 +91,26 @@ ReleaseServiceFactory = Callable[[TenantContext], ProjectReleasesService]
 AgentChatServiceFactory = Callable[[Settings], AgentChatService]
 
 
+class CommercialEffectAuthorizer(Protocol):
+    async def authorize(
+        self,
+        *,
+        workspace_id: UUID,
+        effects: set[RestrictedRecoveryEffect],
+    ) -> RestrictedRecoveryDecision: ...
+
+
+_AUTOMATION_OPERATION_EFFECTS: dict[AutomationOperationKind, RestrictedRecoveryEffect] = {
+    AutomationOperationKind.WEBHOOK: RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+    AutomationOperationKind.HTTP_REQUEST: RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+    AutomationOperationKind.AGENT_ANALYSIS: RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+    AutomationOperationKind.CONTENT_READ: RestrictedRecoveryEffect.READ_EXISTING,
+    AutomationOperationKind.CONTENT_UPDATE: RestrictedRecoveryEffect.CONTENT_MUTATION,
+    AutomationOperationKind.RELEASE_PUBLISH: RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+    AutomationOperationKind.NOTIFICATION: RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT,
+}
+
+
 def default_content_read_service_factory(tenant_context: TenantContext) -> ProjectContentCanonicalItemReadService:
     return ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository(tenant_context))
 
@@ -139,6 +160,7 @@ class ProjectAutomationService(BaseService):
         release_service_factory: ReleaseServiceFactory = default_release_service_factory,
         agent_chat_service_factory: AgentChatServiceFactory = default_agent_chat_service_factory,
         agent_sessions: AgentSessionManager | None = None,
+        commercial_effect_authorizer: CommercialEffectAuthorizer | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or AutomationRepository()
@@ -149,6 +171,7 @@ class ProjectAutomationService(BaseService):
         self.release_service_factory = release_service_factory
         self.agent_chat_service_factory = agent_chat_service_factory
         self.agent_sessions = agent_sessions or default_agent_session_manager()
+        self.commercial_effect_authorizer = commercial_effect_authorizer
 
     async def get_catalog_out(self) -> AutomationCatalogOut:
         return await self.get_global_catalog_out()
@@ -403,6 +426,8 @@ class ProjectAutomationService(BaseService):
         return results
 
     async def execute_flow(self, *, flow: AutomationFlow, event: Event) -> AutomationRunOut:
+        operations = await self.repo.list_operations(flow_id=flow.id)
+        await self._authorize_execution(workspace_id=flow.workspace_id, operations=operations)
         payload = dict(event.payload or {})
         max_attempts = max(1, int(flow.retry_limit or 0) + 1)
         run = await self.repo.create_run(
@@ -413,7 +438,6 @@ class ProjectAutomationService(BaseService):
             max_attempts=max_attempts,
         )
         await self.repo.update_run(run, status=AutomationRunStatus.RUNNING, started_at=datetime.now(tz=UTC))
-        operations = await self.repo.list_operations(flow_id=flow.id)
         result_payload: dict[str, Any] = {"operations": []}
         try:
             for operation in operations:
@@ -457,6 +481,41 @@ class ProjectAutomationService(BaseService):
                 error=str(exc),
             )
         return await self._to_run_out(run, include_logs=True)
+
+    async def _authorize_execution(
+        self,
+        *,
+        workspace_id: UUID,
+        operations: list[AutomationOperation],
+    ) -> None:
+        authorizer = self.commercial_effect_authorizer
+        if authorizer is None:
+            raise ServiceUnavailable(
+                message=t("errors", "AUTOMATION_COMMERCIAL_EFFECT_AUTHORIZER_UNAVAILABLE"),
+                error="AUTOMATION_COMMERCIAL_EFFECT_AUTHORIZER_UNAVAILABLE",
+            )
+        distinct_effects = dict.fromkeys(self._commercial_effect_for_operation(operation) for operation in operations)
+        for effect in distinct_effects:
+            await authorizer.authorize(workspace_id=workspace_id, effects={effect})
+
+    @staticmethod
+    def _commercial_effect_for_operation(operation: AutomationOperation) -> RestrictedRecoveryEffect:
+        try:
+            kind = AutomationOperationKind(str(operation.kind))
+        except ValueError as exc:
+            raise Conflict(
+                message=t("errors", "COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED"),
+                error="COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED",
+                meta={"operationKind": str(operation.kind)},
+            ) from exc
+        effect = _AUTOMATION_OPERATION_EFFECTS.get(kind)
+        if effect is None:
+            raise Conflict(
+                message=t("errors", "COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED"),
+                error="COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED",
+                meta={"operationKind": kind.value},
+            )
+        return effect
 
     def _normalize_operations(
         self,

@@ -534,8 +534,10 @@ M2.3a.2 validation:
        - M2.3b.3b.1 Product HTTP command matrix. — Complete
          - Classify every reachable Product mutation route by its actual commercial effect, including storage, AI runtime, legacy Agent, environment, database, API-key, Automation configuration, Knowledge, Skill, and Design System surfaces.
          - Keep abort, cancel, reject, revoke, rotate, delete, and other reducing or safety actions available during recovery.
-       - M2.3b.3b.2 Event-driven Automation execution preflight. — Active
+       - M2.3b.3b.2 Event-driven Automation execution preflight. — Complete
          - Pre-authorize every distinct operation effect before creating an Automation run or dispatching any operation so mixed flows cannot partially execute under Grace or Restricted access.
+       - M2.3b.3b.3 Remaining reachable Site mutation closure. — Active
+         - Verify Site settings and preview-token write paths against the same Product commercial-effect contract, and exclude unreachable legacy routers with registration evidence instead of manufacturing a false closure.
      - M2.3b.3c withheld period Credits and immutable handoff evidence. — Pending
        - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
 3. M2.3c recovery, renewal, and closure. — Pending
@@ -607,6 +609,23 @@ M2.3b.3b.1 validation:
 - Targeted Ruff lint/format and `ty` passed across all ten changed production/test files.
 - GitNexus pre-edit impact for every changed route function was `LOW`, with zero affected execution processes.
 - Changed-scope Code Review Engine exited successfully with zero blocking findings. Its only report-only finding is the existing prototype module-structure suggestion for `apps/api/src/modules/ai`.
+
+M2.3b.3b.2 implementation evidence:
+
+- Added an injected `CommercialEffectAuthorizer` protocol to `ProjectAutomationService`. The production `AutomationRuntime` composes it with the canonical Restricted Recovery command policy; direct flow execution without an authorizer fails explicitly with `AUTOMATION_COMMERCIAL_EFFECT_AUTHORIZER_UNAVAILABLE`.
+- Mapped every current Automation operation kind to its actual effect: content reads use `READ_EXISTING`; content updates use `CONTENT_MUTATION`; webhook, HTTP request, Agent analysis, release publication, and notification dispatch use `METERED_EXTERNAL_EFFECT`.
+- `execute_flow` now loads the complete ordered operation list and pre-authorizes every distinct effect before creating an Automation run, updating run state, writing logs, or invoking an operation handler. Distinct effects are authorized separately so mixed preserved/value-expansion flows do not trigger the existing mixed-command conflict.
+- Unknown persisted operation kinds fail with the stable `COMMERCIAL_COMMAND_EFFECT_UNCLASSIFIED` contract before any run side effect. Both new configuration errors have complete `zh-CN` and `en-US` API messages.
+- Preserved existing operation-failure behavior after successful preflight: execution failures still produce the configured failed/dead-letter run and diagnostic log rather than being confused with a preflight denial.
+
+M2.3b.3b.2 validation:
+
+- Restricted Recovery, command policy, Product route matrix, Automation service, and Automation runtime regression passed `44` tests.
+- Automation-focused service/runtime regression passed `20` tests after the final localization update; core API i18n regression passed `8` tests.
+- Targeted Ruff lint/format and `ty` passed for the Automation service, runtime, and tests.
+- `pnpm api:check` passed API lint and formatting. Broad typecheck remains blocked by the same `289` existing diagnostics, after which Turbo canceled broad pytest; no targeted Automation type diagnostic remains.
+- Changed-scope Code Review Engine exited successfully with zero blocking findings. Its sole report-only finding is the existing `AUTOMATION_NOTIFICATION_TARGET_INVALID` localization prototype issue outside this change.
+- GitNexus could not resolve the Automation service/runtime symbols because the index reported an existing ScopeExtractor failure for `service.py`; no High/Critical result was returned, and the live production construction chain was verified directly as `core/runtime_init.py -> AutomationRuntime -> ProjectAutomationService`.
 
 ## Known unrelated repository failures
 
@@ -794,3 +813,10 @@ M2.3b.3b.1 validation:
 - Classified new external-cost dispatch as metered while retaining ordinary content mutation during Grace and preserving reducing/recovery actions without a commercial blocker.
 - Verified the exact route matrix with `5` tests plus targeted Ruff/format/`ty` checks and a zero-blocker changed-scope review.
 - Advanced the only active implementation part to M2.3b.3b.2 event-driven Automation execution preflight.
+
+### 2026-08-05 — M2.3b.3b.2 Automation execution preflight
+
+- Injected the canonical Restricted Recovery policy into the event-driven Automation runtime and made missing authorization fail explicitly.
+- Pre-authorized every distinct operation effect before run creation or operation dispatch, including mixed read/content/metered flows and unknown-operation rejection.
+- Verified `44` combined Restricted Recovery/route/Automation tests, `20` final Automation tests, `8` core i18n tests, targeted static checks, and a zero-blocker changed-scope review.
+- Recorded the unchanged `289` broad API type diagnostics and selected M2.3b.3b.3 remaining reachable Site mutation closure as the only active part.
