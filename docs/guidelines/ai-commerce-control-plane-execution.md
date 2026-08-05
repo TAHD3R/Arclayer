@@ -105,7 +105,7 @@ Active implementation parts:
 2. M1.2 Product router contracts and authorization tests. — Complete
 3. M1.3 OpenAPI synchronization and Product API wrappers. — Complete
 4. M1.4 Plan & Usage default-limit/usage surface. — Complete
-5. M1.5 People Usage column and per-member override dialog. — Active
+5. M1.5 People Usage column and per-member override dialog. — In progress (`M1.5b` Active)
 
 M1.1 acceptance criteria:
 
@@ -206,15 +206,38 @@ M1.4 validation:
 - `pnpm app:check`: lint, format, and locale tasks passed. Typecheck and the broad Vitest task remain blocked by the existing `test/browser/product-acceptance.spec.ts` import of missing `../../../../tests/browser/support`; no M1.4 type error remained and all M1.4 focused tests passed.
 - Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its report-only findings belong to unrelated shared-worktree API/AI/Platform changes, plus one existing prototype directory-structure suggestion for the overlay-mounted `plan-usage` directory; no M1.4 behavioral or architecture blocker was reported.
 
-M1.5 active boundary:
+M1.5 implementation parts:
 
-- Add current-period Usage to the Product People table from the canonical all-member member-Credit projection; do not derive Usage from plan grants, balances, or the Credit Ledger.
+1. M1.5a People current-period Usage column and icon-free ChromeTabs. — Complete
+2. M1.5b Per-member override dialog and canonical Workspace setting entry. — Active
+
+M1.5a status: Complete
+
+M1.5a implementation evidence:
+
+- Added one Workspace-scoped Product query for canonical member Credit Usage and joined it to People rows by `membershipId`. The query is independent of People search/sort state and never performs per-row requests.
+- The client follows canonical pagination with the backend maximum page size, preserves one current-period snapshot across pages, and fails explicitly on repeated pages, duplicate memberships, or inconsistent periods.
+- Added a current-period Usage column to the existing hand-built People settings table without migrating it to a competing data-table abstraction. Cells show committed, reserved, and available Credits; explicit unlimited availability remains distinct from a missing projection.
+- Ordinary-member SELF projections leave other People rows unavailable rather than inventing zero Usage. Loading and fetch failures remain visible without blocking member identity, role, status, or last-login data.
+- Increased the table's narrow-screen overflow width for the fifth column while preserving the established horizontal-scroll contract.
+- Removed icons only from the three People ChromeTabs. Labels, active state, keyboard navigation, overflow behavior, invite actions, and the separate invite-link action icon remain unchanged.
+- Added stable bilingual People Usage copy while reusing canonical Commerce labels for used and unlimited Credits.
+
+M1.5a validation:
+
+- Focused Product tests: `23 passed` across the Usage query/pagination, Usage cell, People table layout, and settings overlay/ChromeTabs behavior.
+- Product App lint, format check, and locale parity passed; locale parity covers all `23` namespaces.
+- Product OpenAPI typecheck passed.
+- `pnpm app:check`: lint, format, and locale tasks passed. Typecheck and the broad Vitest task remain blocked by the existing `test/browser/product-acceptance.spec.ts` import of missing `../../../../tests/browser/support`; M1.5a focused tests passed and no M1.5a type error remained.
+- Code Review Engine changed-scope audit exited successfully with zero blocking findings. Report-only findings belong to unrelated shared-worktree API/AI/Platform changes, plus the existing prototype directory-structure suggestion for the overlay-mounted `people` directory.
+
+M1.5b active boundary:
+
 - Add an Owner/Billing Manager per-member limit dialog with inherited-default, explicit limited, explicit unlimited, and clear-override states. The Workspace Owner may edit their own override.
 - Reuse the M1.4 authority boundary, optimistic configuration revision, body-scoped idempotency, scope validation, conflict refresh, and visible mutation states.
-- Remove icons from the People ChromeTabs while preserving labels, counts, active state, keyboard behavior, and responsive overflow.
 - Add the approved Workspace setting entry that routes authorized managers to the canonical default member-Credit limit control rather than creating a duplicated policy store.
 - Keep ordinary members read-only/self-only, and keep role assignment, feature-seat allocation, and M1.4 Workspace default-limit ownership outside the per-member dialog.
-- Add stable bilingual copy and focused tests for Usage cells, inherited/limited/unlimited overrides, Owner self-edit, permission gating, exact set/clear commands, stale revision, idempotent retry, and tab presentation.
+- Add stable bilingual copy and focused tests for inherited/limited/unlimited overrides, Owner self-edit, permission gating, exact set/clear commands, stale revision, idempotent retry, and the Workspace setting route.
 
 ## Known unrelated repository failures
 
@@ -274,3 +297,12 @@ M1.5 active boundary:
 - Added responsive member Usage presentation, accessible limit controls, raw-ID-safe identity fallbacks, and complete bilingual Commerce copy.
 - Verified `23` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The affected package gate remains blocked only by the unrelated missing browser acceptance support module.
 - Advanced the active implementation part to M1.5 People Usage, per-member overrides, icon-free ChromeTabs, and the canonical Workspace setting entry.
+
+### 2026-08-05 — M1.5a People Usage and ChromeTabs
+
+- Added one paginated canonical member Usage query for the People surface, joined rows by membership ID, and rejected inconsistent pagination instead of silently degrading.
+- Added current-period used, reserved, and available Credits to the existing People table while preserving ordinary-member SELF semantics and the responsive horizontal-scroll layout.
+- Kept missing projections distinct from real zero Usage and explicit unlimited availability.
+- Removed the three People tab icons locally while preserving Radix keyboard activation, active state, invite flows, and the invite-link action icon.
+- Verified `23` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck; the package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.5b per-member overrides and the canonical Workspace setting entry.

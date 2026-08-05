@@ -16,6 +16,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { MemberFeatureAccessDialog } from "@/pages/workspaces/team/members/components/member-feature-access-dialog";
+import { TeamMemberCreditUsageCell } from "@/pages/workspaces/team/members/components/team-member-credit-usage-cell";
 import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
 import {
@@ -56,6 +57,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { resolveWorkspaceName } from "../utils";
 import { useMemberFeatureAccess } from "../use-member-feature-access";
+import { useTeamMemberCreditUsage } from "../use-team-member-credit-usage";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 
 function teamMembersSettingsQueryKeyPrefix(workspaceId: string | null | undefined) {
   return ["team-members-settings", workspaceId ? String(workspaceId) : null] as const;
@@ -69,7 +72,7 @@ export function TeamMembersView(props: {
   onInviteOpenChange?: (open: boolean) => void;
   embedded?: boolean;
 }) {
-  const { t } = useTranslation(["team", "common", "featureAccess"]);
+  const { t } = useTranslation(["team", "common", "featureAccess", "commerce"]);
 
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -98,6 +101,7 @@ export function TeamMembersView(props: {
     workspaceId: workspaceId ? String(workspaceId) : null,
     currentUserId: currentUserId ? String(currentUserId) : null,
   });
+  const memberCreditUsage = useTeamMemberCreditUsage(workspaceId);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", sessionVersion],
@@ -355,26 +359,45 @@ export function TeamMembersView(props: {
         variant="compact"
       >
         <SettingsSectionAnchor section="members-table">
+          {memberCreditUsage.query.isError ? (
+            <Alert className="mb-4">
+              <AlertTitle>{t("team:TEAM_USAGE_LOAD_ERROR_TITLE")}</AlertTitle>
+              <AlertDescription>
+                <p>{t("team:TEAM_USAGE_LOAD_ERROR_DESCRIPTION")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void memberCreditUsage.query.refetch()}
+                >
+                  {t("common:RETRY")}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
           {membersQuery.isFetching &&
           !membersQuery.isLoading &&
           !membersQuery.isFetchingNextPage ? (
             <SettingsTableRefreshSkeleton />
           ) : null}
           <div className="min-w-0 overflow-x-auto">
-            <table className="min-w-[62rem] w-full table-fixed border-collapse">
+            <table className="min-w-[76rem] w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-border/60">
-                  <th className="w-1/4 py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                  <th className="w-1/5 py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
                     {t("team:TEAM_TABLE_COL_USER")}
                   </th>
-                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  <th className="w-1/5 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
                     {t("team:TEAM_TABLE_COL_ACCESS")}
                   </th>
-                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  <th className="w-1/5 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
                     {t("team:TEAM_TABLE_COL_STATUS")}
                   </th>
-                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  <th className="w-1/5 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
                     {t("team:TEAM_TABLE_COL_LAST_LOGIN")}
+                  </th>
+                  <th className="w-1/5 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                    {t("team:TEAM_TABLE_COL_USAGE")}
                   </th>
                 </tr>
               </thead>
@@ -517,6 +540,12 @@ export function TeamMembersView(props: {
                         <span className={formattedLastLogin ? "" : "text-label-secondary"}>
                           {formattedLastLogin || t("team:TEAM_LAST_LOGIN_NEVER")}
                         </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <TeamMemberCreditUsageCell
+                          usage={memberCreditUsage.byMembershipId.get(member.membershipId)}
+                          loading={memberCreditUsage.query.isLoading}
+                        />
                       </td>
                     </SettingsSectionAnchor>
                   );

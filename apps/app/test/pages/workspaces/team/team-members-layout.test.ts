@@ -22,7 +22,7 @@ describe("team members layout", () => {
     expect(source).toContain("<DataTableSearchInput");
     expect(source).toContain("<Select value={sort}");
     expect(source).toContain(
-      '<table className="min-w-[62rem] w-full table-fixed border-collapse">',
+      '<table className="min-w-[76rem] w-full table-fixed border-collapse">',
     );
     expect(source).toContain("<DataTableInfiniteScrollFooter");
     expect(source).toContain(
@@ -32,16 +32,19 @@ describe("team members layout", () => {
     expect(source).not.toContain('t("common:LOADING")');
     expect(source).toContain('variant="compact"');
     expect(source).toContain(
-      'className="w-1/4 py-2 pr-4 text-left text-callout font-semibold text-label-secondary"',
+      'className="w-1/5 py-2 pr-4 text-left text-callout font-semibold text-label-secondary"',
     );
     expect(source).toContain(
-      'className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary"',
+      'className="w-1/5 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary"',
     );
     expect(source).toContain('<div className="flex items-start justify-between gap-3">');
     expect(source).not.toContain("WorkspaceMemberContextDialog");
     expect(source).not.toContain("onOpenDetails=");
     expect(source).not.toContain("AdminDataTableSection");
     expect(source).not.toContain("useDataTable(");
+    expect(source).toContain("useTeamMemberCreditUsage(workspaceId)");
+    expect(source).toContain("<TeamMemberCreditUsageCell");
+    expect(source).toContain('t("team:TEAM_TABLE_COL_USAGE")');
   });
 
   it("presents the canonical owner separately and removes ordinary member actions", () => {

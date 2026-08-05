@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -375,16 +375,27 @@ describe("SettingsScreenHost", () => {
       expect(screen.getByRole("button", { name: "team:TEAM_INVITE_MEMBER" })).toBeVisible();
     });
     expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("false");
+    const peopleTab = screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_PEOPLE" });
+    const pendingTab = screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_PENDING" });
+    const linksTab = screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_LINKS" });
+    expect(peopleTab.querySelector("svg")).toBeNull();
+    expect(pendingTab.querySelector("svg")).toBeNull();
+    expect(linksTab.querySelector("svg")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "team:TEAM_INVITE_MEMBER" }));
 
     expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("true");
-    await user.click(screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_PENDING" }));
+    peopleTab.focus();
+    await act(async () => {
+      await user.keyboard("{ArrowRight}");
+    });
+    expect(pendingTab).toHaveFocus();
+    expect(pendingTab).toHaveAttribute("data-state", "active");
     expect(screen.getByTestId("overlay-workspace-invitations-email-state")).toHaveTextContent(
       "true",
     );
 
-    await user.click(screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_LINKS" }));
+    await user.click(linksTab);
     await user.click(screen.getByRole("button", { name: "team:TEAM_INVITE_CREATE_LINK_ACTION" }));
     expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
       "true",

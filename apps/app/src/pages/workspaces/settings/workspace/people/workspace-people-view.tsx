@@ -1,4 +1,4 @@
-import { Link2, MailPlus, Plus, UsersRound } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -58,18 +58,9 @@ export function WorkspacePeopleView(props: {
     <ChromeTabs value={view} onValueChange={(value) => setView(value as PeopleView)}>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ChromeTabsList aria-label={t("team:TEAM_PEOPLE_VIEWS_LABEL")}>
-          <ChromeTabsTrigger value="people">
-            <UsersRound data-icon="inline-start" />
-            {t("team:TEAM_PEOPLE_TAB_PEOPLE")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="pending">
-            <MailPlus data-icon="inline-start" />
-            {t("team:TEAM_PEOPLE_TAB_PENDING")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="links">
-            <Link2 data-icon="inline-start" />
-            {t("team:TEAM_PEOPLE_TAB_LINKS")}
-          </ChromeTabsTrigger>
+          <ChromeTabsTrigger value="people">{t("team:TEAM_PEOPLE_TAB_PEOPLE")}</ChromeTabsTrigger>
+          <ChromeTabsTrigger value="pending">{t("team:TEAM_PEOPLE_TAB_PENDING")}</ChromeTabsTrigger>
+          <ChromeTabsTrigger value="links">{t("team:TEAM_PEOPLE_TAB_LINKS")}</ChromeTabsTrigger>
         </ChromeTabsList>
         {action}
       </div>
