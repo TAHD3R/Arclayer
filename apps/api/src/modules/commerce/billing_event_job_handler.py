@@ -2,12 +2,22 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from hashlib import sha256
+from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import APIError
 from src.core.registries import ConnectorRegistry
 from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
-from src.modules.commerce.billing_connector import BillingConnector, BillingWebhookEnvelope, ProviderSubscription
+from src.modules.commerce.billing_checkout_outcome_application_service import (
+    BillingProviderCheckoutOutcomeApplicationService,
+    BillingProviderCheckoutOutcomeApplicator,
+)
+from src.modules.commerce.billing_connector import (
+    BillingConnector,
+    BillingWebhookEnvelope,
+    ProviderCheckoutOutcome,
+    ProviderSubscription,
+)
 from src.modules.commerce.billing_event_crypto import (
     BillingEventCryptoError,
     billing_event_aad,
@@ -49,11 +59,15 @@ class BillingConnectorEventJobHandler:
         connectors: ConnectorRegistry,
         repository: BillingEventInboxRepository | None = None,
         applicator: BillingProviderSubscriptionApplicator | None = None,
+        checkout_applicator: BillingProviderCheckoutOutcomeApplicator | None = None,
     ) -> None:
         self._settings = settings
         self._connectors = connectors
         self._repository = repository or BillingEventInboxRepository()
         self._applicator = applicator or BillingProviderSubscriptionApplicationService(settings=settings)
+        self._checkout_applicator = checkout_applicator or BillingProviderCheckoutOutcomeApplicationService(
+            settings=settings
+        )
 
     async def reconcile(
         self,
@@ -94,7 +108,7 @@ class BillingConnectorEventJobHandler:
         payload = self._decrypt_and_validate_payload(inbox)
 
         await context.report_progress(_progress("normalizing", 1))
-        subscription = await self._normalize_event(
+        checkout_outcome, subscription = await self._normalize_event(
             connector=connector,
             inbox=inbox,
             payload=payload,
@@ -103,7 +117,11 @@ class BillingConnectorEventJobHandler:
 
         await context.report_progress(_progress("applying", 2))
         result = await context.run_fenced_domain_commit(
-            lambda: self._apply_and_mark(inbox=inbox, subscription=subscription)
+            lambda: self._apply_and_mark(
+                inbox=inbox,
+                checkout_outcome=checkout_outcome,
+                subscription=subscription,
+            )
         )
         await context.report_progress(_progress("applying", _PROGRESS_TOTAL))
         return result
@@ -172,7 +190,7 @@ class BillingConnectorEventJobHandler:
         connector: BillingConnector,
         inbox: ConnectorEventInbox,
         payload: bytes,
-    ) -> ProviderSubscription | None:
+    ) -> tuple[ProviderCheckoutOutcome | None, ProviderSubscription | None]:
         envelope = BillingWebhookEnvelope(
             provider_event_id=inbox.provider_event_id,
             event_type=inbox.event_type,
@@ -181,7 +199,10 @@ class BillingConnectorEventJobHandler:
             signature_timestamp=inbox.signature_timestamp,
         )
         try:
-            return await connector.subscription_from_event(payload=payload, envelope=envelope)
+            checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+            if checkout_outcome is not None:
+                return checkout_outcome, None
+            return None, await connector.subscription_from_event(payload=payload, envelope=envelope)
         except APIError as exc:
             raise _connector_api_error(exc) from exc
 
@@ -189,41 +210,37 @@ class BillingConnectorEventJobHandler:
         self,
         *,
         inbox: ConnectorEventInbox,
+        checkout_outcome: ProviderCheckoutOutcome | None,
         subscription: ProviderSubscription | None,
     ) -> BillingConnectorEventJobResult:
-        if subscription is not None:
-            if subscription.event_id != inbox.provider_event_id:
-                raise PermanentJobExecutionError(
-                    code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
-                    safe_message="Normalized billing event identity differs from its inbox record",
-                )
-            try:
-                await self._applicator.apply_provider_subscription(
-                    subscription=subscription,
-                    provider=inbox.provider,
-                    provider_mode=str(inbox.provider_mode),
-                    provider_account_id=inbox.provider_account_id,
-                    verified_event=VerifiedBillingProviderEvent(
-                        provider_event_id=inbox.provider_event_id,
-                        payload_sha256=inbox.payload_sha256,
-                        signature_reference=_signature_reference(inbox=inbox),
-                    ),
-                )
-            except APIError as exc:
-                if exc.status_code >= 500:
-                    raise TransientJobExecutionError(
-                        code=BILLING_CONNECTOR_EVENT_PROVIDER_UNAVAILABLE_CODE,
-                        safe_message="Commerce application of the verified billing event is temporarily unavailable",
-                    ) from exc
-                raise PermanentJobExecutionError(
-                    code=BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE,
-                    safe_message="Billing subscription event was rejected by the commerce domain",
-                ) from exc
+        if checkout_outcome is not None and subscription is not None:
+            raise PermanentJobExecutionError(
+                code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
+                safe_message="Billing Connector event normalized to multiple commercial outcomes",
+            )
+        verified_event = VerifiedBillingProviderEvent(
+            provider_event_id=inbox.provider_event_id,
+            payload_sha256=inbox.payload_sha256,
+            signature_reference=_signature_reference(inbox=inbox),
+        )
+        workspace_id = None
+        if checkout_outcome is not None:
+            workspace_id = await self._apply_checkout_outcome(
+                inbox=inbox,
+                outcome=checkout_outcome,
+                verified_event=verified_event,
+            )
+        elif subscription is not None:
+            workspace_id = await self._apply_subscription(
+                inbox=inbox,
+                subscription=subscription,
+                verified_event=verified_event,
+            )
         result = BillingConnectorEventJobResult(
             inbox_id=inbox.id,
             provider_event_id=inbox.provider_event_id,
-            applied=subscription is not None,
-            workspace_id=None if subscription is None else subscription.workspace_id,
+            applied=workspace_id is not None,
+            workspace_id=workspace_id,
         )
         persisted = await self._repository.mark_processed(
             inbox_id=inbox.id,
@@ -236,6 +253,54 @@ class BillingConnectorEventJobHandler:
                 safe_message="Billing Connector event disappeared before result persistence",
             )
         return result
+
+    async def _apply_checkout_outcome(
+        self,
+        *,
+        inbox: ConnectorEventInbox,
+        outcome: ProviderCheckoutOutcome,
+        verified_event: VerifiedBillingProviderEvent,
+    ) -> UUID:
+        if outcome.event_id != inbox.provider_event_id:
+            raise PermanentJobExecutionError(
+                code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
+                safe_message="Normalized Checkout event identity differs from its inbox record",
+            )
+        try:
+            result = await self._checkout_applicator.apply_provider_checkout_outcome(
+                outcome=outcome,
+                provider=inbox.provider,
+                provider_mode=str(inbox.provider_mode),
+                provider_account_id=inbox.provider_account_id,
+                verified_event=verified_event,
+            )
+        except APIError as exc:
+            raise _application_error(exc, subject="Checkout") from exc
+        return result.workspace_id
+
+    async def _apply_subscription(
+        self,
+        *,
+        inbox: ConnectorEventInbox,
+        subscription: ProviderSubscription,
+        verified_event: VerifiedBillingProviderEvent,
+    ) -> UUID:
+        if subscription.event_id != inbox.provider_event_id:
+            raise PermanentJobExecutionError(
+                code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
+                safe_message="Normalized billing event identity differs from its inbox record",
+            )
+        try:
+            await self._applicator.apply_provider_subscription(
+                subscription=subscription,
+                provider=inbox.provider,
+                provider_mode=str(inbox.provider_mode),
+                provider_account_id=inbox.provider_account_id,
+                verified_event=verified_event,
+            )
+        except APIError as exc:
+            raise _application_error(exc, subject="subscription") from exc
+        return subscription.workspace_id
 
 
 def _validate_job_binding(
@@ -264,6 +329,22 @@ def _connector_api_error(error: APIError) -> PermanentJobExecutionError | Transi
     return PermanentJobExecutionError(
         code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
         safe_message="Billing Connector rejected the persisted event payload",
+    )
+
+
+def _application_error(
+    error: APIError,
+    *,
+    subject: str,
+) -> PermanentJobExecutionError | TransientJobExecutionError:
+    if error.status_code >= 500:
+        return TransientJobExecutionError(
+            code=BILLING_CONNECTOR_EVENT_PROVIDER_UNAVAILABLE_CODE,
+            safe_message="Commerce application of the verified billing event is temporarily unavailable",
+        )
+    return PermanentJobExecutionError(
+        code=BILLING_CONNECTOR_EVENT_APPLICATION_REJECTED_CODE,
+        safe_message=f"Billing {subject} event was rejected by the commerce domain",
     )
 
 

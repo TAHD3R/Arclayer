@@ -21,11 +21,17 @@ from src.models.commerce.billing import (
     SubscriptionStatus,
     WorkspaceCreditAccount,
 )
+from src.models.commerce.payments import CommerceCheckoutStatus
 from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
+from src.modules.commerce.billing_checkout_outcome_application_service import (
+    BillingCheckoutOutcomeApplicationResult,
+    BillingProviderCheckoutOutcomeApplicator,
+)
 from src.modules.commerce.billing_connector import (
     BillingConnector,
     BillingWebhookEnvelope,
     CheckoutSession,
+    ProviderCheckoutOutcome,
     ProviderSubscription,
 )
 from src.modules.commerce.billing_event_crypto import billing_event_aad, encrypt_billing_event_payload
@@ -50,8 +56,14 @@ from src.settings.crypto import ensure_master_key
 
 
 class _Connector:
-    def __init__(self, subscription: ProviderSubscription | Exception) -> None:
+    def __init__(
+        self,
+        subscription: ProviderSubscription | Exception | None,
+        *,
+        checkout_outcome: ProviderCheckoutOutcome | None = None,
+    ) -> None:
         self.subscription = subscription
+        self.checkout_outcome = checkout_outcome
 
     @property
     def provider_mode(self) -> str:
@@ -76,6 +88,15 @@ class _Connector:
         if isinstance(self.subscription, Exception):
             raise self.subscription
         return self.subscription
+
+    async def checkout_outcome_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderCheckoutOutcome | None:
+        _ = payload, envelope
+        return self.checkout_outcome
 
 
 def _settings(tmp_path: Path) -> Settings:
@@ -234,6 +255,60 @@ async def test_worker_replay_does_not_apply_subscription_effect_twice(tmp_path: 
     assert evidence.payload_sha256 == inbox.payload_sha256
     assert evidence.signature_reference.startswith("billing-webhook:")
     cast(AsyncMock, repository.mark_processed).assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_worker_applies_checkout_outcome_without_subscription_projection(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    inbox = _inbox(settings=settings, payload=b'{"id":"evt_worker123"}')
+    checkout_outcome = ProviderCheckoutOutcome(
+        event_id=inbox.provider_event_id,
+        checkout_session_id=uuid4(),
+        external_session_id="sim_cs_worker",
+        workspace_id=uuid4(),
+        actor_user_id=uuid4(),
+        plan_code="premium",
+        plan_revision_id=uuid4(),
+        external_price_id="sim_price_worker",
+        checkout_request_fingerprint="a" * 64,
+        command_idempotency_key_hash="b" * 64,
+        expected_revision=1,
+        outcome="succeeded",
+        occurred_at=datetime.now(UTC),
+    )
+    connector = cast(BillingConnector, _Connector(None, checkout_outcome=checkout_outcome))
+    subscription_applicator = cast(
+        BillingProviderSubscriptionApplicator,
+        SimpleNamespace(apply_provider_subscription=AsyncMock()),
+    )
+    checkout_applicator = cast(
+        BillingProviderCheckoutOutcomeApplicator,
+        SimpleNamespace(
+            apply_provider_checkout_outcome=AsyncMock(
+                return_value=BillingCheckoutOutcomeApplicationResult(
+                    workspace_id=checkout_outcome.workspace_id,
+                    checkout_session_id=checkout_outcome.checkout_session_id,
+                    status=CommerceCheckoutStatus.COMPLETED,
+                    revision=2,
+                    changed=True,
+                )
+            )
+        ),
+    )
+    handler = BillingConnectorEventJobHandler(
+        settings=settings,
+        connectors=_registry(connector),
+        repository=_repository(inbox),
+        applicator=subscription_applicator,
+        checkout_applicator=checkout_applicator,
+    )
+
+    result = await handler.execute(context=_context(inbox))
+
+    assert result.applied is True
+    assert result.workspace_id == checkout_outcome.workspace_id
+    cast(AsyncMock, checkout_applicator.apply_provider_checkout_outcome).assert_awaited_once()
+    cast(AsyncMock, subscription_applicator.apply_provider_subscription).assert_not_awaited()
 
 
 @pytest.mark.asyncio

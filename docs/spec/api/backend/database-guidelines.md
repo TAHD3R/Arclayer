@@ -104,11 +104,13 @@ class ProjectRepository(TortoiseORMRepository[Project]):
 
 - Trigger: any change to `apps/api/src/models/**` that changes tables, columns, indexes, enum-backed fields, or relationships.
 - Use only `pnpm --filter @arclayer/api db:migrate` to create migration files.
+- When reviewed historical `RunSQL` migrations have already changed the database but not Tortoise's projected state, use the explicit `db:migrate:reconcile-state` command once before normal generation. The command emits a state-only migration, performs no database operation, and refuses an unreviewed operation count.
 - Use only `pnpm --filter @arclayer/api db:upgrade` to apply migration files.
 
 #### 2. Signatures
 
 - Generate: `pnpm --filter @arclayer/api db:migrate`
+- Reconcile reviewed state drift: `pnpm --filter @arclayer/api db:migrate:reconcile-state --name <name> --expected-operations <count>`
 - Apply: `pnpm --filter @arclayer/api db:upgrade`
 - Output location: `apps/api/src/migrations/*.py`
 - ORM config: `src.core.database.orm.TORTOISE_ORM`
@@ -118,6 +120,7 @@ class ProjectRepository(TortoiseORMRepository[Project]):
 - Schema intent starts in Tortoise model definitions under `apps/api/src/models/**`.
 - Migration files are generated artifacts and must stay reviewable as command output.
 - Generated migrations must be inspected before `db:upgrade`.
+- State reconciliation is reserved for schema already applied by reviewed historical migrations; it must not suppress a new model change or database operation.
 - When generated output includes duplicate schema operations or invalid operation ordering, fix the model/source state and regenerate.
 
 #### 4. Validation & Error Matrix
@@ -126,6 +129,7 @@ class ProjectRepository(TortoiseORMRepository[Project]):
 |---|---|
 | `db:upgrade` fails with missing column during index creation | Inspect the generated migration order, remove the invalid migration artifact, fix the model/source state that produced the bad ordering, regenerate with `db:migrate` |
 | Generated migration includes unrelated intermediate model states | Remove the intermediate generated artifacts and regenerate from the final model state |
+| Historical `RunSQL` schema exists in the database but is absent from projected migration state | Review the exact autodetected operation set, run `db:migrate:reconcile-state` with its expected count, inspect the generated state-only migration, then run normal `db:migrate` |
 | Migration contents need manual SQL or operation reordering | Stop and fix the source model state, then regenerate |
 | Existing database has no pending migrations after regeneration | Run `db:upgrade` again and confirm exit code 0 with `No migrations to apply` |
 

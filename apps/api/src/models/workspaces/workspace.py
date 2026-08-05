@@ -11,6 +11,10 @@ from tortoise.signals import post_delete, post_save, pre_save
 from src.common.models import BaseModel
 
 
+def workspace_membership_role_started_at_default() -> datetime:
+    return datetime.now(UTC)
+
+
 class WorkspaceMembershipStatus(StrEnum):
     """Workspace membership status."""
 
@@ -210,7 +214,7 @@ class WorkspaceMembershipRole(BaseModel):
     role = fields.ForeignKeyField(
         "models.SystemRole", related_name="workspace_membership_roles", on_delete=fields.CASCADE
     )
-    started_at = fields.DatetimeField(default=lambda: datetime.now(UTC), db_index=True)
+    started_at = fields.DatetimeField(default=workspace_membership_role_started_at_default, db_index=True)
     ended_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):

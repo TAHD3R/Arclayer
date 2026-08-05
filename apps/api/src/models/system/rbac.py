@@ -8,6 +8,10 @@ from tortoise import fields
 from src.common.models import BaseModel
 
 
+def system_role_started_at_default() -> datetime:
+    return datetime.now(UTC)
+
+
 class PermissionScope(StrEnum):
     """Permission scope boundary."""
 
@@ -47,7 +51,7 @@ class SystemRole(BaseModel):
     is_system = fields.BooleanField(default=False, db_index=True)
     is_default = fields.BooleanField(default=False, db_index=True)
     is_superuser = fields.BooleanField(default=False, db_index=True)
-    started_at = fields.DatetimeField(default=lambda: datetime.now(UTC), db_index=True)
+    started_at = fields.DatetimeField(default=system_role_started_at_default, db_index=True)
     ended_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):

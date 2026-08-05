@@ -23,6 +23,13 @@ class CommerceCheckoutStatus(StrEnum):
     EXPIRED = "expired"
 
 
+class CommerceCheckoutOutcome(StrEnum):
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELED = "canceled"
+
+
 class CommerceTransactionKind(StrEnum):
     SUBSCRIPTION = "subscription"
     RENEWAL = "renewal"
@@ -154,6 +161,48 @@ class CommerceCheckoutSession(BaseModel):
         indexes = (
             ("workspace_id", "created_at"),
             ("provider", "provider_mode", "provider_account_id", "status"),
+        )
+
+
+class CommerceCheckoutOutcomeCommand(BaseModel):
+    """Durable actor command that emits one signed simulated Checkout outcome event."""
+
+    checkout_session = fields.ForeignKeyField(
+        "models.CommerceCheckoutSession",
+        related_name="outcome_commands",
+        on_delete=fields.RESTRICT,
+    )
+    workspace = fields.ForeignKeyField(
+        "models.Workspace",
+        related_name="commerce_checkout_outcome_commands",
+        on_delete=fields.RESTRICT,
+    )
+    actor_user_id = fields.UUIDField(db_index=True)
+    outcome = fields.CharEnumField(CommerceCheckoutOutcome, db_index=True)
+    expected_revision = fields.BigIntField()
+    idempotency_key = fields.CharField(max_length=160, unique=True)
+    request_fingerprint = fields.CharField(max_length=64)
+    provider_event_id = fields.CharField(max_length=255, unique=True)
+    event_created_at = fields.DatetimeField(db_index=True)
+    accepted_inbox_id = fields.UUIDField(null=True, db_index=True)
+    accepted_job_id = fields.UUIDField(null=True, db_index=True)
+    accepted_at = fields.DatetimeField(null=True)
+    processed_at = fields.DatetimeField(null=True)
+    result_status = fields.CharEnumField(CommerceCheckoutStatus, null=True)
+    result_revision = fields.BigIntField(null=True)
+    revision = fields.BigIntField(default=1)
+
+    if TYPE_CHECKING:
+        checkout_session_id: UUID
+        workspace_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_checkout_outcome_commands"
+        table_description = "Durable simulated Checkout outcome command and Provider event evidence."
+        abstract = False
+        indexes = (
+            ("workspace_id", "created_at"),
+            ("checkout_session_id", "created_at"),
         )
 
 

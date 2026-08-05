@@ -7,14 +7,13 @@ import json
 import time
 from pathlib import Path
 from typing import Any, cast
+from uuid import uuid4
 
 import pytest
 
-from src.config import get_settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.extensions.manager import ExtensionManager
 from src.modules.commerce.billing_connector import BillingConnector
-from src.modules.commerce.billing_event_acceptance_service import build_billing_event_acceptance_service
 
 
 def _load_simulated_connector_type() -> type:
@@ -37,16 +36,29 @@ def _connector() -> BillingConnector:
     )
 
 
-def _payload(*, timestamp: int) -> bytes:
+def _payload(*, timestamp: int, outcome: str = "succeeded") -> bytes:
     return json.dumps(
         {
             "id": "sim_evt_unit123",
-            "type": "simulated.foundation.probe",
+            "type": "checkout.session.outcome",
             "mode": "test",
             "account": "platform",
             "created": timestamp,
-            "data": {},
+            "data": {
+                "actor_user_id": str(uuid4()),
+                "checkout_request_fingerprint": "a" * 64,
+                "checkout_session_id": str(uuid4()),
+                "command_idempotency_key_hash": "b" * 64,
+                "expected_revision": 1,
+                "external_price_id": "sim_price_premium_monthly",
+                "external_session_id": "sim_cs_unit123",
+                "outcome": outcome,
+                "plan_code": "premium",
+                "plan_revision_id": str(uuid4()),
+                "workspace_id": str(uuid4()),
+            },
         },
+        sort_keys=True,
         separators=(",", ":"),
     ).encode()
 
@@ -70,7 +82,7 @@ def test_simulated_connector_verifies_its_own_test_event_identity() -> None:
     )
 
     assert envelope.provider_event_id == "sim_evt_unit123"
-    assert envelope.event_type == "simulated.foundation.probe"
+    assert envelope.event_type == "checkout.session.outcome"
     assert envelope.provider_mode == "test"
     assert envelope.provider_account_id == "platform"
     assert int(envelope.signature_timestamp.timestamp()) == timestamp
@@ -97,34 +109,21 @@ def test_simulated_connector_rejects_invalid_and_expired_signatures() -> None:
     assert expired.value.error == "BILLING_WEBHOOK_SIGNATURE_EXPIRED"
 
 
-@pytest.mark.asyncio
-async def test_simulated_acceptance_resolves_its_connector_without_creating_an_effect(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("BILLING__PROVIDER", "simulated")
-    monkeypatch.setenv("BILLING__SIMULATED_SIGNING_SECRET", "simulated-unit-secret")
-    get_settings.cache_clear()
+def test_simulated_registration_accepts_only_checkout_outcome_events() -> None:
     project_root = Path(__file__).resolve().parents[5]
-    manager = ExtensionManager(project_root)
-    await manager.load_extension(project_root / "plugins" / "arclayer-simulated-billing")
-    await manager.register_all(app=None)
-    timestamp = int(time.time())
-    payload = _payload(timestamp=timestamp)
+    plugin_path = project_root / "plugins" / "arclayer-simulated-billing" / "src" / "plugin.py"
+    spec = importlib.util.spec_from_file_location("test_arclayer_simulated_billing_registration", plugin_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load simulated billing Connector from {plugin_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    registry = ExtensionManager(project_root).registry
 
-    result = await build_billing_event_acceptance_service(
-        get_settings(),
-        manager.registry.connectors,
-        provider_name="simulated",
-    ).accept(
-        payload=payload,
-        signature=_signature(payload, timestamp=timestamp),
-    )
+    module.SimulatedBillingExtension().arclayer_register(registry)
 
-    assert result.accepted is False
-    assert result.created is False
-    assert result.inbox_id is None
-    assert result.job_id is None
+    registration = registry.connectors.resolve("billing.simulated")
+    assert registration is not None
+    assert registration.definition.webhook_events == ("checkout.session.outcome",)
 
 
 @pytest.mark.asyncio
@@ -153,7 +152,7 @@ async def test_simulated_connector_creates_visible_pending_checkout_facts() -> N
 
 
 @pytest.mark.asyncio
-async def test_simulated_connector_keeps_portal_and_event_normalization_unavailable() -> None:
+async def test_simulated_connector_normalizes_checkout_outcome_without_subscription_effect() -> None:
     connector = _connector()
 
     with pytest.raises(ServiceUnavailable) as portal:
@@ -170,9 +169,11 @@ async def test_simulated_connector_keeps_portal_and_event_normalization_unavaila
         payload=payload,
         signature=_signature(payload, timestamp=timestamp),
     )
-    with pytest.raises(ServiceUnavailable) as normalization:
-        await connector.subscription_from_event(
-            payload=payload,
-            envelope=envelope,
-        )
-    assert normalization.value.error == "BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE"
+    outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert outcome is not None
+    assert outcome.event_id == envelope.provider_event_id
+    assert outcome.outcome == "succeeded"
+    assert outcome.expected_revision == 1
+    assert subscription is None

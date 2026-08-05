@@ -26,6 +26,7 @@ from src.modules.commerce.billing_connector import (
     BillingRedirectSession,
     BillingWebhookEnvelope,
     CheckoutSession,
+    ProviderCheckoutOutcome,
     ProviderDunningEvent,
     ProviderSubscription,
 )
@@ -432,6 +433,15 @@ class StripeBillingConnector:
             subscription=subscription,
             include_confirmed_transition=event.type == "customer.subscription.updated",
         )
+
+    async def checkout_outcome_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderCheckoutOutcome | None:
+        del payload, envelope
+        return None
 
     @staticmethod
     def _parse_event(payload: bytes) -> _StripeWebhookEvent:

@@ -25061,6 +25061,31 @@ export type ResponseModelSecurityVerificationWebAuthnBeginOut = {
 };
 
 /**
+ * ResponseModel[SimulatedCheckoutOutcomeOut]
+ */
+export type ResponseModelSimulatedCheckoutOutcomeOut = {
+    data?: SimulatedCheckoutOutcomeOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SitePresenceHeartbeatOut]
  */
 export type ResponseModelSitePresenceHeartbeatOut = {
@@ -27778,6 +27803,54 @@ export type SettlementV1 = {
      */
     outcome: 'committed' | 'released' | 'reconciled';
     usage: UsageV1 | null;
+};
+
+/**
+ * SimulatedCheckoutOutcomeOut
+ */
+export type SimulatedCheckoutOutcomeOut = {
+    /**
+     * Accepted
+     */
+    accepted: boolean;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string;
+    /**
+     * Eventcreated
+     */
+    eventCreated: boolean;
+    /**
+     * Inboxid
+     */
+    inboxId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Outcome
+     */
+    outcome: 'pending' | 'succeeded' | 'failed' | 'canceled';
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+};
+
+/**
+ * SimulatedCheckoutOutcomeWrite
+ */
+export type SimulatedCheckoutOutcomeWrite = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Outcome
+     */
+    outcome: 'pending' | 'succeeded' | 'failed' | 'canceled';
 };
 
 /**
@@ -45562,6 +45635,48 @@ export type DomainWorkspacesCreateWorkspaceCheckoutSessionResponses = {
 };
 
 export type DomainWorkspacesCreateWorkspaceCheckoutSessionResponse = DomainWorkspacesCreateWorkspaceCheckoutSessionResponses[keyof DomainWorkspacesCreateWorkspaceCheckoutSessionResponses];
+
+export type DomainWorkspacesCreateSimulatedCheckoutOutcomeData = {
+    body: SimulatedCheckoutOutcomeWrite;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Checkout Session Id
+         */
+        checkout_session_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/checkout-session/{checkout_session_id}/outcome';
+};
+
+export type DomainWorkspacesCreateSimulatedCheckoutOutcomeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateSimulatedCheckoutOutcomeError = DomainWorkspacesCreateSimulatedCheckoutOutcomeErrors[keyof DomainWorkspacesCreateSimulatedCheckoutOutcomeErrors];
+
+export type DomainWorkspacesCreateSimulatedCheckoutOutcomeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatedCheckoutOutcomeOut;
+};
+
+export type DomainWorkspacesCreateSimulatedCheckoutOutcomeResponse = DomainWorkspacesCreateSimulatedCheckoutOutcomeResponses[keyof DomainWorkspacesCreateSimulatedCheckoutOutcomeResponses];
 
 export type DomainWorkspacesListWorkspaceCreditLedgerData = {
     body?: never;

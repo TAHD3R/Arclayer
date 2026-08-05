@@ -63,6 +63,26 @@ class ProviderSubscription(BaseModel):
     confirmed_transition: ProviderConfirmedTransitionEvidence | None = None
 
 
+class ProviderCheckoutOutcome(BaseModel):
+    """Exact Checkout outcome normalized from one signature-verified Provider event."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    event_id: str = Field(..., min_length=1, max_length=255)
+    checkout_session_id: UUID
+    external_session_id: str = Field(..., min_length=1, max_length=255)
+    workspace_id: UUID
+    actor_user_id: UUID
+    plan_code: str = Field(..., min_length=1, max_length=48)
+    plan_revision_id: UUID
+    external_price_id: str = Field(..., min_length=1, max_length=255)
+    checkout_request_fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    command_idempotency_key_hash: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    expected_revision: int = Field(..., ge=1)
+    outcome: Literal["pending", "succeeded", "failed", "canceled"]
+    occurred_at: AwareDatetime
+
+
 class BillingWebhookEnvelope(BaseModel):
     """Signature-verified identity extracted without provider-side I/O."""
 
@@ -128,3 +148,10 @@ class BillingConnector(Protocol):
         payload: bytes,
         envelope: BillingWebhookEnvelope,
     ) -> ProviderSubscription | None: ...
+
+    async def checkout_outcome_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderCheckoutOutcome | None: ...

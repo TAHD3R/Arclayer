@@ -14,6 +14,8 @@ from src.models.commerce.credit_allocation import (
 )
 from src.models.commerce.payments import (
     CommerceCheckoutKind,
+    CommerceCheckoutOutcome,
+    CommerceCheckoutOutcomeCommand,
     CommerceCheckoutSession,
     CommerceCheckoutStatus,
     CommerceCreditTopUpOffer,
@@ -83,10 +85,17 @@ def test_payment_models_keep_provider_projections_and_workspace_automation_disti
         "canceled",
         "expired",
     }
+    assert {outcome.value for outcome in CommerceCheckoutOutcome} == {
+        "pending",
+        "succeeded",
+        "failed",
+        "canceled",
+    }
     expected_tables = {
         CommerceCreditTopUpOffer: "commerce_credit_top_up_offers",
         CommerceCreditTopUpOfferPrice: "commerce_credit_top_up_offer_prices",
         CommerceCheckoutSession: "commerce_checkout_sessions",
+        CommerceCheckoutOutcomeCommand: "commerce_checkout_outcome_commands",
         CommerceInvoice: "commerce_invoices",
         CommerceTransaction: "commerce_transactions",
         CommerceRefund: "commerce_refunds",
