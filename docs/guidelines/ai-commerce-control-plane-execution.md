@@ -338,14 +338,14 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4b purchased top-up, refund, and correction projection.
+Current active part: M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation.
 
 Repository baseline:
 
 - The real Stripe path is a registered `billing.stripe` connector and remains the production Billing Provider. Its Checkout, Customer Portal, signature verification, normalized subscription events, pinned connector version, and Stripe-specific webhook route remain canonical and must not be aliased to simulated behavior.
-- Billing Provider resolution is already injected through `BillingConnector`, but `BillingSettings`, readiness, and webhook enablement currently encode Stripe-only assumptions.
-- Durable Provider event acceptance already verifies signatures before persistence, encrypts the raw payload, claims the unique Provider event identity, and creates a pinned Job/outbox transactionally. The Job decrypts, checks payload integrity, resolves the pinned connector version, normalizes the event, and applies the canonical subscription/access projection.
-- `CommerceCheckoutSession`, `CommerceInvoice`, `CommerceTransaction`, and `CommerceRefund` models and migration `0116` already exist. Checkout currently returns the Provider URL without persisting a checkout session, and Provider application does not yet project transaction, invoice, or refund records.
+- Billing Provider resolution, readiness, signature inputs, and accepted-event handling are injected through `BillingConnector`. Stripe retains its strict API/webhook-secret requirements, while the separate `simulated` Provider is explicitly limited to development and test.
+- Durable Provider event acceptance verifies signatures before persistence, encrypts the raw payload, claims the unique Provider event identity, and creates a pinned Job/outbox transactionally. The Job decrypts, checks payload integrity, resolves the pinned Connector version, performs any accepted Provider expansion, normalizes the event, and applies the canonical Subscription/access/payment projection.
+- `CommerceCheckoutSession`, `CommerceInvoice`, `CommerceTransaction`, and `CommerceRefund` models already exist. Subscription Checkout sessions are durable and idempotent, while M2.4a projects simulated and Stripe invoice/transaction evidence. Purchased top-up settlement, refund holds/confirmation, and payment reconciliation remain the active gap.
 - No Stripe Connect onboarding or connected-account funds-flow contract exists. M2 concerns the SaaS Billing installation only and does not introduce Connect semantics.
 
 M2 execution parts:
@@ -374,7 +374,13 @@ M2 execution parts:
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
    - M2.4a.1 Provider-neutral and simulated invoice/transaction projection. — Complete
    - M2.4a.2 Stripe invoice normalization and projection. — Complete
-   - M2.4b purchased top-up, refund, and correction projection. — Active
+   - M2.4b purchased top-up, refund, and payment reconciliation. — Active
+     - M2.4b.0 canonical top-up/refund contract freeze. — Complete
+     - M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation. — Active
+     - M2.4b.2 simulated top-up settlement and exact Credit grant.
+     - M2.4b.3 Stripe top-up Checkout and settlement.
+     - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
+     - M2.4b.5 payment reconciliation/correction and M2.4 closure.
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
@@ -722,7 +728,24 @@ M2.4a.2 validation:
 - `pnpm api:check` passed API lint and formatting across `1867` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4a.2 unit and PostgreSQL tests remain green.
 - Changed-scope Code Review Engine exited successfully with zero blockers. Its `17` report-only findings are existing application-service localization prototypes and the known simulated/Stripe Connector lifecycle prototype reports.
 - Final staged GitNexus detection reported `LOW` risk across `8` files and `168` indexed symbols, with no affected execution flow.
-- M2.4a.2 is complete. The only active part is M2.4b purchased top-up, refund, and correction projection.
+- M2.4a.2 is complete. M2.4b.0 froze the purchased top-up, refund, and payment-reconciliation contracts; the only active part is M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation.
+
+M2.4b.0 contract freeze:
+
+- Credit consumption is deterministic: current-period Plan lots; promotional and adjustment lots by expiry, issue time, and stable identity; `legacy_unattributed`; then purchased top-up lots. Generic negative adjustments preserve top-ups by reversing newest adjustment, promotional, Plan, legacy, and then top-up value. Provider refunds bypass that generic order and target only the exact purchased lot linked to the original top-up transaction.
+- Every top-up Checkout snapshots the offer id/revision, integer Credits, Provider Price, currency, money micros, Workspace, actor, Provider scope, expiry, idempotency identity, and request fingerprint. Checkout creation and return URLs never grant Credits.
+- Initial settlement accepts exactly one complete payment whose amount, currency, Provider Price, and Credits match the Checkout snapshot. Only a signature-verified accepted Provider event may create the top-up transaction, ledger entry, and non-expiring purchased lot. Partial, multiple, substituted, duplicate, stale, and out-of-order settlements never create a second grant and become explicit reconciliation failures when evidence conflicts.
+- Initial refund supports one full refund of a succeeded top-up transaction. Request acceptance creates a durable pending refund and exact hold against the original purchased lot's unreserved remaining Credits before any Provider refund call. The hold reduces availability without claiming completion; failure/cancellation releases it; Provider-confirmed success consumes it and atomically appends the refund ledger/lot mutation and projection updates.
+- Subscription and renewal refunds remain Subscription Commercial Corrections. M2.4 payment correction means append-only Provider payment/Credit consequence reconciliation and is distinct from Subscription Commercial Correction, Commerce/Hosting Domain State Correction, and Platform Credit adjustment.
+- A Provider-confirmed refund without the exact pending hold and matching Workspace, transaction, amount, currency, and Credit consequence enters reconciliation required. The system never fabricates success, produces a negative Credit balance, or reverses unrelated lots.
+
+M2.4b.1 active boundary:
+
+- Extend durable Checkout evidence for `kind = top_up` with an immutable top-up offer/revision snapshot and exact integer Credit, Provider Price, currency, amount, Workspace, actor, Provider mode/account, expiry, idempotency, and fingerprint facts.
+- Define strict normalized accepted-event facts that can identify a top-up Checkout and complete Provider settlement without requiring Subscription, Plan Revision, or application identities that belong only to recurring Billing.
+- Preserve one canonical Provider signature/inbox/pinned-Job/application path. Checkout creation, Provider return, Product polling, and simulator commands cannot grant Credits or directly project a succeeded transaction.
+- Add the smallest migration and focused schema/repository/model/Job tests needed for the snapshot/evidence foundation. Simulated outcome execution, Stripe Checkout mode changes, Credit grant application, refund execution, Platform APIs, and OpenAPI remain outside M2.4b.1.
+- Acceptance requires immutable snapshot fidelity, Workspace/actor/provider ownership checks, exact idempotent replay, changed-request conflict, strict event-to-Checkout correlation, explicit unsupported/mismatched evidence errors, PostgreSQL migration coverage, and no regression in subscription Checkout or M2.4a payment projection.
 
 ## Known unrelated repository failures
 
@@ -962,4 +985,13 @@ M2.4a.2 validation:
 - Restored strict Checkout activation period authority while keeping ordinary Stripe invoice periods independent from Subscription current periods, and translated simulated normalized-contract failures to the stable invalid-webhook boundary.
 - Verified `50` focused unit tests, `1` Stripe PostgreSQL full-chain test, `19` Provider application/simulated lifecycle PostgreSQL tests, targeted static checks, no migration drift, no pending database upgrade, and zero changed-scope review blockers.
 - Recorded the unchanged legacy unauthorized Revision-rebind failure and existing `289` broad API type diagnostics without weakening authority or adding a fallback.
-- Completed M2.4a.2 and selected M2.4b purchased top-up, refund, and correction projection as the only active part.
+- Completed M2.4a.2 and selected M2.4b purchased top-up, refund, and payment reconciliation as the only active part.
+
+### 2026-08-05 — M2.4b.0 top-up and refund contract freeze
+
+- Fixed deterministic Credit consumption and generic reversal ordering while requiring Provider refunds to target only the exact purchased lot linked to the original top-up transaction.
+- Required immutable top-up Checkout snapshots and one exact signature-verified settlement before transaction, ledger, or non-expiring purchased-lot creation; Checkout creation and return URLs remain non-authoritative.
+- Limited the initial refund workflow to one full refund of a succeeded top-up transaction, with a durable pre-Provider Credit hold, confirmed success consumption, and explicit failure/cancellation release.
+- Defined mismatched or consequence-impossible Provider refund facts as reconciliation required without fabricated success, negative Credits, or reversal of unrelated lots.
+- Kept payment reconciliation distinct from Subscription Commercial Correction, Commerce/Hosting Domain State Correction, and Platform Credit adjustment.
+- Split implementation into M2.4b.1 Checkout snapshot/evidence, M2.4b.2 simulated settlement, M2.4b.3 Stripe settlement, M2.4b.4 confirmed full refund, and M2.4b.5 reconciliation/closure; selected M2.4b.1 as the only active part.
