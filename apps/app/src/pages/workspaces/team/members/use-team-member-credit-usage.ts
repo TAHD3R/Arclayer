@@ -2,17 +2,16 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { listWorkspaceMemberCreditUsage, type MemberCreditUsageItemOut } from "@/api/commerce";
-
-const MEMBER_CREDIT_USAGE_PAGE_SIZE = 200;
+import {
+  MEMBER_CREDIT_PAGE_SIZE,
+  peopleMemberCreditUsageQueryKey,
+} from "@/lib/commerce/member-credit-contracts";
 
 type MemberCreditUsageCollection = Readonly<{
   items: readonly MemberCreditUsageItemOut[];
   periodStart: string;
   periodEnd: string;
 }>;
-
-export const peopleMemberCreditUsageQueryKey = (workspaceId: string) =>
-  ["commerce", "workspace", workspaceId, "member-usage", "people"] as const;
 
 export async function listAllWorkspaceMemberCreditUsage(
   workspaceId: string,
@@ -32,7 +31,7 @@ export async function listAllWorkspaceMemberCreditUsage(
     seenPages.add(page);
     const result = await listWorkspaceMemberCreditUsage(
       workspaceId,
-      { page, size: MEMBER_CREDIT_USAGE_PAGE_SIZE },
+      { page, size: MEMBER_CREDIT_PAGE_SIZE },
       signal,
     );
     if (periodStart === null) {

@@ -241,13 +241,13 @@ M1.5b active boundary:
 
 M1.5b execution parts:
 
-1. M1.5b.1 shared client contracts and member-limit controller. — Active
+1. M1.5b.1 shared client contracts and member-limit controller. — Complete
    - Extract one Commerce-management authority hook used by Plan & Usage, People, and the Workspace settings entry.
    - Define non-colliding query keys for Commerce overview, member-limit configuration, full member limits, People Usage, and the Plan & Usage member table.
    - Add a manager-only paginated member-limits controller keyed by `membershipId`.
    - Preserve one Workspace-wide `configurationRevision`; reject inconsistent pages and duplicate member rows explicitly.
    - Implement per-member revision-bound set/clear mutations, response-scope validation, target-aware idempotency fingerprints, conflict refresh, and canonical cache invalidation.
-2. M1.5b.2 focused per-member override dialog and People row action. — Pending
+2. M1.5b.2 focused per-member override dialog and People row action. — Active
    - Use `SettingDialog`, React Hook Form, Zod, and canonical shared fields.
    - Keep `inherit`, explicit positive-integer `limited`, and explicit `unlimited` as three distinct states.
    - Owner may edit their own row; Billing Managers require both the role-management Entitlement and exact Commerce permission; ordinary members receive no action.
@@ -270,6 +270,25 @@ M1.5b implementation constraints:
 - A revision or idempotency conflict refreshes canonical limits and Usage, keeps the dialog available, and reports that the attempted change was not applied.
 - Mutation success invalidates full member limits, the M1.4 configuration snapshot, People Usage, and the Plan & Usage member table without resetting durable Usage counters.
 - Workspace settings may navigate to the canonical Plan & Usage control only; Product and Platform specs forbid a second Workspace Commerce mutation form.
+
+M1.5b.1 implementation evidence:
+
+- Added one shared Commerce-management authority hook with Owner/superuser bypass and the exact role-management Entitlement plus `workspace:commerce:manage` permission requirement for other managers.
+- Consolidated canonical Commerce overview, default configuration, full member limits, People Usage, and Plan & Usage table query keys so mutations refresh every affected projection without key collisions.
+- Added a manager-only full member-limit controller that follows canonical pagination, indexes by `membershipId`, and rejects repeated pages, duplicate memberships, inconsistent Workspace revisions/defaults/periods/totals, and incomplete snapshots.
+- Added revision-bound set/clear commands with target-aware idempotency fingerprints. Clear commands remain free of limit fields, while explicit unlimited remains distinct from inherited default.
+- Mutation success now validates Workspace, membership, strictly advanced configuration revision, default/override/effective limit shapes, and effective-limit precedence before updating cache state.
+- Reused the same authority and cache contracts in Plan & Usage, Workspace role availability, People Usage, and the member Usage table. Default-limit writes now invalidate full member limits and People Usage in addition to the canonical configuration and Plan table.
+
+M1.5b.1 validation:
+
+- Focused Product tests: `19 passed` across shared Plan authority/default-limit behavior, People Usage pagination, and the new member-limit controller.
+- Product App lint and format checks passed; locale parity passed for all `23` namespaces.
+- Product OpenAPI typecheck passed.
+- Product App typecheck contains only the known unrelated `test/browser/product-acceptance.spec.ts` missing `../../../../tests/browser/support` error; no M1.5b.1 type error remains.
+- `pnpm app:check`: lint, format, and locale tasks passed; typecheck and broad Vitest remain blocked by the same missing browser acceptance support module.
+- Staged GitNexus change detection reported `MEDIUM` risk across `29` indexed symbols and `5` expected Workspace Commerce/People execution flows; no unrelated flow was introduced.
+- Code Review Engine changed-scope audit exited successfully with zero blocking findings. Its sole report-only finding is the existing prototype directory-structure suggestion for the overlay-mounted `plan-usage` directory.
 
 ## Known unrelated repository failures
 
@@ -345,3 +364,11 @@ M1.5b implementation constraints:
 - Re-read the approved administration experience, Workspace commercialization, Product UI toolchain, frontend design guideline, and `DESIGN.md` contracts before changing the Product surfaces.
 - Split M1.5b into four recoverable execution parts and selected M1.5b.1 as the only active implementation part.
 - Confirmed that M1.5b adds no backend route or second policy store: it consumes the M1 APIs completed in M1.2/M1.3 and deep-links Workspace basics to the existing M1.4 default-limit editor.
+
+### 2026-08-05 — M1.5b.1 shared authority and member-limit controller
+
+- Consolidated Commerce management authority, entitlement checks, pagination constants, query keys, conflict recognition, and limit validation into shared Product contracts.
+- Added the full manager member-limit snapshot and per-member override controller with strict revision, idempotency, response-scope, effective-precedence, cache update, and conflict-refresh behavior.
+- Extended the existing default member-limit controller to the same shared authority and canonical invalidation contract.
+- Verified `19` focused tests plus Product lint, format, locale parity, and OpenAPI typecheck. The package gate remains blocked only by the unrelated missing browser acceptance support module.
+- Advanced the active implementation part to M1.5b.2 focused per-member override dialog and People row action.

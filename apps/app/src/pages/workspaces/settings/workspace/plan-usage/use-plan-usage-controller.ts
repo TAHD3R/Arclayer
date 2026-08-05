@@ -3,21 +3,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createWorkspaceCustomerPortalSession,
-  getWorkspaceCommerceOverview,
   listWorkspaceMemberCreditLimits,
   setWorkspaceDefaultMemberCreditLimit,
   type MemberCreditLimitInput,
   type MemberCreditLimitsPage,
 } from "@/api/commerce";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useWorkspaceCommerceManagementAccess } from "@/hooks/use-workspace-commerce-management-access";
 import { ApiError } from "@/lib/http";
+import {
+  isMemberCreditConflict,
+  isValidMemberCreditLimit,
+  memberCreditConfigurationQueryKey,
+  memberCreditLimitsEqual,
+  memberCreditLimitsQueryKey,
+  peopleMemberCreditUsageQueryKey,
+  planMemberCreditUsageQueryKey,
+} from "@/lib/commerce/member-credit-contracts";
 import { notifyError } from "@/lib/notifications";
 
-const WORKSPACE_COMMERCE_MANAGE_PERMISSION = "workspace:commerce:manage";
-const WORKSPACE_ROLES_FEATURE_KEY = "workspace.roles.manage";
-export const MEMBER_CREDIT_USAGE_TABLE_ID = "workspace-plan-usage-member-credits";
+export { MEMBER_CREDIT_USAGE_TABLE_ID } from "@/lib/commerce/member-credit-contracts";
 
-type ManagementAccessStatus = "loading" | "error" | "view" | "manage";
 type DefaultLimitFeedback = "idle" | "saved" | "conflict" | "error";
 type DefaultLimitAttempt = Readonly<{
   fingerprint: string;
@@ -29,18 +34,6 @@ type DefaultLimitMutationCommand = Readonly<{
   idempotencyKey: string;
 }>;
 
-const memberLimitsQueryKey = (workspaceId: string) =>
-  ["commerce", "workspace", workspaceId, "member-limits", "configuration"] as const;
-
-function includesWorkspaceRoleManagement(
-  entitlements: ReadonlyArray<{ key: string; isIncluded: boolean }>,
-): boolean {
-  const matches = entitlements.filter(
-    (entitlement) => entitlement.key === WORKSPACE_ROLES_FEATURE_KEY,
-  );
-  return matches.length === 1 && matches[0]?.isIncluded === true;
-}
-
 function commandFingerprint(command: Omit<DefaultLimitMutationCommand, "idempotencyKey">): string {
   return JSON.stringify({
     expectedRevision: command.expectedRevision,
@@ -49,52 +42,17 @@ function commandFingerprint(command: Omit<DefaultLimitMutationCommand, "idempote
   });
 }
 
-function isMemberCreditConflict(error: unknown): boolean {
-  return (
-    error instanceof ApiError &&
-    error.status === 409 &&
-    (error.error === "WORKSPACE_MEMBER_CREDIT_REVISION_STALE" ||
-      error.error === "WORKSPACE_MEMBER_CREDIT_IDEMPOTENCY_CONFLICT")
-  );
-}
-
 export function usePlanUsageController(workspaceId: string) {
   const queryClient = useQueryClient();
-  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
+  const access = useWorkspaceCommerceManagementAccess(workspaceId);
   const [defaultLimitFeedback, setDefaultLimitFeedback] = useState<DefaultLimitFeedback>("idle");
   const attemptRef = useRef<DefaultLimitAttempt | null>(null);
 
-  const overviewQuery = useQuery({
-    queryKey: ["commerce", "workspace", workspaceId, "overview"],
-    queryFn: ({ signal }) => getWorkspaceCommerceOverview(workspaceId, signal),
-    retry: false,
-    staleTime: 30_000,
-    meta: { silent: true },
-  });
-  const rolesManagementIncluded = includesWorkspaceRoleManagement(
-    overviewQuery.data?.planRevision.entitlements ?? [],
-  );
-  const isWorkspaceOwner = Boolean(permissionAccess.authzQuery.data?.isWorkspaceOwner);
-  const canManageCommerce =
-    permissionAccess.authzQuery.isSuccess &&
-    (isWorkspaceOwner ||
-      permissionAccess.isSuperuser ||
-      (rolesManagementIncluded &&
-        permissionAccess.hasPermission(WORKSPACE_COMMERCE_MANAGE_PERMISSION)));
-
-  const managementAccessStatus: ManagementAccessStatus = permissionAccess.authzQuery.isPending
-    ? "loading"
-    : permissionAccess.authzQuery.isError
-      ? "error"
-      : canManageCommerce
-        ? "manage"
-        : "view";
-
   const limitsQuery = useQuery({
-    queryKey: memberLimitsQueryKey(workspaceId),
+    queryKey: memberCreditConfigurationQueryKey(workspaceId),
     queryFn: ({ signal }) =>
       listWorkspaceMemberCreditLimits(workspaceId, { page: 1, size: 1 }, signal),
-    enabled: canManageCommerce,
+    enabled: access.canManageCommerce,
     retry: false,
     staleTime: 30_000,
     meta: { silent: true },
@@ -102,10 +60,14 @@ export function usePlanUsageController(workspaceId: string) {
 
   const refreshMemberCreditViews = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: memberLimitsQueryKey(workspaceId) }),
       queryClient.invalidateQueries({
-        queryKey: ["dataTable", MEMBER_CREDIT_USAGE_TABLE_ID],
+        queryKey: memberCreditConfigurationQueryKey(workspaceId),
       }),
+      queryClient.invalidateQueries({ queryKey: memberCreditLimitsQueryKey(workspaceId) }),
+      queryClient.invalidateQueries({
+        queryKey: peopleMemberCreditUsageQueryKey(workspaceId),
+      }),
+      queryClient.invalidateQueries({ queryKey: planMemberCreditUsageQueryKey() }),
     ]);
   }, [queryClient, workspaceId]);
 
@@ -117,7 +79,17 @@ export function usePlanUsageController(workspaceId: string) {
         expectedRevision: command.expectedRevision,
         idempotencyKey: command.idempotencyKey,
       });
-      if (result.workspaceId !== workspaceId || result.membershipId !== null) {
+      if (
+        result.workspaceId !== workspaceId ||
+        result.membershipId !== null ||
+        !Number.isSafeInteger(result.configurationRevision) ||
+        result.configurationRevision <= command.expectedRevision ||
+        !isValidMemberCreditLimit(result.defaultLimit) ||
+        result.overrideLimit !== null ||
+        !isValidMemberCreditLimit(result.effectiveLimit) ||
+        !memberCreditLimitsEqual(result.defaultLimit, command.input) ||
+        !memberCreditLimitsEqual(result.effectiveLimit, command.input)
+      ) {
         throw new ApiError({
           status: 500,
           error: "PRODUCT_API_RESPONSE_INVALID",
@@ -130,7 +102,7 @@ export function usePlanUsageController(workspaceId: string) {
       attemptRef.current = null;
       setDefaultLimitFeedback("saved");
       queryClient.setQueryData<MemberCreditLimitsPage>(
-        memberLimitsQueryKey(workspaceId),
+        memberCreditConfigurationQueryKey(workspaceId),
         (current) =>
           current
             ? {
@@ -180,12 +152,12 @@ export function usePlanUsageController(workspaceId: string) {
   });
 
   return {
-    overviewQuery,
+    overviewQuery: access.overviewQuery,
     limitsQuery,
-    managementAccessStatus,
-    canManageCommerce,
-    permissionError: permissionAccess.authzQuery.error,
-    retryPermission: permissionAccess.authzQuery.refetch,
+    managementAccessStatus: access.managementAccessStatus,
+    canManageCommerce: access.canManageCommerce,
+    permissionError: access.error,
+    retryPermission: access.retry,
     billingPortalMutation,
     defaultLimitFeedback,
     defaultLimitPending: defaultLimitMutation.isPending,

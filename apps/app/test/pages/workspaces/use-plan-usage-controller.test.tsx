@@ -7,8 +7,10 @@ import type { MemberCreditLimitsPage, WorkspaceCommerceOverview } from "@/api/co
 import { ApiError } from "@/lib/http";
 import {
   MEMBER_CREDIT_USAGE_TABLE_ID,
-  usePlanUsageController,
-} from "@/pages/workspaces/settings/workspace/plan-usage/use-plan-usage-controller";
+  memberCreditLimitsQueryKey,
+  peopleMemberCreditUsageQueryKey,
+} from "@/lib/commerce/member-credit-contracts";
+import { usePlanUsageController } from "@/pages/workspaces/settings/workspace/plan-usage/use-plan-usage-controller";
 
 const {
   createWorkspaceCustomerPortalSessionMock,
@@ -226,6 +228,12 @@ describe("usePlanUsageController", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["dataTable", MEMBER_CREDIT_USAGE_TABLE_ID],
     });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: memberCreditLimitsQueryKey("workspace-1"),
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: peopleMemberCreditUsageQueryKey("workspace-1"),
+    });
   });
 
   it("shows a revision conflict and refreshes the canonical configuration", async () => {
@@ -247,6 +255,33 @@ describe("usePlanUsageController", () => {
 
     await waitFor(() => expect(result.current.defaultLimitFeedback).toBe("conflict"));
     await waitFor(() => expect(listWorkspaceMemberCreditLimitsMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("rejects a success envelope whose effective limit contradicts the saved default", async () => {
+    setWorkspaceDefaultMemberCreditLimitMock.mockResolvedValue({
+      workspaceId: "workspace-1",
+      membershipId: null,
+      defaultLimit: { limitKind: "limited", limitCredits: 250 },
+      overrideLimit: null,
+      effectiveLimit: { limitKind: "limited", limitCredits: 999 },
+      configurationRevision: 5,
+      replayed: false,
+    });
+    const { result } = renderController();
+    await waitFor(() => expect(result.current.limitsQuery.data).toBeDefined());
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.saveDefaultLimit({ limitKind: "limited", limitCredits: 250 });
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({ status: 500, error: "PRODUCT_API_RESPONSE_INVALID" });
+    expect(result.current.defaultLimitFeedback).toBe("error");
   });
 
   it("reuses the idempotency key only when retrying the same failed payload", async () => {

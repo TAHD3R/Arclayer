@@ -1,23 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getWorkspaceCommerceOverview } from "@/api/commerce";
-
-export const WORKSPACE_ROLES_FEATURE_KEY = "workspace.roles.manage";
+import {
+  includesWorkspaceRoleManagement,
+  workspaceCommerceOverviewQueryKey,
+} from "@/lib/commerce/member-credit-contracts";
 
 export type WorkspaceRolesAccessStatus = "loading" | "available" | "unavailable" | "error";
 
-function includesWorkspaceRoleManagement(
-  entitlements: ReadonlyArray<{ key: string; isIncluded: boolean }>,
-): boolean {
-  const matches = entitlements.filter(
-    (entitlement) => entitlement.key === WORKSPACE_ROLES_FEATURE_KEY,
-  );
-  return matches.length === 1 && matches[0]?.isIncluded === true;
-}
-
 export function useWorkspaceRolesAccess(workspaceId: string | null) {
   const query = useQuery({
-    queryKey: ["commerce", "workspace", workspaceId, "overview"],
+    queryKey: workspaceCommerceOverviewQueryKey(workspaceId ?? "unselected"),
     enabled: Boolean(workspaceId),
     queryFn: ({ signal }) => getWorkspaceCommerceOverview(String(workspaceId), signal),
     retry: false,

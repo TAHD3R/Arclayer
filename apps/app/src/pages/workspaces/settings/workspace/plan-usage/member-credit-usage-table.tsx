@@ -5,9 +5,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { listWorkspaceMemberCreditUsage, type MemberCreditUsageItemOut } from "@/api/commerce";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
+import { MEMBER_CREDIT_USAGE_TABLE_ID } from "@/lib/commerce/member-credit-contracts";
 import { Badge } from "@arclayer/ui/badge";
 import { useDataTable } from "@arclayer/ui/data-table";
-import { MEMBER_CREDIT_USAGE_TABLE_ID } from "./use-plan-usage-controller";
 
 function memberLabel(member: MemberCreditUsageItemOut, fallback: string): string {
   return member.user.displayName || member.user.username || member.user.email || fallback;

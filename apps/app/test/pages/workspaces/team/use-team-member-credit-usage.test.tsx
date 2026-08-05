@@ -4,10 +4,8 @@ import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listWorkspaceMemberCreditUsage } from "@/api/commerce";
-import {
-  peopleMemberCreditUsageQueryKey,
-  useTeamMemberCreditUsage,
-} from "@/pages/workspaces/team/members/use-team-member-credit-usage";
+import { peopleMemberCreditUsageQueryKey } from "@/lib/commerce/member-credit-contracts";
+import { useTeamMemberCreditUsage } from "@/pages/workspaces/team/members/use-team-member-credit-usage";
 
 vi.mock("@/api/commerce", () => ({ listWorkspaceMemberCreditUsage: vi.fn() }));
 
