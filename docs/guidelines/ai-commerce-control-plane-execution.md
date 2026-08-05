@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.3b.3c withheld period Credits and immutable handoff evidence.
+Current active part: M2.3c recovery, renewal, and closure.
 
 Repository baseline:
 
@@ -515,7 +515,7 @@ M2.3a.2 validation:
 - Changed-scope Code Review Engine exited successfully with zero blocking findings. Its `39` report-only findings are existing convergence repository/protocol and i18n prototype reports plus the known simulated Connector lifecycle report; the new Checkout activation repository is recognized as a canonical `TortoiseORMRepository`.
 - The existing Stripe Credit integration fixture still attempts a Free-to-Premium Revision rebind without completed Checkout or confirmed transition evidence and correctly fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`; the authority boundary was not weakened to preserve that legacy fixture.
 
-2. M2.3b dunning and restricted-access projection. — Active
+2. M2.3b dunning and restricted-access projection. — Complete
    - Normalize a failed-payment dunning fact with Provider period identity, occurrence time, and explicit recovery deadline; apply it through the existing access-state composition and configured Provider-aware dunning policy.
    - Verify warning/restricted/suspended transitions, optimistic access revision, duplicate/out-of-order convergence, entitlement/Credit denial behavior, and immutable signed evidence.
    - M2.3b.1 strict simulated dunning normalization and signed application baseline. — Complete
@@ -524,23 +524,23 @@ M2.3a.2 validation:
      - Prove `normal -> payment_grace` and `payment_grace -> payment_restricted` without changing the bound Plan Revision, granting Credits, implementing recovery/renewal, or adding Platform simulator APIs.
    - M2.3b.2 Provider-aware policy enforcement and dunning ordering. — Complete
      - Resolve the active Provider/mode Dunning Policy, reject missing or inconsistent policy/recovery metadata explicitly, and prevent duplicate or stale Provider facts from extending or regressing the current state.
-   - M2.3b.3 Restricted Recovery denial projection and closure. — Active
+   - M2.3b.3 Restricted Recovery denial projection and closure. — Complete
      - Verify the existing Product API/Job command matrix against the projected state, withheld period Credit behavior, immutable Hosting/notification handoffs, and the complete focused/package regression before advancing to recovery.
      - M2.3b.3a Payment Grace metered-effect denial and Job terminal contract. — Complete
        - Keep ordinary Product content mutation available during Grace while rejecting every newly dispatched metered external-cost effect with an explicit 402 recovery error and Provider recovery deadline.
        - Project the same denial into permanent Job failure metadata so retry, schedule, Agent, and Job paths cannot reinterpret the payment state as transient.
-    - M2.3b.3b Product API/automation denial matrix closure. — Complete
+     - M2.3b.3b Product API/automation denial matrix closure. — Complete
        - Close unguarded Product HTTP and event-driven execution paths while preserving payment recovery, cancellation, revocation, deletion, and other reducing actions.
        - M2.3b.3b.1 Product HTTP command matrix. — Complete
          - Classify every reachable Product mutation route by its actual commercial effect, including storage, AI runtime, legacy Agent, environment, database, API-key, Automation configuration, Knowledge, Skill, and Design System surfaces.
          - Keep abort, cancel, reject, revoke, rotate, delete, and other reducing or safety actions available during recovery.
        - M2.3b.3b.2 Event-driven Automation execution preflight. — Complete
          - Pre-authorize every distinct operation effect before creating an Automation run or dispatching any operation so mixed flows cannot partially execute under Grace or Restricted access.
-      - M2.3b.3b.3 Remaining reachable Site mutation closure. — Complete
+       - M2.3b.3b.3 Remaining reachable Site mutation closure. — Complete
          - Verify Site settings and preview-token write paths against the same Product commercial-effect contract, and exclude unreachable legacy routers with registration evidence instead of manufacturing a false closure.
-     - M2.3b.3c withheld period Credits and immutable handoff evidence. — Pending
+     - M2.3b.3c withheld period Credits and immutable handoff evidence. — Complete
        - Prove past-due/final-unpaid periods create no Plan Credit grant, and enforce database-level update rejection for committed Hosting/lifecycle facts without blocking Workspace cascade deletion.
-3. M2.3c recovery, renewal, and closure. — Pending
+3. M2.3c recovery, renewal, and closure. — Active
    - Apply successful recovery and renewal facts with exact period boundaries and revision evidence, restoring access only through the canonical state machine.
    - Close M2.3 with delayed/reordered lifecycle integration coverage, unchanged Stripe regressions, package/static gates, staged GitNexus detection, changed-scope review, execution-record update, and a focused commit.
 
@@ -642,16 +642,33 @@ M2.3b.3b.3 validation:
 - GitNexus was refreshed successfully to `102188` symbols and `300` execution flows after the index became stale; its existing ScopeExtractor failures remain visible and did not hide a High/Critical Site impact result.
 - M2.3b.3b is complete. The only active part is M2.3b.3c withheld period Credits and immutable handoff evidence.
 
+M2.3b.3c implementation evidence:
+
+- Extended the signed simulated dunning integration chain with direct Credit-account evidence. `past_due` payment failure and `final_unpaid` both preserve the existing balance and create neither a `PLAN_PERIOD` grant lot nor a `PERIOD_GRANT` ledger entry.
+- Kept the existing Provider application behavior explicit: dunning updates Subscription/access state and the Credit account's Provider period identity, but does not call the Plan-grant creation path. Successful recovery remains responsible for a separate durable grant decision in M2.3c.
+- Added migration `0124_commercial_access_fact_immutability` with a PostgreSQL `BEFORE UPDATE` trigger on `commerce_commercial_access_facts`, covering both committed `lifecycle_notification` and `hosting_handoff` evidence.
+- The trigger rejects fact mutation without adding a DELETE trigger. The existing Workspace foreign key remains `ON DELETE CASCADE`, so Workspace deletion still removes committed facts.
+
+M2.3b.3c validation:
+
+- Migration shape coverage passed `1` unit test. Focused signed dunning plus immutable-fact migration PostgreSQL coverage passed `2` tests.
+- Complete access-state unit regression passed `34` tests; its `4` integration tests were skipped only in the non-integration invocation.
+- Explicit PostgreSQL Provider application, simulated lifecycle, `0122 -> 0123` ordering evidence, and `0123 -> 0124` immutability regression passed `19` tests.
+- Targeted Ruff lint/format and `ty` passed across the migration and changed tests. Changed-scope Code Review Engine reported zero findings across all `41` rules.
+- The active database applied `0124_commercial_access_fact_immutability`; `db:migrate` then reported `No changes detected`.
+- `pnpm api:check` passed API lint and formatting. Broad typecheck remains blocked by the same `289` existing diagnostics, after which Turbo interrupted broad pytest; every M2.3b.3c focused and PostgreSQL test remains green.
+- M2.3b.3 and M2.3b are complete. The only active part is M2.3c recovery, renewal, and closure.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
-- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3b.2 package gate reports `289` diagnostics while targeted Commerce type checking passes.
+- Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3b.3c package gate reports `289` diagnostics while targeted Commerce type checking passes.
 - The M2.2a `pnpm api:check` run still fails on `294` existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
 - Product App typecheck currently fails because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside Commerce work.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
 - The M2.2a broad Product Vitest run observed one nondeterministic `workspace-guidance-view.test.tsx` failure; its immediate isolated rerun passed `5/5`.
-- Changed-scope Code Review Engine currently has zero blockers. The latest M2.3b.2 audit reports `25` report-only prototype backend error-localization findings on changed access-state/application files.
+- Changed-scope Code Review Engine currently has zero blockers. The latest M2.3b.3c audit reports zero findings across all `41` rules.
 
 ## Progress log
 
@@ -843,3 +860,12 @@ M2.3b.3b.3 validation:
 - Proved through Product composition tests that the legacy Site pattern routers are unreachable and excluded them from the denial matrix without manufacturing coverage.
 - Verified `13` focused Site tests, `52` expanded Restricted Recovery/Automation/Site regressions, targeted Ruff/format/`ty`, and a zero-finding changed-scope review.
 - Completed M2.3b.3b and selected M2.3b.3c withheld period Credits and immutable handoff evidence as the only active part.
+
+### 2026-08-05 — M2.3b.3c withheld Credits and immutable access facts
+
+- Proved through the signed Provider dunning chain that neither `past_due` nor `final_unpaid` creates Plan Credit lots or period-grant ledger entries, while the Credit balance remains unchanged.
+- Added `0124_commercial_access_fact_immutability` so committed lifecycle-notification and Hosting-handoff facts reject database UPDATE operations.
+- Verified the immutable trigger does not block the existing Workspace `ON DELETE CASCADE` lifecycle.
+- Applied `0124` to the active database and confirmed `db:migrate` reports no model-state changes.
+- Verified `1` migration unit test, `2` focused PostgreSQL tests, `34` access-state unit tests, `19` expanded Provider/migration integration tests, targeted static checks, and a zero-finding changed-scope review.
+- Recorded the unchanged `289` broad API type diagnostics and completed M2.3b; selected M2.3c recovery, renewal, and closure as the only active part.

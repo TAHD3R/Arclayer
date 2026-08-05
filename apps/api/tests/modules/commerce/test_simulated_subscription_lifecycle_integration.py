@@ -32,14 +32,17 @@ from src.models.commerce.billing import (
     CommerceProviderEventApplication,
     CommercialAccessState,
     CommercialAccessTransition,
+    CreditLedgerEntryType,
     CreditRefreshInterval,
     EntitlementAllocationMode,
     PlanRevisionStatus,
     SubscriptionStatus,
     WorkspaceCommercialAccess,
     WorkspaceCreditAccount,
+    WorkspaceCreditLedger,
     WorkspaceSubscription,
 )
+from src.models.commerce.credit_allocation import CreditGrantSource, WorkspaceCreditGrantLot
 from src.models.commerce.payments import (
     CommerceCheckoutKind,
     CommerceCheckoutOutcome,
@@ -579,6 +582,20 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
         state=CommercialAccessState.NORMAL,
         source_identity=f"bootstrap:{fixture.subscription.id}",
     )
+    assert (
+        await WorkspaceCreditGrantLot.filter(
+            workspace_id=fixture.workspace.id,
+            source=CreditGrantSource.PLAN_PERIOD,
+        ).count()
+        == 0
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 0
+    )
     secret = "integration-simulated-dunning-secret"
     settings = _settings(tmp_path, secret=secret)
     connector = cast(
@@ -648,6 +665,21 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     assert failure_transition.provider_period_end == period_end
     assert failure_transition.resulting_state_revision == 2
     assert failure_transition.dunning_policy_revision == 1
+    assert fixture.account.balance_credits == 0
+    assert (
+        await WorkspaceCreditGrantLot.filter(
+            workspace_id=fixture.workspace.id,
+            source=CreditGrantSource.PLAN_PERIOD,
+        ).count()
+        == 0
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 0
+    )
     assert {fact.kind for fact in failure_facts} == {CommercialAccessFactKind.LIFECYCLE_NOTIFICATION}
     assert failure_facts[0].payload == {
         "milestone": "payment_grace_started",
@@ -733,6 +765,21 @@ async def test_signed_simulated_dunning_projects_grace_then_restricted_access(
     assert final_transition.provider_period_end == period_end
     assert final_transition.resulting_state_revision == 3
     assert final_transition.dunning_policy_revision == 1
+    assert fixture.account.balance_credits == 0
+    assert (
+        await WorkspaceCreditGrantLot.filter(
+            workspace_id=fixture.workspace.id,
+            source=CreditGrantSource.PLAN_PERIOD,
+        ).count()
+        == 0
+    )
+    assert (
+        await WorkspaceCreditLedger.filter(
+            workspace_id=fixture.workspace.id,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        ).count()
+        == 0
+    )
     assert {fact.kind for fact in final_facts} == {
         CommercialAccessFactKind.LIFECYCLE_NOTIFICATION,
         CommercialAccessFactKind.HOSTING_HANDOFF,
