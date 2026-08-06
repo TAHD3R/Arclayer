@@ -1262,3 +1262,11 @@ M2.4b.3b implementation boundary:
 - Regenerated the Platform OpenAPI contract and added the typed Platform API wrapper and focused route/wrapper regression coverage.
 - Validation: Platform Commerce router `7 passed`; Platform Commerce API wrapper `5 passed`; targeted API Ruff check/format passed; targeted API `ty` has only the two pre-existing fixture warnings in the router test; Platform OpenAPI typecheck passed; Platform lint/format passed after formatting the wrapper.
 - M3.3a is complete. The next active implementation part is M3.3b Platform subscription/payment detail, recovery, and Operational Ledger control surface. M4 auto-refill configuration and refill lifecycle remains pending after M3.3.
+
+### 2026-08-06 — M3.3b Platform payment correction and recovery control surface
+
+- Extended the Platform Payments Operational Ledger page with an operator-only payment-correction evidence form. It accepts structured Provider account/event/transaction/refund facts, exact integer money/Credit values, occurrence time, reason, and evidence reference; it does not accept raw webhook JSON, credentials, Checkout URLs, or generic Credit deltas.
+- The form preserves idempotent retries for the same evidence fingerprint, validates non-negative refund consequences before submission, and renders localized applied/replayed/reconciliation-required outcomes without exposing raw Provider failure codes.
+- Existing signed Provider-event reconciliation and transaction/invoice/refund projection cards remain unchanged and continue to use their separate authorities.
+- Validation: Platform commerce API `5 passed`; Platform lint, format, and locale parity passed. Platform package typecheck remains blocked only by the pre-existing `test/browser/platform-acceptance.spec.ts` import of missing `../../../../tests/browser/support`.
+- M3.3b is complete for the current correction/recovery boundary. M3.3 remains active only for subscription detail and recovery-state projection; M4 auto-refill configuration and refill lifecycle remains the next Product slice after M3.3.
