@@ -499,6 +499,11 @@ export type BodyReviewManualPluginArtifactPlatformApiV1ExtensionsArtifactsManual
 };
 
 /**
+ * CommerceInvoiceStatus
+ */
+export type CommerceInvoiceStatus = 'open' | 'paid' | 'void' | 'uncollectible' | 'refunded' | 'partially_refunded';
+
+/**
  * CommercePlanRevisionOut
  */
 export type CommercePlanRevisionOut = {
@@ -575,6 +580,16 @@ export type CommercePlanRevisionOut = {
  * CommerceRefundStatus
  */
 export type CommerceRefundStatus = 'pending' | 'succeeded' | 'failed' | 'canceled';
+
+/**
+ * CommerceTransactionKind
+ */
+export type CommerceTransactionKind = 'subscription' | 'renewal' | 'top_up' | 'refund';
+
+/**
+ * CommerceTransactionStatus
+ */
+export type CommerceTransactionStatus = 'pending' | 'succeeded' | 'failed' | 'canceled' | 'refunded' | 'partially_refunded';
 
 /**
  * CommercialCorrectionApplyPayload
@@ -8443,6 +8458,83 @@ export type PlatformInvitationRoleOut = {
 export type PlatformInvitationStatus = 'pending' | 'mfa_setup_required' | 'accepted' | 'revoked' | 'expired' | 'invalidated';
 
 /**
+ * PlatformInvoiceListOut
+ */
+export type PlatformInvoiceListOut = {
+    /**
+     * Items
+     */
+    items: Array<PlatformInvoiceOut>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PlatformInvoiceOut
+ */
+export type PlatformInvoiceOut = {
+    /**
+     * Amountduemicros
+     */
+    amountDueMicros: number;
+    /**
+     * Amountpaidmicros
+     */
+    amountPaidMicros: number;
+    /**
+     * Amountrefundedmicros
+     */
+    amountRefundedMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Externalinvoiceid
+     */
+    externalInvoiceId: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string;
+    /**
+     * Issuedat
+     */
+    issuedAt: string;
+    /**
+     * Paidat
+     */
+    paidAt: string | null;
+    /**
+     * Periodend
+     */
+    periodEnd: string | null;
+    /**
+     * Periodstart
+     */
+    periodStart: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    status: CommerceInvoiceStatus;
+    /**
+     * Transactionids
+     */
+    transactionIds: Array<string>;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * PlatformMfaMethodReadinessOut
  */
 export type PlatformMfaMethodReadinessOut = {
@@ -8822,6 +8914,67 @@ export type PlatformRecoveryCodeSet = {
      */
     codes: Array<string>;
     state: PlatformMfaSetupState;
+};
+
+/**
+ * PlatformRefundListOut
+ */
+export type PlatformRefundListOut = {
+    /**
+     * Items
+     */
+    items: Array<PlatformRefundOut>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PlatformRefundOut
+ */
+export type PlatformRefundOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Externalrefundid
+     */
+    externalRefundId: string | null;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Providereventid
+     */
+    providerEventId: string | null;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Refundid
+     */
+    refundId: string;
+    status: CommerceRefundStatus;
+    /**
+     * Transactionid
+     */
+    transactionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
 };
 
 /**
@@ -10363,6 +10516,72 @@ export type PlatformTotpSetupRequest = {
      * Flowtoken
      */
     flowToken: string;
+};
+
+/**
+ * PlatformTransactionListOut
+ */
+export type PlatformTransactionListOut = {
+    /**
+     * Items
+     */
+    items: Array<PlatformTransactionOut>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PlatformTransactionOut
+ */
+export type PlatformTransactionOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string | null;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Externaltransactionid
+     */
+    externalTransactionId: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string | null;
+    kind: CommerceTransactionKind;
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    status: CommerceTransactionStatus;
+    /**
+     * Transactionid
+     */
+    transactionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
 };
 
 /**
@@ -13233,6 +13452,31 @@ export type ResponseModelPlatformInvitationOptionsOut = {
 };
 
 /**
+ * ResponseModel[PlatformInvoiceListOut]
+ */
+export type ResponseModelPlatformInvoiceListOut = {
+    data?: PlatformInvoiceListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformMfaReadinessOut]
  */
 export type ResponseModelPlatformMfaReadinessOut = {
@@ -13287,6 +13531,31 @@ export type ResponseModelPlatformMfaWebAuthnRegistrationOut = {
  */
 export type ResponseModelPlatformMutationReceipt = {
     data?: PlatformMutationReceipt | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformRefundListOut]
+ */
+export type ResponseModelPlatformRefundListOut = {
+    data?: PlatformRefundListOut | null;
     /**
      * Error
      */
@@ -13662,6 +13931,31 @@ export type ResponseModelPlatformTotpSetupOut = {
  */
 export type ResponseModelPlatformTotpSetup = {
     data?: PlatformTotpSetup | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformTransactionListOut]
+ */
+export type ResponseModelPlatformTransactionListOut = {
+    data?: PlatformTransactionListOut | null;
     /**
      * Error
      */
@@ -20341,6 +20635,48 @@ export type PlatformCommercePutCommerceDunningPolicyResponses = {
 
 export type PlatformCommercePutCommerceDunningPolicyResponse = PlatformCommercePutCommerceDunningPolicyResponses[keyof PlatformCommercePutCommerceDunningPolicyResponses];
 
+export type PlatformCommerceListPlatformCommerceInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Pagesize
+         */
+        pageSize?: number;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Status
+         */
+        status?: CommerceInvoiceStatus | null;
+    };
+    url: '/platform-api/v1/commerce/invoices';
+};
+
+export type PlatformCommerceListPlatformCommerceInvoicesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceListPlatformCommerceInvoicesError = PlatformCommerceListPlatformCommerceInvoicesErrors[keyof PlatformCommerceListPlatformCommerceInvoicesErrors];
+
+export type PlatformCommerceListPlatformCommerceInvoicesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformInvoiceListOut;
+};
+
+export type PlatformCommerceListPlatformCommerceInvoicesResponse = PlatformCommerceListPlatformCommerceInvoicesResponses[keyof PlatformCommerceListPlatformCommerceInvoicesResponses];
+
 export type PlatformCommerceListCommercePlansData = {
     body?: never;
     path?: never;
@@ -20666,6 +21002,44 @@ export type PlatformCommerceReconcileCommerceProviderEventResponses = {
 
 export type PlatformCommerceReconcileCommerceProviderEventResponse = PlatformCommerceReconcileCommerceProviderEventResponses[keyof PlatformCommerceReconcileCommerceProviderEventResponses];
 
+export type PlatformCommerceListPlatformCommerceRefundsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Pagesize
+         */
+        pageSize?: number;
+        /**
+         * Status
+         */
+        status?: CommerceRefundStatus | null;
+    };
+    url: '/platform-api/v1/commerce/refunds';
+};
+
+export type PlatformCommerceListPlatformCommerceRefundsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceListPlatformCommerceRefundsError = PlatformCommerceListPlatformCommerceRefundsErrors[keyof PlatformCommerceListPlatformCommerceRefundsErrors];
+
+export type PlatformCommerceListPlatformCommerceRefundsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformRefundListOut;
+};
+
+export type PlatformCommerceListPlatformCommerceRefundsResponse = PlatformCommerceListPlatformCommerceRefundsResponses[keyof PlatformCommerceListPlatformCommerceRefundsResponses];
+
 export type PlatformCommerceGetCommerceSimulatorData = {
     body?: never;
     path?: never;
@@ -20977,6 +21351,52 @@ export type PlatformCommerceGetPlatformCommerceSubscriptionResponses = {
 };
 
 export type PlatformCommerceGetPlatformCommerceSubscriptionResponse = PlatformCommerceGetPlatformCommerceSubscriptionResponses[keyof PlatformCommerceGetPlatformCommerceSubscriptionResponses];
+
+export type PlatformCommerceListPlatformCommerceTransactionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Pagesize
+         */
+        pageSize?: number;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Status
+         */
+        status?: CommerceTransactionStatus | null;
+        /**
+         * Kind
+         */
+        kind?: CommerceTransactionKind | null;
+    };
+    url: '/platform-api/v1/commerce/transactions';
+};
+
+export type PlatformCommerceListPlatformCommerceTransactionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceListPlatformCommerceTransactionsError = PlatformCommerceListPlatformCommerceTransactionsErrors[keyof PlatformCommerceListPlatformCommerceTransactionsErrors];
+
+export type PlatformCommerceListPlatformCommerceTransactionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformTransactionListOut;
+};
+
+export type PlatformCommerceListPlatformCommerceTransactionsResponse = PlatformCommerceListPlatformCommerceTransactionsResponses[keyof PlatformCommerceListPlatformCommerceTransactionsResponses];
 
 export type PlatformCommerceRequestTopUpRefundData = {
     body: TopUpRefundRequest;

@@ -12,7 +12,10 @@ import {
   platformCommerceListCommercePlans,
   platformCommerceListCommercePlanRevisions,
   platformCommerceListCommerceProviderEvents,
+  platformCommerceListPlatformCommerceInvoices,
+  platformCommerceListPlatformCommerceRefunds,
   platformCommerceListPlatformCommerceSubscriptions,
+  platformCommerceListPlatformCommerceTransactions,
   platformCommercePreviewSubscriptionRevisionTransition,
   platformCommercePublishPlanRevision,
   platformCommercePutCommerceDunningPolicy,
@@ -30,6 +33,9 @@ import {
   type PlatformCommerceListCommercePlansData,
   type PlatformCommerceListCommerceProviderEventsData,
   type PlatformCommerceListPlatformCommerceSubscriptionsData,
+  type PlatformCommerceListPlatformCommerceInvoicesData,
+  type PlatformCommerceListPlatformCommerceRefundsData,
+  type PlatformCommerceListPlatformCommerceTransactionsData,
   type PlanIdentityCreate,
   type PlanRevisionDraftCreate,
   type PlanRevisionDraftUpdate,
@@ -39,6 +45,9 @@ import {
   type SimulatedCheckoutOutcomeWrite,
   type PlatformCommercePlanCatalogOut,
   type PlatformCommerceSubscriptionListOut,
+  type PlatformInvoiceListOut,
+  type PlatformRefundListOut,
+  type PlatformTransactionListOut,
   type RenewalTransitionScheduleRequest,
   type SubscriptionTransitionCancelRequest,
 } from "@arclayer/platform-openapi";
@@ -92,6 +101,39 @@ export async function listCommerceSubscriptions(
 ): Promise<PlatformCommerceSubscriptionListOut> {
   return unwrap(
     await platformCommerceListPlatformCommerceSubscriptions({
+      client: platformApiClient,
+      query,
+    }),
+  );
+}
+
+export async function listCommerceTransactions(
+  query?: NonNullable<PlatformCommerceListPlatformCommerceTransactionsData["query"]>,
+): Promise<PlatformTransactionListOut> {
+  return unwrap(
+    await platformCommerceListPlatformCommerceTransactions({
+      client: platformApiClient,
+      query,
+    }),
+  );
+}
+
+export async function listCommerceInvoices(
+  query?: NonNullable<PlatformCommerceListPlatformCommerceInvoicesData["query"]>,
+): Promise<PlatformInvoiceListOut> {
+  return unwrap(
+    await platformCommerceListPlatformCommerceInvoices({
+      client: platformApiClient,
+      query,
+    }),
+  );
+}
+
+export async function listCommerceRefunds(
+  query?: NonNullable<PlatformCommerceListPlatformCommerceRefundsData["query"]>,
+): Promise<PlatformRefundListOut> {
+  return unwrap(
+    await platformCommerceListPlatformCommerceRefunds({
       client: platformApiClient,
       query,
     }),

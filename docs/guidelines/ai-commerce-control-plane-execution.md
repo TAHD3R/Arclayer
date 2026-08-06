@@ -38,7 +38,7 @@ After each independently verifiable part:
 | M0 Credit accounting foundation | Complete | Integer Credits, source lots, exact allocations, member attribution, legacy migration, adjustment correctness |
 | M1 Member limits and Usage API | Complete | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
 | M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
-| M3 Platform Billing redesign | Pending | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
+| M3 Platform Billing redesign | In progress | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
 | M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, icon-free ChromeTabs, Workspace setting |
 | M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
 | M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
@@ -336,9 +336,9 @@ M1.5b.4 validation and closure:
 
 ## M2 — Simulated Billing Provider
 
-Status: In progress
+Status: Complete
 
-Current active part: M2.5 simulator control plane and OpenAPI surfaces.
+Current active part: M3.1 Platform payment read projections.
 
 Repository baseline:
 
@@ -1223,3 +1223,12 @@ M2.4b.3b implementation boundary:
 - Reconfirmed production simulator rejection, absence of Stripe secret dependency in simulated readiness, exact connector-version/event boundaries, no direct Credit mutation from Checkout/return/control routes, and no Stripe Connect surface.
 - API targeted Ruff/format/`ty`, Platform lint/format/locale, Platform OpenAPI generation/typecheck, changed-scope Code Review Engine, staged GitNexus detection, and staged diff checks passed. Broad API typecheck remains blocked only by the known repository baseline diagnostics; Platform package typecheck remains blocked only by the existing browser support import.
 - M2 and all M2.1–M2.6 implementation parts are complete. The next milestone is M3 Platform Billing redesign.
+
+### 2026-08-06 — M3.1 Platform payment read projections
+
+- Added typed, Provider-neutral Platform read schemas for transactions, invoices, and refunds with PublicUUID/camelCase envelopes and explicit pagination/filter contracts.
+- Added one injected `PlatformPaymentReadRepository` over the existing payment projection models. It filters and pages transaction/invoice/refund evidence, links invoice transaction identities, and scopes refund Workspace identity through its locked transaction relation.
+- Extended `PlatformCommerceReadService` and the existing Platform Commerce router with `GET /system/commerce/transactions`, `GET /system/commerce/invoices`, and `GET /system/commerce/refunds`, all protected by `commerce.read` and exposing only sanitized local projections.
+- Regenerated the Platform OpenAPI contract and added typed Platform API wrappers/tests for all three list operations. Existing refund request mutation remains on `/transactions/{transactionId}/refunds` and no Provider payload or Checkout URL is exposed.
+- Focused validation: Platform Commerce router `6 passed`; Platform Commerce API wrapper `4 passed`; targeted API Ruff check/format and `ty` passed; Platform OpenAPI generation/typecheck passed.
+- M3.1 is complete. The next active implementation part is M3.2 Platform plan catalog revision CRUD and publish validation.

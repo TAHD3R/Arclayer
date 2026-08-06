@@ -7,6 +7,18 @@ from uuid import UUID
 from src.core.services import BaseService
 from src.models.commerce.billing import CommercePlanRevision
 from src.modules.commerce.catalog_repository import CommerceCatalogRepository
+from src.modules.commerce.platform_payment_read_repository import PlatformPaymentReadRepository
+from src.modules.commerce.platform_payment_read_schema import (
+    PlatformInvoiceListOut,
+    PlatformInvoiceOut,
+    PlatformInvoiceQuery,
+    PlatformRefundListOut,
+    PlatformRefundOut,
+    PlatformRefundQuery,
+    PlatformTransactionListOut,
+    PlatformTransactionOut,
+    PlatformTransactionQuery,
+)
 from src.modules.commerce.platform_schema import (
     PlatformCommercePlanCatalogOut,
     PlatformCommercePlanOut,
@@ -42,11 +54,13 @@ class PlatformCommerceReadService(BaseService):
         catalog: CommerceCatalogRepository,
         commerce: CommerceRepository,
         simulator: SimulatorReadRepository | None = None,
+        payments: PlatformPaymentReadRepository | None = None,
     ) -> None:
         super().__init__()
         self._catalog = catalog
         self._commerce = commerce
         self._simulator = simulator or SimulatorReadRepository()
+        self._payments = payments or PlatformPaymentReadRepository()
 
     async def list_plan_catalog(self, *, include_inactive: bool) -> PlatformCommercePlanCatalogOut:
         plans = await self._catalog.list_plans_with_revisions(include_inactive=include_inactive)
@@ -114,6 +128,78 @@ class PlatformCommerceReadService(BaseService):
                     current_period_end=row.current_period_end,
                     cancel_at_period_end=row.cancel_at_period_end,
                     billing_provider=row.billing_provider,
+                )
+                for row in rows
+            ),
+        )
+
+    async def list_transactions(self, *, query: PlatformTransactionQuery) -> PlatformTransactionListOut:
+        rows, total = await self._payments.list_transactions(query=query)
+        return PlatformTransactionListOut(
+            total=total,
+            items=tuple(
+                PlatformTransactionOut(
+                    transaction_id=row.id,
+                    workspace_id=row.workspace_id,
+                    external_transaction_id=row.external_transaction_id,
+                    provider=row.provider,
+                    provider_mode=str(row.provider_mode),
+                    kind=row.kind,
+                    status=row.status,
+                    currency=row.currency,
+                    amount_micros=int(row.amount_micros),
+                    credit_amount=None if row.credit_amount is None else int(row.credit_amount),
+                    checkout_session_id=row.checkout_session_id,
+                    invoice_id=row.invoice_id,
+                    occurred_at=row.occurred_at,
+                )
+                for row in rows
+            ),
+        )
+
+    async def list_invoices(self, *, query: PlatformInvoiceQuery) -> PlatformInvoiceListOut:
+        rows, total, transaction_ids = await self._payments.list_invoices(query=query)
+        return PlatformInvoiceListOut(
+            total=total,
+            items=tuple(
+                PlatformInvoiceOut(
+                    invoice_id=row.id,
+                    workspace_id=row.workspace_id,
+                    external_invoice_id=row.external_invoice_id,
+                    provider=row.provider,
+                    provider_mode=str(row.provider_mode),
+                    status=row.status,
+                    currency=row.currency,
+                    amount_due_micros=int(row.amount_due_micros),
+                    amount_paid_micros=int(row.amount_paid_micros),
+                    amount_refunded_micros=int(row.amount_refunded_micros),
+                    period_start=row.period_start,
+                    period_end=row.period_end,
+                    issued_at=row.issued_at,
+                    paid_at=row.paid_at,
+                    transaction_ids=transaction_ids.get(row.id, ()),
+                )
+                for row in rows
+            ),
+        )
+
+    async def list_refunds(self, *, query: PlatformRefundQuery) -> PlatformRefundListOut:
+        rows, total = await self._payments.list_refunds(query=query)
+        return PlatformRefundListOut(
+            total=total,
+            items=tuple(
+                PlatformRefundOut(
+                    refund_id=row.id,
+                    workspace_id=row.transaction.workspace_id,
+                    transaction_id=row.transaction_id,
+                    status=row.status,
+                    amount_micros=int(row.amount_micros),
+                    credit_amount=None if row.credit_amount is None else int(row.credit_amount),
+                    reason=row.reason,
+                    external_refund_id=row.external_refund_id,
+                    provider_event_id=row.provider_event_id,
+                    completed_at=row.completed_at,
+                    failure_code=row.failure_code,
                 )
                 for row in rows
             ),
@@ -276,4 +362,5 @@ def build_platform_commerce_read_service() -> PlatformCommerceReadService:
         catalog=CommerceCatalogRepository(),
         commerce=CommerceRepository(),
         simulator=SimulatorReadRepository(),
+        payments=PlatformPaymentReadRepository(),
     )

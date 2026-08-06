@@ -1,6 +1,9 @@
 import {
   platformCommerceCreatePlanRevision,
   platformCommerceListCommerceProviderEvents,
+  platformCommerceListPlatformCommerceInvoices,
+  platformCommerceListPlatformCommerceRefunds,
+  platformCommerceListPlatformCommerceTransactions,
   platformCommerceGetCommerceSimulator,
   platformCommerceGetSimulatedCommerceState,
   platformCommerceReconcileCommerceProviderEvent,
@@ -12,6 +15,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createPlanRevision,
   listCommerceProviderEvents,
+  listCommerceInvoices,
+  listCommerceRefunds,
+  listCommerceTransactions,
   getCommerceSimulator,
   getSimulatedCommerceState,
   reconcileCommerceProviderEvent,
@@ -26,6 +32,9 @@ vi.mock("@arclayer/platform-openapi", async (importOriginal) => {
     ...actual,
     platformCommerceCreatePlanRevision: vi.fn(),
     platformCommerceListCommerceProviderEvents: vi.fn(),
+    platformCommerceListPlatformCommerceInvoices: vi.fn(),
+    platformCommerceListPlatformCommerceRefunds: vi.fn(),
+    platformCommerceListPlatformCommerceTransactions: vi.fn(),
     platformCommerceGetCommerceSimulator: vi.fn(),
     platformCommerceGetSimulatedCommerceState: vi.fn(),
     platformCommerceReconcileCommerceProviderEvent: vi.fn(),
@@ -104,6 +113,48 @@ describe("Platform commerce API", () => {
       body: { expectedProcessingAttempts: 2, idempotencyKey: "idem-2" },
       client: platformApiClient,
       path: { event_id: "event-1" },
+    });
+  });
+
+  it("loads payment projections through typed list wrappers", async () => {
+    vi.mocked(platformCommerceListPlatformCommerceTransactions).mockResolvedValue(
+      response({ items: [], total: 0 }),
+    );
+    vi.mocked(platformCommerceListPlatformCommerceInvoices).mockResolvedValue(
+      response({ items: [], total: 0 }),
+    );
+    vi.mocked(platformCommerceListPlatformCommerceRefunds).mockResolvedValue(
+      response({ items: [], total: 0 }),
+    );
+
+    await expect(
+      listCommerceTransactions({ page: 2, pageSize: 10, provider: "stripe" }),
+    ).resolves.toEqual({
+      items: [],
+      total: 0,
+    });
+    await expect(listCommerceInvoices({ page: 1, pageSize: 25, status: "paid" })).resolves.toEqual({
+      items: [],
+      total: 0,
+    });
+    await expect(listCommerceRefunds({ page: 3, pageSize: 5, status: "pending" })).resolves.toEqual(
+      {
+        items: [],
+        total: 0,
+      },
+    );
+
+    expect(platformCommerceListPlatformCommerceTransactions).toHaveBeenCalledWith({
+      client: platformApiClient,
+      query: { page: 2, pageSize: 10, provider: "stripe" },
+    });
+    expect(platformCommerceListPlatformCommerceInvoices).toHaveBeenCalledWith({
+      client: platformApiClient,
+      query: { page: 1, pageSize: 25, status: "paid" },
+    });
+    expect(platformCommerceListPlatformCommerceRefunds).toHaveBeenCalledWith({
+      client: platformApiClient,
+      query: { page: 3, pageSize: 5, status: "pending" },
     });
   });
 

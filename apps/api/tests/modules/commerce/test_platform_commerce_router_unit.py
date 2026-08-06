@@ -20,6 +20,11 @@ from src.modules.commerce.platform_schema import (
     PlatformCommerceRevisionSummaryOut,
     PlatformCommerceSubscriptionListOut,
 )
+from src.modules.commerce.platform_payment_read_schema import (
+    PlatformInvoiceListOut,
+    PlatformRefundListOut,
+    PlatformTransactionListOut,
+)
 from src.modules.commerce.schema import WorkspaceCommerceOverviewOut
 from src.modules.commerce.simulated_checkout_outcome_service import (
     SimulatedCheckoutOutcomeOut,
@@ -210,6 +215,37 @@ async def test_system_operator_can_read_platform_commerce_catalog_and_subscripti
     assert query.page_size == 25
     assert query.status == SubscriptionStatus.ACTIVE
     assert query.provider == "stripe"
+
+
+async def test_system_operator_can_read_payment_projections(monkeypatch) -> None:
+    service = SimpleNamespace(
+        list_transactions=AsyncMock(return_value=PlatformTransactionListOut(items=(), total=0)),
+        list_invoices=AsyncMock(return_value=PlatformInvoiceListOut(items=(), total=0)),
+        list_refunds=AsyncMock(return_value=PlatformRefundListOut(items=(), total=0)),
+    )
+    monkeypatch.setattr(platform_router, "build_platform_commerce_read_service", lambda: service)
+
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=uuid4(), is_instance_owner=True)
+
+    app = FastAPI()
+    app.include_router(platform_router.router, prefix="/platform-api/v1/commerce")
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
+
+    async with asgi_client(app) as client:
+        transactions = await client.get("/platform-api/v1/commerce/transactions?page=2&pageSize=10&provider=stripe")
+        invoices = await client.get("/platform-api/v1/commerce/invoices?page=1&pageSize=20&status=paid")
+        refunds = await client.get("/platform-api/v1/commerce/refunds?page=3&pageSize=5&status=pending")
+
+    assert transactions.status_code == 200
+    assert invoices.status_code == 200
+    assert refunds.status_code == 200
+    assert transactions.json()["data"] == {"items": [], "total": 0}
+    assert invoices.json()["data"] == {"items": [], "total": 0}
+    assert refunds.json()["data"] == {"items": [], "total": 0}
+    assert service.list_transactions.await_args.kwargs["query"].page == 2
+    assert service.list_invoices.await_args.kwargs["query"].status == "paid"
+    assert service.list_refunds.await_args.kwargs["query"].page_size == 5
 
 
 async def test_catalog_mutations_use_canonical_plan_scoped_paths(monkeypatch) -> None:

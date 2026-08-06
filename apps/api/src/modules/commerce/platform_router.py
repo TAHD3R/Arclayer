@@ -42,6 +42,14 @@ from src.modules.commerce.platform_operations_schema import (
     TopUpRefundOut,
     TopUpRefundRequest,
 )
+from src.modules.commerce.platform_payment_read_schema import (
+    PlatformInvoiceListOut,
+    PlatformInvoiceQuery,
+    PlatformRefundListOut,
+    PlatformRefundQuery,
+    PlatformTransactionListOut,
+    PlatformTransactionQuery,
+)
 from src.modules.commerce.platform_read_service import build_platform_commerce_read_service
 from src.modules.commerce.platform_schema import (
     PlatformCommercePlanCatalogOut,
@@ -125,6 +133,45 @@ async def list_platform_commerce_subscriptions(
     query: PlatformCommerceSubscriptionQuery = Depends(),
 ) -> ResponseModel[PlatformCommerceSubscriptionListOut]:
     return ApiResponse.success(data=await build_platform_commerce_read_service().list_subscriptions(query=query))
+
+
+@router.get(
+    "/transactions",
+    operation_id="platform_list_commerce_transactions",
+    response_model=ResponseModel[PlatformTransactionListOut],
+    summary="List sanitized Provider transaction projections",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_READ)],
+)
+async def list_platform_commerce_transactions(
+    query: PlatformTransactionQuery = Depends(),
+) -> ResponseModel[PlatformTransactionListOut]:
+    return ApiResponse.success(data=await build_platform_commerce_read_service().list_transactions(query=query))
+
+
+@router.get(
+    "/invoices",
+    operation_id="platform_list_commerce_invoices",
+    response_model=ResponseModel[PlatformInvoiceListOut],
+    summary="List sanitized Provider invoice projections",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_READ)],
+)
+async def list_platform_commerce_invoices(
+    query: PlatformInvoiceQuery = Depends(),
+) -> ResponseModel[PlatformInvoiceListOut]:
+    return ApiResponse.success(data=await build_platform_commerce_read_service().list_invoices(query=query))
+
+
+@router.get(
+    "/refunds",
+    operation_id="platform_list_commerce_refunds",
+    response_model=ResponseModel[PlatformRefundListOut],
+    summary="List sanitized refund projections",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_READ)],
+)
+async def list_platform_commerce_refunds(
+    query: PlatformRefundQuery = Depends(),
+) -> ResponseModel[PlatformRefundListOut]:
+    return ApiResponse.success(data=await build_platform_commerce_read_service().list_refunds(query=query))
 
 
 @router.post(
