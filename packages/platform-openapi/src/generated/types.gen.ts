@@ -6632,6 +6632,110 @@ export type PageDataSystemPluginOperationOut = {
 };
 
 /**
+ * PaymentCorrectionOut
+ */
+export type PaymentCorrectionOut = {
+    /**
+     * Correctionid
+     */
+    correctionId: string;
+    /**
+     * Creditconsequence
+     */
+    creditConsequence: number | null;
+    /**
+     * Disposition
+     */
+    disposition: string;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string | null;
+    /**
+     * Refundid
+     */
+    refundId: string | null;
+    /**
+     * Transactionid
+     */
+    transactionId: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * PaymentCorrectionWrite
+ */
+export type PaymentCorrectionWrite = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Amountrefundedmicros
+     */
+    amountRefundedMicros?: number;
+    /**
+     * Creditamount
+     */
+    creditAmount?: number | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Evidencereference
+     */
+    evidenceReference: string;
+    /**
+     * Externalinvoiceid
+     */
+    externalInvoiceId?: string | null;
+    /**
+     * Externalrefundid
+     */
+    externalRefundId?: string | null;
+    /**
+     * Externaltransactionid
+     */
+    externalTransactionId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    invoiceStatus?: CommerceInvoiceStatus | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Providereventoccurredat
+     */
+    providerEventOccurredAt: string;
+    providerMode: BillingProviderMode;
+    /**
+     * Reason
+     */
+    reason: string;
+    refundStatus?: CommerceRefundStatus | null;
+    transactionStatus: CommerceTransactionStatus;
+};
+
+/**
  * PlanIdentityCreate
  */
 export type PlanIdentityCreate = {
@@ -12931,6 +13035,31 @@ export type ResponseModelPageDataSystemAgentDefinitionSummaryOut = {
  */
 export type ResponseModelPageDataSystemPluginOperationOut = {
     data?: PageDataSystemPluginOperationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PaymentCorrectionOut]
+ */
+export type ResponseModelPaymentCorrectionOut = {
+    data?: PaymentCorrectionOut | null;
     /**
      * Error
      */
@@ -20676,6 +20805,31 @@ export type PlatformCommerceListPlatformCommerceInvoicesResponses = {
 };
 
 export type PlatformCommerceListPlatformCommerceInvoicesResponse = PlatformCommerceListPlatformCommerceInvoicesResponses[keyof PlatformCommerceListPlatformCommerceInvoicesResponses];
+
+export type PlatformCommerceRecordCommercePaymentCorrectionData = {
+    body: PaymentCorrectionWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/payment-corrections';
+};
+
+export type PlatformCommerceRecordCommercePaymentCorrectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceRecordCommercePaymentCorrectionError = PlatformCommerceRecordCommercePaymentCorrectionErrors[keyof PlatformCommerceRecordCommercePaymentCorrectionErrors];
+
+export type PlatformCommerceRecordCommercePaymentCorrectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPaymentCorrectionOut;
+};
+
+export type PlatformCommerceRecordCommercePaymentCorrectionResponse = PlatformCommerceRecordCommercePaymentCorrectionResponses[keyof PlatformCommerceRecordCommercePaymentCorrectionResponses];
 
 export type PlatformCommerceListCommercePlansData = {
     body?: never;

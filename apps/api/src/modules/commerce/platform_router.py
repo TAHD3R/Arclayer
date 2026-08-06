@@ -11,6 +11,7 @@ from src.core.exceptions import NotFound, ServiceUnavailable
 from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
+from src.modules.commerce.billing_payment_reconciliation_service import ProviderPaymentCorrectionFacts
 from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
 from src.modules.commerce.catalog_schema import (
     PlanIdentityCreate,
@@ -29,6 +30,8 @@ from src.modules.commerce.platform_operations_schema import (
     CreditAdjustmentRequest,
     DunningPolicyOut,
     DunningPolicyWrite,
+    PaymentCorrectionOut,
+    PaymentCorrectionWrite,
     ProviderConfigurationWrite,
     ProviderConfigurationWriteOut,
     ProviderEventListOut,
@@ -634,6 +637,33 @@ async def reconcile_commerce_provider_event(
             actor_user_id=UUID(str(principal.actor_id)),
         )
     )
+
+
+@router.post(
+    "/payment-corrections",
+    operation_id="platform_record_commerce_payment_correction",
+    response_model=ResponseModel[PaymentCorrectionOut],
+    summary="Record one Provider payment correction evidence result",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_EVENTS_RECONCILE)],
+)
+async def record_commerce_payment_correction(
+    payload: PaymentCorrectionWrite,
+    principal: CurrentPlatformSession,
+    settings: Settings = Depends(get_settings),
+    connectors: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[PaymentCorrectionOut]:
+    result = await build_platform_commerce_operations_service(
+        settings=settings, connectors=connectors
+    ).record_payment_correction(
+        facts=ProviderPaymentCorrectionFacts.model_validate(
+            payload.model_dump(exclude={"reason", "evidence_reference", "idempotency_key"})
+        ),
+        reason=payload.reason,
+        evidence_reference=payload.evidence_reference,
+        idempotency_key=payload.idempotency_key,
+        actor_user_id=UUID(str(principal.actor_id)),
+    )
+    return ApiResponse.success(data=PaymentCorrectionOut.model_validate(result.model_dump()))
 
 
 @router.post(

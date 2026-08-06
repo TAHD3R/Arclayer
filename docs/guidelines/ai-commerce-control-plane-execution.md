@@ -1254,3 +1254,11 @@ M2.4b.3b implementation boundary:
 - Regenerated Product OpenAPI and added a typed Product invoice wrapper. Plan & Usage now renders the first page of invoice evidence alongside the existing plan, Credits, Usage, member limits, and payment-recovery controls.
 - Focused validation: API billing/member router regression `11 passed`; targeted API Ruff/format/`ty` passed; Product API/OpenAPI typecheck passed; Product Commerce API tests `9 passed`; Product lint, locale parity, and focused UI regressions passed. The broad Product typecheck remains blocked only by the known browser support import.
 - M4 invoice projection is complete. Auto-refill configuration and refill lifecycle remain the next M4 slice after M3.3.
+
+### 2026-08-06 — M3.3a Platform payment-correction operation boundary
+
+- Added `POST /system/commerce/payment-corrections` under the exact `commerce.events.reconcile` permission. The route accepts sanitized Provider correction facts plus operator reason, evidence reference, and idempotency identity, then delegates to the existing append-only Provider-neutral reconciliation authority.
+- Separated Provider facts from operator evidence before calling `PlatformCommerceOperationsService`, so reason/evidence/idempotency cannot alter the Provider-facts fingerprint or become a second payment authority. The route never accepts raw webhook payloads, generic Credit deltas, payment credentials, or Provider response success as local completion.
+- Regenerated the Platform OpenAPI contract and added the typed Platform API wrapper and focused route/wrapper regression coverage.
+- Validation: Platform Commerce router `7 passed`; Platform Commerce API wrapper `5 passed`; targeted API Ruff check/format passed; targeted API `ty` has only the two pre-existing fixture warnings in the router test; Platform OpenAPI typecheck passed; Platform lint/format passed after formatting the wrapper.
+- M3.3a is complete. The next active implementation part is M3.3b Platform subscription/payment detail, recovery, and Operational Ledger control surface. M4 auto-refill configuration and refill lifecycle remains pending after M3.3.

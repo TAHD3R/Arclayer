@@ -10,20 +10,21 @@ from fastapi import FastAPI
 
 from src.common.utils.public_ids import encode_uuid
 from src.models.commerce.billing import BillingCycle, PlanRevisionStatus, SubscriptionStatus
-from src.models.commerce.payments import CommerceRefundStatus
+from src.models.commerce.payments import CommercePaymentCorrectionDisposition, CommerceRefundStatus
 from src.modules.commerce import platform_router
+from src.modules.commerce.billing_payment_reconciliation_service import ProviderPaymentCorrectionResult
 from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
+from src.modules.commerce.platform_payment_read_schema import (
+    PlatformInvoiceListOut,
+    PlatformRefundListOut,
+    PlatformTransactionListOut,
+)
 from src.modules.commerce.platform_schema import (
     PlatformCommercePlanCatalogOut,
     PlatformCommercePlanIdentityOut,
     PlatformCommercePlanRevisionMutationOut,
     PlatformCommerceRevisionSummaryOut,
     PlatformCommerceSubscriptionListOut,
-)
-from src.modules.commerce.platform_payment_read_schema import (
-    PlatformInvoiceListOut,
-    PlatformRefundListOut,
-    PlatformTransactionListOut,
 )
 from src.modules.commerce.schema import WorkspaceCommerceOverviewOut
 from src.modules.commerce.simulated_checkout_outcome_service import (
@@ -363,6 +364,66 @@ async def test_platform_top_up_refund_route_uses_idempotency_and_operator_author
         idempotency_key="refund-route-1",
         actor_user_id=actor_id,
     )
+
+
+async def test_platform_payment_correction_route_separates_provider_facts_from_operator_evidence(monkeypatch) -> None:
+    actor_id = uuid4()
+    result = ProviderPaymentCorrectionResult(
+        correction_id=uuid4(),
+        disposition=CommercePaymentCorrectionDisposition.RECONCILIATION_REQUIRED,
+        workspace_id=None,
+        transaction_id=None,
+        invoice_id=None,
+        refund_id=None,
+        credit_consequence=None,
+        failure_code="BILLING_PAYMENT_RECONCILIATION_REQUIRED",
+    )
+    record = AsyncMock(return_value=result)
+    service = SimpleNamespace(record_payment_correction=record)
+    monkeypatch.setattr(platform_router, "build_platform_commerce_operations_service", lambda **_: service)
+
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=actor_id, is_instance_owner=True)
+
+    app = FastAPI()
+    app.include_router(platform_router.router, prefix="/platform-api/v1/commerce")
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
+    app.dependency_overrides[platform_router.get_connector_registry] = lambda: SimpleNamespace()
+
+    payload = {
+        "provider": "stripe",
+        "providerMode": "test",
+        "providerAccountId": "acct_test",
+        "providerEventId": "evt_correction",
+        "externalTransactionId": "pi_123",
+        "transactionStatus": "succeeded",
+        "currency": "USD",
+        "amountMicros": 5_000_000,
+        "amountRefundedMicros": 5_000_000,
+        "creditAmount": 500,
+        "providerEventOccurredAt": "2026-08-06T00:00:00Z",
+        "reason": "provider refund consequence review",
+        "evidenceReference": "ticket-123",
+        "idempotencyKey": "correction-123",
+    }
+
+    async with asgi_client(app) as client:
+        response = await client.post(
+            "/platform-api/v1/commerce/payment-corrections",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    call = record.await_args
+    assert call is not None
+    facts = call.kwargs["facts"]
+    assert facts.provider == "stripe"
+    assert facts.external_transaction_id == "pi_123"
+    assert not hasattr(facts, "reason")
+    assert call.kwargs["reason"] == payload["reason"]
+    assert call.kwargs["evidence_reference"] == payload["evidenceReference"]
+    assert call.kwargs["idempotency_key"] == payload["idempotencyKey"]
+    assert call.kwargs["actor_user_id"] == actor_id
 
 
 async def test_platform_simulator_routes_expose_readiness_and_signed_outcome_command(monkeypatch) -> None:

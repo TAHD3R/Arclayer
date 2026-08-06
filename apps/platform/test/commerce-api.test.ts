@@ -7,6 +7,7 @@ import {
   platformCommerceGetCommerceSimulator,
   platformCommerceGetSimulatedCommerceState,
   platformCommerceReconcileCommerceProviderEvent,
+  platformCommerceRecordCommercePaymentCorrection,
   platformCommerceSubmitSimulatedCheckoutOutcome,
   platformCommerceSubmitSimulatedTopUpOutcome,
 } from "@arclayer/platform-openapi";
@@ -21,6 +22,7 @@ import {
   getCommerceSimulator,
   getSimulatedCommerceState,
   reconcileCommerceProviderEvent,
+  recordCommercePaymentCorrection,
   submitSimulatedCheckoutOutcome,
   submitSimulatedTopUpOutcome,
 } from "@/commerce/commerce-api";
@@ -38,6 +40,7 @@ vi.mock("@arclayer/platform-openapi", async (importOriginal) => {
     platformCommerceGetCommerceSimulator: vi.fn(),
     platformCommerceGetSimulatedCommerceState: vi.fn(),
     platformCommerceReconcileCommerceProviderEvent: vi.fn(),
+    platformCommerceRecordCommercePaymentCorrection: vi.fn(),
     platformCommerceSubmitSimulatedCheckoutOutcome: vi.fn(),
     platformCommerceSubmitSimulatedTopUpOutcome: vi.fn(),
   };
@@ -155,6 +158,50 @@ describe("Platform commerce API", () => {
     expect(platformCommerceListPlatformCommerceRefunds).toHaveBeenCalledWith({
       client: platformApiClient,
       query: { page: 3, pageSize: 5, status: "pending" },
+    });
+  });
+
+  it("records Provider payment correction facts through the reconciliation SDK", async () => {
+    vi.mocked(platformCommerceRecordCommercePaymentCorrection).mockResolvedValue(
+      response({
+        correctionId: "correction-1",
+        disposition: "reconciliation_required",
+        workspaceId: null,
+        transactionId: null,
+        invoiceId: null,
+        refundId: null,
+        creditConsequence: null,
+        failureCode: "BILLING_PAYMENT_RECONCILIATION_REQUIRED",
+      }),
+    );
+
+    const body = {
+      provider: "stripe" as const,
+      providerMode: "test" as const,
+      providerAccountId: "acct_test",
+      providerEventId: "evt_correction",
+      externalTransactionId: "pi_123",
+      externalInvoiceId: null,
+      externalRefundId: "re_123",
+      transactionStatus: "succeeded" as const,
+      invoiceStatus: "paid" as const,
+      refundStatus: "succeeded" as const,
+      currency: "USD",
+      amountMicros: 5_000_000,
+      amountRefundedMicros: 5_000_000,
+      creditAmount: 500,
+      providerEventOccurredAt: "2026-08-06T00:00:00Z",
+      reason: "provider refund consequence review",
+      evidenceReference: "ticket-123",
+      idempotencyKey: "correction-123",
+    };
+
+    await expect(recordCommercePaymentCorrection(body)).resolves.toMatchObject({
+      correctionId: "correction-1",
+    });
+    expect(platformCommerceRecordCommercePaymentCorrection).toHaveBeenCalledWith({
+      body,
+      client: platformApiClient,
     });
   });
 

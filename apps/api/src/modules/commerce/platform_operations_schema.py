@@ -18,6 +18,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.models.commerce.billing import BillingProviderMode, SubscriptionTransitionStatus
 from src.models.commerce.payments import CommerceRefundStatus
 from src.models.connectors.inbox import ConnectorEventInboxStatus
+from src.modules.commerce.billing_payment_reconciliation_service import ProviderPaymentCorrectionFacts
 
 
 class ProviderReadinessOut(BaseSchema):
@@ -104,6 +105,23 @@ class ProviderEventQuery(BaseSchema):
 class ProviderEventReconcileRequest(BaseSchema):
     expected_processing_attempts: int = Field(ge=0)
     idempotency_key: str = Field(min_length=1, max_length=128)
+
+
+class PaymentCorrectionWrite(ProviderPaymentCorrectionFacts):
+    reason: str = Field(min_length=1, max_length=1000)
+    evidence_reference: str = Field(min_length=1, max_length=255)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+
+
+class PaymentCorrectionOut(BaseSchema):
+    correction_id: PublicUUID
+    disposition: str
+    workspace_id: PublicUUID | None
+    transaction_id: PublicUUID | None
+    invoice_id: PublicUUID | None
+    refund_id: PublicUUID | None
+    credit_consequence: int | None
+    failure_code: str | None
 
 
 class TopUpRefundRequest(BaseSchema):

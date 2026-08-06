@@ -21,6 +21,7 @@ import {
   platformCommercePutCommerceDunningPolicy,
   platformCommercePutCommerceProvider,
   platformCommerceReconcileCommerceProviderEvent,
+  platformCommerceRecordCommercePaymentCorrection,
   platformCommerceScheduleSubscriptionRevisionTransition,
   platformCommerceSubmitSimulatedCheckoutOutcome,
   platformCommerceSubmitSimulatedTopUpOutcome,
@@ -42,6 +43,8 @@ import {
   type PlanRevisionPublish,
   type ProviderConfigurationWriteWritable,
   type ProviderEventReconcileRequest,
+  type PaymentCorrectionWrite,
+  type PaymentCorrectionOut,
   type SimulatedCheckoutOutcomeWrite,
   type PlatformCommercePlanCatalogOut,
   type PlatformCommerceSubscriptionListOut,
@@ -287,6 +290,17 @@ export async function reconcileCommerceProviderEvent(
       body,
       client: platformApiClient,
       path: { event_id: eventId },
+    }),
+  );
+}
+
+export async function recordCommercePaymentCorrection(
+  body: PaymentCorrectionWrite,
+): Promise<PaymentCorrectionOut> {
+  return unwrap(
+    await platformCommerceRecordCommercePaymentCorrection({
+      body,
+      client: platformApiClient,
     }),
   );
 }
