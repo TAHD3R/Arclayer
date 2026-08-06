@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkspaceCommerceOverview } from "@/api/commerce";
+import type { CommercialAccessRecoveryView, WorkspaceCommerceOverview } from "@/api/commerce";
 import { CreditLedgerTable } from "@/components/commerce/credit-ledger-table";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
@@ -150,6 +150,49 @@ function PlanSummary(props: {
   );
 }
 
+function PaymentRecoverySummary(props: {
+  recovery: CommercialAccessRecoveryView;
+  pending: boolean;
+  onRecover: () => void;
+}) {
+  const { t, i18n } = useTranslation(["commerce"]);
+  const date = useMemo(
+    () => new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, { dateStyle: "medium" }),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+  const restricted = props.recovery.state === "payment_restricted";
+  const grace = props.recovery.state === "payment_grace";
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>{t("commerce:PAYMENT_RECOVERY_TITLE")}</CardTitle>
+            <CardDescription>{t("commerce:PAYMENT_RECOVERY_DESCRIPTION")}</CardDescription>
+          </div>
+          <Badge variant={restricted ? "destructive" : grace ? "secondary" : "default"}>
+            {t(`commerce:PAYMENT_STATE_${props.recovery.state.toUpperCase()}`)}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-callout text-label-secondary">
+          {props.recovery.recoveryDeadline
+            ? t("commerce:PAYMENT_RECOVERY_DEADLINE", {
+                date: date.format(new Date(props.recovery.recoveryDeadline)),
+              })
+            : t("commerce:PAYMENT_RECOVERY_CURRENT")}
+        </p>
+        {props.recovery.permittedRecoveryAction ? (
+          <Button loading={props.pending} onClick={props.onRecover} variant="outline">
+            {t("commerce:OPEN_PAYMENT_RECOVERY")}
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string }) {
   const { t } = useTranslation(["commerce", "common"]);
   const [plansOpen, setPlansOpen] = useState(false);
@@ -173,6 +216,14 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
             onManageSubscription={() => controller.billingPortalMutation.mutate()}
             onComparePlans={() => setPlansOpen(true)}
           />
+
+          {controller.canManageCommerce && controller.recoveryQuery.data ? (
+            <PaymentRecoverySummary
+              recovery={controller.recoveryQuery.data}
+              pending={controller.billingPortalMutation.isPending}
+              onRecover={() => controller.billingPortalMutation.mutate()}
+            />
+          ) : null}
 
           {controller.managementAccessStatus === "error" ? (
             <Alert>

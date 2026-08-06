@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createWorkspaceCustomerPortalSession,
+  getWorkspacePaymentRecovery,
   listWorkspaceMemberCreditLimits,
   setWorkspaceDefaultMemberCreditLimit,
   type MemberCreditLimitInput,
@@ -52,6 +53,15 @@ export function usePlanUsageController(workspaceId: string) {
     queryKey: memberCreditConfigurationQueryKey(workspaceId),
     queryFn: ({ signal }) =>
       listWorkspaceMemberCreditLimits(workspaceId, { page: 1, size: 1 }, signal),
+    enabled: access.canManageCommerce,
+    retry: false,
+    staleTime: 30_000,
+    meta: { silent: true },
+  });
+
+  const recoveryQuery = useQuery({
+    queryKey: ["workspace-commerce", workspaceId, "payment-recovery"],
+    queryFn: ({ signal }) => getWorkspacePaymentRecovery(workspaceId, signal),
     enabled: access.canManageCommerce,
     retry: false,
     staleTime: 30_000,
@@ -154,6 +164,7 @@ export function usePlanUsageController(workspaceId: string) {
   return {
     overviewQuery: access.overviewQuery,
     limitsQuery,
+    recoveryQuery,
     managementAccessStatus: access.managementAccessStatus,
     canManageCommerce: access.canManageCommerce,
     permissionError: access.error,

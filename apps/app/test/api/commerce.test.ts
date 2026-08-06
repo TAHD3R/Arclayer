@@ -21,6 +21,7 @@ vi.mock("@/lib/http", async (importOriginal) => {
 
 import {
   createWorkspaceCheckoutSession,
+  getWorkspacePaymentRecovery,
   listWorkspaceMemberCreditLimits,
   listWorkspaceMemberCreditUsage,
   setWorkspaceDefaultMemberCreditLimit,
@@ -92,6 +93,26 @@ describe("commerce member Credit API", () => {
       "/workspaces/workspace%2Fid/commerce/checkout-session",
       { planCode: "premium", billingInterval: "yearly" },
       { headers: { "Idempotency-Key": "checkout-command-1" } },
+    );
+  });
+
+  it("reads payment recovery through the billing-contact endpoint", async () => {
+    apiGetMock.mockResolvedValueOnce({
+      workspaceId: "workspace-1",
+      state: "payment_grace",
+      explanationKey: "commerce.paymentRecovery.required",
+      billingContactRequired: true,
+      recoveryDeadline: "2026-08-10T00:00:00Z",
+      permittedRecoveryAction: "open_payment_recovery",
+    });
+
+    await expect(getWorkspacePaymentRecovery("workspace/id")).resolves.toMatchObject({
+      state: "payment_grace",
+      permittedRecoveryAction: "open_payment_recovery",
+    });
+    expect(apiGetMock).toHaveBeenCalledWith(
+      "/workspaces/workspace%2Fid/commerce/payment-recovery",
+      { signal: undefined },
     );
   });
 

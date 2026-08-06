@@ -39,7 +39,7 @@ After each independently verifiable part:
 | M1 Member limits and Usage API | Complete | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
 | M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
 | M3 Platform Billing redesign | In progress | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
-| M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, icon-free ChromeTabs, Workspace setting |
+| M4 Product Plan & Usage / People | In progress | New Plan & Usage, People Usage column, member limits, billing/invoice/refill/recovery lifecycle, icon-free ChromeTabs, Workspace setting |
 | M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
 | M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
 
@@ -332,7 +332,7 @@ M1.5b.4 validation and closure:
 - Product OpenAPI typecheck passed.
 - `pnpm app:check`: lint, format, and locale parity passed. Typecheck remains blocked only by `test/browser/product-acceptance.spec.ts` importing the missing `../../../../tests/browser/support` module.
 - The broad Product Vitest run in the package gate also reported one failure in `feedback-ticket-dialog.test.tsx`; an immediate isolated rerun passed `2/2`, so the nondeterministic package-gate failure remains visible and was not converted into a fallback.
-- M1.5b and M1 are complete. M4 is also complete because its accepted Product Plan & Usage, People Usage, member-limit, icon-free ChromeTab, and Workspace setting surfaces were delivered through M1.4 and M1.5.
+- M1.5b and M1 are complete. M4's accepted Product Plan & Usage, People Usage, member-limit, icon-free ChromeTab, and Workspace setting slices are delivered through M1.4 and M1.5; billing/invoice/refill/recovery lifecycle surfaces remain active work.
 
 ## M2 — Simulated Billing Provider
 
@@ -1233,3 +1233,10 @@ M2.4b.3b implementation boundary:
 - Extended the Platform Payments page with separate transaction, invoice, and refund projection cards while retaining the signed Provider-event ledger and reconciliation action. The page renders sanitized local facts only and keeps loading/error/empty states explicit.
 - Focused validation: Platform Commerce router `6 passed`; Platform Commerce API wrapper `4 passed`; targeted API Ruff check/format and `ty` passed; Platform OpenAPI generation/typecheck passed.
 - M3.1 is complete. The next active implementation part is M3.2 Platform plan catalog revision CRUD and publish validation.
+
+### 2026-08-06 — M4 lifecycle gap audit and recovery projection
+
+- Re-audited the Product Plan & Usage contract against the workspace commercialization spec. Existing plan comparison, subscription portal, Credit ledger, member Usage, and member-limit controls are real; invoice, refill, and payment-recovery presentation were not complete.
+- Added a Product `getWorkspacePaymentRecovery` wrapper and a query-backed Plan & Usage recovery card. Billing contacts now see the server-authoritative `normal`, `payment_grace`, or `payment_restricted` state, recovery deadline, and the existing Provider Portal recovery action without inferring authority from local UI state.
+- Product lint, format, locale parity, focused Commerce regression, and targeted typecheck passed for the changed code. The package typecheck remains blocked only by the existing browser acceptance support import.
+- M4 remains in progress. Invoice and refill projections are the next M4 implementation slice after the active M3.2 Platform catalog work.

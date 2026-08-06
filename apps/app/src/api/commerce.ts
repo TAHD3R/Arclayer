@@ -4,6 +4,7 @@ import type {
   BillingRedirectOut as BillingRedirect,
   CheckoutSessionCreate,
   CommercialAccessMemberView,
+  CommercialAccessRecoveryView,
   DomainWorkspacesListMemberCreditLimitsData,
   DomainWorkspacesListMemberCreditUsageData,
   DomainWorkspacesListWorkspaceCreditLedgerData,
@@ -116,6 +117,18 @@ export function getWorkspaceCommercialAccess(
   return api.get<CommercialAccessMemberView>(workspacePath(workspaceId, "/commerce/access"), {
     signal,
   });
+}
+
+export function getWorkspacePaymentRecovery(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<CommercialAccessRecoveryView> {
+  return api.get<CommercialAccessRecoveryView>(
+    workspacePath(workspaceId, "/commerce/payment-recovery"),
+    {
+      signal,
+    },
+  );
 }
 
 export function createWorkspaceCheckoutSession(
