@@ -383,8 +383,8 @@ M2 execution parts:
      - M2.4b.3 Stripe top-up Checkout and settlement. — Active
        - M2.4b.3a Stripe top-up Checkout creation contract. — Complete
        - M2.4b.3b accepted Stripe Checkout settlement normalization and exact grant. — Complete
-       - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Pending
-     - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
+       - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Complete
+     - M2.4b.4 full top-up refund hold and Provider-confirmed reversal. — Active
      - M2.4b.5 payment reconciliation/correction and M2.4 closure.
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
@@ -1144,3 +1144,10 @@ M2.4b.3b implementation boundary:
 - Added Stripe normalization regressions for payment-mode recognition, subscription exclusion, exact expansion/metadata/line-item/PaymentIntent/Invoice evidence, and unpaid rejection while retaining all existing Stripe subscription and invoice tests.
 - Focused validation: Stripe Connector `34 passed`; Billing Event Job Handler `9 passed`; top-up settlement evidence `2 passed`; targeted Ruff check/format and `ty` all passed.
 - Advanced the only active implementation part to M2.4b.3c Stripe full-chain, replay, ordering, and closure. The remaining boundary intentionally excludes refunds, partial top-ups, reconciliation closure, Connect, and Product payment-form work.
+
+### 2026-08-06 — M2.4b.3c Stripe full-chain, replay, ordering, and closure
+
+- Added a real PostgreSQL integration path for a signed Stripe payment-mode top-up Checkout from webhook acceptance through encrypted inbox, Job-time Provider retrieval, Provider-neutral settlement application, transaction, Invoice, `LEDGER_TOP_UP`, non-expiring purchased lot, Credit balance, and application receipt.
+- The integration path verifies the exact Stripe expansion contract (`line_items.data.price`, `payment_intent`, `invoice`), successful settlement with `outcome_command_id = NULL`, same-event replay without a second grant, and a distinct second successful Provider event for the same Checkout being permanently rejected without balance or transaction mutation.
+- Existing Stripe subscription and invoice projection integration behavior remains covered; the new full-chain test runs with `RUN_INTEGRATION_TESTS=1` and passed (`2 passed`). Default focused execution remains explicit and skips integration tests when the flag is absent (`2 skipped`).
+- Targeted Ruff check/format and `ty` passed. M2.4b.3c is complete; the only active implementation part is now M2.4b.4 full top-up refund hold and Provider-confirmed reversal.

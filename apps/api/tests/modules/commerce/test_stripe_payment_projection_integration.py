@@ -33,11 +33,15 @@ from src.models.commerce.billing import (
     WorkspaceCreditAccount,
     WorkspaceSubscription,
 )
-from src.models.commerce.credit_allocation import CommercePlanPeriodGrant
+from src.models.commerce.credit_allocation import CommercePlanPeriodGrant, CreditGrantSource, WorkspaceCreditGrantLot
 from src.models.commerce.payments import (
+    CommerceCheckoutSession,
+    CommerceCheckoutStatus,
+    CommerceCreditTopUpOffer,
     CommerceInvoice,
     CommerceProviderPaymentProjection,
     CommerceProviderPaymentTransactionProjection,
+    CommerceTopUpSettlementApplication,
     CommerceTransaction,
 )
 from src.models.connectors.inbox import ConnectorEventInbox
@@ -52,6 +56,7 @@ from src.modules.commerce.billing_event_job_contract import (
 )
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
+from src.modules.jobs.execution_errors import PermanentJobExecutionError
 from src.modules.jobs.execution_registry import JobExecutionContext
 from src.modules.jobs.service import BackgroundJobService
 from src.settings.crypto import ensure_master_key
@@ -409,3 +414,203 @@ async def test_signed_stripe_partial_then_paid_invoice_projects_before_granting_
     assert await CommerceInvoice.all().count() == 1
     assert await CommerceTransaction.all().count() == 2
     assert await BackgroundJobRecord.all().count() == 2
+
+
+@pytest.mark.asyncio
+async def test_signed_stripe_top_up_full_chain_replay_and_second_payment_rejection(db_schema, tmp_path: Path) -> None:
+    _ = db_schema
+    now = datetime.now(UTC).replace(microsecond=0)
+    suffix = uuid4().hex[:16]
+    organization = await Organization.create(slug=f"stripe-topup-{suffix}", name="Stripe top-up")
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Stripe top-up",
+        owner_user_id=uuid4(),
+        created_by_user_id=uuid4(),
+    )
+    plan = await CommercePlan.create(code=f"stripe-topup-{suffix}")
+    revision = await CommercePlanRevision.create(
+        plan_id=plan.id,
+        sequence=1,
+        status=PlanRevisionStatus.PUBLISHED,
+        name_i18n_key=f"commerce:PLAN_STRIPE_TOPUP_{suffix}",
+        description_i18n_key=f"commerce:PLAN_STRIPE_TOPUP_DESCRIPTION_{suffix}",
+        credit_grant_amount=100,
+        credit_refresh_interval=CreditRefreshInterval.MONTHLY,
+        credit_value_micros=1_000,
+        currency="USD",
+        content_hash=uuid4().hex,
+        published_at=now,
+    )
+    subscription = await WorkspaceSubscription.create(
+        workspace_id=workspace.id,
+        plan_revision_id=revision.id,
+        status=SubscriptionStatus.ACTIVE,
+        billing_cycle=BillingCycle.MONTHLY,
+        current_period_start=now,
+        current_period_end=now + timedelta(days=30),
+        billing_provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+    )
+    account = await WorkspaceCreditAccount.create(
+        workspace_id=workspace.id,
+        subscription_id=subscription.id,
+        plan_revision_id=revision.id,
+        period_start=now,
+        period_end=now + timedelta(days=30),
+        period_identity=f"stripe-topup-period:{suffix}",
+        balance_credits=50,
+        reserved_credits=0,
+        revision=1,
+    )
+    offer = await CommerceCreditTopUpOffer.create(
+        code=f"stripe-topup-offer-{suffix}",
+        credit_amount=2_000,
+        name_i18n_key="commerce:TOP_UP_SETTLEMENT_NAME",
+        description_i18n_key="commerce:TOP_UP_SETTLEMENT_DESCRIPTION",
+        is_active=True,
+        sort_order=1,
+        revision=2,
+    )
+    external_session_id = f"cs_topup{suffix}"
+    external_price_id = f"price_topup{suffix}"
+    request_fingerprint = "a" * 64
+    checkout = await CommerceCheckoutSession.create(
+        workspace_id=workspace.id,
+        subscription_id=None,
+        target_plan_revision_id=None,
+        top_up_offer_id=offer.id,
+        top_up_offer_revision=offer.revision,
+        plan_code=None,
+        provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+        provider_account_id="platform",
+        kind="top_up",
+        status=CommerceCheckoutStatus.PENDING,
+        billing_cycle=None,
+        currency="USD",
+        amount_micros=20_000_000,
+        credit_amount=offer.credit_amount,
+        external_price_id=external_price_id,
+        external_session_id=external_session_id,
+        checkout_url="https://checkout.stripe.test/topup",
+        idempotency_key=f"arclayer:top-up-checkout:{suffix}",
+        request_fingerprint=request_fingerprint,
+        actor_user_id=uuid4(),
+        expires_at=now + timedelta(minutes=30),
+        revision=1,
+    )
+    metadata = {
+        "workspace_id": str(workspace.id),
+        "top_up_offer_id": str(offer.id),
+        "top_up_offer_revision": str(offer.revision),
+        "credit_amount": str(offer.credit_amount),
+        "external_price_id": external_price_id,
+        "currency": "USD",
+        "amount_micros": str(checkout.amount_micros),
+    }
+    payment_intent_id = f"pi_topup{suffix}"
+    invoice_id = f"in_topup{suffix}"
+    checkout_body = {
+        "id": external_session_id,
+        "mode": "payment",
+        "livemode": False,
+        "metadata": metadata,
+        "amount_total": 2_000,
+        "currency": "usd",
+        "line_items": {
+            "data": [{"quantity": 1, "price": {"id": external_price_id, "currency": "usd"}}],
+            "has_more": False,
+        },
+        "payment_intent": {
+            "id": payment_intent_id,
+            "status": "succeeded",
+            "amount_received": 2_000,
+            "currency": "usd",
+            "metadata": metadata,
+        },
+        "invoice": {
+            "id": invoice_id,
+            "status": "paid",
+            "currency": "usd",
+            "amount_due": 2_000,
+            "amount_paid": 2_000,
+        },
+    }
+    webhook_secret = "whsec_stripe_topup_integration"
+
+    def provider_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/v1/checkout/sessions/{external_session_id}"
+        assert request.url.params.get_list("expand[]") == ["line_items.data.price", "payment_intent", "invoice"]
+        return httpx.Response(200, json=checkout_body)
+
+    connector = cast(
+        BillingConnector,
+        StripeBillingConnector(
+            secret_key="sk_test_integration",
+            webhook_secret=webhook_secret,
+            api_base_url="https://stripe.test/v1",
+            webhook_tolerance_seconds=300,
+            client=httpx.AsyncClient(transport=httpx.MockTransport(provider_handler)),
+        ),
+    )
+    settings = _settings(tmp_path, webhook_secret=webhook_secret)
+    acceptance = BillingEventAcceptanceService(
+        settings=settings,
+        provider_name="stripe",
+        connector_key="billing.stripe",
+        connector_version="1.0.0",
+        webhook_events=("checkout.session.completed",),
+        connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings, event_publisher=None),
+    )
+    handler = BillingConnectorEventJobHandler(settings=settings, connectors=_registry(connector))
+    event_timestamp = int(now.timestamp())
+    payload = _event_payload(
+        event_id=f"evt_topup{suffix}",
+        event_type="checkout.session.completed",
+        event_timestamp=event_timestamp,
+        event_object={"id": external_session_id, "mode": "payment", "metadata": metadata},
+    )
+    accepted = await acceptance.accept(
+        payload=payload,
+        signature=_signature(payload, timestamp=event_timestamp, secret=webhook_secret),
+    )
+    inbox = await ConnectorEventInbox.get(id=accepted.inbox_id)
+    result = await handler.execute(context=_context(inbox))
+    replay = await handler.execute(context=_context(await ConnectorEventInbox.get(id=inbox.id)))
+
+    await checkout.refresh_from_db()
+    await account.refresh_from_db()
+    application = await CommerceTopUpSettlementApplication.get(provider_event_id=inbox.provider_event_id)
+    transaction = await CommerceTransaction.get(id=application.transaction_id)
+    invoice = await CommerceInvoice.get(id=application.invoice_id)
+    lot = await WorkspaceCreditGrantLot.get(id=application.grant_lot_id)
+    assert result == replay
+    assert checkout.status == CommerceCheckoutStatus.COMPLETED
+    assert account.balance_credits == 2_050
+    assert transaction.external_transaction_id == payment_intent_id
+    assert transaction.invoice_id == invoice.id
+    assert invoice.external_invoice_id == invoice_id
+    assert lot.source == CreditGrantSource.TOP_UP
+    assert lot.expires_at is None
+    assert application.outcome_command_id is None
+    assert await CommerceTransaction.all().count() == 1
+    assert await CommerceTopUpSettlementApplication.all().count() == 1
+
+    second_payload = _event_payload(
+        event_id=f"evt_topupsecond{suffix}",
+        event_type="checkout.session.completed",
+        event_timestamp=event_timestamp + 1,
+        event_object={"id": external_session_id, "mode": "payment", "metadata": metadata},
+    )
+    second = await acceptance.accept(
+        payload=second_payload,
+        signature=_signature(second_payload, timestamp=event_timestamp + 1, secret=webhook_secret),
+    )
+    with pytest.raises(PermanentJobExecutionError):
+        await handler.execute(context=_context(await ConnectorEventInbox.get(id=second.inbox_id)))
+    await account.refresh_from_db()
+    assert account.balance_credits == 2_050
+    assert await CommerceTransaction.all().count() == 1
