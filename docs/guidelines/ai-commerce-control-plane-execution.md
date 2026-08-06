@@ -37,7 +37,7 @@ After each independently verifiable part:
 | --- | --- | --- |
 | M0 Credit accounting foundation | Complete | Integer Credits, source lots, exact allocations, member attribution, legacy migration, adjustment correctness |
 | M1 Member limits and Usage API | Complete | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
-| M2 Simulated Billing Provider | In progress | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
+| M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
 | M3 Platform Billing redesign | Pending | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
 | M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, icon-free ChromeTabs, Workspace setting |
 | M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
@@ -386,11 +386,11 @@ M2 execution parts:
        - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Complete
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal. — Complete
      - M2.4b.5 payment reconciliation/correction and M2.4 closure. — Complete
-6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
+6. M2.5 simulator control plane and OpenAPI surfaces. — Complete
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
    - Expose durable checkout, transaction, invoice, refund, inbox, Job, and application outcomes rather than templated success responses.
-7. M2.6 full lifecycle and Stripe regression closure. — Pending
+7. M2.6 full lifecycle and Stripe regression closure. — In progress
    - Verify success/failure/pending/cancel/duplicate/delay/out-of-order, renewal, dunning recovery, top-up, refund, retry, and reconciliation lifecycles.
    - Verify production rejection, no Stripe secret dependency, no Stripe or Connect impersonation, exact connector-version pinning, and unchanged real Stripe Checkout/Portal/webhook paths.
    - Run API/OpenAPI/package gates, staged GitNexus detection, changed-scope Code Review Engine, update this record, and commit M2.
@@ -1207,3 +1207,11 @@ M2.4b.3b implementation boundary:
 - Added typed `GET /system/commerce/simulator/workspaces/{workspaceId}/state`, regenerated Platform OpenAPI, and added the Platform API wrapper. Existing list/event/reconcile and Workspace simulator routes remain unchanged.
 - Validation: focused API Platform/read tests `15 passed`; targeted API Ruff check/format/`ty` passed (test fixture warnings only); Platform commerce API tests `3 passed`; Platform lint/format passed; Platform OpenAPI generation and typecheck passed. Platform package typecheck remains blocked only by the pre-existing missing `tests/browser/support` import.
 - M2.5b is complete. The next active slice is M2.5c: simulator UI/readiness/state integration and final simulator regression/closure gates.
+
+### 2026-08-06 — M2.5c simulator readiness integration and M2.5 closure
+
+- Integrated simulator readiness into the Platform Billing configuration surface only when the configured Provider is `simulated`; Stripe and disabled configurations keep their existing configuration flow and never call the simulator endpoint.
+- Added bilingual simulator readiness/outcome copy with explicit development/test framing and no raw payload, credential, or internal identifier presentation.
+- Verified simulated Checkout outcome unit/router coverage, the durable simulator state projection, Platform API wrapper tests, and signed simulated lifecycle regressions. Focused simulated suite passed `36` tests with `19` integration tests explicitly skipped when disabled; `RUN_INTEGRATION_TESTS=1` passed `19` simulated PostgreSQL lifecycle tests.
+- Platform lint, format, locale parity, OpenAPI generation/typecheck, and targeted API static checks passed. Changed-scope Code Review Engine returned zero findings; staged GitNexus remained LOW with no affected execution flow.
+- M2.5 is complete. The only active part is M2.6 full lifecycle and Stripe regression closure.

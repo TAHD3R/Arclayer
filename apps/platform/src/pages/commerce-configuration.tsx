@@ -6,6 +6,7 @@ import type { BillingProviderMode, DunningPolicyOut } from "@arclayer/platform-o
 import {
   getCommerceDunningPolicy,
   getCommerceProvider,
+  getCommerceSimulator,
   putCommerceDunningPolicy,
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
@@ -30,18 +31,19 @@ export function CommerceConfigurationPage() {
   const { t } = useTranslation("commerce");
   const [editPolicy, setEditPolicy] = useState(false);
   const [success, setSuccess] = useState(false);
-  const load = useCallback(
-    async () => ({
+  const load = useCallback(async () => {
+    const provider = await getCommerceProvider();
+    return {
       dunning: await getCommerceDunningPolicy(),
-      provider: await getCommerceProvider(),
-    }),
-    [],
-  );
+      provider,
+      simulator: provider.provider === "simulated" ? await getCommerceSimulator() : null,
+    };
+  }, []);
   const { state, retry } = useMonitoringQuery(load, []);
   return (
     <CommercePage description={t("CONFIGURATION_DESCRIPTION")} title={t("CONFIGURATION_TITLE")}>
       <CommerceQueryState isEmpty={() => false} retry={retry} state={state}>
-        {({ dunning, provider }) => (
+        {({ dunning, provider, simulator }) => (
           <div className="grid gap-5 lg:grid-cols-2">
             <Card>
               <CardHeader>
@@ -79,6 +81,30 @@ export function CommerceConfigurationPage() {
                 </p>
               </CardContent>
             </Card>
+            {simulator ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("SIMULATOR_TITLE")}</CardTitle>
+                  <CardDescription>{t("SIMULATOR_DESCRIPTION")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={simulator.enabled ? "secondary" : "outline"}>
+                      {simulator.enabled ? t("SIMULATOR_READY") : t("SIMULATOR_NOT_READY")}
+                    </Badge>
+                    <Badge variant="outline">{simulator.environment}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {t("SIMULATOR_OUTCOMES", { outcomes: simulator.supportedOutcomes.join(", ") })}
+                  </p>
+                  {simulator.rejectionCode ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("SIMULATOR_REJECTION", { code: simulator.rejectionCode })}
+                    </p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
