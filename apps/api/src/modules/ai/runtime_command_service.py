@@ -10,6 +10,8 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
+from src.llm.policy import RuntimeAiPolicyResolver, require_tool_allowed, resolve_runtime_policy
+from src.llm.runtime import LLMRuntimeError
 from src.modules.ai.runtime_approval_protocol_schema import (
     ApprovalResolvedDataV1,
     ApprovalResolvedEventV1,
@@ -51,6 +53,7 @@ _CONFLICT_ERRORS = frozenset({
     "AGENT_TOOL_RESPONSE_ID_REUSED",
     "AGENT_TOOL_RESULT_ALREADY_RECORDED",
     "AGENT_RUN_RESUME_IDEMPOTENCY_CONFLICT",
+    "AGENT_RUN_POLICY_TOOL_NOT_ALLOWED",
 })
 _BAD_REQUEST_ERRORS = frozenset({
     "AGENT_APPROVAL_CONTRACT_MISMATCH",
@@ -74,11 +77,13 @@ class AgentRuntimeCommandService(BaseService):
         repository: AgentRuntimeCommandRepository | None = None,
         runtime_repository: AgentRuntimeRepository | None = None,
         job_service: BackgroundJobService | None = None,
+        runtime_policy_resolver: RuntimeAiPolicyResolver = resolve_runtime_policy,
     ) -> None:
         super().__init__(settings, event_publisher=None, default_event_source="agent_runtime_command")
         self._repository = repository or AgentRuntimeCommandRepository()
         self._runtime_repository = runtime_repository or AgentRuntimeRepository()
         self._job_service = job_service or BackgroundJobService(self.settings)
+        self._runtime_policy_resolver = runtime_policy_resolver
 
     async def respond_to_tool_call(
         self,
@@ -159,6 +164,13 @@ class AgentRuntimeCommandService(BaseService):
                     persisted_cursor = existing_event.cursor
                 else:
                     _validate_resume_request(state=state, payload=payload)
+                    try:
+                        require_tool_allowed(
+                            await self._runtime_policy_resolver(),
+                            state.response_tool_id,
+                        )
+                    except LLMRuntimeError as error:
+                        raise AgentRuntimePersistenceError("AGENT_RUN_POLICY_TOOL_NOT_ALLOWED") from error
                     resumed_at = datetime.now(UTC)
                     event = RunResumedEventV1(
                         event_version=1,

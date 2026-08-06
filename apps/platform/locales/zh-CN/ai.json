@@ -30,6 +30,7 @@
   "ACTION_CANCEL_PORT_UNAVAILABLE": "此任务当前未提供取消操作。",
   "ACTION_RECONCILE_PORT_UNAVAILABLE": "此任务当前未提供核对结果操作。",
   "ACTION_RETRY_NOT_ELIGIBLE": "任务及其后台处理均已失败后，才可以重试。",
+  "ACTION_RETRY_POLICY_BLOCKED": "当前 AI 策略不再允许此任务再次重试。",
   "ACTION_CANCEL_NOT_ELIGIBLE": "此任务当前无法安全取消。",
   "ACTION_RECONCILE_NOT_ELIGIBLE": "仅当任务结果不完整或仍无法确认时，才能核对结果。",
   "ACTION_PORT_UNAVAILABLE": "此任务当前不能执行这项恢复操作。",

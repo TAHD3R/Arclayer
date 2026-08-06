@@ -11,6 +11,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.core.exceptions import Conflict
+from src.llm.policy import RuntimeAiPolicy
 from src.models.agents.runtime_recovery_v1 import (
     AgentRunExecutionEffectDisposition,
     AgentRunRecoveryAction,
@@ -199,6 +200,8 @@ def _fixture(
     action: Literal["retry", "reconcile"],
     run: SimpleNamespace,
     effect: SimpleNamespace | None = None,
+    retry_limit: int | None = None,
+    attempt_number: int = 1,
 ) -> tuple[
     _Port,
     _RecoveryRepository,
@@ -211,7 +214,10 @@ def _fixture(
     recoveries = _RecoveryRepository(
         run=run,
         source_job=source_job,
-        attempt=SimpleNamespace(failure_classification=JobFailureClassification.TRANSIENT),
+        attempt=SimpleNamespace(
+            failure_classification=JobFailureClassification.TRANSIENT,
+            attempt_number=attempt_number,
+        ),
     )
     runtime = _RuntimeRepository()
     recovery_job = SimpleNamespace(id=uuid4())
@@ -223,6 +229,20 @@ def _fixture(
         audits.append(kwargs["payload"])
         return object()
 
+    async def resolve_policy() -> RuntimeAiPolicy:
+        return RuntimeAiPolicy(
+            revision_id=None,
+            sequence=None,
+            allowed_models=(),
+            max_tokens_per_request=0,
+            max_cost_micros_per_request=0,
+            max_concurrent_runs=None,
+            external_data_egress_allowed=True,
+            tool_allowlist=None,
+            approval_required_effect_classes=frozenset(),
+            retry_limit=retry_limit,
+        )
+
     port = _Port(
         Settings(app_env="test", database={"enabled": False}),
         action=action,  # type: ignore[arg-type]
@@ -232,6 +252,7 @@ def _fixture(
         jobs=jobs,  # type: ignore[arg-type]
         actor_authorizer=authorizer,  # type: ignore[arg-type]
         activity_audit_writer=audit_writer,
+        runtime_policy_resolver=resolve_policy,
     )
     return port, recoveries, runtime, jobs, authorizer, audits
 
@@ -273,6 +294,22 @@ async def test_retry_replay_returns_the_original_receipt_without_recreating_side
     assert len(runtime.events) == 1
     assert len(audits) == 1
     assert len(jobs.published) == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_reloads_policy_and_rejects_a_removed_retry_capability() -> None:
+    run = _run(status=AgentRunStatusV1.FAILED)
+    port, *_ = _fixture(
+        action="retry",
+        run=run,
+        retry_limit=1,
+        attempt_number=2,
+    )
+
+    with pytest.raises(Conflict) as rejected:
+        await port(command=_command(run=run))
+
+    assert rejected.value.error == "AI_PLATFORM_TASK_RETRY_POLICY_BLOCKED"
 
 
 @pytest.mark.asyncio

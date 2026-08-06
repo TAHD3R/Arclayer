@@ -460,6 +460,8 @@
   "AGENT_RUN_RESUME_RESPONSE_CONSUMED": "该工具响应已经用于恢复 Agent 运行。",
   "AGENT_RUN_RESUME_RESPONSE_MISSING": "未找到恢复该 Agent 运行所需的工具响应。",
   "AGENT_RUN_RESUME_SEQUENCE_CONFLICT": "该响应准备完成后 Agent 运行已发生变化，请重新加载最新状态。",
+  "AGENT_RUN_POLICY_TOOL_NOT_ALLOWED": "当前 AI 策略不再允许此 Agent 操作，请重新加载任务后继续。",
+  "POLICY_CONCURRENCY_LIMIT_EXCEEDED": "当前 AI 策略不再允许此 Agent 任务并发运行。",
   "AGENT_THREAD_CURSOR_INVALID": "对话列表位置已失效，请重新加载对话列表。",
   "AGENT_THREAD_IDEMPOTENCY_CONFLICT": "该对话请求标识已关联另一项不同请求。",
   "AGENT_THREAD_NOT_FOUND": "该对话不可用，或你已无权访问。",
@@ -548,6 +550,7 @@
   "AI_PLATFORM_TASK_RECONCILE_PORT_UNAVAILABLE": "当前部署尚未提供可由平台授权的 AI 任务对账能力",
   "AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE": "当前部署尚未提供可由平台授权的 AI 任务重试能力",
   "AI_PLATFORM_TASK_NOT_FOUND": "找不到请求的 AI 任务",
+  "AI_PLATFORM_TASK_RETRY_POLICY_BLOCKED": "当前 AI 策略不再允许此任务再次重试。",
   "AI_MODEL_CATALOG_UNAVAILABLE": "暂时无法读取模型目录。请检查模型供应商配置后重试",
   "AI_MODEL_CATALOG_MASTER_KEY_REQUIRED": "模型目录服务尚未配置完成，请联系管理员完成设置。",
   "AI_MODEL_CATALOG_PROVIDER_CONFLICT": "多个 AI 服务使用了相同的公开模型名。请在 Platform 管理后台为每个服务配置唯一的公开模型名",
@@ -1108,5 +1111,8 @@
   "AI_POLICY_REVISION_NOT_FOUND": "所选 AI 规则修订已不可用。",
   "AI_POLICY_APPLY_IDEMPOTENCY_CONFLICT": "此次应用请求与之前的 AI 规则应用请求冲突。",
   "AI_POLICY_DRAFT_NOT_FOUND": "所选 AI 规则草稿已不可用。",
-  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "请先选择允许的模型列表，再设置默认模型。"
+  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "请先选择允许的模型列表，再设置默认模型。",
+  "AI_POLICY_MODEL_NOT_CONFIGURED": "所选 AI 模型必须已在 Platform 中配置并可路由。",
+  "AI_POLICY_DEFAULT_MODEL_NOT_CONFIGURED": "默认 AI 模型必须已在 Platform 中配置并可路由。",
+  "AI_POLICY_TOOL_NOT_SUPPORTED": "AI 策略包含当前运行时无法识别的工具。"
 }

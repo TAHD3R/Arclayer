@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from uuid import UUID
 
 import structlog
@@ -13,11 +15,65 @@ from src.models.ai.model_policy import ModelPolicy, ModelPolicyScope
 logger = structlog.get_logger("arclayer.llm.policy")
 
 
+@dataclass(frozen=True)
+class RuntimeAiPolicy:
+    """Published deployment policy re-read at each AI effect boundary."""
+
+    revision_id: UUID | None
+    sequence: int | None
+    allowed_models: tuple[str, ...]
+    max_tokens_per_request: int
+    max_cost_micros_per_request: int
+    max_concurrent_runs: int | None
+    external_data_egress_allowed: bool
+    tool_allowlist: frozenset[str] | None
+    approval_required_effect_classes: frozenset[str]
+    retry_limit: int | None
+
+
+RuntimeAiPolicyResolver = Callable[[], Awaitable[RuntimeAiPolicy]]
+
+
+async def resolve_runtime_policy() -> RuntimeAiPolicy:
+    """Resolve the latest published deployment policy without using stale snapshots."""
+    from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
+
+    published = (
+        await GlobalAiPolicyRevision.filter(status=GlobalAiPolicyRevisionStatus.PUBLISHED).order_by("-sequence").first()
+    )
+    if published is None:
+        return RuntimeAiPolicy(
+            revision_id=None,
+            sequence=None,
+            allowed_models=(),
+            max_tokens_per_request=0,
+            max_cost_micros_per_request=0,
+            max_concurrent_runs=None,
+            external_data_egress_allowed=True,
+            tool_allowlist=None,
+            approval_required_effect_classes=frozenset(),
+            retry_limit=None,
+        )
+    return RuntimeAiPolicy(
+        revision_id=published.id,
+        sequence=published.sequence,
+        allowed_models=tuple(published.allowed_models),
+        max_tokens_per_request=published.max_tokens_per_request,
+        max_cost_micros_per_request=published.max_cost_micros_per_request,
+        max_concurrent_runs=published.max_concurrent_runs or None,
+        external_data_egress_allowed=published.external_data_egress_allowed,
+        tool_allowlist=frozenset(published.tool_allowlist) or None,
+        approval_required_effect_classes=frozenset(published.approval_required_effect_classes),
+        retry_limit=published.retry_limit or None,
+    )
+
+
 async def resolve_model_policy(
     workspace_id: UUID,
     user_id: UUID | None,
     *,
     global_data_retention_enabled: bool = False,
+    runtime_policy: RuntimeAiPolicy | None = None,
 ) -> ModelPolicy:
     """Read the current published deployment policy before every effect.
 
@@ -25,11 +81,7 @@ async def resolve_model_policy(
     ``ModelPolicy`` object remains the enforcement DTO while the persisted
     authority is ``GlobalAiPolicyRevision``.
     """
-    from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
-
-    published = (
-        await GlobalAiPolicyRevision.filter(status=GlobalAiPolicyRevisionStatus.PUBLISHED).order_by("-sequence").first()
-    )
+    published = runtime_policy or await resolve_runtime_policy()
     default = ModelPolicy(
         id=UUID(int=0),
         name="_default",
@@ -39,10 +91,10 @@ async def resolve_model_policy(
         max_cost_micros_per_request=0,
         data_retention_enabled=global_data_retention_enabled,
     )
-    if published is None:
+    if published.revision_id is None:
         return default
     return ModelPolicy(
-        id=published.id,
+        id=published.revision_id,
         name=f"global:{published.sequence}",
         scope=ModelPolicyScope.GLOBAL,
         allowed_models=list(published.allowed_models),
@@ -50,6 +102,42 @@ async def resolve_model_policy(
         max_cost_micros_per_request=published.max_cost_micros_per_request,
         data_retention_enabled=not published.external_data_egress_allowed,
     )
+
+
+def require_external_data_egress(policy: RuntimeAiPolicy) -> None:
+    if not policy.external_data_egress_allowed:
+        raise LLMRuntimeError(
+            code=LLMErrorCode.POLICY_EXTERNAL_EGRESS_NOT_ALLOWED,
+            message="External AI data egress is disabled by the active deployment policy",
+            status_code=ERROR_CODE_STATUS[LLMErrorCode.POLICY_EXTERNAL_EGRESS_NOT_ALLOWED],
+        )
+
+
+def require_tool_allowed(policy: RuntimeAiPolicy, tool_id: str) -> None:
+    if policy.tool_allowlist is not None and tool_id not in policy.tool_allowlist:
+        raise LLMRuntimeError(
+            code=LLMErrorCode.POLICY_TOOL_NOT_ALLOWED,
+            message=f"Tool '{tool_id}' is not allowed by the active policy",
+            status_code=ERROR_CODE_STATUS[LLMErrorCode.POLICY_TOOL_NOT_ALLOWED],
+        )
+
+
+def require_retry_allowed(policy: RuntimeAiPolicy, attempt_number: int) -> None:
+    if policy.retry_limit is not None and attempt_number > policy.retry_limit + 1:
+        raise LLMRuntimeError(
+            code=LLMErrorCode.POLICY_RETRY_LIMIT_EXCEEDED,
+            message="The active deployment policy no longer permits another AI retry",
+            status_code=ERROR_CODE_STATUS[LLMErrorCode.POLICY_RETRY_LIMIT_EXCEEDED],
+        )
+
+
+def require_concurrency_slot(policy: RuntimeAiPolicy, active_rank: int) -> None:
+    if policy.max_concurrent_runs is not None and active_rank > policy.max_concurrent_runs:
+        raise LLMRuntimeError(
+            code=LLMErrorCode.POLICY_CONCURRENCY_LIMIT_EXCEEDED,
+            message="The active deployment policy no longer permits this Agent run to execute concurrently",
+            status_code=ERROR_CODE_STATUS[LLMErrorCode.POLICY_CONCURRENCY_LIMIT_EXCEEDED],
+        )
 
 
 def _merge_policies(

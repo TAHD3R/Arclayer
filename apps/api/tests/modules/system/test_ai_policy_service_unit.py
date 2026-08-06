@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.config import Settings
-from src.core.exceptions import Conflict
+from src.core.exceptions import BadRequest, Conflict
 from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
 from src.modules.system.ai_policy.schema import AiPolicyApplyRequest, AiPolicyDraftInput
 from src.modules.system.ai_policy.service import SystemAiPolicyService
@@ -30,7 +30,7 @@ def make_revision(
         max_concurrent_runs=2,
         external_data_egress_allowed=False,
         tool_allowlist=["project.read"],
-        approval_required_effect_classes=["external_egress"],
+        approval_required_effect_classes=["write"],
         retry_limit=2,
         retention_days=0,
         content_hash="a" * 64,
@@ -53,6 +53,39 @@ async def test_preview_marks_unsupported_retention_control() -> None:
         preview = await service.preview(draft.id)
     assert preview.is_applicable is False
     assert preview.unsupported_controls == ("retention_days",)
+
+
+@pytest.mark.asyncio
+async def test_preview_marks_unenforced_approval_classes() -> None:
+    service = SystemAiPolicyService(Settings())
+    draft = make_revision(status=GlobalAiPolicyRevisionStatus.DRAFT)
+    draft.approval_required_effect_classes = ["external_egress"]
+    with patch.object(service, "_get_draft", new=AsyncMock(return_value=draft)):
+        preview = await service.preview(draft.id)
+    assert preview.is_applicable is False
+    assert preview.unsupported_controls == ("approval_required_effect_classes:external_egress",)
+
+
+@pytest.mark.asyncio
+async def test_draft_rejects_unconfigured_models_and_tools() -> None:
+    service = SystemAiPolicyService(Settings())
+    with patch(
+        "src.modules.system.ai_policy.service.list_active_system_models",
+        new=AsyncMock(return_value=[]),
+    ):
+        with pytest.raises(BadRequest) as model_error:
+            await service.create_or_replace_draft(
+                AiPolicyDraftInput(allowed_models=["missing-model"]),
+                actor_user_id=uuid4(),
+            )
+    assert model_error.value.error == "AI_POLICY_MODEL_NOT_CONFIGURED"
+
+    with pytest.raises(BadRequest) as tool_error:
+        await service.create_or_replace_draft(
+            AiPolicyDraftInput(tool_allowlist=["unsupported.tool"]),
+            actor_user_id=uuid4(),
+        )
+    assert tool_error.value.error == "AI_POLICY_TOOL_NOT_SUPPORTED"
 
 
 @pytest.mark.asyncio

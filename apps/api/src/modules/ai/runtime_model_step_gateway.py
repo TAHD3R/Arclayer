@@ -38,6 +38,7 @@ from src.modules.ai.runtime_execution_gateway import (
     AgentRunResumeExecutionRequest,
     AgentRunToolCompletion,
 )
+from src.modules.ai.runtime_policy_authorizer import AgentToolPolicyAuthorizer
 from src.modules.ai.runtime_skill_creator_tool import (
     AgentSkillCreatorToolExecutionRequest,
     AgentSkillCreatorToolExecutor,
@@ -81,12 +82,14 @@ class ModelToolAgentRunExecutionGateway:
         wireframe_executor: AgentWireframeToolExecutor | None = None,
         design_executor: AgentDesignToolExecutor | None = None,
         skill_creator_executor: AgentSkillCreatorToolExecutor | None = None,
+        tool_policy_authorizer: AgentToolPolicyAuthorizer | None = None,
     ) -> None:
         self._chat_service = chat_service
         self._style_guide_executor = style_guide_executor
         self._wireframe_executor = wireframe_executor
         self._design_executor = design_executor
         self._skill_creator_executor = skill_creator_executor
+        self._tool_policy_authorizer = tool_policy_authorizer
 
     async def execute(self, *, request: AgentRunExecutionRequest) -> AgentRunExecutionOutcome:
         return await self._run_model(request=request, resolved_tool_context=None, expose_tools=True)
@@ -114,6 +117,11 @@ class ModelToolAgentRunExecutionGateway:
             return await self._resume_skill_creator(request=request, interrupted=interrupted)
         raise ValueError("Model Tool gateway received an unsupported resume checkpoint")
 
+    async def _authorize_tool(self, tool_id: str) -> None:
+        if self._tool_policy_authorizer is None:
+            raise ValueError("Tool policy authorizer is unavailable")
+        await self._tool_policy_authorizer.authorize(tool_id=tool_id)
+
     async def _resume_skill_creator(
         self,
         *,
@@ -125,6 +133,7 @@ class ModelToolAgentRunExecutionGateway:
             raise ValueError("Skill Creator Tool approval response is invalid")
         args = WorkspaceSkillCreateArgsV1.model_validate(interrupted.args)
         if approved:
+            await self._authorize_tool(WORKSPACE_SKILL_CREATE_TOOL)
             if self._skill_creator_executor is None:
                 raise ValueError("Skill Creator Tool executor is unavailable")
             context = request.context
@@ -182,6 +191,7 @@ class ModelToolAgentRunExecutionGateway:
             raise ValueError("Style Guide Tool approval response is invalid")
         args = StyleGuideGenerateArgsV1.model_validate(interrupted.args)
         if approved:
+            await self._authorize_tool(BUILDER_STYLE_GUIDE_GENERATE_TOOL)
             result = await self._execute_style_guide(
                 request=request,
                 tool_call_id=interrupted.tool_call_id,
@@ -264,6 +274,7 @@ class ModelToolAgentRunExecutionGateway:
             raise ValueError("Wireframe Tool approval response is invalid")
         args = WireframeGenerateArgsV1.model_validate(interrupted.args)
         if approved:
+            await self._authorize_tool(BUILDER_WIREFRAME_GENERATE_TOOL)
             result = await self._execute_wireframe(
                 request=request,
                 tool_call_id=interrupted.tool_call_id,
@@ -339,6 +350,7 @@ class ModelToolAgentRunExecutionGateway:
             raise ValueError("Design Tool approval response is invalid")
         args = DesignGenerateArgsV1.model_validate(interrupted.args)
         if approved:
+            await self._authorize_tool(BUILDER_DESIGN_GENERATE_TOOL)
             result = await self._execute_design(
                 request=request,
                 tool_call_id=interrupted.tool_call_id,

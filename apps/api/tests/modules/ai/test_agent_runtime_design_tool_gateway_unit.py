@@ -22,6 +22,12 @@ from src.modules.ai.runtime_model_step_gateway import ModelToolAgentRunExecution
 
 pytestmark = pytest.mark.unit
 
+
+class _ToolPolicyAuthorizer:
+    async def authorize(self, *, tool_id: str) -> None:
+        _ = tool_id
+
+
 PAGE_ID = uuid4()
 
 
@@ -92,6 +98,7 @@ async def test_design_tool_requires_approval_then_returns_durable_generation_ref
     gateway = ModelToolAgentRunExecutionGateway(
         chat_service=cast(AgentRunChatGateway, chat),
         design_executor=executor,
+        tool_policy_authorizer=_ToolPolicyAuthorizer(),
     )
     request = _request()
 

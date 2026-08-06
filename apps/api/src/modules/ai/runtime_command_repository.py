@@ -71,6 +71,7 @@ class AgentRunResumeState(BaseSchema):
     response_kind: Literal["approval", "human_result"]
     response_checkpoint_id: str
     response_tool_call_id: str
+    response_tool_id: str
     response_expected_sequence: int
     response_consumed_at: datetime | None
 
@@ -193,6 +194,17 @@ class AgentRuntimeCommandRepository(TortoiseORMRepository[AgentRunV1Record]):
         )
         if response is None:
             raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_RESPONSE_MISSING")
+        part = await (
+            AgentMessagePartV1Record
+            .filter(tool_call_id=response.tool_call_id, type="tool-call")
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+        part_payload = part.payload if part is not None and isinstance(part.payload, dict) else None
+        response_tool_id = part_payload.get("toolId") if part_payload is not None else None
+        if not isinstance(response_tool_id, str) or not response_tool_id:
+            raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_CHECKPOINT_MISMATCH")
         return AgentRunResumeState(
             workspace_id=run.workspace_id,
             thread_id=run.thread_id,
@@ -211,6 +223,7 @@ class AgentRuntimeCommandRepository(TortoiseORMRepository[AgentRunV1Record]):
             response_kind=cast(Literal["approval", "human_result"], str(response.kind)),
             response_checkpoint_id=response.checkpoint_id,
             response_tool_call_id=response.tool_call_id,
+            response_tool_id=response_tool_id,
             response_expected_sequence=response.expected_sequence,
             response_consumed_at=response.consumed_at,
         )

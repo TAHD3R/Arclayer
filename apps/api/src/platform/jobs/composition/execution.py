@@ -26,6 +26,7 @@ from src.modules.ai.runtime_job_schema import AGENT_RUN_JOB_TYPE, AGENT_RUN_JOB_
 from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContextResolver
 from src.modules.ai.runtime_langgraph_gateway import LangGraphAgentRunExecutionGateway
 from src.modules.ai.runtime_model_step_gateway import ModelToolAgentRunExecutionGateway
+from src.modules.ai.runtime_policy_authorizer import GlobalAgentToolPolicyAuthorizer
 from src.modules.ai.runtime_skill_creator_tool import WorkspaceSkillAuthoringAgentToolExecutor
 from src.modules.ai.runtime_style_guide_tool import DesignSystemConceptAgentToolExecutor
 from src.modules.ai.runtime_wireframe_tool import BuilderWireframeAgentToolExecutor
@@ -543,6 +544,7 @@ def _build_agent_run_handler(
         execution_gateway=LangGraphAgentRunExecutionGateway(
             step_gateway=ModelToolAgentRunExecutionGateway(
                 chat_service=AIChatService(settings),
+                tool_policy_authorizer=GlobalAgentToolPolicyAuthorizer(),
                 style_guide_executor=DesignSystemConceptAgentToolExecutor(
                     service_factory=lambda: _build_design_system_concept_generation_service(settings=settings),
                     organization_id_factory=lambda: require_current_tenant_context().identity.organization_id,

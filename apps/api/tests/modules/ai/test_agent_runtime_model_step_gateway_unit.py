@@ -141,6 +141,11 @@ class _StyleGuideExecutor:
         )
 
 
+class _ToolPolicyAuthorizer:
+    async def authorize(self, *, tool_id: str) -> None:
+        _ = tool_id
+
+
 class _WireframeChatGateway:
     def __init__(self) -> None:
         self.calls: list[tuple[list[dict[str, str]], dict[str, object] | None]] = []
@@ -257,6 +262,7 @@ async def test_style_guide_tool_requires_approval_then_returns_durable_generatio
     gateway = ModelToolAgentRunExecutionGateway(
         chat_service=chat,
         style_guide_executor=executor,
+        tool_policy_authorizer=_ToolPolicyAuthorizer(),
     )
     request = _style_guide_request()
 
@@ -377,6 +383,7 @@ async def test_wireframe_tool_requires_approval_then_returns_durable_generation_
     gateway = ModelToolAgentRunExecutionGateway(
         chat_service=chat,
         wireframe_executor=executor,
+        tool_policy_authorizer=_ToolPolicyAuthorizer(),
     )
     request = _wireframe_request()
 

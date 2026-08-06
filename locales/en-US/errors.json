@@ -460,6 +460,8 @@
   "AGENT_RUN_RESUME_RESPONSE_CONSUMED": "This response has already been used to continue the Agent task.",
   "AGENT_RUN_RESUME_RESPONSE_MISSING": "The response required to continue the Agent task was not found.",
   "AGENT_RUN_RESUME_SEQUENCE_CONFLICT": "The Agent run changed after this response was prepared. Reload the latest run state.",
+  "AGENT_RUN_POLICY_TOOL_NOT_ALLOWED": "The active AI policy no longer permits this Agent action. Reload the task before continuing.",
+  "POLICY_CONCURRENCY_LIMIT_EXCEEDED": "The active AI policy no longer permits this Agent task to run concurrently.",
   "AGENT_THREAD_CURSOR_INVALID": "This conversation list position is no longer valid. Reload the conversation list.",
   "AGENT_THREAD_IDEMPOTENCY_CONFLICT": "This conversation request identifier is already associated with a different request.",
   "AGENT_THREAD_NOT_FOUND": "This conversation is unavailable or you no longer have access.",
@@ -548,6 +550,7 @@
   "AI_PLATFORM_TASK_RECONCILE_PORT_UNAVAILABLE": "The current deployment does not provide a platform-authorized AI task reconciliation operation",
   "AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE": "The current deployment does not provide a platform-authorized AI task retry operation",
   "AI_PLATFORM_TASK_NOT_FOUND": "The requested AI task could not be found",
+  "AI_PLATFORM_TASK_RETRY_POLICY_BLOCKED": "The active AI policy no longer permits another retry for this task.",
   "AI_MODEL_CATALOG_UNAVAILABLE": "Cannot load the model catalog right now. Check the model provider configuration and try again",
   "AI_MODEL_CATALOG_MASTER_KEY_REQUIRED": "The model catalog service is not fully configured. Ask an administrator to complete the setup.",
   "AI_MODEL_CATALOG_PROVIDER_CONFLICT": "Multiple AI services use the same public model name. Give each service a unique public model name in Platform Console",
@@ -1108,5 +1111,8 @@
   "AI_POLICY_REVISION_NOT_FOUND": "The selected AI policy revision is no longer available.",
   "AI_POLICY_APPLY_IDEMPOTENCY_CONFLICT": "This apply request conflicts with an earlier AI policy apply.",
   "AI_POLICY_DRAFT_NOT_FOUND": "The selected AI policy draft is no longer available.",
-  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "Choose an allowed-model list before setting a default model."
+  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "Choose an allowed-model list before setting a default model.",
+  "AI_POLICY_MODEL_NOT_CONFIGURED": "Every selected AI model must be configured and routable in Platform.",
+  "AI_POLICY_DEFAULT_MODEL_NOT_CONFIGURED": "The default AI model must be configured and routable in Platform.",
+  "AI_POLICY_TOOL_NOT_SUPPORTED": "The AI policy contains a Tool that this runtime does not recognize."
 }

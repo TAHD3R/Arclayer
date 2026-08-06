@@ -11,6 +11,14 @@ from pydantic import TypeAdapter
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.i18n import t
+from src.llm.policy import (
+    RuntimeAiPolicy,
+    RuntimeAiPolicyResolver,
+    require_concurrency_slot,
+    require_retry_allowed,
+    require_tool_allowed,
+    resolve_runtime_policy,
+)
 from src.llm.runtime import LLMCapability, LLMRequestContext, LLMRuntimeError
 from src.models.agents.catalog import AgentVersionRecord
 from src.models.agents.runtime_recovery_v1 import (
@@ -143,6 +151,7 @@ class AgentRunJobHandler:
         recovery_lifecycle: AgentRunRecoveryLifecyclePort | None = None,
         skill_grant_resolver_factory: AgentSkillGrantResolverFactory | None = None,
         knowledge_context_resolver_factory: AgentKnowledgeContextResolverFactory | None = None,
+        runtime_policy_resolver: RuntimeAiPolicyResolver = resolve_runtime_policy,
     ) -> None:
         self._settings = settings
         self._repository = repository or AgentRunJobRepository()
@@ -154,6 +163,7 @@ class AgentRunJobHandler:
         self._recovery_lifecycle = recovery_lifecycle or AgentRunRecoveryLifecycleService(settings)
         self._skill_grant_resolver_factory = skill_grant_resolver_factory
         self._knowledge_context_resolver_factory = knowledge_context_resolver_factory
+        self._runtime_policy_resolver = runtime_policy_resolver
 
     async def reconcile(
         self,
@@ -224,6 +234,22 @@ class AgentRunJobHandler:
             )
         await context.report_progress(self._progress(phase="executing", completed=0))
         state = await self._state(context)
+        runtime_policy = await self._runtime_policy_resolver()
+        try:
+            require_retry_allowed(runtime_policy, context.lease.attempt_number)
+            active_rank = await self._repository.active_workspace_run_rank(
+                workspace_id=state.workspace_id,
+                run_id=state.run_id,
+            )
+            if active_rank is not None:
+                require_concurrency_slot(runtime_policy, active_rank)
+        except LLMRuntimeError as error:
+            return await self._project_failure(
+                state=state,
+                error_code=error.code,
+                message=error.message,
+                retryable=False,
+            )
         await self._mark_recovery_running(state)
         lead_agent, mentioned_agents = await self._catalog_service.validate_run_snapshot(
             workspace_id=state.workspace_id,
@@ -236,6 +262,15 @@ class AgentRunJobHandler:
             mentioned_agent_assignment_ids=state.mentioned_agent_assignment_ids,
             execution_mode=cast(ExecutionMode, str(state.execution_mode)),
         )
+        try:
+            tool_grants = _policy_tool_grants(runtime_policy, lead_agent.tool_grants)
+        except LLMRuntimeError as error:
+            return await self._project_failure(
+                state=state,
+                error_code=error.code,
+                message=error.message,
+                retryable=False,
+            )
         skill_context = await self._load_skill_context(
             state=state,
             agents=(lead_agent, *mentioned_agents),
@@ -274,7 +309,7 @@ class AgentRunJobHandler:
                 source="agent",
             ),
             execution_mode=cast(ExecutionMode, str(state.execution_mode)),
-            tool_grants=lead_agent.tool_grants,
+            tool_grants=tool_grants,
             design_system_context=state.design_system_context,
             builder_context=state.builder_context,
             model=await self._model(),
@@ -1008,6 +1043,12 @@ class AgentRunJobHandler:
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _policy_tool_grants(policy: RuntimeAiPolicy, tool_grants: tuple[str, ...]) -> tuple[str, ...]:
+    for tool_id in tool_grants:
+        require_tool_allowed(policy, tool_id)
+    return tool_grants
 
 
 def _append_skill_context(

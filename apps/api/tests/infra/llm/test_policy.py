@@ -9,9 +9,15 @@ import pytest
 
 from src.llm.errors import LLMErrorCode
 from src.llm.policy import (
+    RuntimeAiPolicy,
     enforce_model_policy,
+    require_concurrency_slot,
+    require_external_data_egress,
+    require_retry_allowed,
+    require_tool_allowed,
     resolve_model_policy,
     resolve_provider_retention_params,
+    resolve_runtime_policy,
 )
 from src.llm.runtime import LLMRuntimeError
 from src.models.ai.global_policy import GlobalAiPolicyRevision
@@ -88,6 +94,10 @@ class TestResolveModelPolicy:
             max_tokens_per_request=2048,
             max_cost_micros_per_request=0,
             external_data_egress_allowed=False,
+            max_concurrent_runs=0,
+            tool_allowlist=[],
+            approval_required_effect_classes=[],
+            retry_limit=0,
         )
         qs = Mock()
         qs.order_by.return_value = qs
@@ -125,6 +135,10 @@ class TestResolveModelPolicy:
             max_tokens_per_request=0,
             max_cost_micros_per_request=0,
             external_data_egress_allowed=True,
+            max_concurrent_runs=0,
+            tool_allowlist=[],
+            approval_required_effect_classes=[],
+            retry_limit=0,
         )
         qs = Mock()
         qs.order_by.return_value = qs
@@ -133,6 +147,74 @@ class TestResolveModelPolicy:
         with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
             policy = await resolve_model_policy(workspace_id, None)
             assert policy.allowed_models == ["gpt-4o-mini", "gpt-4o"]
+
+
+class TestRuntimePolicyBoundaries:
+    @staticmethod
+    def policy(**updates) -> RuntimeAiPolicy:  # type: ignore[no-untyped-def]
+        values = {
+            "revision_id": uuid4(),
+            "sequence": 1,
+            "allowed_models": (),
+            "max_tokens_per_request": 0,
+            "max_cost_micros_per_request": 0,
+            "max_concurrent_runs": None,
+            "external_data_egress_allowed": True,
+            "tool_allowlist": None,
+            "approval_required_effect_classes": frozenset(),
+            "retry_limit": None,
+        }
+        values.update(updates)
+        return RuntimeAiPolicy(**values)
+
+    @pytest.mark.asyncio
+    async def test_published_runtime_policy_preserves_all_effect_controls(self) -> None:
+        published = Mock(
+            id=uuid4(),
+            sequence=7,
+            allowed_models=["gpt-4o-mini"],
+            max_tokens_per_request=512,
+            max_cost_micros_per_request=900,
+            max_concurrent_runs=3,
+            external_data_egress_allowed=True,
+            tool_allowlist=["human.request_input"],
+            approval_required_effect_classes=["write"],
+            retry_limit=2,
+        )
+        qs = Mock()
+        qs.order_by.return_value = qs
+        qs.first = AsyncMock(return_value=published)
+
+        with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
+            policy = await resolve_runtime_policy()
+
+        assert policy.max_concurrent_runs == 3
+        assert policy.tool_allowlist == frozenset({"human.request_input"})
+        assert policy.approval_required_effect_classes == frozenset({"write"})
+        assert policy.retry_limit == 2
+
+    def test_external_egress_denial_is_explicit(self) -> None:
+        with pytest.raises(LLMRuntimeError) as exc:
+            require_external_data_egress(self.policy(external_data_egress_allowed=False))
+        assert exc.value.code == LLMErrorCode.POLICY_EXTERNAL_EGRESS_NOT_ALLOWED
+
+    def test_tool_allowlist_and_retry_limit_are_exact(self) -> None:
+        policy = self.policy(tool_allowlist=frozenset({"human.request_input"}), retry_limit=1)
+        require_tool_allowed(policy, "human.request_input")
+        require_retry_allowed(policy, 2)
+        with pytest.raises(LLMRuntimeError) as tool_error:
+            require_tool_allowed(policy, "workspace.skill.create")
+        with pytest.raises(LLMRuntimeError) as retry_error:
+            require_retry_allowed(policy, 3)
+        assert tool_error.value.code == LLMErrorCode.POLICY_TOOL_NOT_ALLOWED
+        assert retry_error.value.code == LLMErrorCode.POLICY_RETRY_LIMIT_EXCEEDED
+
+    def test_concurrency_rank_is_exact(self) -> None:
+        policy = self.policy(max_concurrent_runs=2)
+        require_concurrency_slot(policy, 2)
+        with pytest.raises(LLMRuntimeError) as error:
+            require_concurrency_slot(policy, 3)
+        assert error.value.code == LLMErrorCode.POLICY_CONCURRENCY_LIMIT_EXCEEDED
 
 
 # ---------------------------------------------------------------------------
@@ -272,6 +354,10 @@ class TestPolicyErrorCodes:
             LLMErrorCode.POLICY_MAX_TOKENS_EXCEEDED,
             LLMErrorCode.POLICY_COST_LIMIT_EXCEEDED,
             LLMErrorCode.POLICY_DATA_RETENTION_VIOLATION,
+            LLMErrorCode.POLICY_EXTERNAL_EGRESS_NOT_ALLOWED,
+            LLMErrorCode.POLICY_TOOL_NOT_ALLOWED,
+            LLMErrorCode.POLICY_RETRY_LIMIT_EXCEEDED,
+            LLMErrorCode.POLICY_CONCURRENCY_LIMIT_EXCEEDED,
         ]
         for code in policy_codes:
             assert code in ERROR_CODE_STATUS, f"{code} missing from ERROR_CODE_STATUS"

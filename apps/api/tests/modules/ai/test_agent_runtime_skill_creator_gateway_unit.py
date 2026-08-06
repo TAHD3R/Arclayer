@@ -6,7 +6,9 @@ from uuid import uuid4
 import pytest
 
 from src.common.types.json_types import JsonObject
-from src.llm.runtime import LLMRequestContext
+from src.llm.errors import LLMErrorCode
+from src.llm.policy import RuntimeAiPolicy, require_tool_allowed
+from src.llm.runtime import LLMRequestContext, LLMRuntimeError
 from src.modules.ai.agent_tool_grants import HUMAN_REQUEST_INPUT_TOOL, WORKSPACE_SKILL_CREATE_TOOL
 from src.modules.ai.runtime_execution_gateway import (
     AgentRunExecutionCompleted,
@@ -21,6 +23,30 @@ from src.modules.ai.runtime_skill_creator_tool import (
 )
 
 pytestmark = pytest.mark.unit
+
+
+class _ToolPolicyAuthorizer:
+    async def authorize(self, *, tool_id: str) -> None:
+        _ = tool_id
+
+
+class _DenyToolPolicyAuthorizer:
+    async def authorize(self, *, tool_id: str) -> None:
+        require_tool_allowed(
+            RuntimeAiPolicy(
+                revision_id=uuid4(),
+                sequence=1,
+                allowed_models=(),
+                max_tokens_per_request=0,
+                max_cost_micros_per_request=0,
+                max_concurrent_runs=None,
+                external_data_egress_allowed=True,
+                tool_allowlist=frozenset({HUMAN_REQUEST_INPUT_TOOL}),
+                approval_required_effect_classes=frozenset(),
+                retry_limit=None,
+            ),
+            tool_id,
+        )
 
 
 class _SkillCreatorChatGateway:
@@ -109,7 +135,11 @@ def _request() -> AgentRunExecutionRequest:
 async def test_skill_creator_requires_approval_then_returns_created_installation() -> None:
     chat = _SkillCreatorChatGateway()
     executor = _SkillCreatorExecutor()
-    gateway = ModelToolAgentRunExecutionGateway(chat_service=chat, skill_creator_executor=executor)
+    gateway = ModelToolAgentRunExecutionGateway(
+        chat_service=chat,
+        skill_creator_executor=executor,
+        tool_policy_authorizer=_ToolPolicyAuthorizer(),
+    )
     request = _request()
 
     interrupted = await gateway.execute(request=request)
@@ -191,3 +221,31 @@ async def test_skill_creator_provider_tool_is_not_exposed_without_its_grant() ->
     assert provider_params is not None
     tools = cast(list[dict[str, object]], provider_params["tools"])
     assert [cast(dict[str, object], tool["function"])["name"] for tool in tools] == ["human_request_input"]
+
+
+@pytest.mark.asyncio
+async def test_skill_creator_rechecks_policy_before_the_approved_tool_effect() -> None:
+    chat = _SkillCreatorChatGateway()
+    executor = _SkillCreatorExecutor()
+    gateway = ModelToolAgentRunExecutionGateway(
+        chat_service=chat,
+        skill_creator_executor=executor,
+        tool_policy_authorizer=_DenyToolPolicyAuthorizer(),
+    )
+    request = _request()
+    interrupted = await gateway.execute(request=request)
+    assert isinstance(interrupted, AgentRunExecutionInterrupted)
+
+    with pytest.raises(LLMRuntimeError) as rejected:
+        await gateway.resume(
+            request=AgentRunResumeExecutionRequest(
+                **request.model_dump(),
+                checkpoint_id="checkpoint-skill-creator-policy-1",
+                response_kind="approval",
+                resume={"approved": True, "optionId": "allow_once", "reason": None},
+                interrupted=interrupted,
+            )
+        )
+
+    assert rejected.value.code == LLMErrorCode.POLICY_TOOL_NOT_ALLOWED
+    assert executor.requests == []

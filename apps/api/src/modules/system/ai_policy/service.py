@@ -12,6 +12,7 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
+from src.modules.ai.agent_tool_grants import SUPPORTED_AGENT_TOOL_GRANTS
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.system.ai_policy.schema import (
     AiPolicyApplyOut,
@@ -22,6 +23,7 @@ from src.modules.system.ai_policy.schema import (
     AiPolicyPublishRequest,
     AiPolicyRevisionOut,
 )
+from src.modules.system.ai_providers.configuration import list_active_system_models
 
 
 class SystemAiPolicyService(BaseService):
@@ -43,7 +45,7 @@ class SystemAiPolicyService(BaseService):
         )
 
     async def create_or_replace_draft(self, payload: AiPolicyDraftInput, *, actor_user_id: UUID) -> AiPolicyRevisionOut:
-        self._validate_catalog(payload)
+        await self._validate_catalog(payload)
         current = (
             await GlobalAiPolicyRevision.filter(status=GlobalAiPolicyRevisionStatus.DRAFT).order_by("-sequence").first()
         )
@@ -149,14 +151,38 @@ class SystemAiPolicyService(BaseService):
 
     @staticmethod
     def _unsupported_controls(record: GlobalAiPolicyRevision) -> list[str]:
-        return ["retention_days"] if record.retention_days else []
+        unsupported = ["retention_days"] if record.retention_days else []
+        unsupported.extend(
+            f"approval_required_effect_classes:{effect_class}"
+            for effect_class in record.approval_required_effect_classes
+            if effect_class != "write"
+        )
+        return unsupported
 
     @staticmethod
-    def _validate_catalog(payload: AiPolicyDraftInput) -> None:
+    async def _validate_catalog(payload: AiPolicyDraftInput) -> None:
         if not payload.allowed_models and payload.default_model:
             raise BadRequest(
                 message=t("errors", "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST"),
                 error="AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST",
+            )
+        unsupported_tools = sorted(set(payload.tool_allowlist) - set(SUPPORTED_AGENT_TOOL_GRANTS))
+        if unsupported_tools:
+            raise BadRequest(
+                message=t("errors", "AI_POLICY_TOOL_NOT_SUPPORTED"),
+                error="AI_POLICY_TOOL_NOT_SUPPORTED",
+            )
+        configured_models = await list_active_system_models()
+        configured_names = {item.public_model for item in configured_models}
+        if any(model not in configured_names for model in payload.allowed_models):
+            raise BadRequest(
+                message=t("errors", "AI_POLICY_MODEL_NOT_CONFIGURED"),
+                error="AI_POLICY_MODEL_NOT_CONFIGURED",
+            )
+        if payload.default_model is not None and payload.default_model not in configured_names:
+            raise BadRequest(
+                message=t("errors", "AI_POLICY_DEFAULT_MODEL_NOT_CONFIGURED"),
+                error="AI_POLICY_DEFAULT_MODEL_NOT_CONFIGURED",
             )
 
     async def _audit(self, event_name: str, actor_user_id: UUID, entity_id: UUID, properties: JsonObject) -> None:

@@ -15,6 +15,12 @@ from src.core.events import events
 from src.core.exceptions import Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService, DomainEventPublisher
+from src.llm.policy import (
+    RuntimeAiPolicyResolver,
+    require_concurrency_slot,
+    resolve_runtime_policy,
+)
+from src.llm.runtime import LLMRuntimeError
 from src.models.agents.runtime_v1 import AgentRunStatusV1, AgentRunV1Record, AgentThreadV1Record
 from src.models.jobs.background_job import (
     BackgroundJobRecord,
@@ -104,6 +110,7 @@ class AgentRunService(BaseService):
         knowledge_context_resolver: AgentKnowledgeContextResolver | None = None,
         design_system_context_resolver: AgentDesignSystemContextResolver | None = None,
         builder_context_resolver: AgentBuilderContextResolver | None = None,
+        runtime_policy_resolver: RuntimeAiPolicyResolver = resolve_runtime_policy,
         event_publisher: DomainEventPublisher | None = events,
     ) -> None:
         super().__init__(settings, event_publisher=event_publisher, default_event_source="agent_run")
@@ -117,6 +124,7 @@ class AgentRunService(BaseService):
         self._knowledge_context_resolver = knowledge_context_resolver
         self._design_system_context_resolver = design_system_context_resolver
         self._builder_context_resolver = builder_context_resolver
+        self._runtime_policy_resolver = runtime_policy_resolver
 
     async def create(
         self,
@@ -133,6 +141,10 @@ class AgentRunService(BaseService):
         await self._catalog_service.ensure_official_assignments(workspace_id=workspace_id)
         try:
             async with self.tx() as conn:
+                await self._runtime_repository.lock_workspace_run_scope_in_transaction(
+                    workspace_id=workspace_id,
+                    conn=conn,
+                )
                 thread, existing = await self._runtime_repository.prepare_run_create_in_transaction(
                     workspace_id=workspace_id,
                     thread_id=thread_id,
@@ -149,6 +161,17 @@ class AgentRunService(BaseService):
                         conn=conn,
                     )
                 else:
+                    try:
+                        require_concurrency_slot(
+                            await self._runtime_policy_resolver(),
+                            await self._runtime_repository.count_active_workspace_runs_in_transaction(
+                                workspace_id=workspace_id,
+                                conn=conn,
+                            )
+                            + 1,
+                        )
+                    except LLMRuntimeError as error:
+                        raise AgentRuntimePersistenceError(error.code) from error
                     self._validate_thread_binding(thread=thread, payload=payload)
                     lead_agent, mentioned_agents = await self._catalog_service.resolve_run_agents(
                         workspace_id=workspace_id,
@@ -614,7 +637,7 @@ class AgentRunService(BaseService):
     ) -> NoReturn:
         if error.code in {"AGENT_RUN_NOT_FOUND", "AGENT_THREAD_NOT_FOUND"}:
             raise NotFound(error=error.code, message=t("errors", error.code)) from error
-        if error.code == "AGENT_RUN_IDEMPOTENCY_CONFLICT":
+        if error.code in {"AGENT_RUN_IDEMPOTENCY_CONFLICT", "POLICY_CONCURRENCY_LIMIT_EXCEEDED"}:
             raise Conflict(error=error.code, message=t("errors", error.code)) from error
         if isinstance(
             error,

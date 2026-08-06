@@ -206,7 +206,13 @@ class LLMRuntime:
         Returns (virtual_key, prompt_tokens, estimated_cost_micros, effective_max_tokens, merged_params).
         """
         from src.llm.keys import resolve_litellm_key
-        from src.llm.policy import enforce_model_policy, resolve_model_policy, resolve_provider_retention_params
+        from src.llm.policy import (
+            enforce_model_policy,
+            require_external_data_egress,
+            resolve_model_policy,
+            resolve_provider_retention_params,
+            resolve_runtime_policy,
+        )
         from src.llm.token_counter import estimate_prompt_tokens_upper_bound
         from src.modules.system.ai_providers.configuration import resolve_active_system_model
 
@@ -231,10 +237,13 @@ class LLMRuntime:
         )
         context.grant_id = resolved_key.grant_id
 
+        runtime_policy = await resolve_runtime_policy()
+        require_external_data_egress(runtime_policy)
         policy = await resolve_model_policy(
             workspace_id=context.workspace_id,
             user_id=context.user_id,
             global_data_retention_enabled=self._default_data_retention_enabled,
+            runtime_policy=runtime_policy,
         )
         retention_params = resolve_provider_retention_params(policy, provider_name)
         merged_params = {**(provider_params or {}), **retention_params}

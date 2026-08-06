@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.llm.policy import RuntimeAiPolicy
 from src.llm.provider import BaseLLMProvider
 from src.llm.runtime import (
     LLMRequestContext,
@@ -104,6 +105,23 @@ async def test_deepseek_tool_request_reservation_covers_observed_style_guide_usa
             new=AsyncMock(return_value=SimpleNamespace(virtual_key="virtual-key", grant_id=None)),
         ),
         patch("src.llm.policy.resolve_model_policy", new=AsyncMock(return_value=SimpleNamespace())),
+        patch(
+            "src.llm.policy.resolve_runtime_policy",
+            new=AsyncMock(
+                return_value=RuntimeAiPolicy(
+                    revision_id=None,
+                    sequence=None,
+                    allowed_models=(),
+                    max_tokens_per_request=0,
+                    max_cost_micros_per_request=0,
+                    max_concurrent_runs=None,
+                    external_data_egress_allowed=True,
+                    tool_allowlist=None,
+                    approval_required_effect_classes=frozenset(),
+                    retry_limit=None,
+                )
+            ),
+        ),
         patch("src.llm.policy.enforce_model_policy"),
         patch("src.llm.policy.resolve_provider_retention_params", return_value={}),
         patch(

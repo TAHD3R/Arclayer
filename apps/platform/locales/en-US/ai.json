@@ -30,6 +30,7 @@
   "ACTION_CANCEL_PORT_UNAVAILABLE": "Cancellation is not currently offered for this task.",
   "ACTION_RECONCILE_PORT_UNAVAILABLE": "Result checking is not currently offered for this task.",
   "ACTION_RETRY_NOT_ELIGIBLE": "Retry is available only after the task and its background work have failed.",
+  "ACTION_RETRY_POLICY_BLOCKED": "The active AI policy no longer permits another retry for this task.",
   "ACTION_CANCEL_NOT_ELIGIBLE": "This task cannot be safely cancelled in its current state.",
   "ACTION_RECONCILE_NOT_ELIGIBLE": "You can check the result only when it is partial or still unknown.",
   "ACTION_PORT_UNAVAILABLE": "This recovery action is not available for the task right now.",

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.transactions import in_transaction
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
@@ -33,6 +34,7 @@ from src.models.agents.runtime_v1 import (
     AgentToolResponseV1Record,
 )
 from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
+from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_builder_context_schema import AgentRunBuilderContextV1
 from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSystemContextV1
 from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextV1
@@ -133,6 +135,33 @@ class AgentRunJobState(BaseSchema):
 class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
     def __init__(self) -> None:
         super().__init__(AgentRunV1Record)
+
+    @staticmethod
+    async def active_workspace_run_rank(*, workspace_id: UUID, run_id: UUID) -> int | None:
+        async with in_transaction() as conn:
+            workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+            if workspace is None:
+                raise AgentRuntimePersistenceError("AGENT_RUN_JOB_SCOPE_INVALID")
+            run_ids = await (
+                AgentRunV1Record
+                .filter(
+                    workspace_id=workspace_id,
+                    status__in=(
+                        AgentRunStatusV1.CREATED,
+                        AgentRunStatusV1.QUEUED,
+                        AgentRunStatusV1.RUNNING,
+                        AgentRunStatusV1.CANCELLATION_REQUESTED,
+                        AgentRunStatusV1.INTERRUPTED,
+                    ),
+                )
+                .using_db(conn)
+                .order_by("created_at", "id")
+                .values_list("id", flat=True)
+            )
+        return next(
+            (index + 1 for index, candidate in enumerate(run_ids) if candidate == run_id),
+            None,
+        )
 
     async def get_state(
         self,

@@ -20,6 +20,7 @@ from src.models.agents.runtime_v1 import (
     AgentRunV1Record,
     AgentThreadV1Record,
 )
+from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_approval_protocol_schema import ApprovalResolvedEventV1
 from src.modules.ai.runtime_delegation_protocol_schema import DelegationTerminalEventV1
 from src.modules.ai.runtime_event_repository import (
@@ -110,6 +111,38 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
             )
             return self.to_head(existing)
         return await self._create_run_graph(thread=thread, command=command, event=event, conn=conn)
+
+    @staticmethod
+    async def lock_workspace_run_scope_in_transaction(
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+        if workspace is None:
+            raise AgentRuntimePersistenceError("AGENT_THREAD_NOT_FOUND")
+
+    @staticmethod
+    async def count_active_workspace_runs_in_transaction(
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> int:
+        return await (
+            AgentRunV1Record
+            .filter(
+                workspace_id=workspace_id,
+                status__in=(
+                    AgentRunStatusV1.CREATED,
+                    AgentRunStatusV1.QUEUED,
+                    AgentRunStatusV1.RUNNING,
+                    AgentRunStatusV1.CANCELLATION_REQUESTED,
+                    AgentRunStatusV1.INTERRUPTED,
+                ),
+            )
+            .using_db(conn)
+            .count()
+        )
 
     @staticmethod
     async def prepare_run_create_in_transaction(

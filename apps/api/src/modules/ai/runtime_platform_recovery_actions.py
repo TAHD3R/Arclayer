@@ -12,6 +12,8 @@ from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import Conflict
 from src.core.services import BaseService
+from src.llm.policy import RuntimeAiPolicyResolver, require_retry_allowed, resolve_runtime_policy
+from src.llm.runtime import LLMRuntimeError
 from src.models.agents.runtime_recovery_v1 import (
     AgentRunExecutionEffectDisposition,
     AgentRunExecutionEffectRecord,
@@ -58,6 +60,7 @@ class AgentRunPlatformRecoveryActionPort(BaseService):
         jobs: BackgroundJobService | None = None,
         actor_authorizer: WorkspaceActorJobAuthorizer | None = None,
         activity_audit_writer: ActivityAuditWriter = write_required_activity_event,
+        runtime_policy_resolver: RuntimeAiPolicyResolver = resolve_runtime_policy,
     ) -> None:
         super().__init__(settings, event_publisher=None, default_event_source="platform.ai.recovery")
         self._action = AgentRunRecoveryAction(action)
@@ -67,6 +70,7 @@ class AgentRunPlatformRecoveryActionPort(BaseService):
         self._jobs = jobs or BackgroundJobService(settings)
         self._actor_authorizer = actor_authorizer or WorkspaceActorJobAuthorizer()
         self._activity_audit_writer = activity_audit_writer
+        self._runtime_policy_resolver = runtime_policy_resolver
 
     async def __call__(self, *, command: PlatformAIRecoveryCommand) -> PlatformAIRecoveryReceipt:
         if command.action != self._action:
@@ -178,6 +182,10 @@ class AgentRunPlatformRecoveryActionPort(BaseService):
         attempt = await self._recoveries.latest_attempt_for_job_for_update(job_id=source_job.id, conn=conn)
         if attempt is None or attempt.failure_classification not in _RETRYABLE_FAILURES:
             raise Conflict(error="AI_PLATFORM_TASK_RETRY_PERMANENT_FAILURE")
+        try:
+            require_retry_allowed(await self._runtime_policy_resolver(), attempt.attempt_number + 1)
+        except LLMRuntimeError as error:
+            raise Conflict(error="AI_PLATFORM_TASK_RETRY_POLICY_BLOCKED") from error
 
     async def _revalidate_actor(self, *, source_job: BackgroundJobRecord) -> None:
         definition = self._jobs.registry.require(
