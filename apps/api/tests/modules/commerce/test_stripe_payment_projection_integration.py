@@ -40,6 +40,8 @@ from src.models.commerce.payments import (
     CommerceCreditTopUpOffer,
     CommerceInvoice,
     CommerceInvoiceStatus,
+    CommercePaymentCorrection,
+    CommercePaymentCorrectionDisposition,
     CommerceProviderPaymentProjection,
     CommerceProviderPaymentTransactionProjection,
     CommerceRefund,
@@ -60,6 +62,10 @@ from src.modules.commerce.billing_event_job_contract import (
 )
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
+from src.modules.commerce.billing_payment_reconciliation_service import (
+    BillingPaymentReconciliationService,
+    ProviderPaymentCorrectionFacts,
+)
 from src.modules.commerce.billing_provider_application_service import VerifiedBillingProviderEvent
 from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundApplicationService
 from src.modules.jobs.execution_errors import PermanentJobExecutionError
@@ -697,3 +703,42 @@ async def test_signed_stripe_top_up_full_chain_replay_and_second_payment_rejecti
     assert invoice.amount_refunded_micros == checkout.amount_micros
     assert await CommerceTransaction.all().count() == 1
     assert await CommerceRefund.all().count() == 1
+
+    correction_service = BillingPaymentReconciliationService(settings=settings)
+    correction_facts = ProviderPaymentCorrectionFacts(
+        provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+        provider_account_id="platform",
+        provider_event_id=f"evt_correction{suffix}",
+        external_transaction_id=payment_intent_id,
+        external_invoice_id=invoice.external_invoice_id,
+        external_refund_id=refund.external_refund_id,
+        transaction_status=CommerceTransactionStatus.REFUNDED,
+        invoice_status=CommerceInvoiceStatus.REFUNDED,
+        refund_status=CommerceRefundStatus.SUCCEEDED,
+        currency="USD",
+        amount_micros=checkout.amount_micros,
+        amount_refunded_micros=checkout.amount_micros,
+        credit_amount=offer.credit_amount,
+        provider_event_occurred_at=now,
+    )
+    correction = await correction_service.reconcile(
+        facts=correction_facts,
+        actor_user_id=checkout.actor_user_id,
+        reason="Provider reconciliation review",
+        evidence_reference=f"stripe-case-{suffix}",
+        idempotency_key=f"correction-{suffix}",
+    )
+    replayed_correction = await correction_service.reconcile(
+        facts=correction_facts,
+        actor_user_id=checkout.actor_user_id,
+        reason="Provider reconciliation review",
+        evidence_reference=f"stripe-case-{suffix}",
+        idempotency_key=f"correction-{suffix}",
+    )
+    assert correction.disposition == CommercePaymentCorrectionDisposition.APPLIED
+    assert correction.credit_consequence == -offer.credit_amount
+    assert replayed_correction == correction
+    assert await CommercePaymentCorrection.all().count() == 1
+    await account.refresh_from_db()
+    assert account.balance_credits == 50

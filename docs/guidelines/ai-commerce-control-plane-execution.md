@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4b.3 Stripe top-up Checkout and settlement.
+Current active part: M2.5 simulator control plane and OpenAPI surfaces.
 
 Repository baseline:
 
@@ -368,24 +368,24 @@ M2 execution parts:
    - Process simulated subscription and invoice lifecycle events through signature verification, encrypted inbox, pinned Job, normalization, and the existing Provider application service.
    - Preserve exact Plan Revision/Price evidence, Provider event claims, convergence ordering, period identity, dunning facts, recovery, and access-state transitions.
    - Keep unsupported schedule/cancellation capabilities explicitly unavailable until a Provider-neutral transition adapter exists; never fabricate a local Stripe schedule.
-5. M2.4 transaction, invoice, top-up, and refund projection. — Active
+5. M2.4 transaction, invoice, top-up, refund, and payment correction projection. — Complete
    - Add one canonical payment projection service over the existing payment models with transactional Provider-event idempotency and audit evidence.
    - Project checkout settlement, recurring invoices, transactions, purchased Credit top-ups, refunds, and corrections without bypassing the accepted Provider event Job.
    - Preserve integer Credits, source-lot attribution, refund/reversal ordering, and Workspace/account ownership constraints.
    - M2.4a.1 Provider-neutral and simulated invoice/transaction projection. — Complete
    - M2.4a.2 Stripe invoice normalization and projection. — Complete
-   - M2.4b purchased top-up, refund, and payment reconciliation. — Active
+   - M2.4b purchased top-up, refund, and payment reconciliation. — Complete
      - M2.4b.0 canonical top-up/refund contract freeze. — Complete
      - M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation. — Complete
      - M2.4b.2 simulated top-up settlement and exact Credit grant. — Complete
        - M2.4b.2a simulated top-up Checkout creation chain. — Complete
        - M2.4b.2b signed settlement and exact-once transaction/ledger/lot grant. — Complete
-     - M2.4b.3 Stripe top-up Checkout and settlement. — Active
+     - M2.4b.3 Stripe top-up Checkout and settlement. — Complete
        - M2.4b.3a Stripe top-up Checkout creation contract. — Complete
        - M2.4b.3b accepted Stripe Checkout settlement normalization and exact grant. — Complete
        - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Complete
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal. — Complete
-     - M2.4b.5 payment reconciliation/correction and M2.4 closure. — Active
+     - M2.4b.5 payment reconciliation/correction and M2.4 closure. — Complete
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
@@ -1183,3 +1183,10 @@ M2.4b.3b implementation boundary:
 - The operation is intentionally not a second Provider-event ingress and does not accept raw webhook payloads or generic Credit deltas. It delegates to the append-only correction authority, preserving Provider/mode/account identity and explicit reconciliation-required outcomes.
 - Added focused delegation coverage; Platform operations regression now passes `7` tests. Targeted Ruff/format checks pass; remaining ty diagnostics are pre-existing fixture typing warnings in the same test module.
 - M2.4b.5b is complete. The next active slice is M2.4b.5c: final full-chain correction/replay/ordering coverage and M2.4 closure gates.
+
+### 2026-08-06 — M2.4b.5c full-chain correction replay and M2.4 closure
+
+- Extended the real PostgreSQL Stripe top-up/refund full-chain coverage to run Provider payment correction after the confirmed refund. The correction locks Provider/mode/account-scoped settlement evidence, transaction, invoice, and refund identities; records the exact `-credit_amount` consequence; replays the same idempotency identity without a second evidence row; and leaves the already-correct Credit balance unchanged.
+- Correction facts with a missing local projection, account mismatch, test/live mismatch, identity mismatch, status/amount mismatch, or impossible Credit consequence persist `reconciliation_required` evidence and never fabricate a grant, refund, negative balance, or generic Credit adjustment.
+- Final focused validation for M2.4b.5c: Stripe full-chain correction/replay integration `1 passed`; prior Stripe top-up/refund full-chain remains green; focused payment-correction unit `4 passed`; Platform operations `7 passed`; Platform Commerce router `4 passed`; targeted Ruff/format/`ty` checks passed; migration generation reports no changes.
+- M2.4b.5 and M2.4 are complete. M2.5 simulator control plane and OpenAPI surfaces is now the next active milestone; no Stripe settlement/refund authority was changed in this closure slice.
