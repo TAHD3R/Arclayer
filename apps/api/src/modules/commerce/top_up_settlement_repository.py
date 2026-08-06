@@ -17,6 +17,7 @@ from src.models.commerce.credit_allocation import WorkspaceCreditGrantLot
 from src.models.commerce.payments import (
     CommerceCheckoutOutcomeCommand,
     CommerceCheckoutSession,
+    CommerceInvoice,
     CommerceTopUpSettlementApplication,
     CommerceTransaction,
 )
@@ -70,6 +71,28 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
     ) -> CommerceCheckoutSession | None:
         return await CommerceCheckoutSession.filter(id=checkout_session_id).using_db(conn).select_for_update().first()
 
+    async def get_checkout_by_external_session_for_update(
+        self,
+        *,
+        provider: str,
+        provider_mode: str,
+        provider_account_id: str,
+        external_session_id: str,
+        conn: BaseDBAsyncClient,
+    ) -> CommerceCheckoutSession | None:
+        return await (
+            CommerceCheckoutSession
+            .filter(
+                provider=provider,
+                provider_mode=provider_mode,
+                provider_account_id=provider_account_id,
+                external_session_id=external_session_id,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+
     async def get_credit_scope(
         self,
         *,
@@ -122,6 +145,14 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
     ) -> CommerceTransaction:
         return await CommerceTransaction.create(using_db=conn, **values)
 
+    async def create_invoice(
+        self,
+        *,
+        values: dict[str, object],
+        conn: BaseDBAsyncClient,
+    ) -> CommerceInvoice:
+        return await CommerceInvoice.create(using_db=conn, **values)
+
     async def create_ledger(
         self,
         *,
@@ -142,7 +173,7 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
         self,
         *,
         checkout: CommerceCheckoutSession,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         account: WorkspaceCreditAccount,
         completed_at: datetime,
         processed_at: datetime,
@@ -159,13 +190,15 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
                 updated_at=processed_at,
             )
         )
-        command_updated = await self._save_command_result(
-            command=command,
-            result_status="completed",
-            result_revision=checkout.revision + 1,
-            processed_at=processed_at,
-            conn=conn,
-        )
+        command_updated = 1
+        if command is not None:
+            command_updated = await self._save_command_result(
+                command=command,
+                result_status="completed",
+                result_revision=checkout.revision + 1,
+                processed_at=processed_at,
+                conn=conn,
+            )
         account.revision += 1
         await account.save(
             using_db=conn,
@@ -178,7 +211,7 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
         self,
         *,
         checkout: CommerceCheckoutSession,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         result_status: str,
         result_revision: int,
         completed_at: datetime | None,
@@ -199,13 +232,15 @@ class TortoiseTopUpSettlementRepository(TortoiseORMRepository[CommerceTopUpSettl
                     updated_at=processed_at,
                 )
             )
-        command_updated = await self._save_command_result(
-            command=command,
-            result_status=result_status,
-            result_revision=result_revision,
-            processed_at=processed_at,
-            conn=conn,
-        )
+        command_updated = 1
+        if command is not None:
+            command_updated = await self._save_command_result(
+                command=command,
+                result_status=result_status,
+                result_revision=result_revision,
+                processed_at=processed_at,
+                conn=conn,
+            )
         if checkout_updated != 1 or command_updated != 1:
             raise Conflict(error="BILLING_TOP_UP_SETTLEMENT_REVISION_STALE")
 

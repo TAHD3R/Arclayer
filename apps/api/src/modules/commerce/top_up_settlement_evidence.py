@@ -18,14 +18,14 @@ class ProviderTopUpSettlement(BaseSchema):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     event_id: str = Field(..., min_length=1, max_length=255)
-    checkout_session_id: UUID
+    checkout_session_id: UUID | None = None
     external_session_id: str = Field(..., min_length=1, max_length=255)
-    workspace_id: UUID
-    actor_user_id: UUID
-    top_up_offer_id: UUID
+    workspace_id: UUID | None = None
+    actor_user_id: UUID | None = None
+    top_up_offer_id: UUID | None = None
     top_up_offer_revision: int = Field(..., ge=1)
     external_price_id: str = Field(..., min_length=1, max_length=255)
-    checkout_request_fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    checkout_request_fingerprint: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     outcome: Literal["pending", "succeeded", "failed", "canceled"]
     currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     amount_micros: int = Field(..., gt=0)

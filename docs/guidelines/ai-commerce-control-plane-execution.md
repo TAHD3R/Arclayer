@@ -381,8 +381,8 @@ M2 execution parts:
        - M2.4b.2a simulated top-up Checkout creation chain. — Complete
        - M2.4b.2b signed settlement and exact-once transaction/ledger/lot grant. — Complete
      - M2.4b.3 Stripe top-up Checkout and settlement. — Active
-       - M2.4b.3a Stripe top-up Checkout creation contract. — Active
-       - M2.4b.3b accepted Stripe Checkout settlement normalization and exact grant. — Pending
+       - M2.4b.3a Stripe top-up Checkout creation contract. — Complete
+       - M2.4b.3b accepted Stripe Checkout settlement normalization and exact grant. — Complete
        - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Pending
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
      - M2.4b.5 payment reconciliation/correction and M2.4 closure.
@@ -1134,3 +1134,13 @@ M2.4b.3b implementation boundary:
 - Completed changed-scope review with zero blockers and only the known Stripe Connector lifecycle prototype report.
 - Final staged GitNexus detection reported `LOW` risk across `3` files and `24` indexed symbols, with no affected execution flow.
 - Completed M2.4b.3a and selected M2.4b.3b accepted Stripe settlement normalization as the only active implementation part.
+
+### 2026-08-06 — M2.4b.3b real Stripe settlement normalization and exact grant
+
+- Added strict Stripe `checkout.session.completed` normalization for payment-mode top-up Checkouts. The Job-time Connector GET expands `line_items.data.price`, `payment_intent`, and `invoice`, then verifies event/Checkout identity, test/live mode, Provider account, exact immutable metadata, one line item, quantity one, catalog Price/currency, amount micros, succeeded PaymentIntent, amount received, PaymentIntent metadata, and optional paid Invoice evidence.
+- Payment-mode Checkout events now return `None` from subscription normalization, preserving subscription Checkout behavior while making the Job's three outcomes mutually exclusive. Retrieval failures remain Provider failures; malformed, unpaid, partial, substituted, or mismatched facts fail with `BILLING_WEBHOOK_PAYLOAD_INVALID`.
+- Refactored top-up settlement application into one Provider-neutral authority. Simulated settlements still require and revise their durable outcome command; Stripe settlements resolve and lock the local immutable Checkout snapshot by Provider/mode/account/external session, keep `outcome_command_id = NULL`, and share the exact-once Checkout, transaction, optional Invoice, `LEDGER_TOP_UP`, non-expiring purchased lot, Credit revision, application receipt, and Activity evidence path.
+- Repository settlement writes preserve command-less Stripe revision checks and add exact external-session snapshot locking. Provider-local Checkout UUID, actor, and request fingerprint are filled only from the locked local snapshot; Provider metadata is never trusted for those internal fields.
+- Added Stripe normalization regressions for payment-mode recognition, subscription exclusion, exact expansion/metadata/line-item/PaymentIntent/Invoice evidence, and unpaid rejection while retaining all existing Stripe subscription and invoice tests.
+- Focused validation: Stripe Connector `34 passed`; Billing Event Job Handler `9 passed`; top-up settlement evidence `2 passed`; targeted Ruff check/format and `ty` all passed.
+- Advanced the only active implementation part to M2.4b.3c Stripe full-chain, replay, ordering, and closure. The remaining boundary intentionally excludes refunds, partial top-ups, reconciliation closure, Connect, and Product payment-form work.

@@ -21,6 +21,7 @@ from src.modules.commerce.subscription_transitions.schema import (
     ProviderRevisionSchedulingFacts,
     RenewalTransitionPreview,
 )
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 
 
 def _load_stripe_connector_type() -> type:
@@ -1073,5 +1074,132 @@ async def test_stripe_subscription_rejects_unsupported_trialing_state() -> None:
 
     with pytest.raises(BadRequest) as captured:
         await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_stripe_payment_checkout_normalizes_top_up_with_job_time_expansions() -> None:
+    workspace_id = uuid4()
+    offer_id = uuid4()
+    metadata = {
+        "workspace_id": str(workspace_id),
+        "top_up_offer_id": str(offer_id),
+        "top_up_offer_revision": "4",
+        "credit_amount": "2000",
+        "external_price_id": "price_credits2000",
+        "currency": "USD",
+        "amount_micros": "20000000",
+    }
+    event = {
+        "id": "evt_topupnormalize123",
+        "type": "checkout.session.completed",
+        "livemode": False,
+        "created": 1_790_000_100,
+        "data": {"object": {"id": "cs_topupnormalize123", "mode": "payment", "metadata": metadata}},
+    }
+    checkout = {
+        "id": "cs_topupnormalize123",
+        "mode": "payment",
+        "livemode": False,
+        "metadata": metadata,
+        "amount_total": 2000,
+        "currency": "usd",
+        "line_items": {
+            "data": [{"quantity": 1, "price": {"id": "price_credits2000", "currency": "usd"}}],
+            "has_more": False,
+        },
+        "payment_intent": {
+            "id": "pi_topupnormalize123",
+            "status": "succeeded",
+            "amount_received": 2000,
+            "currency": "usd",
+            "metadata": metadata,
+        },
+        "invoice": {
+            "id": "in_topupnormalize123",
+            "status": "paid",
+            "currency": "usd",
+            "amount_due": 2000,
+            "amount_paid": 2000,
+        },
+    }
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json=checkout)
+
+    provider = _provider(httpx.MockTransport(handler))
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    result = await provider.top_up_settlement_from_event(payload=payload, envelope=envelope)
+
+    assert isinstance(result, ProviderTopUpSettlement)
+    assert result.workspace_id == workspace_id
+    assert result.top_up_offer_id == offer_id
+    assert result.checkout_session_id is None
+    assert result.actor_user_id is None
+    assert result.checkout_request_fingerprint is None
+    assert result.external_transaction_id == "pi_topupnormalize123"
+    assert result.external_invoice_id == "in_topupnormalize123"
+    assert requests[0].url.params.get_list("expand[]") == ["line_items.data.price", "payment_intent", "invoice"]
+
+
+@pytest.mark.asyncio
+async def test_stripe_payment_checkout_does_not_enter_subscription_normalization() -> None:
+    event = {
+        "id": "evt_topupsubscriptionguard123",
+        "type": "checkout.session.completed",
+        "livemode": False,
+        "data": {"object": {"id": "cs_topupsubscriptionguard123", "mode": "payment", "metadata": {}}},
+    }
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    assert await provider.subscription_from_event(payload=payload, envelope=envelope) is None
+
+
+@pytest.mark.asyncio
+async def test_stripe_top_up_rejects_unpaid_payment_intent() -> None:
+    workspace_id = uuid4()
+    offer_id = uuid4()
+    metadata = {
+        "workspace_id": str(workspace_id),
+        "top_up_offer_id": str(offer_id),
+        "top_up_offer_revision": "1",
+        "credit_amount": "500",
+        "external_price_id": "price_credits500",
+        "currency": "USD",
+        "amount_micros": "5000000",
+    }
+    event = {
+        "id": "evt_topupunpaid123",
+        "type": "checkout.session.completed",
+        "data": {"object": {"id": "cs_topupunpaid123", "mode": "payment", "metadata": metadata}},
+    }
+    checkout = {
+        "id": "cs_topupunpaid123",
+        "mode": "payment",
+        "metadata": metadata,
+        "amount_total": 500,
+        "currency": "usd",
+        "line_items": {"data": [{"quantity": 1, "price": {"id": "price_credits500", "currency": "usd"}}]},
+        "payment_intent": {
+            "id": "pi_topupunpaid123",
+            "status": "requires_payment_method",
+            "amount_received": 0,
+            "currency": "usd",
+            "metadata": metadata,
+        },
+    }
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json=checkout)))
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.top_up_settlement_from_event(payload=payload, envelope=envelope)
 
     assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"

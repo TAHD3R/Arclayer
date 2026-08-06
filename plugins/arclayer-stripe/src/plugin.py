@@ -42,6 +42,7 @@ from src.modules.commerce.subscription_transitions.schema import (
     ProviderConfirmedTransitionEvidence,
     RenewalTransitionPreview,
 )
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 
 logger = get_logger(__name__)
 
@@ -234,6 +235,62 @@ class _StripeInvoicePayload(BaseModel):
     status_transitions: _StripeInvoiceStatusTransitions = Field(default_factory=_StripeInvoiceStatusTransitions)
 
 
+class _StripeCheckoutPrice(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^price_[A-Za-z0-9]+$", max_length=255)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+
+
+class _StripeCheckoutLineItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    quantity: int = Field(ge=1)
+    price: _StripeCheckoutPrice
+
+
+class _StripeCheckoutLineItems(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    data: tuple[_StripeCheckoutLineItem, ...]
+    has_more: bool = False
+
+
+class _StripePaymentIntentPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^pi_[A-Za-z0-9]+$", max_length=255)
+    status: str = Field(min_length=1, max_length=32)
+    amount_received: int = Field(ge=0)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+    metadata: dict[str, str]
+
+
+class _StripeCheckoutPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^cs_[A-Za-z0-9]+$", max_length=255)
+    mode: Literal["payment", "subscription"]
+    livemode: bool = False
+    metadata: dict[str, str]
+    amount_total: int = Field(gt=0)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+    payment_intent: _StripePaymentIntentPayload | str | None = None
+    invoice: dict[str, object] | str | None = None
+    line_items: _StripeCheckoutLineItems
+
+
+_TOP_UP_METADATA_KEYS = frozenset({
+    "workspace_id",
+    "top_up_offer_id",
+    "top_up_offer_revision",
+    "credit_amount",
+    "external_price_id",
+    "currency",
+    "amount_micros",
+})
+
+
 def _subscription_price_facts(subscription: _StripeSubscriptionPayload) -> tuple[str, str]:
     external_price_id = subscription.metadata["external_price_id"]
     matches = tuple(item.price for item in subscription.items.data if item.price.id == external_price_id)
@@ -248,6 +305,58 @@ def _subscription_price_facts(subscription: _StripeSubscriptionPayload) -> tuple
 def _stripe_amount_to_micros(*, amount: int, currency: str) -> int:
     scale = _MICROS_PER_MAJOR_UNIT if currency in _STRIPE_ZERO_DECIMAL_PAYMENT_CURRENCIES else _MICROS_PER_CENT
     return amount * scale
+
+
+def _top_up_metadata(metadata: dict[str, str]) -> tuple[UUID, UUID, int, int, str, str, int]:
+    if set(metadata) != _TOP_UP_METADATA_KEYS:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    try:
+        workspace_id = UUID(metadata["workspace_id"])
+        offer_id = UUID(metadata["top_up_offer_id"])
+        offer_revision = int(metadata["top_up_offer_revision"])
+        credit_amount = int(metadata["credit_amount"])
+        external_price_id = metadata["external_price_id"]
+        currency = metadata["currency"].upper()
+        amount_micros = int(metadata["amount_micros"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+    if (
+        offer_revision < 1
+        or credit_amount < 1
+        or amount_micros < 1
+        or _STRIPE_PRICE_ID_PATTERN.fullmatch(external_price_id) is None
+        or re.fullmatch(r"[A-Z]{3}", metadata["currency"]) is None
+    ):
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    return workspace_id, offer_id, offer_revision, credit_amount, external_price_id, currency, amount_micros
+
+
+def _validate_top_up_invoice(
+    *,
+    invoice: dict[str, object] | str | None,
+    currency: str,
+    amount_minor: int,
+) -> str | None:
+    if invoice is None:
+        return None
+    if isinstance(invoice, str):
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    invoice_id = invoice.get("id")
+    status = invoice.get("status")
+    invoice_currency = invoice.get("currency")
+    amount_due = invoice.get("amount_due")
+    amount_paid = invoice.get("amount_paid")
+    if (
+        not isinstance(invoice_id, str)
+        or re.fullmatch(r"in_[A-Za-z0-9]+", invoice_id) is None
+        or status != "paid"
+        or not isinstance(invoice_currency, str)
+        or invoice_currency.upper() != currency
+        or amount_due != amount_minor
+        or amount_paid != amount_minor
+    ):
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+    return invoice_id
 
 
 def _provider_invoice_projection(
@@ -659,6 +768,8 @@ class StripeBillingConnector:
         }:
             return None
         if event.type == "checkout.session.completed":
+            if event.data.object.get("mode") == "payment":
+                return None
             subscription_id = event.data.object.get("subscription")
             if (
                 not isinstance(subscription_id, str)
@@ -716,9 +827,88 @@ class StripeBillingConnector:
         *,
         payload: bytes,
         envelope: BillingWebhookEnvelope,
-    ) -> None:
-        del payload, envelope
-        return None
+    ) -> ProviderTopUpSettlement | None:
+        event = self._parse_event(payload)
+        if (
+            event.id != envelope.provider_event_id
+            or event.type != envelope.event_type
+            or ("live" if event.livemode else "test") != envelope.provider_mode
+            or (event.account or "platform") != envelope.provider_account_id
+        ):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        if event.type != "checkout.session.completed":
+            return None
+        if event.data.object.get("mode") != "payment":
+            return None
+        event_session_id = event.data.object.get("id")
+        event_metadata = event.data.object.get("metadata")
+        if (
+            not isinstance(event_session_id, str)
+            or re.fullmatch(r"cs_[A-Za-z0-9]+", event_session_id) is None
+            or not isinstance(event_metadata, dict)
+            or any(not isinstance(key, str) or not isinstance(value, str) for key, value in event_metadata.items())
+        ):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        try:
+            checkout_body = await self._request(
+                "GET",
+                f"/checkout/sessions/{event_session_id}"
+                "?expand[]=line_items.data.price&expand[]=payment_intent&expand[]=invoice",
+            )
+            checkout = _StripeCheckoutPayload.model_validate(checkout_body)
+            if checkout.id != event_session_id or checkout.mode != "payment":
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            if checkout.livemode != event.livemode or checkout.metadata != event_metadata:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            workspace_id, offer_id, offer_revision, credit_amount, price_id, currency, amount_micros = _top_up_metadata(
+                checkout.metadata
+            )
+            if checkout.currency.upper() != currency:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            if _stripe_amount_to_micros(amount=checkout.amount_total, currency=currency) != amount_micros:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            if len(checkout.line_items.data) != 1 or checkout.line_items.has_more:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            item = checkout.line_items.data[0]
+            if item.quantity != 1 or item.price.id != price_id or item.price.currency.upper() != currency:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            payment_intent = checkout.payment_intent
+            if not isinstance(payment_intent, _StripePaymentIntentPayload):
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            if (
+                payment_intent.status != "succeeded"
+                or payment_intent.currency.upper() != currency
+                or payment_intent.amount_received != checkout.amount_total
+                or payment_intent.metadata != checkout.metadata
+            ):
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            invoice_id = _validate_top_up_invoice(
+                invoice=checkout.invoice,
+                currency=currency,
+                amount_minor=checkout.amount_total,
+            )
+            if event.created is None:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            return ProviderTopUpSettlement(
+                event_id=event.id,
+                checkout_session_id=None,
+                external_session_id=checkout.id,
+                workspace_id=workspace_id,
+                actor_user_id=None,
+                top_up_offer_id=offer_id,
+                top_up_offer_revision=offer_revision,
+                external_price_id=price_id,
+                checkout_request_fingerprint=None,
+                outcome="succeeded",
+                currency=currency,
+                amount_micros=amount_micros,
+                credit_amount=credit_amount,
+                external_transaction_id=payment_intent.id,
+                external_invoice_id=invoice_id,
+                occurred_at=_provider_timestamp(event.created),
+            )
+        except (ValidationError, ValueError) as exc:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
     @staticmethod
     def _parse_event(payload: bytes) -> _StripeWebhookEvent:

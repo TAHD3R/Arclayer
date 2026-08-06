@@ -26,6 +26,8 @@ from src.models.commerce.payments import (
     CommerceCheckoutOutcomeCommand,
     CommerceCheckoutSession,
     CommerceCheckoutStatus,
+    CommerceInvoice,
+    CommerceInvoiceStatus,
     CommerceTopUpSettlementApplication,
     CommerceTransaction,
     CommerceTransactionKind,
@@ -85,6 +87,16 @@ class BillingTopUpSettlementStore(Protocol):
         conn: BaseDBAsyncClient,
     ) -> CommerceCheckoutOutcomeCommand | None: ...
 
+    async def get_checkout_by_external_session_for_update(
+        self,
+        *,
+        provider: str,
+        provider_mode: str,
+        provider_account_id: str,
+        external_session_id: str,
+        conn: BaseDBAsyncClient,
+    ) -> CommerceCheckoutSession | None: ...
+
     async def get_checkout_for_update(
         self,
         *,
@@ -115,6 +127,13 @@ class BillingTopUpSettlementStore(Protocol):
         conn: BaseDBAsyncClient,
     ) -> CommerceTransaction: ...
 
+    async def create_invoice(
+        self,
+        *,
+        values: dict[str, object],
+        conn: BaseDBAsyncClient,
+    ) -> CommerceInvoice: ...
+
     async def create_ledger(
         self,
         *,
@@ -133,7 +152,7 @@ class BillingTopUpSettlementStore(Protocol):
         self,
         *,
         checkout: CommerceCheckoutSession,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         account: WorkspaceCreditAccount,
         completed_at: datetime,
         processed_at: datetime,
@@ -144,7 +163,7 @@ class BillingTopUpSettlementStore(Protocol):
         self,
         *,
         checkout: CommerceCheckoutSession,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         result_status: str,
         result_revision: int,
         completed_at: datetime | None,
@@ -200,7 +219,7 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
             )
             if replay is not None:
                 return _application_result(replay, fingerprint=fingerprint, verified_event=verified_event)
-            command, checkout, record = await self._load_and_validate_evidence(
+            command, checkout, record, settlement = await self._load_and_validate_evidence(
                 settlement=settlement,
                 provider=provider,
                 provider_mode=provider_mode,
@@ -245,23 +264,57 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
         provider_account_id: str,
         verified_event: VerifiedBillingProviderEvent,
         conn: BaseDBAsyncClient,
-    ) -> tuple[CommerceCheckoutOutcomeCommand, CommerceCheckoutSession, TopUpCheckoutSessionRecord]:
-        if provider != "simulated" or provider_mode != BillingProviderMode.TEST or provider_account_id != "platform":
+    ) -> tuple[
+        CommerceCheckoutOutcomeCommand | None,
+        CommerceCheckoutSession,
+        TopUpCheckoutSessionRecord,
+        ProviderTopUpSettlement,
+    ]:
+        command: CommerceCheckoutOutcomeCommand | None = None
+        if provider == "simulated":
+            if provider_mode != BillingProviderMode.TEST or provider_account_id != "platform":
+                raise ServiceUnavailable(error="BILLING_TOP_UP_SETTLEMENT_NOT_AVAILABLE")
+            command = await self._store.get_command_by_event(provider_event_id=settlement.event_id, conn=conn)
+            if command is None:
+                raise NotFound(error="BILLING_TOP_UP_SETTLEMENT_COMMAND_NOT_FOUND")
+            if settlement.checkout_session_id is None:
+                raise BadRequest(error="BILLING_TOP_UP_SETTLEMENT_EVIDENCE_INVALID")
+            checkout = await self._store.get_checkout_for_update(
+                checkout_session_id=settlement.checkout_session_id,
+                conn=conn,
+            )
+        elif provider == "stripe":
+            checkout = await self._store.get_checkout_by_external_session_for_update(
+                provider=provider,
+                provider_mode=provider_mode,
+                provider_account_id=provider_account_id,
+                external_session_id=settlement.external_session_id,
+                conn=conn,
+            )
+        else:
             raise ServiceUnavailable(error="BILLING_TOP_UP_SETTLEMENT_NOT_AVAILABLE")
-        command = await self._store.get_command_by_event(provider_event_id=settlement.event_id, conn=conn)
-        if command is None:
-            raise NotFound(error="BILLING_TOP_UP_SETTLEMENT_COMMAND_NOT_FOUND")
-        checkout = await self._store.get_checkout_for_update(
-            checkout_session_id=settlement.checkout_session_id,
-            conn=conn,
-        )
         if checkout is None:
-            raise NotFound(error="BILLING_SIMULATED_TOP_UP_CHECKOUT_NOT_FOUND")
+            raise NotFound(
+                error=(
+                    "BILLING_SIMULATED_TOP_UP_CHECKOUT_NOT_FOUND"
+                    if provider == "simulated"
+                    else "BILLING_TOP_UP_CHECKOUT_NOT_FOUND"
+                )
+            )
         try:
             record = top_up_checkout_record(checkout)
+            resolved_settlement = settlement.model_copy(
+                update={
+                    "checkout_session_id": settlement.checkout_session_id or record.id,
+                    "actor_user_id": settlement.actor_user_id or record.actor_user_id,
+                    "checkout_request_fingerprint": (
+                        settlement.checkout_request_fingerprint or record.request_fingerprint
+                    ),
+                }
+            )
             validate_top_up_settlement_evidence(
                 checkout=record,
-                settlement=settlement,
+                settlement=resolved_settlement,
                 provider=provider,
                 provider_mode=provider_mode,
                 provider_account_id=provider_account_id,
@@ -269,15 +322,16 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
             )
         except (ServiceUnavailable, ValueError) as exc:
             raise BadRequest(error="BILLING_TOP_UP_SETTLEMENT_EVIDENCE_INVALID") from exc
-        _validate_command(command=command, settlement=settlement)
+        if command is not None:
+            _validate_command(command=command, settlement=resolved_settlement)
         _validate_new_application_state(command=command, checkout=checkout)
-        return command, checkout, record
+        return command, checkout, record, resolved_settlement
 
     async def _apply_success(
         self,
         *,
         settlement: ProviderTopUpSettlement,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         checkout: CommerceCheckoutSession,
         record: TopUpCheckoutSessionRecord,
         provider: str,
@@ -288,6 +342,8 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
         processed_at: datetime,
         conn: BaseDBAsyncClient,
     ) -> BillingTopUpSettlementApplicationResult:
+        if settlement.workspace_id is None or settlement.checkout_session_id is None:
+            raise BadRequest(error="BILLING_TOP_UP_SETTLEMENT_EVIDENCE_INVALID")
         subscription, account, revision = await self._store.get_credit_scope(
             workspace_id=settlement.workspace_id,
             conn=conn,
@@ -310,12 +366,35 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
             external_transaction_id=settlement.external_transaction_id,
         )
         account.balance_credits += settlement.credit_amount
+        invoice_id = None
+        if settlement.external_invoice_id is not None:
+            invoice = await self._store.create_invoice(
+                values={
+                    "workspace_id": settlement.workspace_id,
+                    "subscription_id": None,
+                    "provider": provider,
+                    "provider_mode": provider_mode,
+                    "external_invoice_id": settlement.external_invoice_id,
+                    "status": CommerceInvoiceStatus.PAID,
+                    "currency": settlement.currency,
+                    "amount_due_micros": settlement.amount_micros,
+                    "amount_paid_micros": settlement.amount_micros,
+                    "amount_refunded_micros": 0,
+                    "period_start": None,
+                    "period_end": None,
+                    "hosted_invoice_url": None,
+                    "issued_at": settlement.occurred_at,
+                    "paid_at": settlement.occurred_at,
+                },
+                conn=conn,
+            )
+            invoice_id = invoice.id
         transaction = await self._store.create_transaction(
             values={
                 "workspace_id": settlement.workspace_id,
                 "subscription_id": None,
                 "checkout_session_id": settlement.checkout_session_id,
-                "invoice_id": None,
+                "invoice_id": invoice_id,
                 "provider": provider,
                 "provider_mode": provider_mode,
                 "external_transaction_id": settlement.external_transaction_id,
@@ -401,6 +480,7 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
                 result_revision=checkout.revision + 1,
                 processed_at=processed_at,
                 transaction_id=transaction.id,
+                invoice_id=invoice_id,
                 ledger_entry_id=ledger.id,
                 grant_lot_id=lot.id,
                 granted_checkout_session_id=checkout.id,
@@ -413,7 +493,7 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
         self,
         *,
         settlement: ProviderTopUpSettlement,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         checkout: CommerceCheckoutSession,
         provider: str,
         provider_mode: str,
@@ -469,7 +549,7 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
     async def _write_audit(
         self,
         *,
-        command: CommerceCheckoutOutcomeCommand,
+        command: CommerceCheckoutOutcomeCommand | None,
         settlement: ProviderTopUpSettlement,
         status: CommerceCheckoutStatus,
         revision: int,
@@ -480,8 +560,8 @@ class BillingProviderTopUpSettlementApplicationService(BaseService):
         await write_required_activity_event(
             settings=self._settings,
             payload=ActivityAuditPayload(
-                event_name="commerce.simulated_top_up.outcome_applied",
-                actor_user_id=command.actor_user_id,
+                event_name="commerce.top_up.settlement_applied",
+                actor_user_id=command.actor_user_id if command is not None else settlement.actor_user_id,
                 workspace_id=settlement.workspace_id,
                 entity_type="commerce_checkout_session",
                 entity_id=settlement.checkout_session_id,
@@ -521,10 +601,10 @@ def _validate_verified_event(
 
 def _validate_command(
     *,
-    command: CommerceCheckoutOutcomeCommand,
+    command: CommerceCheckoutOutcomeCommand | None,
     settlement: ProviderTopUpSettlement,
 ) -> None:
-    if (
+    if command is not None and (
         command.checkout_session_id != settlement.checkout_session_id
         or command.workspace_id != settlement.workspace_id
         or command.provider_event_id != settlement.event_id
@@ -532,23 +612,24 @@ def _validate_command(
         or int(command.event_created_at.timestamp()) != int(settlement.occurred_at.timestamp())
     ):
         raise BadRequest(error="BILLING_TOP_UP_SETTLEMENT_EVIDENCE_INVALID")
-    if command.processed_at is not None:
+    if command is not None and command.processed_at is not None:
         raise ServiceUnavailable(error="BILLING_TOP_UP_SETTLEMENT_EVIDENCE_INVALID")
 
 
 def _validate_new_application_state(
     *,
-    command: CommerceCheckoutOutcomeCommand,
+    command: CommerceCheckoutOutcomeCommand | None,
     checkout: CommerceCheckoutSession,
 ) -> None:
-    if checkout.status != CommerceCheckoutStatus.PENDING or checkout.revision != command.expected_revision:
+    expected_revision = command.expected_revision if command is not None else checkout.revision
+    if checkout.status != CommerceCheckoutStatus.PENDING or checkout.revision != expected_revision:
         raise Conflict(error="BILLING_TOP_UP_SETTLEMENT_REVISION_STALE")
 
 
 def _application_values(
     *,
     settlement: ProviderTopUpSettlement,
-    command: CommerceCheckoutOutcomeCommand,
+    command: CommerceCheckoutOutcomeCommand | None,
     provider: str,
     provider_mode: str,
     provider_account_id: str,
@@ -558,6 +639,7 @@ def _application_values(
     result_revision: int,
     processed_at: datetime,
     transaction_id: UUID | None = None,
+    invoice_id: UUID | None = None,
     ledger_entry_id: UUID | None = None,
     grant_lot_id: UUID | None = None,
     granted_checkout_session_id: UUID | None = None,
@@ -566,9 +648,9 @@ def _application_values(
         "workspace_id": settlement.workspace_id,
         "checkout_session_id": settlement.checkout_session_id,
         "granted_checkout_session_id": granted_checkout_session_id,
-        "outcome_command_id": command.id,
+        "outcome_command_id": command.id if command is not None else None,
         "transaction_id": transaction_id,
-        "invoice_id": None,
+        "invoice_id": invoice_id,
         "ledger_entry_id": ledger_entry_id,
         "grant_lot_id": grant_lot_id,
         "provider": provider,
