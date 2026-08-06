@@ -38,8 +38,8 @@ After each independently verifiable part:
 | M0 Credit accounting foundation | Complete | Integer Credits, source lots, exact allocations, member attribution, legacy migration, adjustment correctness |
 | M1 Member limits and Usage API | Complete | Default policy CRUD, per-member override CRUD, manager/all-member and self-only Usage reads, revision/idempotency/permissions |
 | M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
-| M3 Platform Billing redesign | In progress | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
-| M4 Product Plan & Usage / People | In progress | New Plan & Usage, People Usage column, member limits, billing/invoice/refill/recovery lifecycle, icon-free ChromeTabs, Workspace setting |
+| M3 Platform Billing redesign | Complete | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
+| M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, billing/invoice/refill/recovery lifecycle, icon-free ChromeTabs, Workspace setting |
 | M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
 | M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
 
@@ -1279,8 +1279,21 @@ M2.4b.3b implementation boundary:
 - Validation: API platform router `7 passed`; API targeted Ruff check/format passed; Platform OpenAPI generation/typecheck passed; Platform lint/format/locale parity passed; Platform Commerce API `5 passed`. Platform package typecheck remains blocked only by the pre-existing browser acceptance support import. Code Review Engine had zero blocking findings; its report-only dataclass/i18n findings are pre-existing prototype findings in the touched shared Commerce files.
 - M3.3 is complete. M4 auto-refill configuration and refill lifecycle is now the only active implementation slice.
 
-### 2026-08-06 — M4.1 auto-refill policy authority (in progress)
+### 2026-08-06 — M4.1 auto-refill policy authority (boundary defined)
 
 - The remaining M4 slice starts with a Workspace-scoped automatic top-up policy authority. The policy is revisioned and idempotent, pins an immutable Credit top-up offer revision and Provider Price/currency snapshot, and is writable only through `workspace:commerce:manage`.
 - The current BillingConnector contract creates Checkout sessions and normalizes signed settlement events but does not expose an automatic PaymentMethod charge capability. Enabling a policy therefore fails explicitly with `BILLING_AUTO_REFILL_UNAVAILABLE`; no Checkout creation, return URL, Provider response, or direct Credit mutation is treated as refill completion.
 - The first recoverable implementation part is the policy GET/PUT API and Product Plan & Usage control surface. Refill attempt execution remains a separate lifecycle part that must add a real Provider capability or surface an explicit unavailable state.
+
+### 2026-08-06 — M4.1 auto-refill policy authority (complete)
+
+- Added the Workspace-scoped GET/PUT automatic top-up policy authority with exact commerce-management authorization, immutable offer/Price/currency validation, monthly ceiling checks, optimistic revision, durable idempotency receipts, and required Activity evidence.
+- Product Plan & Usage now shows the available Credit packages, trigger threshold, monetary ceiling, and explicit Provider capability boundary without exposing internal identifiers or treating disabled configuration as a successful refill.
+- M4.1 validation: API auto-refill/service/router regression `5 passed`; related top-up/member router regression `14 passed`; API targeted Ruff/format/`ty` passed; Product OpenAPI typecheck, lint, format, locale parity, and Commerce/Plan & Usage regressions `24 passed`; Code Review Engine `0` blocking findings; staged GitNexus detect `MEDIUM` risk from generated SDK/WorkspacePath indexing only.
+- M4.1 landed in commit `c4f835e0 feat(commerce): add auto-refill policy control`.
+
+### 2026-08-06 — M4.2 refill lifecycle boundary (complete)
+
+- Added Workspace-scoped `GET /commerce/auto-refill/lifecycle` projection. It reads the local Credit available balance and policy threshold and returns `disabled` or explicit `unavailable` with `provider_charge_required` when the threshold is reached.
+- The lifecycle projection never creates a Checkout, invokes a return URL, mutates Credits, or reports a mock/provider-response success. A future real Provider automatic charge capability must be added before the `unavailable` boundary can become executable.
+- M4 auto-refill configuration and lifecycle are complete for the current Provider-neutral capability boundary. M4 is complete; M5 Global AI administration is the next pending milestone.

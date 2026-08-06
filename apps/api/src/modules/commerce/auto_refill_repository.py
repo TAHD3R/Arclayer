@@ -9,7 +9,7 @@ from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
-from src.models.commerce.billing import BillingProviderMode
+from src.models.commerce.billing import BillingProviderMode, WorkspaceCreditAccount
 from src.models.commerce.payments import (
     CommerceCreditTopUpOffer,
     CommerceCreditTopUpOfferPrice,
@@ -27,6 +27,8 @@ class AutoRefillPolicyStore(Protocol):
     ) -> None: ...
 
     async def get_policy(self, *, workspace_id: UUID, conn: BaseDBAsyncClient) -> WorkspaceAutoRefillPolicy | None: ...
+
+    async def get_available_credits(self, *, workspace_id: UUID, conn: BaseDBAsyncClient) -> int | None: ...
 
     async def list_offer_prices(
         self,
@@ -117,6 +119,14 @@ class TortoiseAutoRefillPolicyRepository(TortoiseORMRepository[WorkspaceAutoRefi
             WorkspaceAutoRefillPolicy.filter(workspace_id=workspace_id).using_db(conn).select_related("offer").first()
         )
         return policy
+
+    async def get_available_credits(self, *, workspace_id: UUID, conn: BaseDBAsyncClient) -> int | None:
+        account = await (
+            WorkspaceCreditAccount.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
+        )
+        if account is None:
+            return None
+        return max(int(account.balance_credits) - int(account.reserved_credits), 0)
 
     async def lock_policy(self, *, workspace_id: UUID, conn: BaseDBAsyncClient) -> WorkspaceAutoRefillPolicy | None:
         return await (

@@ -11,9 +11,16 @@ from src.common.utils.public_ids import encode_uuid
 from src.config import Settings, get_settings
 from src.core.extensions.dependencies import get_connector_registry
 from src.core.registries import ConnectorRegistry
+from src.models.commerce.billing import BillingProviderMode
+from src.models.commerce.payments import CommerceAutoRefillExecutionState
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.authorization import require_workspace_commerce_manage_access
-from src.modules.commerce.auto_refill_schema import WorkspaceAutoRefillPolicyOut
+from src.modules.commerce.auto_refill_schema import (
+    AutoRefillLifecycleAction,
+    WorkspaceAutoRefillLifecycleOut,
+    WorkspaceAutoRefillPolicyOut,
+    WorkspaceAutoRefillPolicyWrite,
+)
 from src.modules.commerce.workspace_router import router
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 from tests.utils.asgi_client import asgi_client
@@ -31,6 +38,18 @@ class _Service:
     async def update(self, **kwargs: object) -> WorkspaceAutoRefillPolicyOut:
         self.calls.append(kwargs)
         return self.result
+
+    async def get_lifecycle(self, **kwargs: object) -> WorkspaceAutoRefillLifecycleOut:
+        self.calls.append(kwargs)
+        return WorkspaceAutoRefillLifecycleOut(
+            workspace_id=self.result.workspace_id,
+            policy_revision=self.result.revision,
+            execution_state=CommerceAutoRefillExecutionState.UNAVAILABLE,
+            trigger_below_credits=self.result.trigger_below_credits,
+            available_credits=10,
+            threshold_reached=True,
+            action=AutoRefillLifecycleAction.PROVIDER_CHARGE_REQUIRED,
+        )
 
 
 def _context(workspace_id) -> WorkspaceContext:  # type: ignore[no-untyped-def]
@@ -60,8 +79,8 @@ async def test_auto_refill_routes_preserve_workspace_and_revisioned_policy(monke
         monthly_ceiling_micros=10_000_000,
         currency="USD",
         provider="stripe",
-        provider_mode="test",
-        execution_state="disabled",
+        provider_mode=BillingProviderMode.TEST,
+        execution_state=CommerceAutoRefillExecutionState.DISABLED,
         revision=4,
     )
     service = _Service(result)
@@ -90,11 +109,18 @@ async def test_auto_refill_routes_preserve_workspace_and_revisioned_policy(monke
                 "idempotencyKey": "auto-refill-route-1",
             },
         )
+        lifecycle_response = await client.get(
+            f"/api/v1/workspaces/{encode_uuid(workspace_id)}/commerce/auto-refill/lifecycle"
+        )
 
     assert get_response.status_code == 200
     assert put_response.status_code == 200
+    assert lifecycle_response.status_code == 200
+    assert lifecycle_response.json()["data"]["action"] == "provider_charge_required"
     assert service.calls[0] == {"workspace_id": workspace_id}
     update_call = service.calls[1]
     assert update_call["workspace_id"] == workspace_id
     assert update_call["actor_user_id"] == actor_user_id
-    assert update_call["command"].expected_revision == 3  # type: ignore[union-attr]
+    command = cast(WorkspaceAutoRefillPolicyWrite, update_call["command"])
+    assert command.expected_revision == 3
+    assert service.calls[2] == {"workspace_id": workspace_id}

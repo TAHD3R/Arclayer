@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import Field, model_validator
@@ -45,6 +46,21 @@ class WorkspaceAutoRefillPolicyOut(BaseSchema):
     revision: int
     available_offers: list[AutoRefillOfferOut] = Field(default_factory=list)
     replayed: bool = False
+
+
+class AutoRefillLifecycleAction(StrEnum):
+    NONE = "none"
+    PROVIDER_CHARGE_REQUIRED = "provider_charge_required"
+
+
+class WorkspaceAutoRefillLifecycleOut(BaseSchema):
+    workspace_id: PublicUUID
+    policy_revision: int
+    execution_state: CommerceAutoRefillExecutionState
+    trigger_below_credits: int | None
+    available_credits: int | None
+    threshold_reached: bool
+    action: AutoRefillLifecycleAction
 
 
 class AutoRefillOfferOut(BaseSchema):

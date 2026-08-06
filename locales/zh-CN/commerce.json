@@ -229,6 +229,7 @@
   "AUTO_REFILL_CEILING_LABEL": "每月金额上限（{{currency}}）",
   "AUTO_REFILL_STATUS_UNAVAILABLE": "等待计费 Provider 提供自动扣款能力后才能执行。",
   "AUTO_REFILL_STATUS_DISABLED": "自动补充已停用。",
+  "AUTO_REFILL_THRESHOLD_REACHED": "Credits 已低于阈值，仍需要 Provider 提供自动扣款能力。",
   "AUTO_REFILL_SAVE": "保存补充策略",
   "AUTO_REFILL_SAVED": "补充策略已保存。",
   "AUTO_REFILL_SAVE_ERROR": "无法保存补充策略，请检查数值后重试。",

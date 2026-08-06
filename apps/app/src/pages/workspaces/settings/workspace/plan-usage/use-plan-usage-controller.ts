@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createWorkspaceCustomerPortalSession,
+  getWorkspaceAutoRefillLifecycle,
   getWorkspaceAutoRefillPolicy,
   getWorkspacePaymentRecovery,
   listWorkspaceInvoices,
@@ -89,6 +90,15 @@ export function usePlanUsageController(workspaceId: string) {
   const autoRefillQuery = useQuery({
     queryKey: ["workspace-commerce", workspaceId, "auto-refill"],
     queryFn: ({ signal }) => getWorkspaceAutoRefillPolicy(workspaceId, signal),
+    enabled: access.canManageCommerce,
+    retry: false,
+    staleTime: 30_000,
+    meta: { silent: true },
+  });
+
+  const autoRefillLifecycleQuery = useQuery({
+    queryKey: ["workspace-commerce", workspaceId, "auto-refill-lifecycle"],
+    queryFn: ({ signal }) => getWorkspaceAutoRefillLifecycle(workspaceId, signal),
     enabled: access.canManageCommerce,
     retry: false,
     staleTime: 30_000,
@@ -212,6 +222,9 @@ export function usePlanUsageController(workspaceId: string) {
       await queryClient.invalidateQueries({
         queryKey: ["workspace-commerce", workspaceId, "auto-refill"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace-commerce", workspaceId, "auto-refill-lifecycle"],
+      });
     },
     onError: () => setAutoRefillFeedback("error"),
   });
@@ -237,6 +250,7 @@ export function usePlanUsageController(workspaceId: string) {
     recoveryQuery,
     invoicesQuery,
     autoRefillQuery,
+    autoRefillLifecycleQuery,
     managementAccessStatus: access.managementAccessStatus,
     canManageCommerce: access.canManageCommerce,
     permissionError: access.error,

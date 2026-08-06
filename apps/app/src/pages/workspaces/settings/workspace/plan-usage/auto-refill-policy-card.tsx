@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkspaceAutoRefillPolicy, WorkspaceAutoRefillPolicyCommand } from "@/api/commerce";
+import type {
+  WorkspaceAutoRefillLifecycle,
+  WorkspaceAutoRefillPolicy,
+  WorkspaceAutoRefillPolicyCommand,
+} from "@/api/commerce";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
@@ -13,6 +17,7 @@ export function AutoRefillPolicyCard(props: {
   policy: WorkspaceAutoRefillPolicy;
   pending: boolean;
   feedback: "idle" | "saved" | "error";
+  lifecycle?: WorkspaceAutoRefillLifecycle;
   onEdit: () => void;
   onSave: (input: AutoRefillInput) => Promise<void>;
 }) {
@@ -44,7 +49,9 @@ export function AutoRefillPolicyCard(props: {
   const availableOffers = props.policy.availableOffers ?? [];
   const currency = selectedOffer?.currency ?? props.policy.currency ?? "USD";
   const unavailable =
-    props.policy.executionState === "unavailable" || props.policy.provider == null;
+    props.policy.executionState === "unavailable" ||
+    props.policy.provider == null ||
+    props.lifecycle?.executionState === "unavailable";
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,9 +132,11 @@ export function AutoRefillPolicyCard(props: {
           </label>
           <div className="sm:col-span-3 flex flex-wrap items-center justify-between gap-3">
             <p className="text-caption text-label-secondary">
-              {unavailable
-                ? t("commerce:AUTO_REFILL_STATUS_UNAVAILABLE")
-                : t("commerce:AUTO_REFILL_STATUS_DISABLED")}
+              {props.lifecycle?.thresholdReached
+                ? t("commerce:AUTO_REFILL_THRESHOLD_REACHED")
+                : unavailable
+                  ? t("commerce:AUTO_REFILL_STATUS_UNAVAILABLE")
+                  : t("commerce:AUTO_REFILL_STATUS_DISABLED")}
             </p>
             <Button type="submit" loading={props.pending} disabled={unavailable || !selectedOffer}>
               {t("commerce:AUTO_REFILL_SAVE")}

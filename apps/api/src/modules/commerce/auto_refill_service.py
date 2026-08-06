@@ -19,7 +19,9 @@ from src.modules.commerce.auto_refill_repository import (
     TortoiseAutoRefillPolicyRepository,
 )
 from src.modules.commerce.auto_refill_schema import (
+    AutoRefillLifecycleAction,
     AutoRefillOfferOut,
+    WorkspaceAutoRefillLifecycleOut,
     WorkspaceAutoRefillPolicyOut,
     WorkspaceAutoRefillPolicyWrite,
 )
@@ -141,6 +143,35 @@ class AutoRefillService(BaseService):
                 conn=conn,
             )
             return result
+
+    async def get_lifecycle(self, *, workspace_id: UUID) -> WorkspaceAutoRefillLifecycleOut:
+        async with self.tx() as conn:
+            policy = await self._repository.get_policy(workspace_id=workspace_id, conn=conn)
+            available = await self._repository.get_available_credits(workspace_id=workspace_id, conn=conn)
+        if policy is None or not policy.is_enabled:
+            return WorkspaceAutoRefillLifecycleOut(
+                workspace_id=workspace_id,
+                policy_revision=1 if policy is None else int(policy.revision),
+                execution_state=CommerceAutoRefillExecutionState.DISABLED,
+                trigger_below_credits=None if policy is None else int(policy.trigger_below_credits),
+                available_credits=available,
+                threshold_reached=False,
+                action=AutoRefillLifecycleAction.NONE,
+            )
+        threshold_reached = available is not None and available <= int(policy.trigger_below_credits)
+        return WorkspaceAutoRefillLifecycleOut(
+            workspace_id=workspace_id,
+            policy_revision=int(policy.revision),
+            execution_state=CommerceAutoRefillExecutionState.UNAVAILABLE,
+            trigger_below_credits=int(policy.trigger_below_credits),
+            available_credits=available,
+            threshold_reached=threshold_reached,
+            action=(
+                AutoRefillLifecycleAction.PROVIDER_CHARGE_REQUIRED
+                if threshold_reached
+                else AutoRefillLifecycleAction.NONE
+            ),
+        )
 
     def _provider_context(self, *, required: bool) -> tuple[str | None, BillingProviderMode | None]:
         provider = self.settings.billing.provider

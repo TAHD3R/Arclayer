@@ -281,6 +281,7 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
                     policy={controller.autoRefillQuery.data}
                     pending={controller.autoRefillPending}
                     feedback={controller.autoRefillFeedback}
+                    lifecycle={controller.autoRefillLifecycleQuery?.data}
                     onEdit={controller.clearAutoRefillFeedback}
                     onSave={controller.saveAutoRefill}
                   />

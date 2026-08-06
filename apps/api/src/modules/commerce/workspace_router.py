@@ -13,7 +13,11 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.authorization import require_workspace_commerce_manage_access
-from src.modules.commerce.auto_refill_schema import WorkspaceAutoRefillPolicyOut, WorkspaceAutoRefillPolicyWrite
+from src.modules.commerce.auto_refill_schema import (
+    WorkspaceAutoRefillLifecycleOut,
+    WorkspaceAutoRefillPolicyOut,
+    WorkspaceAutoRefillPolicyWrite,
+)
 from src.modules.commerce.auto_refill_service import build_auto_refill_service
 from src.modules.commerce.billing_service import build_billing_service
 from src.modules.commerce.schema import (
@@ -138,6 +142,20 @@ async def update_workspace_auto_refill_policy(
         actor_user_id=actor_user_id,
         command=payload,
     )
+    return ApiResponse.success(data=result)
+
+
+@router.get(
+    "/auto-refill/lifecycle",
+    response_model=ResponseModel[WorkspaceAutoRefillLifecycleOut],
+    summary="Get Workspace automatic top-up lifecycle state",
+)
+async def get_workspace_auto_refill_lifecycle(
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[WorkspaceAutoRefillLifecycleOut]:
+    result = await build_auto_refill_service(settings, connector_registry).get_lifecycle(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=result)
 
 

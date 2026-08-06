@@ -229,6 +229,7 @@
   "AUTO_REFILL_CEILING_LABEL": "Monthly ceiling ({{currency}})",
   "AUTO_REFILL_STATUS_UNAVAILABLE": "Execution unavailable until the billing provider adds automatic charge support.",
   "AUTO_REFILL_STATUS_DISABLED": "Automatic refill is disabled.",
+  "AUTO_REFILL_THRESHOLD_REACHED": "Credits are below the threshold; automatic charge support is still required.",
   "AUTO_REFILL_SAVE": "Save refill policy",
   "AUTO_REFILL_SAVED": "Refill policy saved.",
   "AUTO_REFILL_SAVE_ERROR": "Couldn't save the refill policy. Review the values and try again.",

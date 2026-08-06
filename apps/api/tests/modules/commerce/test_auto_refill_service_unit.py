@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
 from src.config import Settings
 from src.core.exceptions import Conflict, ServiceUnavailable
+from src.core.registries import ConnectorRegistry
 from src.models.commerce.billing import BillingProviderMode
+from src.models.commerce.payments import WorkspaceAutoRefillPolicy
+from src.modules.commerce.auto_refill_repository import AutoRefillPolicyStore
 from src.modules.commerce.auto_refill_schema import WorkspaceAutoRefillPolicyWrite
 from src.modules.commerce.auto_refill_service import AutoRefillService
 
@@ -25,6 +29,9 @@ class _Repository:
 
     async def get_policy(self, **_kwargs):
         return self.policy
+
+    async def get_available_credits(self, **_kwargs):
+        return 10
 
     async def lock_policy(self, **_kwargs):
         return self.policy
@@ -65,11 +72,12 @@ async def _transaction():
 def _service(repository: _Repository) -> AutoRefillService:
     service = AutoRefillService(
         settings=Settings(),
-        connector_registry=SimpleNamespace(),
-        repository=repository,
+        connector_registry=cast(ConnectorRegistry, SimpleNamespace()),
+        repository=cast(AutoRefillPolicyStore, repository),
     )
-    service.tx = lambda: _transaction()  # type: ignore[method-assign]
-    service._provider_context = lambda required: ("stripe", BillingProviderMode.TEST)  # type: ignore[method-assign]
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(service, "tx", lambda: _transaction())
+    monkeypatch.setattr(service, "_provider_context", lambda required: ("stripe", BillingProviderMode.TEST))
     return service
 
 
@@ -131,3 +139,26 @@ async def test_auto_refill_revision_conflict_is_not_silently_overwritten() -> No
             actor_user_id=actor_user_id,
             command=_command(offer_id=repository.offer.id, revision=2, key="auto-refill-2"),
         )
+
+
+@pytest.mark.asyncio
+async def test_auto_refill_lifecycle_exposes_provider_charge_requirement_without_mutation() -> None:
+    repository = _Repository()
+    service = _service(repository)
+    workspace_id = uuid4()
+    actor_user_id = uuid4()
+    await service.update(
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        command=_command(offer_id=repository.offer.id),
+    )
+    repository.receipt = None
+    policy = cast(WorkspaceAutoRefillPolicy, repository.policy)
+    policy.is_enabled = True
+
+    lifecycle = await service.get_lifecycle(workspace_id=workspace_id)
+
+    assert lifecycle.execution_state == "unavailable"
+    assert lifecycle.available_credits == 10
+    assert lifecycle.threshold_reached is True
+    assert lifecycle.action == "provider_charge_required"

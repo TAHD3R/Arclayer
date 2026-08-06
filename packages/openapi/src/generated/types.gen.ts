@@ -3126,6 +3126,11 @@ export type AuthzSnapshot = {
 };
 
 /**
+ * AutoRefillLifecycleAction
+ */
+export type AutoRefillLifecycleAction = 'none' | 'provider_charge_required';
+
+/**
  * AutoRefillOfferOut
  */
 export type AutoRefillOfferOut = {
@@ -26497,6 +26502,31 @@ export type ResponseModelWorkspaceAssignRoleToMembersResult = {
 };
 
 /**
+ * ResponseModel[WorkspaceAutoRefillLifecycleOut]
+ */
+export type ResponseModelWorkspaceAutoRefillLifecycleOut = {
+    data?: WorkspaceAutoRefillLifecycleOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceAutoRefillPolicyOut]
  */
 export type ResponseModelWorkspaceAutoRefillPolicyOut = {
@@ -32330,6 +32360,34 @@ export type WorkspaceAssignRoleToMembersResult = {
      * Workspaceid
      *
      * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceAutoRefillLifecycleOut
+ */
+export type WorkspaceAutoRefillLifecycleOut = {
+    action: AutoRefillLifecycleAction;
+    /**
+     * Availablecredits
+     */
+    availableCredits: number | null;
+    executionState: CommerceAutoRefillExecutionState;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
+    /**
+     * Thresholdreached
+     */
+    thresholdReached: boolean;
+    /**
+     * Triggerbelowcredits
+     */
+    triggerBelowCredits: number | null;
+    /**
+     * Workspaceid
      */
     workspaceId: string;
 };
@@ -45952,6 +46010,38 @@ export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses = {
 };
 
 export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponse = DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses[keyof DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses];
+
+export type DomainWorkspacesGetWorkspaceAutoRefillLifecycleData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/auto-refill/lifecycle';
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillLifecycleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillLifecycleError = DomainWorkspacesGetWorkspaceAutoRefillLifecycleErrors[keyof DomainWorkspacesGetWorkspaceAutoRefillLifecycleErrors];
+
+export type DomainWorkspacesGetWorkspaceAutoRefillLifecycleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceAutoRefillLifecycleOut;
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillLifecycleResponse = DomainWorkspacesGetWorkspaceAutoRefillLifecycleResponses[keyof DomainWorkspacesGetWorkspaceAutoRefillLifecycleResponses];
 
 export type DomainWorkspacesCreateWorkspaceCheckoutSessionData = {
     body: CheckoutSessionCreate;
