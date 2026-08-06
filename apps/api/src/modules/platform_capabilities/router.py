@@ -28,13 +28,6 @@ from src.modules.platform_identity.http import (
 )
 from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
-from src.modules.system.agents.rollout_eligibility import (
-    AI_SERVICES_CAPABILITY_ID,
-    AgentWorkspaceCapabilityEligibility,
-)
-from src.modules.system.agents.rollout_eligibility_repository import (
-    TortoiseAgentWorkspaceEligibilityRepository,
-)
 
 router = APIRouter(prefix="/capabilities", tags=["platform.capabilities"])
 
@@ -45,11 +38,7 @@ def get_workspace_capability_rollout_service(
 ) -> WorkspaceCapabilityRolloutService:
     return WorkspaceCapabilityRolloutService(
         repository=TortoiseWorkspaceCapabilityRolloutRepository(),
-        eligibility=WorkspaceCapabilityEligibilityRegistry({
-            AI_SERVICES_CAPABILITY_ID: AgentWorkspaceCapabilityEligibility(
-                TortoiseAgentWorkspaceEligibilityRepository(),
-            ),
-        }),
+        eligibility=WorkspaceCapabilityEligibilityRegistry({}),
         permission=PlatformIdentityWorkspaceCapabilityRolloutPermission(identity_repository),
         settings=settings,
     )

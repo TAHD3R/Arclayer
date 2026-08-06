@@ -16,11 +16,6 @@ from src.models.agents.runtime_v1 import (
     AgentThreadV1Record,
 )
 from src.models.organization.organization import Organization
-from src.models.platform.capability_rollout import (
-    WorkspaceCapabilityRollout,
-    WorkspaceCapabilityRolloutSelection,
-    WorkspaceCapabilityRolloutStage,
-)
 from src.models.projects.project import ProjectRecord
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import Workspace
@@ -55,7 +50,7 @@ class _NoopPublisher:
         _ = event
 
 
-async def _scope(*, enable_rollout: bool = True) -> tuple[Workspace, ProjectRecord, UUID]:
+async def _scope() -> tuple[Workspace, ProjectRecord, UUID]:
     owner_user_id = uuid4()
     organization = await Organization.create(
         slug=f"agent-catalog-org-{uuid4().hex[:10]}",
@@ -77,15 +72,6 @@ async def _scope(*, enable_rollout: bool = True) -> tuple[Workspace, ProjectReco
         is_active=True,
         created_by_user_id=owner_user_id,
     )
-    if enable_rollout:
-        rollout, _ = await WorkspaceCapabilityRollout.get_or_create(
-            capability_id="ai-services",
-            defaults={"stage": WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE, "revision": 1},
-        )
-        rollout.stage = WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE
-        rollout.revision = max(int(rollout.revision), 1)
-        rollout.selection_revision = 0
-        await rollout.save(update_fields=["stage", "revision", "selection_revision", "updated_at"])
     return workspace, project, owner_user_id
 
 
@@ -124,8 +110,7 @@ async def test_official_catalog_is_versioned_assigned_and_deterministic(prepared
 @pytest.mark.asyncio
 async def test_product_catalog_defaults_to_all_eligible_without_rollout_record(prepared_db) -> None:
     _ = prepared_db
-    await WorkspaceCapabilityRollout.filter(capability_id="ai-services").delete()
-    workspace, project, _owner_user_id = await _scope(enable_rollout=False)
+    workspace, project, _owner_user_id = await _scope()
 
     catalog = await AgentCatalogService(get_settings()).list_available(
         workspace_id=workspace.id,
@@ -137,40 +122,29 @@ async def test_product_catalog_defaults_to_all_eligible_without_rollout_record(p
 
 
 @pytest.mark.asyncio
-async def test_product_catalog_enforces_selected_workspace_rollout_without_cross_workspace_propagation(
+async def test_product_catalog_ignores_retired_workspace_rollout_without_cross_workspace_propagation(
     prepared_db,
 ) -> None:
     _ = prepared_db
     selected_workspace, selected_project, _ = await _scope()
     unselected_workspace, unselected_project, _ = await _scope()
-    rollout = await WorkspaceCapabilityRollout.get(capability_id="ai-services")
-    rollout.stage = WorkspaceCapabilityRolloutStage.SELECTED_WORKSPACES
-    rollout.revision = 2
-    rollout.selection_revision = 1
-    await rollout.save(update_fields=["stage", "revision", "selection_revision", "updated_at"])
-    await WorkspaceCapabilityRolloutSelection.create(rollout_id=rollout.id, workspace_id=selected_workspace.id)
 
     selected = await AgentCatalogService(get_settings()).list_available(
         workspace_id=selected_workspace.id,
         project_id=selected_project.id,
     )
     assert len(selected.agents) == 6
-
-    with pytest.raises(Conflict) as denied:
-        await AgentCatalogService(get_settings()).list_available(
-            workspace_id=unselected_workspace.id,
-            project_id=unselected_project.id,
-        )
-
-    assert denied.value.error == "WORKSPACE_CAPABILITY_ROLLOUT_NOT_SELECTED"
-    assert not await AgentAssignmentRecord.filter(workspace_id=unselected_workspace.id).exists()
+    unselected = await AgentCatalogService(get_settings()).list_available(
+        workspace_id=unselected_workspace.id,
+        project_id=unselected_project.id,
+    )
+    assert len(unselected.agents) == 6
 
 
 @pytest.mark.asyncio
 async def test_startup_catalog_readiness_does_not_propagate_official_assignments(prepared_db) -> None:
     _ = prepared_db
-    await WorkspaceCapabilityRollout.filter(capability_id="ai-services").delete()
-    workspace, _project, _owner_user_id = await _scope(enable_rollout=False)
+    workspace, _project, _owner_user_id = await _scope()
 
     await AgentCatalogService(get_settings()).ensure_all_workspaces_ready()
 
@@ -414,7 +388,7 @@ async def test_worker_snapshot_revalidation_rejects_disabled_exact_assignment(pr
 
 
 @pytest.mark.asyncio
-async def test_worker_snapshot_revalidation_enforces_current_rollout_stage(prepared_db) -> None:
+async def test_worker_snapshot_revalidation_ignores_retired_rollout_state(prepared_db) -> None:
     _ = prepared_db
     workspace, project, _owner_user_id = await _scope()
     service = AgentCatalogService(get_settings())
@@ -424,25 +398,20 @@ async def test_worker_snapshot_revalidation_enforces_current_rollout_stage(prepa
         agent_id=official_agent_id("arclayer-coordinator"),
         execution_mode="plan",
     )
-    rollout = await WorkspaceCapabilityRollout.get(capability_id="ai-services")
-    rollout.stage = WorkspaceCapabilityRolloutStage.NOT_AVAILABLE
-    rollout.revision = 2
-    await rollout.save(update_fields=["stage", "revision", "updated_at"])
+    validated, mentioned = await service.validate_run_snapshot(
+        workspace_id=workspace.id,
+        project_id=project.id,
+        lead_agent_id=resolved.agent_id,
+        lead_agent_version_id=resolved.version_id,
+        lead_agent_assignment_id=resolved.assignment_id,
+        mentioned_agent_ids=(),
+        mentioned_agent_version_ids=(),
+        mentioned_agent_assignment_ids=(),
+        execution_mode="plan",
+    )
 
-    with pytest.raises(Conflict) as denied:
-        await service.validate_run_snapshot(
-            workspace_id=workspace.id,
-            project_id=project.id,
-            lead_agent_id=resolved.agent_id,
-            lead_agent_version_id=resolved.version_id,
-            lead_agent_assignment_id=resolved.assignment_id,
-            mentioned_agent_ids=(),
-            mentioned_agent_version_ids=(),
-            mentioned_agent_assignment_ids=(),
-            execution_mode="plan",
-        )
-
-    assert denied.value.error == "WORKSPACE_CAPABILITY_ROLLOUT_NOT_AVAILABLE"
+    assert validated == resolved
+    assert mentioned == ()
 
 
 @pytest.mark.asyncio

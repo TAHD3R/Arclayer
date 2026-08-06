@@ -70,7 +70,7 @@ async def test_missing_rollout_keeps_ineligible_workspace_denial_explicit() -> N
     )
 
     result = await service.evaluate_workspace_capability(
-        capability_id="ai-services",
+        capability_id="workspace-feature",
         workspace_id=workspace_id,
         conn=cast(BaseDBAsyncClient, object()),
     )

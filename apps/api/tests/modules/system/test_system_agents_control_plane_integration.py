@@ -13,7 +13,6 @@ from src.core.exceptions import init_exception_handlers
 from src.models.agents.catalog import AgentDefinitionRecord
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.organization import Organization
-from src.models.platform.capability_rollout import WorkspaceCapabilityRollout, WorkspaceCapabilityRolloutStage
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import OFFICIAL_AGENT_SPEC_BY_SLUG
@@ -83,17 +82,6 @@ async def _workspace_scope(*, actor_user_id: UUID) -> tuple[Workspace, ProjectRe
     return workspace, project
 
 
-async def _enable_ai_services_rollout() -> None:
-    rollout, _ = await WorkspaceCapabilityRollout.get_or_create(
-        capability_id="ai-services",
-        defaults={"stage": WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE, "revision": 1},
-    )
-    rollout.stage = WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE
-    rollout.revision = max(int(rollout.revision), 1)
-    rollout.selection_revision = 0
-    await rollout.save(update_fields=["stage", "revision", "selection_revision", "updated_at"])
-
-
 def _test_app(*, actor_user_id: UUID | None = None, platform_authorized: bool = True) -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
@@ -119,7 +107,6 @@ async def test_system_agent_control_plane_requires_real_validation_before_public
     settings = get_settings()
     actor_user_id = uuid4()
     workspace, _project = await _workspace_scope(actor_user_id=actor_user_id)
-    await _enable_ai_services_rollout()
     await AgentCatalogService(settings).ensure_official_assignments(workspace_id=workspace.id)
     app = _test_app(actor_user_id=actor_user_id)
 

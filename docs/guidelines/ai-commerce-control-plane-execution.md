@@ -40,7 +40,7 @@ After each independently verifiable part:
 | M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
 | M3 Platform Billing redesign | Complete | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
 | M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, billing/invoice/refill/recovery lifecycle, icon-free ChromeTabs, Workspace setting |
-| M5 Global AI administration | Pending | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
+| M5 Global AI administration | In progress | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
 | M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
 
 ## M0 — Credit accounting foundation
@@ -1297,3 +1297,10 @@ M2.4b.3b implementation boundary:
 - Added Workspace-scoped `GET /commerce/auto-refill/lifecycle` projection. It reads the local Credit available balance and policy threshold and returns `disabled` or explicit `unavailable` with `provider_charge_required` when the threshold is reached.
 - The lifecycle projection never creates a Checkout, invokes a return URL, mutates Credits, or reports a mock/provider-response success. A future real Provider automatic charge capability must be added before the `unavailable` boundary can become executable.
 - M4 auto-refill configuration and lifecycle are complete for the current Provider-neutral capability boundary. M4 is complete; M5 Global AI administration is the next pending milestone.
+
+### 2026-08-06 — M5.1 retire AI Workspace rollout (complete)
+
+- Removed the AI Services Workspace rollout authority from the Agent catalog, run snapshot validation, Platform capability rollout registry, provider API wrapper, Provider Console UI, tests, and both Platform locale resources. AI Services remains globally available behind independent installation, deployment enablement, Provider readiness, Workspace entitlement/permission, and runtime gates.
+- Added migration `0131_retire_ai_services_workspace_rollout` to delete historical `ai-services` rollout previews and policy rows. The generic rollout engine remains available only for capability IDs that retain a real staged-adoption contract; AI is no longer in its capability set or denial chain.
+- Validation: API AI/rollout unit and integration regression `22 passed`; targeted API Ruff/format/`ty` passed; Platform AI lifecycle and contract tests `6 passed`; Platform lint, format, and locale parity passed. The integration run used `RUN_INTEGRATION_TESTS=1` and completed without skips.
+- M5.1 Code Review Engine and staged GitNexus detection remain required before commit. The next active M5 slice is deployment-wide immutable AI policy authority and `/ai/policies` lifecycle.

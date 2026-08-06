@@ -23,11 +23,6 @@ from src.modules.ai.agent_catalog_schema import (
     WorkspaceAgentCatalogItemV1,
     WorkspaceAgentCatalogV1,
 )
-from src.modules.platform_capabilities.rollout_enforcement import WorkspaceCapabilityRolloutEnforcementPort
-from src.modules.system.agents.rollout_eligibility import (
-    AI_SERVICES_CAPABILITY_ID,
-    build_agent_catalog_rollout_enforcer,
-)
 from src.settings.runtime import get_core_settings_value_cached
 
 ExecutionMode = Literal["plan", "build"]
@@ -39,15 +34,12 @@ class AgentCatalogService:
         settings: Settings | None = None,
         *,
         repository: AgentCatalogRepository | None = None,
-        rollout_enforcer: WorkspaceCapabilityRolloutEnforcementPort | None = None,
     ) -> None:
         self._settings = settings or get_settings()
         self._repository = repository or AgentCatalogRepository()
-        self._rollout_enforcer = rollout_enforcer or build_agent_catalog_rollout_enforcer()
 
     async def ensure_official_assignments(self, *, workspace_id: UUID) -> None:
         await self._require_workspace(workspace_id=workspace_id)
-        await self._require_rollout(workspace_id=workspace_id)
         try:
             await self._repository.reconcile_official(workspace_id=workspace_id)
         except AgentCatalogRepositoryError as error:
@@ -102,8 +94,6 @@ class AgentCatalogService:
     ) -> ResolvedAgentAssignment:
         if ensure_catalog:
             await self.ensure_official_assignments(workspace_id=workspace_id)
-        else:
-            await self._require_rollout(workspace_id=workspace_id, conn=conn)
         await self._require_project(workspace_id=workspace_id, project_id=project_id, conn=conn)
         assignment = await self._repository.find_effective_assignment(
             workspace_id=workspace_id,
@@ -173,7 +163,6 @@ class AgentCatalogService:
         mentioned_agent_assignment_ids: tuple[UUID, ...],
         execution_mode: ExecutionMode,
     ) -> tuple[ResolvedAgentAssignment, tuple[ResolvedAgentAssignment, ...]]:
-        await self._require_rollout(workspace_id=workspace_id)
         if not (len(mentioned_agent_ids) == len(mentioned_agent_version_ids) == len(mentioned_agent_assignment_ids)):
             self._raise_conflict("AGENT_RUN_AGENT_SNAPSHOT_INVALID")
         lead = await self._resolve_snapshot_assignment(
@@ -231,20 +220,6 @@ class AgentCatalogService:
             return await self._repository.resolve_record(assignment)
         except AgentCatalogRepositoryError as error:
             self._raise_conflict(error.code)
-
-    async def _require_rollout(
-        self,
-        *,
-        workspace_id: UUID,
-        conn: BaseDBAsyncClient | None = None,
-    ) -> None:
-        enforcement = await self._rollout_enforcer.evaluate_workspace_capability(
-            capability_id=AI_SERVICES_CAPABILITY_ID,
-            workspace_id=workspace_id,
-            conn=conn,
-        )
-        if not enforcement.is_available:
-            self._raise_conflict(enforcement.denial_code or "WORKSPACE_CAPABILITY_ROLLOUT_NOT_AVAILABLE")
 
     async def _agents_enabled(self) -> bool:
         core = await get_core_settings_value_cached(self._settings)

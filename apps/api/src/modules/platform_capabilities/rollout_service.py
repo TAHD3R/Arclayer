@@ -31,7 +31,6 @@ from src.modules.platform_identity.session_schema import PlatformSessionPrincipa
 
 WORKSPACE_CAPABILITY_ROLLOUT_APPLY_PERMISSION = "platform:workspace-capability-rollout:apply"
 WORKSPACE_CAPABILITY_ROLLOUT_CAPABILITY_IDS = frozenset({
-    "ai-services",
     "commerce",
     "communications",
     "extensions",

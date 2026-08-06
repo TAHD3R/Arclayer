@@ -380,6 +380,7 @@ def test_registry_contains_every_canonical_platform_navigation_target() -> None:
         "ai.tasks",
         "ai.providers",
         "ai.assistants",
+        "ai.skills",
         "ai.policies",
         "site-delivery.issues",
         "site-delivery.domains",

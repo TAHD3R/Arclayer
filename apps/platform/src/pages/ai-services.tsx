@@ -20,13 +20,11 @@ import type {
   SystemAiProviderAvailabilityPreviewOut,
   SystemAiProviderListOut,
   SystemAiProviderOut,
-  WorkspaceCapabilityRolloutPreview,
 } from "@arclayer/platform-openapi";
 
 import { ProviderIconImage } from "@/ai/ai-provider-icon";
 import {
   applyAiProviderAvailability,
-  applyAiServicesWorkspaceRollout,
   deleteAiProvider,
   executeAiTaskAction,
   getAiProviderReadiness,
@@ -34,7 +32,6 @@ import {
   listAiTasks,
   PlatformAiServicesApiError,
   previewAiProviderAvailability,
-  previewAiServicesWorkspaceRollout,
   testAiProviderReadiness,
   updateAiProvider,
 } from "@/ai/ai-services-api";
@@ -418,9 +415,6 @@ function ProviderConsole(
 ) {
   const { t, i18n } = useTranslation(["ai", "errors"]);
   const [availabilityFlow, setAvailabilityFlow] = useState<ProviderAvailabilityFlow | null>(null);
-  const [rolloutPreview, setRolloutPreview] = useState<WorkspaceCapabilityRolloutPreview | null>(
-    null,
-  );
   const [pending, setPending] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SystemAiProviderOut | null>(null);
   const readinessById = new Map(props.data.readiness.items.map((item) => [item.id, item]));
@@ -511,27 +505,6 @@ function ProviderConsole(
           ))}
         </div>
       ) : null}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <CardTitle>{t("WORKSPACE_AI_ROLLOUT_TITLE")}</CardTitle>
-            <CardDescription>{t("WORKSPACE_AI_ROLLOUT_DESCRIPTION")}</CardDescription>
-          </div>
-          <Button
-            disabled={pending !== null}
-            onClick={() =>
-              void doAction(
-                "workspace-rollout-preview",
-                async () => setRolloutPreview(await previewAiServicesWorkspaceRollout()),
-                false,
-              )
-            }
-            variant="outline"
-          >
-            {t("REVIEW_WORKSPACE_AI_ROLLOUT")}
-          </Button>
-        </CardHeader>
-      </Card>
       <Card>
         <CardHeader>
           <CardTitle>{t("PROVIDER_DIRECTORY")}</CardTitle>
@@ -768,69 +741,6 @@ function ProviderConsole(
           )}
         </CardContent>
       </Card>
-      <AlertDialog
-        onOpenChange={(open) => !open && pending === null && setRolloutPreview(null)}
-        open={Boolean(rolloutPreview)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("WORKSPACE_AI_ROLLOUT_CONFIRM_TITLE")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("WORKSPACE_AI_ROLLOUT_CONFIRM_DESCRIPTION", {
-                count: rolloutPreview?.summary.newlyAvailableWorkspaceIds.length ?? 0,
-                eligible: rolloutPreview?.summary.eligibleWorkspaceCount ?? 0,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground">{t("CURRENT_ROLLOUT_STAGE")}</p>
-              <p className="font-medium">
-                {t(`ROLLOUT_STAGE_${rolloutPreview?.sourcePolicy.stage.toUpperCase()}`)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">{t("AFFECTED_WORKSPACES")}</p>
-              <p className="font-medium">{rolloutPreview?.summary.affectedWorkspaceCount ?? 0}</p>
-            </div>
-          </div>
-          {rolloutPreview?.operationalConsequences.length ? (
-            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-              {rolloutPreview.operationalConsequences.map((consequence) => (
-                <li key={consequence.code}>{t(consequence.code, consequence.params)}</li>
-              ))}
-            </ul>
-          ) : null}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending === "workspace-rollout-apply"}>
-              {t("CANCEL")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={pending === "workspace-rollout-apply"}
-              onClick={(event) => {
-                event.preventDefault();
-                const preview = rolloutPreview;
-                if (!preview) return;
-                void doAction(
-                  "workspace-rollout-apply",
-                  async () => {
-                    await applyAiServicesWorkspaceRollout(
-                      preview.id,
-                      t("WORKSPACE_AI_ROLLOUT_REASON"),
-                      crypto.randomUUID(),
-                    );
-                    setRolloutPreview(null);
-                  },
-                  false,
-                  "WORKSPACE_AI_ROLLOUT_APPLIED",
-                );
-              }}
-            >
-              {t("ENABLE_FOR_ELIGIBLE_WORKSPACES")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <AlertDialog
         onOpenChange={(open) => !open && pending === null && setAvailabilityFlow(null)}
         open={Boolean(availabilityFlow)}

@@ -7,13 +7,11 @@ import type { PlatformAiProviderOut, SystemAiProviderOut } from "@arclayer/platf
 
 import {
   applyAiProviderAvailability,
-  applyAiServicesWorkspaceRollout,
   deleteAiProvider,
   getAiProviderReadiness,
   listAiProviders,
   PlatformAiServicesApiError,
   previewAiProviderAvailability,
-  previewAiServicesWorkspaceRollout,
   updateAiProvider,
 } from "@/ai/ai-services-api";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
@@ -24,12 +22,10 @@ vi.mock("@/ai/ai-services-api", async (importOriginal) => {
   return {
     ...actual,
     applyAiProviderAvailability: vi.fn(),
-    applyAiServicesWorkspaceRollout: vi.fn(),
     deleteAiProvider: vi.fn(),
     getAiProviderReadiness: vi.fn(),
     listAiProviders: vi.fn(),
     previewAiProviderAvailability: vi.fn(),
-    previewAiServicesWorkspaceRollout: vi.fn(),
     updateAiProvider: vi.fn(),
   };
 });
@@ -123,50 +119,6 @@ beforeEach(async () => {
     wouldLeaveNoRoutableProvider: true,
   });
   vi.mocked(applyAiProviderAvailability).mockResolvedValue(provider({ isActive: false }));
-  vi.mocked(previewAiServicesWorkspaceRollout).mockResolvedValue({
-    capabilityId: "ai-services",
-    capabilityRevision: 2,
-    eligibilityRevision: 1,
-    eligibilitySnapshotHash: "snapshot",
-    expiresAt: "2026-08-04T08:00:00Z",
-    id: "rollout-preview-1",
-    operationalConsequences: [{ code: "AI_SERVICES_ROLLOUT_OPERATIONAL_CONSEQUENCE" }],
-    proposedSelectedWorkspaceIds: [],
-    proposedStage: "all_eligible",
-    sourcePolicy: {
-      capabilityId: "ai-services",
-      revision: 0,
-      selectedWorkspaceIds: [],
-      selectionRevision: 0,
-      stage: "not_available",
-    },
-    summary: {
-      affectedWorkspaceCount: 1,
-      blockedWorkspaceCount: 0,
-      eligibleWorkspaceCount: 1,
-      ineligibleWorkspaceCount: 0,
-      newlyAvailableWorkspaceIds: ["workspace-1"],
-      noLongerAvailableWorkspaceIds: [],
-      selectedWorkspaceCount: 0,
-    },
-    workspaces: [
-      {
-        currentlyAvailable: false,
-        ineligibilityReasons: [],
-        isEligible: true,
-        proposedAvailable: true,
-        selected: false,
-        workspaceId: "workspace-1",
-      },
-    ],
-  });
-  vi.mocked(applyAiServicesWorkspaceRollout).mockResolvedValue({
-    appliedAt: "2026-08-04T06:30:00Z",
-    capabilityId: "ai-services",
-    replayed: false,
-    rolloutRevision: 1,
-    selectionRevision: 0,
-  });
   vi.mocked(updateAiProvider).mockResolvedValue(provider({ isActive: false, isArchived: true }));
   vi.mocked(deleteAiProvider).mockResolvedValue(undefined);
 });
@@ -248,23 +200,5 @@ describe("AI provider lifecycle", () => {
       }),
     );
     expect(deleteAiProvider).not.toHaveBeenCalled();
-  });
-
-  it("previews and applies the audited AI Services workspace rollout", async () => {
-    const user = userEvent.setup();
-    render(<AiProvidersPage />);
-
-    await user.click(await screen.findByRole("button", { name: "Review workspace availability" }));
-    expect(await screen.findByText("Enable AI Services for eligible workspaces?")).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Enable for eligible workspaces" }));
-
-    await waitFor(() =>
-      expect(applyAiServicesWorkspaceRollout).toHaveBeenCalledWith(
-        "rollout-preview-1",
-        "Enable AI Services for eligible workspaces from the AI Services provider console",
-        expect.any(String),
-      ),
-    );
-    expect(toast.success).toHaveBeenCalledWith("Workspace AI availability updated");
   });
 });

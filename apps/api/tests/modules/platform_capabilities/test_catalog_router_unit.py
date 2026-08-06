@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -19,14 +20,15 @@ from src.modules.platform_capabilities.rollout_schema import (
     WorkspaceCapabilityRolloutPreviewRequest,
     WorkspaceCapabilityRolloutStage,
 )
+from src.modules.platform_capabilities.rollout_service import WorkspaceCapabilityEligibilityRegistry
 from src.modules.platform_capabilities.router import get_workspace_capability_rollout_service, router
 from src.modules.platform_identity.http import (
     get_current_platform_session,
     get_platform_identity_repository,
 )
 from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
-from src.modules.system.agents.rollout_eligibility import AgentWorkspaceCapabilityEligibility
 from tests.utils.asgi_client import asgi_client
 
 
@@ -170,16 +172,16 @@ def test_catalog_route_is_mounted_only_in_platform_composition() -> None:
     assert "/platform-api/v1/capabilities" not in product_paths
 
 
-def test_workspace_capability_rollout_composition_registers_only_ai_services_eligibility() -> None:
+def test_workspace_capability_rollout_composition_retires_ai_services_eligibility() -> None:
     service = get_workspace_capability_rollout_service(
         settings=get_settings(),
-        identity_repository=_PermissionRepository(),
+        identity_repository=cast(PlatformIdentityRepository, _PermissionRepository()),
     )
-    eligibility = service._eligibility
+    eligibility = cast(WorkspaceCapabilityEligibilityRegistry, service._eligibility)
 
-    assert isinstance(eligibility._registered("ai-services"), AgentWorkspaceCapabilityEligibility)
+    assert "ai-services" not in service._rollout_capability_ids
     with pytest.raises(ServiceUnavailable, match="WORKSPACE_CAPABILITY_ELIGIBILITY_UNREGISTERED"):
-        eligibility._registered("commerce")
+        eligibility._registered("ai-services")
 
 
 @pytest.mark.asyncio

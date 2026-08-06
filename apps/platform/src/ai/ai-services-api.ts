@@ -1,6 +1,5 @@
 import {
   platformApplySystemAiProviderAvailability,
-  platformApplyWorkspaceCapabilityRollout,
   platformCancelPlatformAiTask,
   platformCreateSystemAiProvider,
   platformDeleteSystemAiProvider,
@@ -8,7 +7,6 @@ import {
   platformListPlatformAiTasks,
   platformListSystemAiProviders,
   platformPreviewSystemAiProviderAvailability,
-  platformPreviewWorkspaceCapabilityRollout,
   platformReconcilePlatformAiTask,
   platformRetryPlatformAiTask,
   platformTestSystemAiProviderReadiness,
@@ -23,8 +21,6 @@ import {
   type SystemAiProviderOut,
   type SystemAiProviderReadinessTestOut,
   type SystemAiProviderUpdateRequest,
-  type WorkspaceCapabilityRolloutApplyReceipt,
-  type WorkspaceCapabilityRolloutPreview,
   type PlatformListPlatformAiTasksData,
 } from "@arclayer/platform-openapi";
 
@@ -148,25 +144,6 @@ export function applyAiProviderAvailability(
     client: platformApiClient,
     path: { provider_id: providerId },
     body: { isActive, previewRevision },
-  }).then(unwrap);
-}
-
-export function previewAiServicesWorkspaceRollout(): Promise<WorkspaceCapabilityRolloutPreview> {
-  return platformPreviewWorkspaceCapabilityRollout({
-    client: platformApiClient,
-    path: { capability_id: "ai-services" },
-    body: { proposedStage: "all_eligible", selectedWorkspaceIds: [] },
-  }).then(unwrap);
-}
-
-export function applyAiServicesWorkspaceRollout(
-  previewId: string,
-  reason: string,
-  idempotencyKey: string,
-): Promise<WorkspaceCapabilityRolloutApplyReceipt> {
-  return platformApplyWorkspaceCapabilityRollout({
-    client: platformApiClient,
-    body: { previewId, reason, idempotencyKey },
   }).then(unwrap);
 }
 
