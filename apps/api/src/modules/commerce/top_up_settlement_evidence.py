@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
 
 from src.common.schemas import BaseSchema
-from src.modules.commerce.billing_provider_application_service import VerifiedBillingProviderEvent
 from src.modules.commerce.top_up_checkout_repository import TopUpCheckoutSessionRecord
+
+if TYPE_CHECKING:
+    from src.modules.commerce.billing_provider_application_service import VerifiedBillingProviderEvent
 
 
 class ProviderTopUpSettlement(BaseSchema):
@@ -23,6 +26,7 @@ class ProviderTopUpSettlement(BaseSchema):
     top_up_offer_revision: int = Field(..., ge=1)
     external_price_id: str = Field(..., min_length=1, max_length=255)
     checkout_request_fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    outcome: Literal["pending", "succeeded", "failed", "canceled"]
     currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     amount_micros: int = Field(..., gt=0)
     credit_amount: int = Field(..., gt=0)

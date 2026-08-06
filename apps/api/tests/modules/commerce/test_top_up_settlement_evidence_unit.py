@@ -51,6 +51,7 @@ def _settlement(checkout: TopUpCheckoutSessionRecord) -> ProviderTopUpSettlement
         top_up_offer_revision=checkout.top_up_offer_revision,
         external_price_id=checkout.external_price_id,
         checkout_request_fingerprint=checkout.request_fingerprint,
+        outcome="succeeded",
         currency=checkout.currency,
         amount_micros=checkout.amount_micros,
         credit_amount=checkout.credit_amount,

@@ -74,8 +74,16 @@ describe("CreditLedgerTable", () => {
           committedCredits: 250,
           descriptionKey: "LEDGER_AI_COMMIT",
         }),
+        entry({
+          id: "ledger-3",
+          entryType: "top_up",
+          deltaBalanceCredits: 2_000,
+          balanceAfterCredits: 2_750,
+          providerPeriodIdentity: null,
+          descriptionKey: "LEDGER_TOP_UP",
+        }),
       ],
-      total: 2,
+      total: 3,
       page: 1,
       size: 20,
       pages: 1,
@@ -91,11 +99,13 @@ describe("CreditLedgerTable", () => {
     expect(screen.getByRole("button", { name: "commerce:CREDITS_AVAILABLE_LABEL" })).toBeVisible();
     expect(screen.getByText("commerce:LEDGER_TYPE_COMMIT")).toBeVisible();
     expect(screen.getByText("commerce:LEDGER_PERIOD_GRANT")).toHaveClass("truncate");
+    expect(screen.getByText("commerce:LEDGER_TYPE_TOP_UP")).toBeVisible();
+    expect(screen.getByText("commerce:LEDGER_TOP_UP")).toHaveClass("truncate");
     expect(screen.getByText("−250").closest(".tabular-nums")).not.toBeNull();
     expect(screen.getByText("commerce:LEDGER_RESERVED_SHORT:−300")).toBeVisible();
     expect(screen.getByText("commerce:LEDGER_REFERENCE_AI_REQUEST")).toBeVisible();
     expect(screen.queryByText("018f0000-0000-7000-8000-000000000002")).not.toBeInTheDocument();
-    expect(screen.getAllByText(/date:2026-07-12/)).toHaveLength(2);
+    expect(screen.getAllByText(/date:2026-07-12/)).toHaveLength(3);
     expect(listWorkspaceCreditLedger).toHaveBeenCalledWith("workspace-1", {
       page: 1,
       size: 20,

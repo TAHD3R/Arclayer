@@ -47,8 +47,13 @@ from src.modules.commerce.billing_provider_application_service import (
     BillingProviderSubscriptionApplicationService,
     BillingProviderSubscriptionApplicator,
 )
+from src.modules.commerce.billing_top_up_settlement_application_service import (
+    BillingProviderTopUpSettlementApplicator,
+    BillingTopUpSettlementApplicationResult,
+)
 from src.modules.commerce.convergence.schema import ProviderConfirmedConvergenceApplication
 from src.modules.commerce.subscription_transitions.schema import ProviderConfirmedTransitionEvidence
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 from src.modules.jobs.execution_errors import PermanentJobExecutionError, TransientJobExecutionError
 from src.modules.jobs.execution_registry import JobExecutionContext
 from src.settings.crypto import ensure_master_key
@@ -60,9 +65,11 @@ class _Connector:
         subscription: ProviderSubscription | Exception | None,
         *,
         checkout_outcome: ProviderCheckoutOutcome | None = None,
+        top_up_settlement: ProviderTopUpSettlement | None = None,
     ) -> None:
         self.subscription = subscription
         self.checkout_outcome = checkout_outcome
+        self.top_up_settlement = top_up_settlement
 
     @property
     def provider_mode(self) -> str:
@@ -99,6 +106,15 @@ class _Connector:
     ) -> ProviderCheckoutOutcome | None:
         _ = payload, envelope
         return self.checkout_outcome
+
+    async def top_up_settlement_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderTopUpSettlement | None:
+        _ = payload, envelope
+        return self.top_up_settlement
 
 
 def _settings(tmp_path: Path) -> Settings:
@@ -310,6 +326,72 @@ async def test_worker_applies_checkout_outcome_without_subscription_projection(t
     assert result.applied is True
     assert result.workspace_id == checkout_outcome.workspace_id
     cast(AsyncMock, checkout_applicator.apply_provider_checkout_outcome).assert_awaited_once()
+    cast(AsyncMock, subscription_applicator.apply_provider_subscription).assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_worker_applies_top_up_settlement_without_other_commercial_outcomes(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    inbox = _inbox(settings=settings, payload=b'{"id":"evt_worker123"}')
+    settlement = ProviderTopUpSettlement(
+        event_id=inbox.provider_event_id,
+        checkout_session_id=uuid4(),
+        external_session_id="sim_top_up_cs_worker",
+        workspace_id=uuid4(),
+        actor_user_id=uuid4(),
+        top_up_offer_id=uuid4(),
+        top_up_offer_revision=3,
+        external_price_id="sim_top_up_price_worker",
+        checkout_request_fingerprint="c" * 64,
+        outcome="succeeded",
+        currency="USD",
+        amount_micros=10_000_000,
+        credit_amount=1_000,
+        external_transaction_id="sim_top_up_tx_worker",
+        occurred_at=datetime.now(UTC),
+    )
+    connector = cast(BillingConnector, _Connector(None, top_up_settlement=settlement))
+    subscription_applicator = cast(
+        BillingProviderSubscriptionApplicator,
+        SimpleNamespace(apply_provider_subscription=AsyncMock()),
+    )
+    checkout_applicator = cast(
+        BillingProviderCheckoutOutcomeApplicator,
+        SimpleNamespace(apply_provider_checkout_outcome=AsyncMock()),
+    )
+    top_up_applicator = cast(
+        BillingProviderTopUpSettlementApplicator,
+        SimpleNamespace(
+            apply_provider_top_up_settlement=AsyncMock(
+                return_value=BillingTopUpSettlementApplicationResult(
+                    workspace_id=settlement.workspace_id,
+                    checkout_session_id=settlement.checkout_session_id,
+                    status=CommerceCheckoutStatus.COMPLETED,
+                    revision=2,
+                    changed=True,
+                    granted_credits=settlement.credit_amount,
+                    transaction_id=uuid4(),
+                    ledger_entry_id=uuid4(),
+                    grant_lot_id=uuid4(),
+                )
+            )
+        ),
+    )
+    handler = BillingConnectorEventJobHandler(
+        settings=settings,
+        connectors=_registry(connector),
+        repository=_repository(inbox),
+        applicator=subscription_applicator,
+        checkout_applicator=checkout_applicator,
+        top_up_applicator=top_up_applicator,
+    )
+
+    result = await handler.execute(context=_context(inbox))
+
+    assert result.applied is True
+    assert result.workspace_id == settlement.workspace_id
+    cast(AsyncMock, top_up_applicator.apply_provider_top_up_settlement).assert_awaited_once()
+    cast(AsyncMock, checkout_applicator.apply_provider_checkout_outcome).assert_not_awaited()
     cast(AsyncMock, subscription_applicator.apply_provider_subscription).assert_not_awaited()
 
 

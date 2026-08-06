@@ -108,6 +108,36 @@ def _subscription_payload(
     ).encode()
 
 
+def _top_up_payload(*, timestamp: int, outcome: str = "succeeded") -> bytes:
+    return json.dumps(
+        {
+            "id": "sim_evt_topupunit123",
+            "type": "top_up.checkout.outcome",
+            "mode": "test",
+            "account": "platform",
+            "created": timestamp,
+            "data": {
+                "actor_user_id": str(uuid4()),
+                "amount_micros": 20_000_000,
+                "checkout_request_fingerprint": "c" * 64,
+                "checkout_session_id": str(uuid4()),
+                "credit_amount": 2_000,
+                "currency": "USD",
+                "external_invoice_id": None,
+                "external_price_id": "sim_price_credits_2000",
+                "external_session_id": "sim_top_up_cs_unit123",
+                "external_transaction_id": "sim_top_up_tx_unit123",
+                "outcome": outcome,
+                "top_up_offer_id": str(uuid4()),
+                "top_up_offer_revision": 4,
+                "workspace_id": str(uuid4()),
+            },
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+
+
 def _signature(payload: bytes, *, timestamp: int, secret: bytes = b"simulated-unit-secret") -> str:
     digest = hmac.new(
         secret,
@@ -154,7 +184,7 @@ def test_simulated_connector_rejects_invalid_and_expired_signatures() -> None:
     assert expired.value.error == "BILLING_WEBHOOK_SIGNATURE_EXPIRED"
 
 
-def test_simulated_registration_accepts_checkout_and_subscription_lifecycle_events() -> None:
+def test_simulated_registration_accepts_checkout_top_up_and_subscription_lifecycle_events() -> None:
     project_root = Path(__file__).resolve().parents[5]
     plugin_path = project_root / "plugins" / "arclayer-simulated-billing" / "src" / "plugin.py"
     spec = importlib.util.spec_from_file_location("test_arclayer_simulated_billing_registration", plugin_path)
@@ -170,6 +200,7 @@ def test_simulated_registration_accepts_checkout_and_subscription_lifecycle_even
     assert registration is not None
     assert registration.definition.webhook_events == (
         "checkout.session.outcome",
+        "top_up.checkout.outcome",
         "subscription.lifecycle",
     )
 
@@ -248,13 +279,44 @@ async def test_simulated_connector_normalizes_checkout_outcome_without_subscript
         signature=_signature(payload, timestamp=timestamp),
     )
     outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+    top_up = await connector.top_up_settlement_from_event(payload=payload, envelope=envelope)
     subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
 
     assert outcome is not None
     assert outcome.event_id == envelope.provider_event_id
     assert outcome.outcome == "succeeded"
     assert outcome.expected_revision == 1
+    assert top_up is None
     assert subscription is None
+
+
+@pytest.mark.asyncio
+async def test_simulated_connector_normalizes_exact_top_up_settlement_without_other_effects() -> None:
+    connector = _connector()
+    timestamp = int(time.time())
+    payload = _top_up_payload(timestamp=timestamp)
+    envelope = connector.verify_webhook(
+        payload=payload,
+        signature=_signature(payload, timestamp=timestamp),
+    )
+
+    checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+    settlement = await connector.top_up_settlement_from_event(payload=payload, envelope=envelope)
+    subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert checkout_outcome is None
+    assert subscription is None
+    assert settlement is not None
+    assert settlement.event_id == "sim_evt_topupunit123"
+    assert settlement.outcome == "succeeded"
+    assert settlement.external_session_id == "sim_top_up_cs_unit123"
+    assert settlement.external_price_id == "sim_price_credits_2000"
+    assert settlement.external_transaction_id == "sim_top_up_tx_unit123"
+    assert settlement.currency == "USD"
+    assert settlement.amount_micros == 20_000_000
+    assert settlement.credit_amount == 2_000
+    assert settlement.top_up_offer_revision == 4
+    assert int(settlement.occurred_at.timestamp()) == timestamp
 
 
 @pytest.mark.asyncio
@@ -276,9 +338,11 @@ async def test_simulated_connector_normalizes_strict_subscription_lifecycle_fact
     )
 
     checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
+    top_up = await connector.top_up_settlement_from_event(payload=payload, envelope=envelope)
     subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
 
     assert checkout_outcome is None
+    assert top_up is None
     assert subscription is not None
     assert subscription.event_id == "sim_evt_subscription123"
     assert subscription.workspace_id == workspace_id

@@ -30,6 +30,7 @@ from src.modules.commerce.simulated_checkout_outcome_service import (
     SimulatedCheckoutOutcomeWrite,
     build_simulated_checkout_outcome_service,
 )
+from src.modules.commerce.simulated_top_up_settlement_service import build_simulated_top_up_settlement_service
 from src.modules.commerce.top_up_checkout_service import build_top_up_checkout_service
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_member_access
@@ -162,6 +163,30 @@ async def create_simulated_checkout_outcome(
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[SimulatedCheckoutOutcomeOut]:
     result = await build_simulated_checkout_outcome_service(settings, connector_registry).create(
+        workspace_id=ctx.workspace_id,
+        checkout_session_id=checkout_session_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/top-up-checkout-session/{checkout_session_id}/outcome",
+    response_model=ResponseModel[SimulatedCheckoutOutcomeOut],
+    summary="Submit a simulated Credit top-up Checkout outcome",
+)
+async def create_simulated_top_up_checkout_outcome(
+    checkout_session_id: PublicUUID,
+    payload: SimulatedCheckoutOutcomeWrite,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[SimulatedCheckoutOutcomeOut]:
+    result = await build_simulated_top_up_settlement_service(settings, connector_registry).create(
         workspace_id=ctx.workspace_id,
         checkout_session_id=checkout_session_id,
         actor_user_id=actor_user_id,

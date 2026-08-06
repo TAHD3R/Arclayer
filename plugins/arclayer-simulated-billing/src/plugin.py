@@ -37,6 +37,7 @@ from src.modules.commerce.billing_connector import (
     ProviderSubscription,
     ProviderTransactionProjection,
 )
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 
 logger = get_logger(__name__)
 
@@ -45,6 +46,7 @@ _EXTENSION_NAME = "arclayer-simulated-billing"
 _CHECKOUT_SESSION_TTL = timedelta(minutes=30)
 _PROVIDER_ACCOUNT_ID = "platform"
 _CHECKOUT_OUTCOME_EVENT_TYPE = "checkout.session.outcome"
+_TOP_UP_OUTCOME_EVENT_TYPE = "top_up.checkout.outcome"
 _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE = "subscription.lifecycle"
 
 
@@ -61,6 +63,25 @@ class _SimulatedCheckoutOutcomeData(BaseModel):
     checkout_request_fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
     command_idempotency_key_hash: str = Field(..., pattern=r"^[0-9a-f]{64}$")
     expected_revision: int = Field(..., ge=1)
+    outcome: Literal["pending", "succeeded", "failed", "canceled"]
+
+
+class _SimulatedTopUpSettlementData(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    checkout_session_id: UUID
+    external_session_id: str = Field(..., min_length=1, max_length=255)
+    workspace_id: UUID
+    actor_user_id: UUID
+    top_up_offer_id: UUID
+    top_up_offer_revision: int = Field(..., ge=1)
+    external_price_id: str = Field(..., min_length=1, max_length=255)
+    checkout_request_fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    amount_micros: int = Field(..., gt=0)
+    credit_amount: int = Field(..., gt=0)
+    external_transaction_id: str = Field(..., min_length=1, max_length=255)
+    external_invoice_id: str | None = Field(default=None, min_length=1, max_length=255)
     outcome: Literal["pending", "succeeded", "failed", "canceled"]
 
 
@@ -173,7 +194,7 @@ class _SimulatedWebhookEvent(BaseModel):
     mode: Literal["test"] = "test"
     account: str = Field(default="platform", min_length=1, max_length=255)
     created: int
-    data: _SimulatedCheckoutOutcomeData | _SimulatedSubscriptionData
+    data: _SimulatedCheckoutOutcomeData | _SimulatedTopUpSettlementData | _SimulatedSubscriptionData
 
 
 class SimulatedBillingConnector:
@@ -273,6 +294,9 @@ class SimulatedBillingConnector:
         if event.type == _CHECKOUT_OUTCOME_EVENT_TYPE:
             self._require_checkout_data(event)
             return None
+        if event.type == _TOP_UP_OUTCOME_EVENT_TYPE:
+            self._require_top_up_data(event)
+            return None
         if event.type != _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
             raise ServiceUnavailable(error="BILLING_SIMULATOR_EVENT_NORMALIZATION_NOT_AVAILABLE")
         data = self._require_subscription_data(event)
@@ -324,6 +348,9 @@ class SimulatedBillingConnector:
         if event.type == _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
             self._require_subscription_data(event)
             return None
+        if event.type == _TOP_UP_OUTCOME_EVENT_TYPE:
+            self._require_top_up_data(event)
+            return None
         if event.type != _CHECKOUT_OUTCOME_EVENT_TYPE:
             return None
         data = self._require_checkout_data(event)
@@ -340,6 +367,42 @@ class SimulatedBillingConnector:
             command_idempotency_key_hash=data.command_idempotency_key_hash,
             expected_revision=data.expected_revision,
             outcome=data.outcome,
+            occurred_at=_provider_timestamp(event.created),
+        )
+
+    async def top_up_settlement_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderTopUpSettlement | None:
+        event = self._parse_event(payload)
+        self._validate_envelope(event=event, envelope=envelope)
+        if event.type == _CHECKOUT_OUTCOME_EVENT_TYPE:
+            self._require_checkout_data(event)
+            return None
+        if event.type == _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE:
+            self._require_subscription_data(event)
+            return None
+        if event.type != _TOP_UP_OUTCOME_EVENT_TYPE:
+            return None
+        data = self._require_top_up_data(event)
+        return ProviderTopUpSettlement(
+            event_id=event.id,
+            checkout_session_id=data.checkout_session_id,
+            external_session_id=data.external_session_id,
+            workspace_id=data.workspace_id,
+            actor_user_id=data.actor_user_id,
+            top_up_offer_id=data.top_up_offer_id,
+            top_up_offer_revision=data.top_up_offer_revision,
+            external_price_id=data.external_price_id,
+            checkout_request_fingerprint=data.checkout_request_fingerprint,
+            outcome=data.outcome,
+            currency=data.currency,
+            amount_micros=data.amount_micros,
+            credit_amount=data.credit_amount,
+            external_transaction_id=data.external_transaction_id,
+            external_invoice_id=data.external_invoice_id,
             occurred_at=_provider_timestamp(event.created),
         )
 
@@ -393,6 +456,12 @@ class SimulatedBillingConnector:
         return event.data
 
     @staticmethod
+    def _require_top_up_data(event: _SimulatedWebhookEvent) -> _SimulatedTopUpSettlementData:
+        if not isinstance(event.data, _SimulatedTopUpSettlementData):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        return event.data
+
+    @staticmethod
     def _require_subscription_data(event: _SimulatedWebhookEvent) -> _SimulatedSubscriptionData:
         if not isinstance(event.data, _SimulatedSubscriptionData):
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
@@ -428,6 +497,7 @@ class SimulatedBillingExtension:
                 },
                 webhook_events=(
                     _CHECKOUT_OUTCOME_EVENT_TYPE,
+                    _TOP_UP_OUTCOME_EVENT_TYPE,
                     _SUBSCRIPTION_LIFECYCLE_EVENT_TYPE,
                 ),
                 health_contract=("configured", "webhook_configured"),

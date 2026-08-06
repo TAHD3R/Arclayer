@@ -381,6 +381,98 @@ class CommerceProviderPaymentTransactionProjection(BaseModel):
         indexes = (("transaction_id", "provider_event_occurred_at"),)
 
 
+class CommerceTopUpSettlementApplication(BaseModel):
+    """Immutable application evidence for one signed top-up Checkout outcome."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace",
+        related_name="commerce_top_up_settlement_applications",
+        on_delete=fields.RESTRICT,
+    )
+    checkout_session = fields.ForeignKeyField(
+        "models.CommerceCheckoutSession",
+        related_name="top_up_settlement_applications",
+        on_delete=fields.RESTRICT,
+    )
+    granted_checkout_session = fields.OneToOneField(
+        "models.CommerceCheckoutSession",
+        related_name="top_up_credit_grant_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    outcome_command = fields.OneToOneField(
+        "models.CommerceCheckoutOutcomeCommand",
+        related_name="top_up_settlement_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    transaction = fields.OneToOneField(
+        "models.CommerceTransaction",
+        related_name="top_up_settlement_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    invoice = fields.OneToOneField(
+        "models.CommerceInvoice",
+        related_name="top_up_settlement_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    ledger_entry = fields.OneToOneField(
+        "models.WorkspaceCreditLedger",
+        related_name="top_up_settlement_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    grant_lot = fields.OneToOneField(
+        "models.WorkspaceCreditGrantLot",
+        related_name="top_up_settlement_application",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharEnumField(BillingProviderMode)
+    provider_account_id = fields.CharField(max_length=255)
+    provider_event_id = fields.CharField(max_length=255)
+    outcome = fields.CharEnumField(CommerceCheckoutOutcome, db_index=True)
+    top_up_offer_id_snapshot = fields.UUIDField()
+    top_up_offer_revision = fields.BigIntField()
+    external_price_id = fields.CharField(max_length=255)
+    checkout_request_fingerprint = fields.CharField(max_length=64)
+    currency = fields.CharField(max_length=3)
+    amount_micros = fields.BigIntField()
+    credit_amount = fields.BigIntField()
+    external_transaction_id = fields.CharField(max_length=255)
+    external_invoice_id = fields.CharField(max_length=255, null=True)
+    provider_event_occurred_at = fields.DatetimeField(db_index=True)
+    payload_sha256 = fields.CharField(max_length=64)
+    signature_reference = fields.CharField(max_length=255)
+    settlement_fingerprint = fields.CharField(max_length=64)
+    result_status = fields.CharEnumField(CommerceCheckoutStatus)
+    result_revision = fields.BigIntField()
+    applied_at = fields.DatetimeField()
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        checkout_session_id: UUID
+        granted_checkout_session_id: UUID | None
+        outcome_command_id: UUID | None
+        transaction_id: UUID | None
+        invoice_id: UUID | None
+        ledger_entry_id: UUID | None
+        grant_lot_id: UUID | None
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_top_up_settlement_applications"
+        table_description = "Exact signed top-up settlement application and Credit grant evidence."
+        abstract = False
+        unique_together = (("provider", "provider_mode", "provider_account_id", "provider_event_id"),)
+        indexes = (
+            ("workspace_id", "provider_event_occurred_at"),
+            ("checkout_session_id", "provider_event_occurred_at"),
+        )
+
+
 class CommerceRefund(BaseModel):
     """Idempotent refund request and Provider-confirmed outcome."""
 

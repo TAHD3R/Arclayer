@@ -682,6 +682,15 @@ class StripeBillingConnector:
         del payload, envelope
         return None
 
+    async def top_up_settlement_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> None:
+        del payload, envelope
+        return None
+
     @staticmethod
     def _parse_event(payload: bytes) -> _StripeWebhookEvent:
         try:

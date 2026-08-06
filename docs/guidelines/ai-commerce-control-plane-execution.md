@@ -1,6 +1,6 @@
 # AI and Commerce Control Plane Rebuild — Execution Guide
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 ## Purpose
 
@@ -338,7 +338,7 @@ M1.5b.4 validation and closure:
 
 Status: In progress
 
-Current active part: M2.4b.2b signed simulated top-up settlement and exact Credit grant.
+Current active part: M2.4b.3 Stripe top-up Checkout and settlement.
 
 Repository baseline:
 
@@ -377,10 +377,10 @@ M2 execution parts:
    - M2.4b purchased top-up, refund, and payment reconciliation. — Active
      - M2.4b.0 canonical top-up/refund contract freeze. — Complete
      - M2.4b.1 top-up Checkout snapshot and accepted-event evidence foundation. — Complete
-     - M2.4b.2 simulated top-up settlement and exact Credit grant. — Active
+     - M2.4b.2 simulated top-up settlement and exact Credit grant. — Complete
        - M2.4b.2a simulated top-up Checkout creation chain. — Complete
-       - M2.4b.2b signed settlement and exact-once transaction/ledger/lot grant. — Active
-     - M2.4b.3 Stripe top-up Checkout and settlement.
+       - M2.4b.2b signed settlement and exact-once transaction/ledger/lot grant. — Complete
+     - M2.4b.3 Stripe top-up Checkout and settlement. — Active
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
      - M2.4b.5 payment reconciliation/correction and M2.4 closure.
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
@@ -730,7 +730,7 @@ M2.4a.2 validation:
 - `pnpm api:check` passed API lint and formatting across `1867` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4a.2 unit and PostgreSQL tests remain green.
 - Changed-scope Code Review Engine exited successfully with zero blockers. Its `17` report-only findings are existing application-service localization prototypes and the known simulated/Stripe Connector lifecycle prototype reports.
 - Final staged GitNexus detection reported `LOW` risk across `8` files and `168` indexed symbols, with no affected execution flow.
-- M2.4a.2 is complete. M2.4b.0 froze the purchased top-up, refund, and payment-reconciliation contracts. M2.4b.1 completed immutable top-up Checkout snapshots and strict settlement evidence. M2.4b.2a now provides the simulated top-up Checkout creation chain; the only active part is M2.4b.2b signed settlement and exact Credit grant.
+- M2.4a.2 is complete. M2.4b.0 froze the purchased top-up, refund, and payment-reconciliation contracts. M2.4b.1 completed immutable top-up Checkout snapshots and strict settlement evidence. M2.4b.2 completed simulated top-up Checkout and signed exact-once settlement; the only active part is M2.4b.3 Stripe top-up Checkout and settlement.
 
 M2.4b.0 contract freeze:
 
@@ -758,7 +758,7 @@ M2.4b.1 validation:
 - `pnpm api:check` passed API lint and formatting across `1872` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4b.1 tests remain green.
 - Changed-scope Code Review Engine reported zero findings across all `41` rules after adding complete shared/Product `en-US` and `zh-CN` error coverage.
 - Final staged GitNexus detection reported `LOW` risk across `14` files and `4` indexed symbols, with no affected execution flow.
-- M2.4b.1 is complete. M2.4b.2a is complete; the only active part is M2.4b.2b signed simulated settlement and exact Credit grant.
+- M2.4b.1 and M2.4b.2 are complete; the only active part is M2.4b.3 Stripe top-up Checkout and settlement.
 
 M2.4b.2a implementation evidence:
 
@@ -777,15 +777,44 @@ M2.4b.2a validation:
 - `pnpm api:check` passed API lint and formatting across `1876` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; all focused M2.4b.2a tests remain green.
 - Changed-scope Code Review Engine exited successfully with zero blockers. Its only `2` report-only findings are the known prototype lifecycle reports for the simulated and Stripe Connector plugins, both registered through the canonical Connector `arclayer_register` contract.
 - Final staged GitNexus detection reported `LOW` risk across `18` files and `51` indexed symbols, with no affected execution flow.
-- M2.4b.2a is complete. The only active part is M2.4b.2b signed simulated settlement and exact-once transaction/ledger/lot grant.
+- M2.4b.2a and M2.4b.2b are complete. The only active part is M2.4b.3 Stripe top-up Checkout and settlement.
+
+M2.4b.2b implementation evidence:
+
+- Added the dedicated signed simulated event `top_up.checkout.outcome`. The simulator command reuses durable `CommerceCheckoutOutcomeCommand` idempotency and actor evidence, signs strict deterministic JSON, and submits only through signature verification, encrypted inbox persistence, pinned Connector Job, and Connector normalization.
+- Extended the Provider-neutral Connector contract with top-up settlement normalization. Simulated Billing owns the new event; Stripe explicitly returns no top-up settlement until M2.4b.3. Checkout, subscription, and top-up outcomes remain mutually exclusive for each accepted event.
+- Added a dedicated top-up settlement application service and Tortoise repository. Each Provider event is unique within Provider/mode/account scope and retains Checkout, command, transaction, invoice, ledger, lot, payload hash, signature, occurrence time, and settlement-fingerprint evidence.
+- Successful settlement atomically completes the Checkout and command, creates one succeeded top-up transaction, one `LEDGER_TOP_UP` Credit ledger entry, one non-expiring purchased top-up lot, advances the Credit account balance/revision, writes required Activity evidence, and creates the immutable settlement application receipt.
+- A nullable One-to-One `granted_checkout_session` relation enforces at most one successful Credit grant for a Checkout at the database layer. Transaction, invoice, ledger, lot, and simulated command relations remain nullable so pending/failed/canceled outcomes and the later Stripe path can retain exact non-grant evidence.
+- Pending settlement records application/audit evidence without changing Checkout status/revision or commercial balances. Failed and canceled outcomes enter terminal Checkout/command state without transaction, ledger, lot, invoice, refund, or Credit mutation.
+- Deterministic simulated transaction identity is derived from the durable Checkout/session rather than the command event, so pending followed by success converges on one Provider transaction identity. Exact command replay returns the existing accepted event; changed payload conflicts; delayed or out-of-order outcomes fail explicitly and cannot grant twice.
+- Added the development/test-only Product command `POST /workspaces/{workspaceId}/commerce/top-up-checkout-session/{checkoutSessionId}/outcome` under the existing Commerce management authority. The route does not bypass Provider event acceptance or perform direct settlement mutation.
+- Added migration `0128_top_up_settlement_applications` plus unit and real PostgreSQL migration contracts for scoped Provider-event uniqueness, success-Checkout uniqueness, nullable non-grant relations, exact evidence One-to-One relations, and query indexes.
+- Added complete shared/Product `zh-CN` and `en-US` error copy for the new settlement boundaries and the shared `LEDGER_TOP_UP` description used by the Product Credit ledger.
+
+M2.4b.2b validation:
+
+- Targeted Ruff lint/format and `ty` passed across all changed API, migration, plugin, and test surfaces. The migration unit contract passed `1` test.
+- Focused Connector, Job, evidence, Workspace route, and migration regression passed `31` tests. API i18n regression passed `8` tests.
+- Real PostgreSQL validation passed `6` tests in `63.59s`: exact success and Job replay, exact command replay/idempotency conflict, pending then success, failed, canceled, delayed pending after success, and independent `0127 -> 0128` relation/index/nullability migration execution.
+- Expanded Commerce regression passed `286` tests with `69` integration-only tests skipped by the non-integration invocation.
+- Product locale parity passed all `23` namespaces. Product copy and Credit-ledger tests passed `2`; the broad Product localization-overlay failure passed `3/3` on immediate isolated rerun.
+- The active database applied `0128_top_up_settlement_applications`; a subsequent `db:migrate` reported `No changes detected`.
+- `pnpm api:check` passed API lint and formatting across `1880` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, and Turbo interrupted broad pytest after that failure; every targeted M2.4b.2b check remains green.
+- `pnpm app:check` passed Product lint, formatting, and locale parity. Typecheck remains blocked by `test/browser/product-acceptance.spec.ts` importing the missing `../../../../tests/browser/support` module; broad Vitest also observed that collection failure and one nondeterministic localization-overlay failure whose immediate isolated rerun passed.
+- Changed-scope Code Review Engine exited successfully with zero blockers. Its only `2` report-only findings are the known prototype lifecycle reports for the simulated and Stripe Connector plugins, both registered through the canonical Connector `arclayer_register` contract.
+- Final staged GitNexus detection reported `LOW` risk across `26` files and `106` indexed symbols, with no affected execution flow.
+- M2.4b.2 is complete. The only active part is M2.4b.3 real Stripe top-up Checkout and settlement.
 
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
 - The existing Provider subscription integration fixture lacks required confirmed transition evidence and fails with `SUBSCRIPTION_TRANSITION_PROVIDER_RECONCILIATION_REQUIRED`.
 - Existing broad API type-check failures outside the targeted Commerce/LLM paths remain visible and are not masked. The latest M2.3c package gate reports `290` diagnostics while targeted Commerce type checking passes.
+- The M2.4b.2b `pnpm api:check` run reports the same `289` unrelated diagnostics after API lint and formatting pass; Turbo interrupts broad pytest after the typecheck failure.
 - The M2.2a `pnpm api:check` run still fails on `294` existing Design System publication and content-route type diagnostics; lint and formatting pass, and Turbo interrupts broad pytest after the typecheck failure.
 - Product App typecheck currently fails because `apps/app/test/browser/product-acceptance.spec.ts` imports the missing `tests/browser/support` module outside Commerce work.
+- The M2.4b.2b broad Product Vitest run also observed one nondeterministic `preferences-localization-section.test.tsx` overlay failure; its immediate isolated rerun passed `3/3`.
 - The M1.5b.4 broad Product Vitest run also observed one nondeterministic `feedback-ticket-dialog.test.tsx` failure; its immediate isolated rerun passed `2/2`.
 - The M2.2a broad Product Vitest run observed one nondeterministic `workspace-guidance-view.test.tsx` failure; its immediate isolated rerun passed `5/5`.
 - Changed-scope Code Review Engine currently has zero blockers. The latest M2.3b.3c audit reports zero findings across all `41` rules.
@@ -1043,3 +1072,12 @@ M2.4b.2a validation:
 - Serialized exact replay before mutable catalog reads, pinned current-currency Offer/Price and actor/Workspace evidence, and persisted one pending Checkout without transaction, invoice, ledger, lot, settlement, or Credit mutation.
 - Verified `57` focused unit/regression tests, `2` PostgreSQL concurrency/full-chain tests, `8` API i18n tests, Product locale parity, targeted static checks, no migration drift, zero changed-scope review blockers, and a LOW-risk GitNexus pre-commit audit. The package gate retains the existing `289` unrelated type diagnostics.
 - Completed M2.4b.2a and selected M2.4b.2b signed simulated settlement and exact-once transaction/ledger/lot grant as the only active part.
+
+### 2026-08-06 — M2.4b.2b signed simulated settlement and exact Credit grant
+
+- Added the strict signed `top_up.checkout.outcome` chain through simulated command, signature verification, encrypted inbox, pinned Connector Job, top-up normalization, and the dedicated atomic settlement application service.
+- Completed exact-once success projection for Checkout/command, top-up transaction, `LEDGER_TOP_UP` entry, non-expiring purchased lot, Credit balance/revision, immutable application receipt, and required Activity audit.
+- Preserved explicit pending, failed, canceled, replay, conflict, delayed, and out-of-order behavior without direct Provider-event bypass, Stripe impersonation, or a fabricated success path.
+- Added and applied `0128_top_up_settlement_applications`, verified its PostgreSQL uniqueness/nullability/index contract, and confirmed migration generation has no remaining drift.
+- Verified `31` focused tests, `6` PostgreSQL full-chain/migration tests, `286` expanded Commerce tests, API/Product i18n, Product Credit-ledger rendering, targeted static checks, zero changed-scope blockers, and a LOW-risk staged GitNexus audit.
+- Completed M2.4b.2 and selected M2.4b.3 Stripe top-up Checkout and settlement as the only active part.

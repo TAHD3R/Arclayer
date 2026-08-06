@@ -66,6 +66,7 @@
   "LEDGER_RESERVED_CHANGE": "Reserved balance",
   "LEDGER_RESERVED_SHORT": "Reserved {{value}}",
   "LEDGER_SECONDARY_DESCRIPTION": "Review credit grants, reservations, usage, returns, and adjustments.",
+  "LEDGER_TOP_UP": "Purchased credits added.",
   "LEDGER_TYPE_ADJUSTMENT": "Balance adjusted",
   "LEDGER_TYPE_COMMIT": "Credits used",
   "LEDGER_TYPE_EXPIRATION": "Credit expiration",

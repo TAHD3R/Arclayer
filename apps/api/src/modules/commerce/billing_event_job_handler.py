@@ -39,6 +39,11 @@ from src.modules.commerce.billing_provider_application_service import (
     BillingProviderSubscriptionApplicator,
     VerifiedBillingProviderEvent,
 )
+from src.modules.commerce.billing_top_up_settlement_application_service import (
+    BillingProviderTopUpSettlementApplicator,
+    build_billing_top_up_settlement_application_service,
+)
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 from src.modules.jobs.execution_errors import (
     PermanentJobExecutionError,
     TransientJobExecutionError,
@@ -60,12 +65,16 @@ class BillingConnectorEventJobHandler:
         repository: BillingEventInboxRepository | None = None,
         applicator: BillingProviderSubscriptionApplicator | None = None,
         checkout_applicator: BillingProviderCheckoutOutcomeApplicator | None = None,
+        top_up_applicator: BillingProviderTopUpSettlementApplicator | None = None,
     ) -> None:
         self._settings = settings
         self._connectors = connectors
         self._repository = repository or BillingEventInboxRepository()
         self._applicator = applicator or BillingProviderSubscriptionApplicationService(settings=settings)
         self._checkout_applicator = checkout_applicator or BillingProviderCheckoutOutcomeApplicationService(
+            settings=settings
+        )
+        self._top_up_applicator = top_up_applicator or build_billing_top_up_settlement_application_service(
             settings=settings
         )
 
@@ -108,7 +117,7 @@ class BillingConnectorEventJobHandler:
         payload = self._decrypt_and_validate_payload(inbox)
 
         await context.report_progress(_progress("normalizing", 1))
-        checkout_outcome, subscription = await self._normalize_event(
+        checkout_outcome, top_up_settlement, subscription = await self._normalize_event(
             connector=connector,
             inbox=inbox,
             payload=payload,
@@ -120,6 +129,7 @@ class BillingConnectorEventJobHandler:
             lambda: self._apply_and_mark(
                 inbox=inbox,
                 checkout_outcome=checkout_outcome,
+                top_up_settlement=top_up_settlement,
                 subscription=subscription,
             )
         )
@@ -190,7 +200,7 @@ class BillingConnectorEventJobHandler:
         connector: BillingConnector,
         inbox: ConnectorEventInbox,
         payload: bytes,
-    ) -> tuple[ProviderCheckoutOutcome | None, ProviderSubscription | None]:
+    ) -> tuple[ProviderCheckoutOutcome | None, ProviderTopUpSettlement | None, ProviderSubscription | None]:
         envelope = BillingWebhookEnvelope(
             provider_event_id=inbox.provider_event_id,
             event_type=inbox.event_type,
@@ -200,9 +210,9 @@ class BillingConnectorEventJobHandler:
         )
         try:
             checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
-            if checkout_outcome is not None:
-                return checkout_outcome, None
-            return None, await connector.subscription_from_event(payload=payload, envelope=envelope)
+            top_up_settlement = await connector.top_up_settlement_from_event(payload=payload, envelope=envelope)
+            subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
+            return checkout_outcome, top_up_settlement, subscription
         except APIError as exc:
             raise _connector_api_error(exc) from exc
 
@@ -211,9 +221,11 @@ class BillingConnectorEventJobHandler:
         *,
         inbox: ConnectorEventInbox,
         checkout_outcome: ProviderCheckoutOutcome | None,
+        top_up_settlement: ProviderTopUpSettlement | None,
         subscription: ProviderSubscription | None,
     ) -> BillingConnectorEventJobResult:
-        if checkout_outcome is not None and subscription is not None:
+        outcomes = (checkout_outcome, top_up_settlement, subscription)
+        if sum(outcome is not None for outcome in outcomes) > 1:
             raise PermanentJobExecutionError(
                 code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
                 safe_message="Billing Connector event normalized to multiple commercial outcomes",
@@ -228,6 +240,12 @@ class BillingConnectorEventJobHandler:
             workspace_id = await self._apply_checkout_outcome(
                 inbox=inbox,
                 outcome=checkout_outcome,
+                verified_event=verified_event,
+            )
+        elif top_up_settlement is not None:
+            workspace_id = await self._apply_top_up_settlement(
+                inbox=inbox,
+                settlement=top_up_settlement,
                 verified_event=verified_event,
             )
         elif subscription is not None:
@@ -276,6 +294,30 @@ class BillingConnectorEventJobHandler:
             )
         except APIError as exc:
             raise _application_error(exc, subject="Checkout") from exc
+        return result.workspace_id
+
+    async def _apply_top_up_settlement(
+        self,
+        *,
+        inbox: ConnectorEventInbox,
+        settlement: ProviderTopUpSettlement,
+        verified_event: VerifiedBillingProviderEvent,
+    ) -> UUID:
+        if settlement.event_id != inbox.provider_event_id:
+            raise PermanentJobExecutionError(
+                code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
+                safe_message="Normalized top-up event identity differs from its inbox record",
+            )
+        try:
+            result = await self._top_up_applicator.apply_provider_top_up_settlement(
+                settlement=settlement,
+                provider=inbox.provider,
+                provider_mode=str(inbox.provider_mode),
+                provider_account_id=inbox.provider_account_id,
+                verified_event=verified_event,
+            )
+        except APIError as exc:
+            raise _application_error(exc, subject="top-up") from exc
         return result.workspace_id
 
     async def _apply_subscription(

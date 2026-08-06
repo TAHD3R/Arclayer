@@ -14,6 +14,7 @@ from src.models.commerce.payments import (
     CommerceTransactionStatus,
 )
 from src.modules.commerce.subscription_transitions.schema import ProviderConfirmedTransitionEvidence
+from src.modules.commerce.top_up_settlement_evidence import ProviderTopUpSettlement
 
 
 class BillingRedirectSession(BaseModel):
@@ -266,3 +267,10 @@ class BillingConnector(Protocol):
         payload: bytes,
         envelope: BillingWebhookEnvelope,
     ) -> ProviderCheckoutOutcome | None: ...
+
+    async def top_up_settlement_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderTopUpSettlement | None: ...

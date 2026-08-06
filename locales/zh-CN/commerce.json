@@ -66,6 +66,7 @@
   "LEDGER_RESERVED_CHANGE": "预留余额",
   "LEDGER_RESERVED_SHORT": "预留 {{value}}",
   "LEDGER_SECONDARY_DESCRIPTION": "查看积分发放、预留、使用、退还和调整记录。",
+  "LEDGER_TOP_UP": "购买积分已添加。",
   "LEDGER_TYPE_ADJUSTMENT": "余额调整",
   "LEDGER_TYPE_COMMIT": "积分已用",
   "LEDGER_TYPE_EXPIRATION": "积分到期",
