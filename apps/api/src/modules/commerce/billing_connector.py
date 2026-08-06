@@ -73,6 +73,32 @@ class ProviderTransactionProjection(BaseModel):
     occurred_at: AwareDatetime
 
 
+class ProviderRefund(BaseModel):
+    """Provider refund request result; completion still requires a signed event."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    external_refund_id: str = Field(..., min_length=1, max_length=255)
+    external_transaction_id: str = Field(..., min_length=1, max_length=255)
+    status: Literal["pending", "succeeded", "failed", "canceled"]
+    amount_micros: int = Field(..., gt=0)
+    currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+
+
+class ProviderRefundOutcome(BaseModel):
+    """Signed Provider refund evidence normalized for one exact refund identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    event_id: str = Field(..., min_length=1, max_length=255)
+    external_refund_id: str = Field(..., min_length=1, max_length=255)
+    external_transaction_id: str = Field(..., min_length=1, max_length=255)
+    status: Literal["succeeded", "failed", "canceled"]
+    amount_micros: int = Field(..., gt=0)
+    currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    occurred_at: AwareDatetime
+
+
 class ProviderInvoiceProjection(BaseModel):
     """Current invoice facts and exact transaction links from one Provider event."""
 
@@ -274,3 +300,22 @@ class BillingConnector(Protocol):
         payload: bytes,
         envelope: BillingWebhookEnvelope,
     ) -> ProviderTopUpSettlement | None: ...
+
+
+@runtime_checkable
+class BillingRefundConnector(Protocol):
+    async def create_refund(
+        self,
+        *,
+        external_transaction_id: str,
+        amount_micros: int,
+        currency: str,
+        idempotency_key: str,
+    ) -> ProviderRefund: ...
+
+    async def refund_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderRefundOutcome | None: ...

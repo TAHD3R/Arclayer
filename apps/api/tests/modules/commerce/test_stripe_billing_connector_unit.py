@@ -15,7 +15,6 @@ import pytest
 
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.extensions.manager import ExtensionManager
-from src.modules.commerce.billing_connector import BillingConnector
 from src.modules.commerce.convergence.schema import PlanRevisionRef
 from src.modules.commerce.subscription_transitions.schema import (
     ProviderRevisionSchedulingFacts,
@@ -57,10 +56,12 @@ def test_stripe_registers_invoice_dunning_events_for_durable_acceptance() -> Non
         "invoice.payment_succeeded",
         "invoice.marked_uncollectible",
         "invoice_payment.paid",
+        "refund.updated",
+        "charge.refunded",
     }.issubset(registration.definition.webhook_events)
 
 
-def _provider(handler: httpx.MockTransport) -> BillingConnector:
+def _provider(handler: httpx.MockTransport) -> Any:
     return StripeBillingConnector(
         secret_key="sk_test_unit",
         webhook_secret="whsec_unit",
@@ -524,7 +525,7 @@ async def test_stripe_schedules_exact_target_revision_with_provider_idempotency(
         assert data["phases[1][metadata][plan_revision_id]"] == str(target_revision_id)
         return httpx.Response(200, json={"id": "sub_sched_target123"})
 
-    provider = cast(Any, _provider(httpx.MockTransport(handler)))
+    provider = _provider(httpx.MockTransport(handler))
     schedule_id = await provider.schedule_subscription_revision(
         preview=preview,
         idempotency_key="transition-schedule",
@@ -561,6 +562,113 @@ async def test_stripe_webhook_rejects_price_that_differs_from_signed_metadata() 
 
     with pytest.raises(BadRequest) as captured:
         await provider.subscription_from_event(payload=payload, envelope=envelope)
+
+    assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_stripe_create_refund_uses_payment_intent_and_exact_amount() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v1/refunds"
+        assert request.headers["Idempotency-Key"] == "arclayer:refund:test"
+        captured.update(dict(httpx.QueryParams(request.content.decode())))
+        return httpx.Response(
+            200,
+            json={
+                "id": "re_refund123",
+                "payment_intent": "pi_refund123",
+                "status": "pending",
+                "amount": 900,
+                "currency": "usd",
+                "created": 1_800_000_000,
+            },
+        )
+
+    provider = _provider(httpx.MockTransport(handler))
+    result = await provider.create_refund(
+        external_transaction_id="pi_refund123",
+        amount_micros=9_000_000,
+        currency="USD",
+        idempotency_key="arclayer:refund:test",
+    )
+
+    assert captured == {"payment_intent": "pi_refund123", "amount": "900"}
+    assert result.external_refund_id == "re_refund123"
+    assert result.status == "pending"
+    assert result.amount_micros == 9_000_000
+
+
+@pytest.mark.asyncio
+async def test_stripe_refund_updated_normalizes_only_provider_confirmed_terminal_status() -> None:
+    event = {
+        "id": "evt_refund123",
+        "type": "refund.updated",
+        "created": 1_800_000_001,
+        "data": {
+            "object": {
+                "id": "re_refund123",
+                "payment_intent": "pi_refund123",
+                "status": "succeeded",
+                "amount": 900,
+                "currency": "usd",
+                "created": 1_800_000_000,
+            }
+        },
+    }
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    result = await provider.refund_from_event(payload=payload, envelope=envelope)
+
+    assert result is not None
+    assert result.event_id == "evt_refund123"
+    assert result.external_refund_id == "re_refund123"
+    assert result.external_transaction_id == "pi_refund123"
+    assert result.amount_micros == 9_000_000
+    assert result.currency == "USD"
+
+
+@pytest.mark.asyncio
+async def test_stripe_refund_normalization_rejects_partial_charge_refund_shape() -> None:
+    event = {
+        "id": "evt_chargerefunded123",
+        "type": "charge.refunded",
+        "created": 1_800_000_001,
+        "data": {
+            "object": {
+                "id": "ch_refunded123",
+                "refunds": {
+                    "data": [
+                        {
+                            "id": "re_refund123",
+                            "payment_intent": "pi_refund123",
+                            "status": "succeeded",
+                            "amount": 400,
+                            "currency": "usd",
+                            "created": 1_800_000_000,
+                        },
+                        {
+                            "id": "re_refund124",
+                            "payment_intent": "pi_refund123",
+                            "status": "succeeded",
+                            "amount": 500,
+                            "currency": "usd",
+                            "created": 1_800_000_000,
+                        },
+                    ]
+                },
+            }
+        },
+    }
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    with pytest.raises(BadRequest) as captured:
+        await provider.refund_from_event(payload=payload, envelope=envelope)
 
     assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
 

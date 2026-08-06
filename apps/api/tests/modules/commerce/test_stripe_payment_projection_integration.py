@@ -39,16 +39,20 @@ from src.models.commerce.payments import (
     CommerceCheckoutStatus,
     CommerceCreditTopUpOffer,
     CommerceInvoice,
+    CommerceInvoiceStatus,
     CommerceProviderPaymentProjection,
     CommerceProviderPaymentTransactionProjection,
+    CommerceRefund,
+    CommerceRefundStatus,
     CommerceTopUpSettlementApplication,
     CommerceTransaction,
+    CommerceTransactionStatus,
 )
 from src.models.connectors.inbox import ConnectorEventInbox
 from src.models.jobs.background_job import BackgroundJobRecord
 from src.models.organization.organization import Organization
 from src.models.workspaces.workspace import Workspace
-from src.modules.commerce.billing_connector import BillingConnector
+from src.modules.commerce.billing_connector import BillingConnector, ProviderRefundOutcome
 from src.modules.commerce.billing_event_acceptance_service import BillingEventAcceptanceService
 from src.modules.commerce.billing_event_job_contract import (
     BillingConnectorEventJobInput,
@@ -56,6 +60,8 @@ from src.modules.commerce.billing_event_job_contract import (
 )
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
+from src.modules.commerce.billing_provider_application_service import VerifiedBillingProviderEvent
+from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundApplicationService
 from src.modules.jobs.execution_errors import PermanentJobExecutionError
 from src.modules.jobs.execution_registry import JobExecutionContext
 from src.modules.jobs.service import BackgroundJobService
@@ -324,15 +330,12 @@ async def test_signed_stripe_partial_then_paid_invoice_projects_before_granting_
         assert request.url.path == f"/v1/subscriptions/{provider_subscription['id']}"
         return httpx.Response(200, json=provider_subscription)
 
-    connector = cast(
-        BillingConnector,
-        StripeBillingConnector(
-            secret_key="sk_test_integration",
-            webhook_secret=webhook_secret,
-            api_base_url="https://stripe.test/v1",
-            webhook_tolerance_seconds=300,
-            client=httpx.AsyncClient(transport=httpx.MockTransport(provider_handler)),
-        ),
+    connector = StripeBillingConnector(
+        secret_key="sk_test_integration",
+        webhook_secret=webhook_secret,
+        api_base_url="https://stripe.test/v1",
+        webhook_tolerance_seconds=300,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(provider_handler)),
     )
     settings = _settings(tmp_path, webhook_secret=webhook_secret)
     acceptance = BillingEventAcceptanceService(
@@ -540,19 +543,29 @@ async def test_signed_stripe_top_up_full_chain_replay_and_second_payment_rejecti
     webhook_secret = "whsec_stripe_topup_integration"
 
     def provider_handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/v1/refunds":
+            assert request.url.params == httpx.QueryParams()
+            return httpx.Response(
+                200,
+                json={
+                    "id": f"re_topup{suffix}",
+                    "payment_intent": payment_intent_id,
+                    "status": "pending",
+                    "amount": 2_000,
+                    "currency": "usd",
+                    "created": event_timestamp,
+                },
+            )
         assert request.url.path == f"/v1/checkout/sessions/{external_session_id}"
         assert request.url.params.get_list("expand[]") == ["line_items.data.price", "payment_intent", "invoice"]
         return httpx.Response(200, json=checkout_body)
 
-    connector = cast(
-        BillingConnector,
-        StripeBillingConnector(
-            secret_key="sk_test_integration",
-            webhook_secret=webhook_secret,
-            api_base_url="https://stripe.test/v1",
-            webhook_tolerance_seconds=300,
-            client=httpx.AsyncClient(transport=httpx.MockTransport(provider_handler)),
-        ),
+    connector = StripeBillingConnector(
+        secret_key="sk_test_integration",
+        webhook_secret=webhook_secret,
+        api_base_url="https://stripe.test/v1",
+        webhook_tolerance_seconds=300,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(provider_handler)),
     )
     settings = _settings(tmp_path, webhook_secret=webhook_secret)
     acceptance = BillingEventAcceptanceService(
@@ -614,3 +627,73 @@ async def test_signed_stripe_top_up_full_chain_replay_and_second_payment_rejecti
     await account.refresh_from_db()
     assert account.balance_credits == 2_050
     assert await CommerceTransaction.all().count() == 1
+
+    refund_service = BillingTopUpRefundApplicationService(settings=settings)
+    refund = await refund_service.request_refund(
+        transaction_id=transaction.id,
+        actor_user_id=checkout.actor_user_id,
+        reason="customer requested full top-up refund",
+        idempotency_key=f"refund-{suffix}",
+        provider=connector,
+    )
+    await account.refresh_from_db()
+    await lot.refresh_from_db()
+    assert refund.status == CommerceRefundStatus.PENDING
+    assert refund.held_credits == offer.credit_amount
+    assert account.reserved_credits == offer.credit_amount
+    assert lot.reserved_credits == offer.credit_amount
+    assert await CommerceRefund.all().count() == 1
+
+    refund_outcome = await refund_service.apply_provider_refund_outcome(
+        outcome=ProviderRefundOutcome(
+            event_id=f"evt_refund{suffix}",
+            external_refund_id=f"re_topup{suffix}",
+            external_transaction_id=payment_intent_id,
+            status="succeeded",
+            amount_micros=checkout.amount_micros,
+            currency="USD",
+            occurred_at=now,
+        ),
+        provider="stripe",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=VerifiedBillingProviderEvent(
+            provider_event_id=f"evt_refund{suffix}",
+            payload_sha256="f" * 64,
+            signature_reference="stripe:t=integration",
+        ),
+    )
+    replayed_refund = await refund_service.apply_provider_refund_outcome(
+        outcome=ProviderRefundOutcome(
+            event_id=f"evt_refund{suffix}",
+            external_refund_id=f"re_topup{suffix}",
+            external_transaction_id=payment_intent_id,
+            status="succeeded",
+            amount_micros=checkout.amount_micros,
+            currency="USD",
+            occurred_at=now,
+        ),
+        provider="stripe",
+        provider_mode="test",
+        provider_account_id="platform",
+        verified_event=VerifiedBillingProviderEvent(
+            provider_event_id=f"evt_refund{suffix}",
+            payload_sha256="f" * 64,
+            signature_reference="stripe:t=integration",
+        ),
+    )
+    await account.refresh_from_db()
+    await lot.refresh_from_db()
+    await transaction.refresh_from_db()
+    await invoice.refresh_from_db()
+    assert refund_outcome == replayed_refund
+    assert refund_outcome.status == CommerceRefundStatus.SUCCEEDED
+    assert account.balance_credits == 50
+    assert account.reserved_credits == 0
+    assert lot.remaining_credits == 0
+    assert lot.reserved_credits == 0
+    assert transaction.status == CommerceTransactionStatus.REFUNDED
+    assert invoice.status == CommerceInvoiceStatus.REFUNDED
+    assert invoice.amount_refunded_micros == checkout.amount_micros
+    assert await CommerceTransaction.all().count() == 1
+    assert await CommerceRefund.all().count() == 1

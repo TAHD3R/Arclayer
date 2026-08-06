@@ -34,6 +34,8 @@ from src.modules.commerce.billing_connector import (
     ProviderCheckoutOutcome,
     ProviderDunningEvent,
     ProviderInvoiceProjection,
+    ProviderRefund,
+    ProviderRefundOutcome,
     ProviderSubscription,
     ProviderTransactionProjection,
 )
@@ -272,6 +274,17 @@ class SimulatedBillingConnector:
         del customer_id, return_url, idempotency_key
         raise ServiceUnavailable(error="BILLING_SIMULATOR_PORTAL_NOT_AVAILABLE")
 
+    async def create_refund(
+        self,
+        *,
+        external_transaction_id: str,
+        amount_micros: int,
+        currency: str,
+        idempotency_key: str,
+    ) -> ProviderRefund:
+        del external_transaction_id, amount_micros, currency, idempotency_key
+        raise ServiceUnavailable(error="BILLING_SIMULATOR_REFUND_NOT_AVAILABLE")
+
     def verify_webhook(self, *, payload: bytes, signature: str) -> BillingWebhookEnvelope:
         timestamp = self._verify_signature(payload=payload, signature=signature)
         event = self._parse_event(payload)
@@ -405,6 +418,15 @@ class SimulatedBillingConnector:
             external_invoice_id=data.external_invoice_id,
             occurred_at=_provider_timestamp(event.created),
         )
+
+    async def refund_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderRefundOutcome | None:
+        del payload, envelope
+        return None
 
     def _verify_signature(self, *, payload: bytes, signature: str) -> int:
         parts: dict[str, list[str]] = {}

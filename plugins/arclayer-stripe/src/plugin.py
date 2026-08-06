@@ -35,6 +35,8 @@ from src.modules.commerce.billing_connector import (
     ProviderCheckoutOutcome,
     ProviderDunningEvent,
     ProviderInvoiceProjection,
+    ProviderRefund,
+    ProviderRefundOutcome,
     ProviderSubscription,
     ProviderTransactionProjection,
 )
@@ -70,6 +72,7 @@ _STRIPE_INVOICE_EVENT_TYPES = frozenset({
     "invoice.payment_succeeded",
 })
 _STRIPE_INVOICE_PAYMENT_EVENT_TYPES = frozenset({"invoice_payment.paid"})
+_STRIPE_REFUND_EVENT_TYPES = frozenset({"refund.updated", "charge.refunded"})
 _STRIPE_INVOICE_STATUS_MAP = {
     "open": CommerceInvoiceStatus.OPEN,
     "paid": CommerceInvoiceStatus.PAID,
@@ -280,6 +283,17 @@ class _StripeCheckoutPayload(BaseModel):
     line_items: _StripeCheckoutLineItems
 
 
+class _StripeRefundPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^re_[A-Za-z0-9]+$", max_length=255)
+    payment_intent: str = Field(pattern=r"^pi_[A-Za-z0-9]+$", max_length=255)
+    status: Literal["pending", "succeeded", "failed", "canceled"]
+    amount: int = Field(gt=0)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+    created: int
+
+
 _TOP_UP_METADATA_KEYS = frozenset({
     "workspace_id",
     "top_up_offer_id",
@@ -305,6 +319,13 @@ def _subscription_price_facts(subscription: _StripeSubscriptionPayload) -> tuple
 def _stripe_amount_to_micros(*, amount: int, currency: str) -> int:
     scale = _MICROS_PER_MAJOR_UNIT if currency in _STRIPE_ZERO_DECIMAL_PAYMENT_CURRENCIES else _MICROS_PER_CENT
     return amount * scale
+
+
+def _micros_to_stripe_amount(*, amount_micros: int, currency: str) -> int:
+    scale = _MICROS_PER_MAJOR_UNIT if currency in _STRIPE_ZERO_DECIMAL_PAYMENT_CURRENCIES else _MICROS_PER_CENT
+    if amount_micros <= 0 or amount_micros % scale != 0:
+        raise BadRequest(error="BILLING_REFUND_AMOUNT_INVALID")
+    return amount_micros // scale
 
 
 def _top_up_metadata(metadata: dict[str, str]) -> tuple[UUID, UUID, int, int, str, str, int]:
@@ -645,6 +666,45 @@ class StripeBillingConnector:
         )
         return self._redirect_session_from_body(body)
 
+    async def create_refund(
+        self,
+        *,
+        external_transaction_id: str,
+        amount_micros: int,
+        currency: str,
+        idempotency_key: str,
+    ) -> ProviderRefund:
+        if not re.fullmatch(r"pi_[A-Za-z0-9]+", external_transaction_id):
+            raise BadRequest(error="BILLING_REFUND_TRANSACTION_INVALID")
+        normalized_currency = currency.upper()
+        amount = _micros_to_stripe_amount(amount_micros=amount_micros, currency=normalized_currency)
+        body = await self._request(
+            "POST",
+            "/refunds",
+            data={
+                "payment_intent": external_transaction_id,
+                "amount": str(amount),
+            },
+            idempotency_key=idempotency_key,
+        )
+        try:
+            refund = _StripeRefundPayload.model_validate(body)
+        except ValidationError as exc:
+            raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE") from exc
+        if (
+            refund.payment_intent != external_transaction_id
+            or refund.currency.upper() != normalized_currency
+            or _stripe_amount_to_micros(amount=refund.amount, currency=normalized_currency) != amount_micros
+        ):
+            raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE")
+        return ProviderRefund(
+            external_refund_id=refund.id,
+            external_transaction_id=refund.payment_intent,
+            status=refund.status,
+            amount_micros=amount_micros,
+            currency=normalized_currency,
+        )
+
     async def schedule_subscription_revision(
         self,
         *,
@@ -910,6 +970,49 @@ class StripeBillingConnector:
         except (ValidationError, ValueError) as exc:
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
+    async def refund_from_event(
+        self,
+        *,
+        payload: bytes,
+        envelope: BillingWebhookEnvelope,
+    ) -> ProviderRefundOutcome | None:
+        event = self._parse_event(payload)
+        if (
+            event.id != envelope.provider_event_id
+            or event.type != envelope.event_type
+            or ("live" if event.livemode else "test") != envelope.provider_mode
+            or (event.account or "platform") != envelope.provider_account_id
+        ):
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        if event.type not in _STRIPE_REFUND_EVENT_TYPES:
+            return None
+        refund_payload: object = event.data.object
+        if event.type == "charge.refunded":
+            refunds = event.data.object.get("refunds")
+            if not isinstance(refunds, dict):
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            data = refunds.get("data")
+            if not isinstance(data, list) or len(data) != 1:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            refund_payload = data[0]
+        try:
+            refund = _StripeRefundPayload.model_validate(refund_payload)
+        except ValidationError as exc:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+        if refund.status == "pending":
+            return None
+        if event.created is None:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        return ProviderRefundOutcome(
+            event_id=event.id,
+            external_refund_id=refund.id,
+            external_transaction_id=refund.payment_intent,
+            status=refund.status,
+            amount_micros=_stripe_amount_to_micros(amount=refund.amount, currency=refund.currency.upper()),
+            currency=refund.currency.upper(),
+            occurred_at=_provider_timestamp(event.created),
+        )
+
     @staticmethod
     def _parse_event(payload: bytes) -> _StripeWebhookEvent:
         try:
@@ -1072,7 +1175,7 @@ class StripeBillingExtension:
                 kind=ConnectorKind.BILLING,
                 version="1.0.0",
                 trust_level=ConnectorTrustLevel.OFFICIAL,
-                capabilities=("checkout", "customer_portal", "subscription_webhook"),
+                capabilities=("checkout", "customer_portal", "subscription_webhook", "refund"),
                 config_schema={
                     "apiBaseUrl": {"type": "string", "format": "uri"},
                     "webhookToleranceSeconds": {"type": "integer", "minimum": 30, "maximum": 3600},
@@ -1091,6 +1194,8 @@ class StripeBillingExtension:
                     "invoice.payment_succeeded",
                     "invoice.marked_uncollectible",
                     "invoice_payment.paid",
+                    "refund.updated",
+                    "charge.refunded",
                 ),
                 health_contract=("configured", "reachable", "webhook_configured"),
                 admin=ConnectorAdminMetadata(

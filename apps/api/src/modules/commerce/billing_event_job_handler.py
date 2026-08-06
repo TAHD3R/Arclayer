@@ -16,6 +16,7 @@ from src.modules.commerce.billing_connector import (
     BillingConnector,
     BillingWebhookEnvelope,
     ProviderCheckoutOutcome,
+    ProviderRefundOutcome,
     ProviderSubscription,
 )
 from src.modules.commerce.billing_event_crypto import (
@@ -39,6 +40,7 @@ from src.modules.commerce.billing_provider_application_service import (
     BillingProviderSubscriptionApplicator,
     VerifiedBillingProviderEvent,
 )
+from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundApplicationService
 from src.modules.commerce.billing_top_up_settlement_application_service import (
     BillingProviderTopUpSettlementApplicator,
     build_billing_top_up_settlement_application_service,
@@ -66,6 +68,7 @@ class BillingConnectorEventJobHandler:
         applicator: BillingProviderSubscriptionApplicator | None = None,
         checkout_applicator: BillingProviderCheckoutOutcomeApplicator | None = None,
         top_up_applicator: BillingProviderTopUpSettlementApplicator | None = None,
+        refund_applicator: BillingTopUpRefundApplicationService | None = None,
     ) -> None:
         self._settings = settings
         self._connectors = connectors
@@ -77,6 +80,7 @@ class BillingConnectorEventJobHandler:
         self._top_up_applicator = top_up_applicator or build_billing_top_up_settlement_application_service(
             settings=settings
         )
+        self._refund_applicator = refund_applicator or BillingTopUpRefundApplicationService(settings=settings)
 
     async def reconcile(
         self,
@@ -117,7 +121,7 @@ class BillingConnectorEventJobHandler:
         payload = self._decrypt_and_validate_payload(inbox)
 
         await context.report_progress(_progress("normalizing", 1))
-        checkout_outcome, top_up_settlement, subscription = await self._normalize_event(
+        checkout_outcome, top_up_settlement, subscription, refund_outcome = await self._normalize_event(
             connector=connector,
             inbox=inbox,
             payload=payload,
@@ -131,6 +135,7 @@ class BillingConnectorEventJobHandler:
                 checkout_outcome=checkout_outcome,
                 top_up_settlement=top_up_settlement,
                 subscription=subscription,
+                refund_outcome=refund_outcome,
             )
         )
         await context.report_progress(_progress("applying", _PROGRESS_TOTAL))
@@ -200,7 +205,12 @@ class BillingConnectorEventJobHandler:
         connector: BillingConnector,
         inbox: ConnectorEventInbox,
         payload: bytes,
-    ) -> tuple[ProviderCheckoutOutcome | None, ProviderTopUpSettlement | None, ProviderSubscription | None]:
+    ) -> tuple[
+        ProviderCheckoutOutcome | None,
+        ProviderTopUpSettlement | None,
+        ProviderSubscription | None,
+        ProviderRefundOutcome | None,
+    ]:
         envelope = BillingWebhookEnvelope(
             provider_event_id=inbox.provider_event_id,
             event_type=inbox.event_type,
@@ -212,7 +222,17 @@ class BillingConnectorEventJobHandler:
             checkout_outcome = await connector.checkout_outcome_from_event(payload=payload, envelope=envelope)
             top_up_settlement = await connector.top_up_settlement_from_event(payload=payload, envelope=envelope)
             subscription = await connector.subscription_from_event(payload=payload, envelope=envelope)
-            return checkout_outcome, top_up_settlement, subscription
+            refund_normalizer = getattr(connector, "refund_from_event", None)
+            if not callable(refund_normalizer):
+                if "refund" in inbox.event_type or inbox.event_type == "charge.refunded":
+                    raise APIError(
+                        status_code=503,
+                        error="BILLING_REFUND_CONNECTOR_UNAVAILABLE",
+                    )
+                refund_outcome = None
+            else:
+                refund_outcome = await refund_normalizer(payload=payload, envelope=envelope)
+            return checkout_outcome, top_up_settlement, subscription, refund_outcome
         except APIError as exc:
             raise _connector_api_error(exc) from exc
 
@@ -223,8 +243,9 @@ class BillingConnectorEventJobHandler:
         checkout_outcome: ProviderCheckoutOutcome | None,
         top_up_settlement: ProviderTopUpSettlement | None,
         subscription: ProviderSubscription | None,
+        refund_outcome: ProviderRefundOutcome | None,
     ) -> BillingConnectorEventJobResult:
-        outcomes = (checkout_outcome, top_up_settlement, subscription)
+        outcomes = (checkout_outcome, top_up_settlement, subscription, refund_outcome)
         if sum(outcome is not None for outcome in outcomes) > 1:
             raise PermanentJobExecutionError(
                 code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
@@ -252,6 +273,12 @@ class BillingConnectorEventJobHandler:
             workspace_id = await self._apply_subscription(
                 inbox=inbox,
                 subscription=subscription,
+                verified_event=verified_event,
+            )
+        elif refund_outcome is not None:
+            workspace_id = await self._apply_refund_outcome(
+                inbox=inbox,
+                outcome=refund_outcome,
                 verified_event=verified_event,
             )
         result = BillingConnectorEventJobResult(
@@ -318,6 +345,30 @@ class BillingConnectorEventJobHandler:
             )
         except APIError as exc:
             raise _application_error(exc, subject="top-up") from exc
+        return result.workspace_id
+
+    async def _apply_refund_outcome(
+        self,
+        *,
+        inbox: ConnectorEventInbox,
+        outcome: ProviderRefundOutcome,
+        verified_event: VerifiedBillingProviderEvent,
+    ) -> UUID:
+        if outcome.event_id != inbox.provider_event_id:
+            raise PermanentJobExecutionError(
+                code=BILLING_CONNECTOR_EVENT_PAYLOAD_INVALID_CODE,
+                safe_message="Normalized refund event identity differs from its inbox record",
+            )
+        try:
+            result = await self._refund_applicator.apply_provider_refund_outcome(
+                outcome=outcome,
+                provider=inbox.provider,
+                provider_mode=str(inbox.provider_mode),
+                provider_account_id=inbox.provider_account_id,
+                verified_event=verified_event,
+            )
+        except APIError as exc:
+            raise _application_error(exc, subject="refund") from exc
         return result.workspace_id
 
     async def _apply_subscription(
