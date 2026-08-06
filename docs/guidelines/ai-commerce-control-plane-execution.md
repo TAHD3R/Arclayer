@@ -840,6 +840,15 @@ M2.4b.3a validation:
 - Final staged GitNexus detection reported `LOW` risk across `3` files and `24` indexed symbols, with no affected execution flow.
 - M2.4b.3a is complete. The only active implementation part is M2.4b.3b accepted Stripe settlement normalization.
 
+M2.4b.3b implementation boundary:
+
+- The existing `BillingProviderTopUpSettlementApplicationService` is the only settlement authority, but its current evidence loader is still simulated-only. M2.4b.3b must remove that provider hard-code rather than introduce a Stripe-specific applicator or direct Credit mutation path.
+- Stripe normalization owns Provider evidence only. It accepts a signature-verified `checkout.session.completed` event only when the retrieved Checkout is `mode = payment`, the payment is complete, and the Checkout, PaymentIntent, optional invoice, single line item, Price, quantity, money, currency, and immutable metadata agree exactly.
+- Stripe resolves the local immutable Checkout snapshot by Provider/mode/account/external Session identity inside the applicator transaction. Internal Checkout id, actor, and request fingerprint are local evidence and are not trusted from Provider metadata.
+- Simulated settlement continues to require its durable outcome command and exact command/event/revision agreement. Stripe has no simulated command; the existing nullable command relation records `null` while the same Checkout, application, transaction, ledger, lot, and Credit uniqueness boundaries remain authoritative.
+- The common applicator enriches normalized Stripe facts from the locked local Checkout before fingerprinting and validation, then applies the existing exact-once success transaction. A second successful event for the same Checkout, a reused PaymentIntent, stale Checkout state, or changed event evidence fails reconciliation without another grant.
+- Payment-mode top-up Checkout events must normalize to top-up only, while subscription-mode Checkout completion remains unchanged. Unpaid, partially paid, asynchronous-pending, changed Price/quantity/amount/currency/Credits, mismatched mode/account, missing retrieval evidence, or invalid optional invoice facts fail explicitly; they do not normalize to pending success or fall back to simulated behavior.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
