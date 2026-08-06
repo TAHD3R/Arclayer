@@ -233,7 +233,105 @@ async def test_stripe_checkout_rejects_an_invalid_catalog_external_price_id() ->
 
 
 @pytest.mark.asyncio
-async def test_stripe_top_up_checkout_is_explicitly_unavailable_before_provider_io() -> None:
+async def test_stripe_top_up_checkout_uses_exact_price_payment_metadata_and_customer() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "https://stripe.test/v1/checkout/sessions"
+        assert request.headers["Idempotency-Key"] == "arclayer:top-up-checkout:unit"
+        captured.update(dict(httpx.QueryParams(request.content.decode())))
+        return httpx.Response(
+            200,
+            json={
+                "id": "cs_topup123",
+                "url": "https://checkout.stripe.test/cs_topup123",
+                "expires_at": 1_800_000_000,
+            },
+        )
+
+    provider = _provider(httpx.MockTransport(handler))
+    workspace_id = str(uuid4())
+    top_up_offer_id = str(uuid4())
+    result = await provider.create_top_up_checkout_session(
+        workspace_id=workspace_id,
+        top_up_offer_id=top_up_offer_id,
+        top_up_offer_revision=3,
+        credit_amount=2_000,
+        external_price_id="price_credits2000",
+        currency="USD",
+        amount_micros=20_000_000,
+        success_url="https://app.example.test/?billing=top-up-success",
+        cancel_url="https://app.example.test/?billing=top-up-canceled",
+        customer_id="cus_test",
+        idempotency_key="arclayer:top-up-checkout:unit",
+    )
+
+    metadata = {
+        "workspace_id": workspace_id,
+        "top_up_offer_id": top_up_offer_id,
+        "top_up_offer_revision": "3",
+        "credit_amount": "2000",
+        "external_price_id": "price_credits2000",
+        "currency": "USD",
+        "amount_micros": "20000000",
+    }
+    expected = {
+        "mode": "payment",
+        "success_url": "https://app.example.test/?billing=top-up-success",
+        "cancel_url": "https://app.example.test/?billing=top-up-canceled",
+        "line_items[0][quantity]": "1",
+        "line_items[0][price]": "price_credits2000",
+        "invoice_creation[enabled]": "true",
+        "customer": "cus_test",
+    }
+    for key, value in metadata.items():
+        expected[f"metadata[{key}]"] = value
+        expected[f"payment_intent_data[metadata][{key}]"] = value
+
+    assert result.url == "https://checkout.stripe.test/cs_topup123"
+    assert result.external_session_id == "cs_topup123"
+    assert result.provider_account_id == "platform"
+    assert int(result.expires_at.timestamp()) == 1_800_000_000
+    assert captured == expected
+    assert not any("price_data" in key for key in captured)
+
+
+@pytest.mark.asyncio
+async def test_stripe_top_up_checkout_requests_customer_creation_when_missing() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(dict(httpx.QueryParams(request.content.decode())))
+        return httpx.Response(
+            200,
+            json={
+                "id": "cs_topupcustomer123",
+                "url": "https://checkout.stripe.test/cs_topupcustomer123",
+                "expires_at": 1_800_000_000,
+            },
+        )
+
+    provider = _provider(httpx.MockTransport(handler))
+    await provider.create_top_up_checkout_session(
+        workspace_id=str(uuid4()),
+        top_up_offer_id=str(uuid4()),
+        top_up_offer_revision=1,
+        credit_amount=500,
+        external_price_id="price_credits500",
+        currency="USD",
+        amount_micros=5_000_000,
+        success_url="https://app.example.test/?billing=top-up-success",
+        cancel_url="https://app.example.test/?billing=top-up-canceled",
+        customer_id=None,
+        idempotency_key="arclayer:top-up-checkout:create-customer",
+    )
+
+    assert captured["customer_creation"] == "always"
+    assert "customer" not in captured
+
+
+@pytest.mark.asyncio
+async def test_stripe_top_up_checkout_rejects_invalid_price_before_provider_io() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -241,6 +339,29 @@ async def test_stripe_top_up_checkout_is_explicitly_unavailable_before_provider_
         return httpx.Response(500)
 
     provider = _provider(httpx.MockTransport(handler))
+    with pytest.raises(BadRequest) as captured:
+        await provider.create_top_up_checkout_session(
+            workspace_id=str(uuid4()),
+            top_up_offer_id=str(uuid4()),
+            top_up_offer_revision=1,
+            credit_amount=2_000,
+            external_price_id="not-a-price",
+            currency="USD",
+            amount_micros=20_000_000,
+            success_url="https://app.example.test/?billing=top-up-success",
+            cancel_url="https://app.example.test/?billing=top-up-canceled",
+            customer_id="cus_test",
+            idempotency_key="arclayer:top-up-checkout:unit",
+        )
+
+    assert captured.value.error == "BILLING_PRICE_NOT_SUPPORTED"
+    assert requests == []
+
+
+@pytest.mark.asyncio
+async def test_stripe_top_up_checkout_rejects_invalid_provider_response() -> None:
+    provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(200, json={"id": "cs_invalid"})))
+
     with pytest.raises(ServiceUnavailable) as captured:
         await provider.create_top_up_checkout_session(
             workspace_id=str(uuid4()),
@@ -252,12 +373,11 @@ async def test_stripe_top_up_checkout_is_explicitly_unavailable_before_provider_
             amount_micros=20_000_000,
             success_url="https://app.example.test/?billing=top-up-success",
             cancel_url="https://app.example.test/?billing=top-up-canceled",
-            customer_id="cus_test",
-            idempotency_key="arclayer:top-up-checkout:unit",
+            customer_id=None,
+            idempotency_key="arclayer:top-up-checkout:invalid-response",
         )
 
-    assert captured.value.error == "BILLING_TOP_UP_CHECKOUT_NOT_AVAILABLE"
-    assert requests == []
+    assert captured.value.error == "BILLING_PROVIDER_INVALID_RESPONSE"
 
 
 @pytest.mark.asyncio

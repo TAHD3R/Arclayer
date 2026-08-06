@@ -488,9 +488,38 @@ class StripeBillingConnector:
         customer_id: str | None,
         idempotency_key: str,
     ) -> CheckoutSession:
-        del workspace_id, top_up_offer_id, top_up_offer_revision, credit_amount, external_price_id
-        del currency, amount_micros, success_url, cancel_url, customer_id, idempotency_key
-        raise ServiceUnavailable(error="BILLING_TOP_UP_CHECKOUT_NOT_AVAILABLE")
+        price_id = self._require_external_price_id(external_price_id)
+        metadata = {
+            "workspace_id": workspace_id,
+            "top_up_offer_id": top_up_offer_id,
+            "top_up_offer_revision": str(top_up_offer_revision),
+            "credit_amount": str(credit_amount),
+            "external_price_id": price_id,
+            "currency": currency,
+            "amount_micros": str(amount_micros),
+        }
+        data = {
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "line_items[0][quantity]": "1",
+            "line_items[0][price]": price_id,
+            "invoice_creation[enabled]": "true",
+        }
+        for key, value in metadata.items():
+            data[f"metadata[{key}]"] = value
+            data[f"payment_intent_data[metadata][{key}]"] = value
+        if customer_id:
+            data["customer"] = customer_id
+        else:
+            data["customer_creation"] = "always"
+        body = await self._request(
+            "POST",
+            "/checkout/sessions",
+            data=data,
+            idempotency_key=idempotency_key,
+        )
+        return self._checkout_session_from_body(body)
 
     async def create_portal_session(
         self,

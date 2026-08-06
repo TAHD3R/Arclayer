@@ -381,6 +381,9 @@ M2 execution parts:
        - M2.4b.2a simulated top-up Checkout creation chain. — Complete
        - M2.4b.2b signed settlement and exact-once transaction/ledger/lot grant. — Complete
      - M2.4b.3 Stripe top-up Checkout and settlement. — Active
+       - M2.4b.3a Stripe top-up Checkout creation contract. — Active
+       - M2.4b.3b accepted Stripe Checkout settlement normalization and exact grant. — Pending
+       - M2.4b.3c Stripe full-chain, replay, ordering, and closure. — Pending
      - M2.4b.4 full top-up refund hold and Provider-confirmed reversal.
      - M2.4b.5 payment reconciliation/correction and M2.4 closure.
 6. M2.5 simulator control plane and OpenAPI surfaces. — Pending
@@ -806,6 +809,37 @@ M2.4b.2b validation:
 - Final staged GitNexus detection reported `LOW` risk across `26` files and `106` indexed symbols, with no affected execution flow.
 - M2.4b.2 is complete. The only active part is M2.4b.3 real Stripe top-up Checkout and settlement.
 
+M2.4b.3 active boundary:
+
+- M2.4b.3a — Complete — implements only real Stripe top-up Checkout creation through the existing Provider-neutral `TopUpCheckoutService`. Stripe uses one catalog Price, quantity one, `mode = payment`, exact business idempotency, Checkout and PaymentIntent metadata, Provider-hosted success/cancel URLs, and optional customer reuse. The existing service persists the pending Checkout; neither Stripe response nor return URL grants Credits.
+- M2.4b.3b — Active — accepts only signature-verified `checkout.session.completed` evidence that identifies a Stripe payment-mode top-up Checkout. Job-time normalization retrieves the complete Provider Checkout/PaymentIntent/invoice evidence when the webhook object is insufficient, then requires exact Checkout/session, Workspace, Offer revision, Price, currency, amount, Credit, payment-status, and Provider account/mode agreement before invoking the existing top-up settlement applicator.
+- M2.4b.3c — Pending — closes exact replay, duplicate successful event, partial/unpaid/substituted amount, quantity or Price mismatch, delayed/out-of-order event, test/live/account isolation, Provider retrieval failure, optional invoice, and unchanged subscription Checkout behavior with real PostgreSQL full-chain coverage.
+- M2.4b.3 does not add Stripe Connect, connected accounts, stored card fields, Product payment forms, refunds, partial top-ups, multiple successful payments, payment reconciliation, Platform simulator APIs, or any fallback to simulated success.
+
+M2.4b.3a acceptance criteria:
+
+- Validate the stored external Price as a Stripe `price_*` identity before Provider I/O. Use that Price directly; do not create inline `price_data` or reinterpret local money/Credit snapshots.
+- Send exact immutable top-up metadata on both the Checkout Session and its PaymentIntent: Workspace, Offer id/revision, integer Credits, external Price, uppercase currency, and amount micros.
+- Use `mode = payment`, quantity one, invoice creation, caller success/cancel URLs, and the exact business idempotency key. Reuse the existing Stripe customer when present; otherwise request Provider customer creation explicitly.
+- Return only a validated Provider Checkout URL/session/account/expiry. The existing repository remains the sole local pending-Checkout persistence boundary and records the exact local snapshot plus Activity evidence.
+- Cover request encoding, customer/no-customer behavior, idempotency, invalid Price rejection before I/O, invalid Provider response, and unchanged subscription Checkout behavior. No webhook normalization or Credit grant belongs in M2.4b.3a.
+
+M2.4b.3a implementation evidence:
+
+- Replaced explicit Stripe top-up unavailability with one catalog-Price Checkout Session request using `mode = payment`, quantity one, invoice creation, and the exact Provider-neutral business idempotency key.
+- Sent immutable Workspace, top-up Offer id/revision, integer Credit amount, external Price, uppercase currency, and amount-micros snapshots on both Checkout and PaymentIntent metadata without inline `price_data` or local amount reinterpretation.
+- Reused an existing Stripe Customer when available and otherwise requested `customer_creation = always`; kept Provider response validation in the existing Checkout parser and pending persistence in `TopUpCheckoutService`.
+- Added exact request-encoding, existing/no-customer, pre-I/O invalid Price, invalid Provider response, and unchanged subscription Checkout regression coverage. No webhook, settlement, transaction, ledger, lot, or Credit path changed.
+
+M2.4b.3a validation:
+
+- Stripe Connector unit regression passed `31` tests; Provider-neutral top-up Checkout service regression passed `2` tests with `1` integration-only test skipped by the non-integration invocation.
+- Targeted Ruff lint/format and `ty` passed for the Stripe Connector and its unit tests.
+- `pnpm api:check` passed API lint and formatting across `1880` files. Broad typecheck remains blocked by the existing `289` unrelated diagnostics, after which Turbo interrupted broad pytest; every focused M2.4b.3a check remains green.
+- Changed-scope Code Review Engine exited successfully with zero blockers. Its only report-only finding is the known Stripe Connector lifecycle prototype report registered through the canonical Connector extension contract.
+- Final staged GitNexus detection reported `LOW` risk across `3` files and `24` indexed symbols, with no affected execution flow.
+- M2.4b.3a is complete. The only active implementation part is M2.4b.3b accepted Stripe settlement normalization.
+
 ## Known unrelated repository failures
 
 - API Ruff and format checks now pass after the pre-M1.5b mechanical cleanup; this is no longer a package-gate blocker.
@@ -1081,3 +1115,13 @@ M2.4b.2b validation:
 - Added and applied `0128_top_up_settlement_applications`, verified its PostgreSQL uniqueness/nullability/index contract, and confirmed migration generation has no remaining drift.
 - Verified `31` focused tests, `6` PostgreSQL full-chain/migration tests, `286` expanded Commerce tests, API/Product i18n, Product Credit-ledger rendering, targeted static checks, zero changed-scope blockers, and a LOW-risk staged GitNexus audit.
 - Completed M2.4b.2 and selected M2.4b.3 Stripe top-up Checkout and settlement as the only active part.
+
+### 2026-08-06 — M2.4b.3a real Stripe top-up Checkout creation
+
+- Added exact Stripe payment-mode Checkout creation for one configured top-up Price with quantity one, invoice creation, immutable Checkout/PaymentIntent metadata, and the Provider-neutral business idempotency key.
+- Preserved existing Customer reuse and explicitly requested Stripe Customer creation when no Customer exists; retained the existing validated Checkout response and pending persistence boundaries.
+- Proved exact form encoding, absence of inline Price data, customer/no-customer behavior, invalid Price rejection before Provider I/O, invalid Provider response, and unchanged subscription Checkout behavior.
+- Verified `31` Stripe Connector tests, `2` Provider-neutral service tests, targeted Ruff/format/`ty`, and API package lint/format. The package gate retains the existing `289` unrelated type diagnostics and interrupted broad pytest.
+- Completed changed-scope review with zero blockers and only the known Stripe Connector lifecycle prototype report.
+- Final staged GitNexus detection reported `LOW` risk across `3` files and `24` indexed symbols, with no affected execution flow.
+- Completed M2.4b.3a and selected M2.4b.3b accepted Stripe settlement normalization as the only active implementation part.
