@@ -2,6 +2,7 @@ import {
   platformCommerceCreatePlanRevision,
   platformCommerceListCommerceProviderEvents,
   platformCommerceGetCommerceSimulator,
+  platformCommerceGetSimulatedCommerceState,
   platformCommerceReconcileCommerceProviderEvent,
   platformCommerceSubmitSimulatedCheckoutOutcome,
   platformCommerceSubmitSimulatedTopUpOutcome,
@@ -12,6 +13,7 @@ import {
   createPlanRevision,
   listCommerceProviderEvents,
   getCommerceSimulator,
+  getSimulatedCommerceState,
   reconcileCommerceProviderEvent,
   submitSimulatedCheckoutOutcome,
   submitSimulatedTopUpOutcome,
@@ -25,6 +27,7 @@ vi.mock("@arclayer/platform-openapi", async (importOriginal) => {
     platformCommerceCreatePlanRevision: vi.fn(),
     platformCommerceListCommerceProviderEvents: vi.fn(),
     platformCommerceGetCommerceSimulator: vi.fn(),
+    platformCommerceGetSimulatedCommerceState: vi.fn(),
     platformCommerceReconcileCommerceProviderEvent: vi.fn(),
     platformCommerceSubmitSimulatedCheckoutOutcome: vi.fn(),
     platformCommerceSubmitSimulatedTopUpOutcome: vi.fn(),
@@ -140,6 +143,23 @@ describe("Platform commerce API", () => {
     );
 
     await expect(getCommerceSimulator()).resolves.toMatchObject({ enabled: true });
+    vi.mocked(platformCommerceGetSimulatedCommerceState).mockResolvedValue(
+      response({
+        workspaceId: "workspace-1",
+        checkouts: [],
+        outcomeCommands: [],
+        inboxes: [],
+        jobs: [],
+        transactions: [],
+        invoices: [],
+        refunds: [],
+        applications: [],
+        corrections: [],
+      }),
+    );
+    await expect(getSimulatedCommerceState("workspace-1")).resolves.toMatchObject({
+      workspaceId: "workspace-1",
+    });
     await submitSimulatedCheckoutOutcome(
       "workspace-1",
       "checkout-1",
@@ -155,6 +175,10 @@ describe("Platform commerce API", () => {
 
     expect(platformCommerceGetCommerceSimulator).toHaveBeenCalledWith({
       client: platformApiClient,
+    });
+    expect(platformCommerceGetSimulatedCommerceState).toHaveBeenCalledWith({
+      client: platformApiClient,
+      path: { workspace_id: "workspace-1" },
     });
     expect(platformCommerceSubmitSimulatedCheckoutOutcome).toHaveBeenCalledWith({
       body: { outcome: "succeeded", expectedRevision: 1 },

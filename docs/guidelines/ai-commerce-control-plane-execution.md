@@ -1199,3 +1199,11 @@ M2.4b.3b implementation boundary:
 - Regenerated `@arclayer/platform-openapi` and added typed Platform API wrappers for simulator readiness and both outcome commands.
 - Validation: API focused Platform commerce suite `14 passed`; targeted API Ruff check/format passed; targeted API `ty` has only pre-existing test fixture warnings; Platform commerce API tests `3 passed`; Platform OpenAPI typecheck passed; Platform lint and format check passed.
 - M2.5a is complete. The next active slice is M2.5b: durable Platform read projections for Checkout, transaction, invoice, refund, inbox, Job, and application outcomes, followed by M2.5 closure gates.
+
+### 2026-08-06 — M2.5b durable simulator state projection
+
+- Added one Provider-neutral, Workspace-scoped Platform read authority for durable simulator state. The snapshot includes Checkout sessions, simulated outcome commands, accepted Provider inbox records, pinned Jobs, transactions, invoices, refunds, top-up settlement applications, and payment-correction dispositions.
+- The repository derives inbox and Job scope from accepted outcome identities and Provider-scoped top-up applications; encrypted payloads, credentials, Checkout URLs, and raw Provider metadata are never exposed. The read path is projection-only and does not mutate commercial state.
+- Added typed `GET /system/commerce/simulator/workspaces/{workspaceId}/state`, regenerated Platform OpenAPI, and added the Platform API wrapper. Existing list/event/reconcile and Workspace simulator routes remain unchanged.
+- Validation: focused API Platform/read tests `15 passed`; targeted API Ruff check/format/`ty` passed (test fixture warnings only); Platform commerce API tests `3 passed`; Platform lint/format passed; Platform OpenAPI generation and typecheck passed. Platform package typecheck remains blocked only by the pre-existing missing `tests/browser/support` import.
+- M2.5b is complete. The next active slice is M2.5c: simulator UI/readiness/state integration and final simulator regression/closure gates.

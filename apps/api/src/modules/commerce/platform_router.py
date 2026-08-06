@@ -58,6 +58,7 @@ from src.modules.commerce.simulated_checkout_outcome_service import (
     SimulatedCheckoutOutcomeOut,
     SimulatedCheckoutOutcomeWrite,
 )
+from src.modules.commerce.simulator_read_schema import SimulatorStateOut
 from src.modules.commerce.subscription_transitions.composition import build_subscription_transition_service
 from src.modules.commerce.subscription_transitions.platform_operations import (
     build_platform_subscription_transition_operations,
@@ -410,6 +411,21 @@ async def get_commerce_simulator(
         data=await build_platform_commerce_operations_service(
             settings=settings, connectors=connectors
         ).simulator_readiness()
+    )
+
+
+@router.get(
+    "/simulator/workspaces/{workspace_id}/state",
+    operation_id="platform_get_simulated_commerce_state",
+    response_model=ResponseModel[SimulatorStateOut],
+    summary="Read durable simulated Commerce state for one Workspace",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_READ)],
+)
+async def get_simulated_commerce_state(
+    workspace_id: PublicUUID,
+) -> ResponseModel[SimulatorStateOut]:
+    return ApiResponse.success(
+        data=await build_platform_commerce_read_service().get_simulator_state(workspace_id=workspace_id)
     )
 
 

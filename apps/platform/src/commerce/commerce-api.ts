@@ -6,6 +6,7 @@ import {
   platformCommerceGetCommerceDunningPolicy,
   platformCommerceGetCommerceProvider,
   platformCommerceGetCommerceSimulator,
+  platformCommerceGetSimulatedCommerceState,
   platformCommerceGetPlatformCommerceSubscription,
   platformCommerceGetWorkspaceCommerceOverview,
   platformCommerceListCommercePlans,
@@ -170,6 +171,15 @@ export async function getCommerceProvider() {
 
 export async function getCommerceSimulator() {
   return unwrap(await platformCommerceGetCommerceSimulator({ client: platformApiClient }));
+}
+
+export async function getSimulatedCommerceState(workspaceId: string) {
+  return unwrap(
+    await platformCommerceGetSimulatedCommerceState({
+      client: platformApiClient,
+      path: { workspace_id: workspaceId },
+    }),
+  );
 }
 
 export async function submitSimulatedCheckoutOutcome(

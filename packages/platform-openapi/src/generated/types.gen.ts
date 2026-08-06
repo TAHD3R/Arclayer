@@ -13908,6 +13908,31 @@ export type ResponseModelSimulatorReadinessOut = {
 };
 
 /**
+ * ResponseModel[SimulatorStateOut]
+ */
+export type ResponseModelSimulatorStateOut = {
+    data?: SimulatorStateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[StorageProfileDeleteOut]
  */
 export type ResponseModelStorageProfileDeleteOut = {
@@ -14906,6 +14931,364 @@ export type SimulatedCheckoutOutcomeWrite = {
 };
 
 /**
+ * SimulatorApplicationOut
+ */
+export type SimulatorApplicationOut = {
+    /**
+     * Appliedat
+     */
+    appliedAt: string;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string | null;
+    /**
+     * Outcome
+     */
+    outcome: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Resultrevision
+     */
+    resultRevision: number;
+    /**
+     * Resultstatus
+     */
+    resultStatus: string;
+    /**
+     * Transactionid
+     */
+    transactionId: string | null;
+};
+
+/**
+ * SimulatorCheckoutOut
+ */
+export type SimulatorCheckoutOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    /**
+     * Externalpriceid
+     */
+    externalPriceId: string;
+    /**
+     * Externalsessionid
+     */
+    externalSessionId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * SimulatorCorrectionOut
+ */
+export type SimulatorCorrectionOut = {
+    /**
+     * Disposition
+     */
+    disposition: string;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Providereventoccurredat
+     */
+    providerEventOccurredAt: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Refundid
+     */
+    refundId: string | null;
+    /**
+     * Transactionid
+     */
+    transactionId: string | null;
+};
+
+/**
+ * SimulatorInboxOut
+ */
+export type SimulatorInboxOut = {
+    /**
+     * Eventtype
+     */
+    eventType: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Jobid
+     */
+    jobId: string | null;
+    /**
+     * Lasterrorcode
+     */
+    lastErrorCode: string | null;
+    /**
+     * Processedat
+     */
+    processedAt: string | null;
+    /**
+     * Processingattempts
+     */
+    processingAttempts: number;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * SimulatorInvoiceOut
+ */
+export type SimulatorInvoiceOut = {
+    /**
+     * Amountduemicros
+     */
+    amountDueMicros: number;
+    /**
+     * Amountpaidmicros
+     */
+    amountPaidMicros: number;
+    /**
+     * Amountrefundedmicros
+     */
+    amountRefundedMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Externalinvoiceid
+     */
+    externalInvoiceId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Issuedat
+     */
+    issuedAt: string;
+    /**
+     * Paidat
+     */
+    paidAt: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * SimulatorJobOut
+ */
+export type SimulatorJobOut = {
+    /**
+     * Attemptcount
+     */
+    attemptCount: number;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Errorcode
+     */
+    errorCode: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Internalstatus
+     */
+    internalStatus: string;
+    /**
+     * Jobtype
+     */
+    jobType: string;
+    /**
+     * Nextattemptat
+     */
+    nextAttemptAt: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * SimulatorOutcomeCommandOut
+ */
+export type SimulatorOutcomeCommandOut = {
+    /**
+     * Acceptedinboxid
+     */
+    acceptedInboxId: string | null;
+    /**
+     * Acceptedjobid
+     */
+    acceptedJobId: string | null;
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Outcome
+     */
+    outcome: string;
+    /**
+     * Processedat
+     */
+    processedAt: string | null;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Resultrevision
+     */
+    resultRevision: number | null;
+    /**
+     * Resultstatus
+     */
+    resultStatus: string | null;
+};
+
+/**
  * SimulatorReadinessOut
  */
 export type SimulatorReadinessOut = {
@@ -14937,6 +15320,148 @@ export type SimulatorReadinessOut = {
      * Supportedoutcomes
      */
     supportedOutcomes: Array<'pending' | 'succeeded' | 'failed' | 'canceled'>;
+};
+
+/**
+ * SimulatorRefundOut
+ */
+export type SimulatorRefundOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Externalrefundid
+     */
+    externalRefundId: string | null;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Transactionid
+     */
+    transactionId: string;
+};
+
+/**
+ * SimulatorStateOut
+ */
+export type SimulatorStateOut = {
+    /**
+     * Applications
+     */
+    applications: Array<SimulatorApplicationOut>;
+    /**
+     * Checkouts
+     */
+    checkouts: Array<SimulatorCheckoutOut>;
+    /**
+     * Corrections
+     */
+    corrections: Array<SimulatorCorrectionOut>;
+    /**
+     * Inboxes
+     */
+    inboxes: Array<SimulatorInboxOut>;
+    /**
+     * Invoices
+     */
+    invoices: Array<SimulatorInvoiceOut>;
+    /**
+     * Jobs
+     */
+    jobs: Array<SimulatorJobOut>;
+    /**
+     * Outcomecommands
+     */
+    outcomeCommands: Array<SimulatorOutcomeCommandOut>;
+    /**
+     * Refunds
+     */
+    refunds: Array<SimulatorRefundOut>;
+    /**
+     * Transactions
+     */
+    transactions: Array<SimulatorTransactionOut>;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SimulatorTransactionOut
+ */
+export type SimulatorTransactionOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string | null;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Externaltransactionid
+     */
+    externalTransactionId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string | null;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Status
+     */
+    status: string;
 };
 
 /**
@@ -20196,6 +20721,36 @@ export type PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses = {
 };
 
 export type PlatformCommerceSubmitSimulatedCheckoutOutcomeResponse = PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses[keyof PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses];
+
+export type PlatformCommerceGetSimulatedCommerceStateData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/simulator/workspaces/{workspace_id}/state';
+};
+
+export type PlatformCommerceGetSimulatedCommerceStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceGetSimulatedCommerceStateError = PlatformCommerceGetSimulatedCommerceStateErrors[keyof PlatformCommerceGetSimulatedCommerceStateErrors];
+
+export type PlatformCommerceGetSimulatedCommerceStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatorStateOut;
+};
+
+export type PlatformCommerceGetSimulatedCommerceStateResponse = PlatformCommerceGetSimulatedCommerceStateResponses[keyof PlatformCommerceGetSimulatedCommerceStateResponses];
 
 export type PlatformCommerceSubmitSimulatedTopUpOutcomeData = {
     body: SimulatedCheckoutOutcomeWrite;
