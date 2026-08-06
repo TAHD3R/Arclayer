@@ -1743,6 +1743,6 @@
   "SETTINGS_SHELL_NAVIGATION_DESC": "Switch between personal and workspace settings.",
   "SETTINGS_SHELL_NAVIGATION_HINT": "Browse settings",
   "SETTINGS_SHELL_TITLE": "Settings",
-  "OPEN_PLATFORM_CONSOLE": "Open Platform Console",
-  "ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR": "Platform Console isn’t configured for this deployment"
+  "OPEN_PLATFORM_CONSOLE": "Open admin console",
+  "ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR": "The admin console isn’t configured for this deployment"
 }
