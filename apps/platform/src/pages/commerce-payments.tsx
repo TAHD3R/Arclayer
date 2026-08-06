@@ -1,9 +1,12 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProviderEventListOut } from "@arclayer/platform-openapi";
 
 import {
   listCommerceProviderEvents,
+  listCommerceInvoices,
+  listCommerceRefunds,
+  listCommerceTransactions,
   reconcileCommerceProviderEvent,
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
@@ -31,7 +34,96 @@ export function CommercePaymentsPage() {
       <CommerceQueryState isEmpty={(data) => data.items.length === 0} retry={retry} state={state}>
         {(data) => <PaymentEvents data={data} onReconciled={retry} />}
       </CommerceQueryState>
+      <PaymentProjections />
     </CommercePage>
+  );
+}
+
+function PaymentProjections() {
+  const { t } = useTranslation("commerce");
+  const transactions = useMonitoringQuery(
+    () => listCommerceTransactions({ page: 1, pageSize: 50 }),
+    [],
+  );
+  const invoices = useMonitoringQuery(() => listCommerceInvoices({ page: 1, pageSize: 50 }), []);
+  const refunds = useMonitoringQuery(() => listCommerceRefunds({ page: 1, pageSize: 50 }), []);
+  return (
+    <div className="grid gap-5 xl:grid-cols-3">
+      <ProjectionCard
+        data={transactions.state}
+        empty={t("NO_TRANSACTIONS")}
+        label={t("TRANSACTIONS")}
+        render={(data) => (
+          <ProjectionRows
+            items={data.items}
+            render={(item) =>
+              `${item.kind} · ${item.status} · ${item.amountMicros} ${item.currency}`
+            }
+          />
+        )}
+      />
+      <ProjectionCard
+        data={invoices.state}
+        empty={t("NO_INVOICES")}
+        label={t("INVOICES")}
+        render={(data) => (
+          <ProjectionRows
+            items={data.items}
+            render={(item) =>
+              `${item.status} · ${item.amountPaidMicros}/${item.amountDueMicros} ${item.currency}`
+            }
+          />
+        )}
+      />
+      <ProjectionCard
+        data={refunds.state}
+        empty={t("NO_REFUNDS")}
+        label={t("REFUNDS")}
+        render={(data) => (
+          <ProjectionRows
+            items={data.items}
+            render={(item) => `${item.status} · ${item.amountMicros} ${item.transactionId}`}
+          />
+        )}
+      />
+    </div>
+  );
+}
+
+function ProjectionCard<T>(
+  props: Readonly<{
+    data: QueryState<T>;
+    empty: string;
+    label: string;
+    render: (data: T) => ReactNode;
+  }>,
+) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{props.label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {props.data.status === "ready" ? props.render(props.data.data) : props.empty}
+      </CardContent>
+    </Card>
+  );
+}
+
+type QueryState<T> =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "ready"; data: T }>
+  | Readonly<{ status: "error"; error: unknown }>;
+
+function ProjectionRows<T>(props: Readonly<{ items: readonly T[]; render: (item: T) => string }>) {
+  return props.items.length === 0 ? (
+    <p className="text-sm text-muted-foreground">—</p>
+  ) : (
+    <ul className="space-y-2 text-sm">
+      {props.items.slice(0, 5).map((item, index) => (
+        <li key={index}>{props.render(item)}</li>
+      ))}
+    </ul>
   );
 }
 
