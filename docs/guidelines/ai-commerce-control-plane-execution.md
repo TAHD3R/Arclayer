@@ -1234,6 +1234,13 @@ M2.4b.3b implementation boundary:
 - Focused validation: Platform Commerce router `6 passed`; Platform Commerce API wrapper `4 passed`; targeted API Ruff check/format and `ty` passed; Platform OpenAPI generation/typecheck passed.
 - M3.1 is complete. The next active implementation part is M3.2 Platform plan catalog revision CRUD and publish validation.
 
+### 2026-08-06 — M3.2 Platform draft revision editing surface
+
+- Confirmed the existing Platform catalog service already owns immutable published revisions, draft-only mutation, expected-revision checks, idempotency receipts, provider Price collision validation, complete Entitlement declarations, and active-project allowance validation.
+- Added the missing Platform UI action for editing a Draft Revision. It uses the existing `updatePlanRevision` command, expected revision, body-scoped idempotency, explicit JSON validation, and visible failure state; published revisions remain immutable and retain their existing publish flow.
+- Platform lint, format, locale parity, focused commerce API tests, OpenAPI typecheck, staged GitNexus detection, and Code Review Engine passed. The package typecheck remains blocked only by the existing browser acceptance support import.
+- M3.2 is complete. The next active implementation part is M3.3 Platform subscription/payment Operational Ledger detail and correction/recovery surfaces.
+
 ### 2026-08-06 — M4 lifecycle gap audit and recovery projection
 
 - Re-audited the Product Plan & Usage contract against the workspace commercialization spec. Existing plan comparison, subscription portal, Credit ledger, member Usage, and member-limit controls are real; invoice, refill, and payment-recovery presentation were not complete.
