@@ -70,7 +70,7 @@
   "AI_PROVIDER_AVAILABILITY_PREVIEW_REQUIRED": "Generate an impact preview before changing AI service availability.",
   "AI_PROVIDER_AVAILABILITY_PREVIEW_STALE": "The AI service impact preview is stale. Generate a new preview before applying the change.",
   "AI_PROVIDER_CHANGE_FAILED": "Couldn't save the AI service.",
-  "AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE": "This deployment cannot safely revoke the previous credential, so provider credentials cannot currently be rotated or removed.",
+  "AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE": "This deployment cannot safely revoke the previous credential, so AI service credentials cannot currently be rotated or removed.",
   "AI_PROVIDER_DEFAULT_MODEL_NOT_MAPPED": "The default model must match one of the configured model mappings.",
   "AI_PROVIDER_DELETE_REQUIRES_ARCHIVE": "Archive and disable the AI service before deleting it.",
   "AI_PROVIDER_ICON_VARIANTS_REQUIRED": "Configure both light and dark theme icons, or clear both.",
@@ -85,10 +85,10 @@
   "AI_PROVIDER_PUBLIC_MODEL_CONFLICT": "This public model name is already used by another AI service. Give each service a unique public model name.",
   "AI_PROVIDER_READINESS_RESPONSE_MISMATCH": "The connection succeeded, but the test response did not match the expectation. Check the test prompt, expected text, and model configuration.",
   "AI_PROVIDER_READINESS_TEST_FAILED": "The AI service connection test failed. Check the API key, endpoint, and model configuration.",
-  "AI_PROVIDER_REQUIRED_FIELDS": "Enter the service name, provider, API key, at least one complete model mapping, and a default model.",
+  "AI_PROVIDER_REQUIRED_FIELDS": "Enter the service name, service type, API key, at least one complete model mapping, and a default model.",
   "AI_PROVIDER_STORED_API_KEY_UNAVAILABLE": "This AI service was saved without a reusable encrypted upstream credential. Re-enter the API key once to save this connection change.",
   "AI_PROVIDER_ROUTABLE": "At least one enabled AI service with a successful connection test is required to process requests.",
   "AI_PROVIDER_UPDATED_CLEANUP_REQUIRED": "The AI service was updated, but the previous setup still needs cleanup. Retry the operation.",
-  "AI_MODEL_CATALOG_PROVIDER_CONFLICT": "Multiple AI services use the same public model name. Give each service a unique public model name in Platform Console.",
-  "PROVIDER_MODEL_CONFIGURATION_CONFLICT": "Multiple AI services use the requested public model name. Give each service a unique public model name in Platform Console."
+  "AI_MODEL_CATALOG_PROVIDER_CONFLICT": "Multiple AI services use the same public model name. Give each service a different name in the admin console.",
+  "PROVIDER_MODEL_CONFIGURATION_CONFLICT": "Multiple AI services use the requested public model name. Give each service a different name in the admin console."
 }

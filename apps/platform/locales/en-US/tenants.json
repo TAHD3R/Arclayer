@@ -174,7 +174,7 @@
   "PROJECT_OPERATIONS_DESCRIPTION": "Review this project's current service status, domain, version, and delivery progress.",
   "PROJECT_OPERATIONS_LOADING": "Loading project operations…",
   "PROJECT_OPERATIONS_ERROR_TITLE": "Project operations are unavailable",
-  "PROJECT_OPERATIONS_ERROR_DESCRIPTION": "The latest reported runtime and delivery status could not be loaded. Try again; no status is assumed from missing data.",
+  "PROJECT_OPERATIONS_ERROR_DESCRIPTION": "The latest service and delivery status could not be loaded. Try again; no status is assumed from missing data.",
   "RUNTIME_STATE": "Service readiness",
   "RUNTIME_STATE_READY": "Ready",
   "RUNTIME_STATE_RUNTIME_MISSING": "No service is connected",

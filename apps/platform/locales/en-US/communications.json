@@ -228,7 +228,7 @@
   "EDIT_MAIL_SERVICE": "Edit email service",
   "EDIT_MAIL_SERVICE_DESCRIPTION": "Update how this platform sends email. Saved credentials are never shown.",
   "SAVE_MAIL_SERVICE": "Save email service",
-  "PROVIDER": "Provider",
+  "PROVIDER": "Email service",
   "SENDER_ADDRESS": "Sender address",
   "SENDER_NAME": "Sender name",
   "SENDER_DOMAIN": "Sender domain",

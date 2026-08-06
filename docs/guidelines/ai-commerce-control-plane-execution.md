@@ -1351,3 +1351,10 @@ M2.4b.3b implementation boundary:
 - Chinese user-facing copy now uses “AI 额度”, “支付服务”, “安全支付页面”, and “平台管理后台”; it no longer exposes `Credits`, “投影”, “控制面”, `Provider`, or “结账” wording. English copy uses “AI credits”, “payment service”, “secure payment page”, and “admin console” where the implementation term was previously shown directly.
 - Replaced newly added checkout/settlement/evidence/idempotency error text with plain descriptions of the failed user action and next step. Internal error keys and API/database identifiers remain unchanged.
 - Validation: Product Application locale parity passed for all `23` namespaces; Product locale format check passed across `1243` files; JSON parsing passed for all changed locale resources. Platform locale resources remain the next active copy slice.
+
+### 2026-08-06 — Platform copy humanization pass (complete)
+
+- Rewrote the M2–M5 Platform billing, payment simulator, payment correction, AI service, global AI policy, navigation, permission, and error copy in both supported languages.
+- Billing pages now describe transaction, invoice, and refund records instead of “projections”; payment corrections use payment-service details and supporting references instead of Provider facts/evidence; money inputs explain the smallest currency unit instead of exposing `micros`.
+- AI administration now consistently says “AI 服务” / “AI service”, uses task limits and current policy status, and removes user-facing Provider/runtime/control-surface terminology. Navigation and permission labels follow the same terminology.
+- Validation: Platform locale parity passed for all `15` namespaces; Platform format check passed across `303` files; a full locale scan found no remaining `Credits`, `Provider`, `checkout`, projection, control-plane/control-surface, runtime, micros, “投影”, “控制面”, “供应商”, “服务商”, or “运行时” values in Platform locale resources.
