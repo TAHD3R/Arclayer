@@ -62,6 +62,14 @@ class CommerceRefundStatus(StrEnum):
     CANCELED = "canceled"
 
 
+class CommercePaymentCorrectionDisposition(StrEnum):
+    """Durable outcome of a Provider payment-fact reconciliation attempt."""
+
+    APPLIED = "applied"
+    REPLAYED = "replayed"
+    RECONCILIATION_REQUIRED = "reconciliation_required"
+
+
 class CommerceCreditTopUpOffer(BaseModel):
     """Stable operator-managed Credit top-up product identity."""
 
@@ -502,6 +510,58 @@ class CommerceRefund(BaseModel):
         table_description = "Refund request authority and Provider-confirmed outcomes."
         abstract = False
         indexes = (("transaction_id", "created_at"), ("status", "created_at"))
+
+
+class CommercePaymentCorrection(BaseModel):
+    """Append-only Provider transaction/invoice/refund reconciliation evidence."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace", related_name="commerce_payment_corrections", on_delete=fields.RESTRICT, null=True
+    )
+    transaction = fields.ForeignKeyField(
+        "models.CommerceTransaction", related_name="payment_corrections", on_delete=fields.RESTRICT, null=True
+    )
+    invoice = fields.ForeignKeyField(
+        "models.CommerceInvoice", related_name="payment_corrections", on_delete=fields.RESTRICT, null=True
+    )
+    refund = fields.ForeignKeyField(
+        "models.CommerceRefund", related_name="payment_corrections", on_delete=fields.RESTRICT, null=True
+    )
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharEnumField(BillingProviderMode)
+    provider_account_id = fields.CharField(max_length=255)
+    provider_event_id = fields.CharField(max_length=255)
+    external_transaction_id = fields.CharField(max_length=255)
+    external_invoice_id = fields.CharField(max_length=255, null=True)
+    external_refund_id = fields.CharField(max_length=255, null=True)
+    transaction_status = fields.CharEnumField(CommerceTransactionStatus)
+    invoice_status = fields.CharEnumField(CommerceInvoiceStatus, null=True)
+    refund_status = fields.CharEnumField(CommerceRefundStatus, null=True)
+    currency = fields.CharField(max_length=3)
+    amount_micros = fields.BigIntField()
+    amount_refunded_micros = fields.BigIntField(default=0)
+    credit_consequence = fields.BigIntField(null=True)
+    provider_event_occurred_at = fields.DatetimeField(db_index=True)
+    actor_user_id = fields.UUIDField(db_index=True)
+    reason = fields.TextField()
+    evidence_reference = fields.CharField(max_length=255)
+    idempotency_key = fields.CharField(max_length=160, unique=True)
+    request_fingerprint = fields.CharField(max_length=64)
+    disposition = fields.CharEnumField(CommercePaymentCorrectionDisposition, db_index=True)
+    failure_code = fields.CharField(max_length=96, null=True)
+
+    if TYPE_CHECKING:
+        workspace_id: UUID | None
+        transaction_id: UUID | None
+        invoice_id: UUID | None
+        refund_id: UUID | None
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_payment_corrections"
+        table_description = "Immutable Provider payment correction and reconciliation evidence."
+        abstract = False
+        unique_together = (("provider", "provider_mode", "provider_account_id", "provider_event_id"),)
+        indexes = (("workspace_id", "created_at"), ("external_transaction_id", "created_at"))
 
 
 class WorkspaceAutoRefillPolicy(BaseModel):
