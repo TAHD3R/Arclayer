@@ -592,6 +592,11 @@ export type CommerceTransactionKind = 'subscription' | 'renewal' | 'top_up' | 'r
 export type CommerceTransactionStatus = 'pending' | 'succeeded' | 'failed' | 'canceled' | 'refunded' | 'partially_refunded';
 
 /**
+ * CommercialAccessState
+ */
+export type CommercialAccessState = 'normal' | 'payment_grace' | 'payment_restricted';
+
+/**
  * CommercialCorrectionApplyPayload
  */
 export type CommercialCorrectionApplyPayload = {
@@ -7478,6 +7483,10 @@ export type PlatformCommerceSubscriptionListOut = {
  * PlatformCommerceSubscriptionOut
  */
 export type PlatformCommerceSubscriptionOut = {
+    /**
+     * Accessrevision
+     */
+    accessRevision?: number | null;
     billingCycle: BillingCycle;
     /**
      * Billingprovider
@@ -7487,6 +7496,7 @@ export type PlatformCommerceSubscriptionOut = {
      * Cancelatperiodend
      */
     cancelAtPeriodEnd: boolean;
+    commercialAccessState?: CommercialAccessState | null;
     /**
      * Currentperiodend
      */
@@ -7507,6 +7517,10 @@ export type PlatformCommerceSubscriptionOut = {
      * Planrevisionid
      */
     planRevisionId: string;
+    /**
+     * Recoverydeadlineat
+     */
+    recoveryDeadlineAt?: string | null;
     status: SubscriptionStatus;
     /**
      * Subscriptionid

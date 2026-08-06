@@ -113,6 +113,9 @@ class PlatformCommerceReadService(BaseService):
         self, *, query: PlatformCommerceSubscriptionQuery
     ) -> PlatformCommerceSubscriptionListOut:
         rows, total = await self._commerce.list_platform_subscriptions(query=query)
+        access_by_workspace = await self._commerce.get_commercial_access_by_workspace_ids(
+            workspace_ids=(row.workspace_id for row in rows)
+        )
         return PlatformCommerceSubscriptionListOut(
             total=total,
             items=tuple(
@@ -128,6 +131,11 @@ class PlatformCommerceReadService(BaseService):
                     current_period_end=row.current_period_end,
                     cancel_at_period_end=row.cancel_at_period_end,
                     billing_provider=row.billing_provider,
+                    commercial_access_state=(
+                        None if (access := access_by_workspace.get(row.workspace_id)) is None else access.state
+                    ),
+                    recovery_deadline_at=None if access is None else access.deadline_at,
+                    access_revision=None if access is None else int(access.state_revision),
                 )
                 for row in rows
             ),

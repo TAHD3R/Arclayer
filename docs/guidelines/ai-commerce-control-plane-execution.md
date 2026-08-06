@@ -1270,3 +1270,11 @@ M2.4b.3b implementation boundary:
 - Existing signed Provider-event reconciliation and transaction/invoice/refund projection cards remain unchanged and continue to use their separate authorities.
 - Validation: Platform commerce API `5 passed`; Platform lint, format, and locale parity passed. Platform package typecheck remains blocked only by the pre-existing `test/browser/platform-acceptance.spec.ts` import of missing `../../../../tests/browser/support`.
 - M3.3b is complete for the current correction/recovery boundary. M3.3 remains active only for subscription detail and recovery-state projection; M4 auto-refill configuration and refill lifecycle remains the next Product slice after M3.3.
+
+### 2026-08-06 — M3.3c Platform subscription detail and recovery projection
+
+- Extended Platform subscription projections with the server-authoritative commercial access state (`normal`, `payment_grace`, or `payment_restricted`), anchored recovery deadline, and access revision. Missing access projections remain explicit instead of being inferred from Provider subscription status.
+- Added a repository batch lookup for Workspace commercial-access projections and reused it in the paginated subscription read path; the single-subscription detail path exposes the same fields without introducing a second access authority.
+- Added a Platform subscription detail card showing plan revision, billing cycle, cancellation boundary, commercial access state, and recovery deadline. The signed Provider-event ledger and payment correction surface remain separate evidence/control paths.
+- Validation: API platform router `7 passed`; API targeted Ruff check/format passed; Platform OpenAPI generation/typecheck passed; Platform lint/format/locale parity passed; Platform Commerce API `5 passed`. Platform package typecheck remains blocked only by the pre-existing browser acceptance support import. Code Review Engine had zero blocking findings; its report-only dataclass/i18n findings are pre-existing prototype findings in the touched shared Commerce files.
+- M3.3 is complete. M4 auto-refill configuration and refill lifecycle is now the only active implementation slice.

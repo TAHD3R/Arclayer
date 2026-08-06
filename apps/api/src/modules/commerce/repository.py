@@ -285,6 +285,15 @@ class CommerceRepository(TortoiseORMRepository[WorkspaceSubscription]):
         offset = (query.page - 1) * query.page_size
         return await subscriptions.offset(offset).limit(query.page_size), total
 
+    async def get_commercial_access_by_workspace_ids(
+        self, *, workspace_ids: Iterable[UUID]
+    ) -> dict[UUID, WorkspaceCommercialAccess]:
+        ids = tuple(set(workspace_ids))
+        if not ids:
+            return {}
+        rows = await WorkspaceCommercialAccess.filter(workspace_id__in=ids)
+        return {UUID(str(row.workspace_id)): row for row in rows}
+
     async def get_revision_terms(self, *, revision_ids: Iterable[UUID]) -> dict[UUID, CommercePlanRevisionTerms]:
         ids = tuple(set(revision_ids))
         if not ids:

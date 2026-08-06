@@ -7,7 +7,12 @@ from pydantic import Field
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
-from src.models.commerce.billing import BillingCycle, PlanRevisionStatus, SubscriptionStatus
+from src.models.commerce.billing import (
+    BillingCycle,
+    CommercialAccessState,
+    PlanRevisionStatus,
+    SubscriptionStatus,
+)
 
 
 class PlatformCommerceRevisionSummaryOut(BaseSchema):
@@ -58,6 +63,9 @@ class PlatformCommerceSubscriptionOut(BaseSchema):
     current_period_end: datetime
     cancel_at_period_end: bool
     billing_provider: str
+    commercial_access_state: CommercialAccessState | None = None
+    recovery_deadline_at: datetime | None = None
+    access_revision: int | None = None
 
 
 class PlatformCommerceSubscriptionListOut(BaseSchema):

@@ -17,6 +17,7 @@ from src.models.commerce.billing import (
     CommerceDunningPolicyCommandReceipt,
     CommercePlanRevision,
     CreditLedgerEntryType,
+    WorkspaceCommercialAccess,
     WorkspaceCreditAccount,
     WorkspaceCreditLedger,
     WorkspaceSubscription,
@@ -200,6 +201,7 @@ class PlatformCommerceOperationsService(BaseService):
         )
         if subscription is None:
             return None
+        access = await WorkspaceCommercialAccess.filter(workspace_id=subscription.workspace_id).first()
         return PlatformCommerceSubscriptionOut(
             workspace_id=subscription.workspace_id,
             subscription_id=subscription.id,
@@ -212,6 +214,9 @@ class PlatformCommerceOperationsService(BaseService):
             current_period_end=subscription.current_period_end,
             cancel_at_period_end=subscription.cancel_at_period_end,
             billing_provider=subscription.billing_provider,
+            commercial_access_state=None if access is None else access.state,
+            recovery_deadline_at=None if access is None else access.deadline_at,
+            access_revision=None if access is None else int(access.state_revision),
         )
 
     async def write_provider_configuration(
