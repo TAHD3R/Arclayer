@@ -10,6 +10,7 @@ import {
   createPlanRevision,
   listCommercePlans,
   publishPlanRevision,
+  updatePlanRevision,
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
@@ -48,6 +49,11 @@ export function CommercePlansPage() {
   const { t } = useTranslation("commerce");
   const [createOpen, setCreateOpen] = useState(false);
   const [draftPlanCode, setDraftPlanCode] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    planCode: string;
+    revisionId: string;
+    expectedRevision: number;
+  } | null>(null);
   const load = useCallback(() => listCommercePlans({ includeInactive: true }), []);
   const { state, retry } = useMonitoringQuery(load, []);
   return (
@@ -56,7 +62,14 @@ export function CommercePlansPage() {
         <Button onClick={() => setCreateOpen(true)}>{t("CREATE_PLAN")}</Button>
       </div>
       <CommerceQueryState isEmpty={(data) => data.items.length === 0} retry={retry} state={state}>
-        {(data) => <PlanCards data={data} onCreateDraft={setDraftPlanCode} onPublished={retry} />}
+        {(data) => (
+          <PlanCards
+            data={data}
+            onCreateDraft={setDraftPlanCode}
+            onEditDraft={setEditDraft}
+            onPublished={retry}
+          />
+        )}
       </CommerceQueryState>
       <CreatePlanDialog onCompleted={retry} onOpenChange={setCreateOpen} open={createOpen} />
       <CreateDraftDialog
@@ -64,6 +77,12 @@ export function CommercePlansPage() {
         onOpenChange={(open) => !open && setDraftPlanCode(null)}
         open={draftPlanCode !== null}
         planCode={draftPlanCode}
+      />
+      <UpdateDraftDialog
+        draft={editDraft}
+        onCompleted={retry}
+        onOpenChange={(open) => !open && setEditDraft(null)}
+        open={editDraft !== null}
       />
     </CommercePage>
   );
@@ -73,6 +92,11 @@ function PlanCards(
   props: Readonly<{
     data: PlatformCommercePlanCatalogOut;
     onCreateDraft: (code: string) => void;
+    onEditDraft: (draft: {
+      planCode: string;
+      revisionId: string;
+      expectedRevision: number;
+    }) => void;
     onPublished: () => void;
   }>,
 ) {
@@ -102,6 +126,7 @@ function PlanCards(
               plan.revisions.map((revision) => (
                 <PlanRevisionRow
                   key={revision.id}
+                  onEditDraft={props.onEditDraft}
                   onPublished={props.onPublished}
                   planCode={plan.code}
                   revision={revision}
@@ -119,6 +144,11 @@ function PlanRevisionRow(
   props: Readonly<{
     planCode: string;
     revision: PlatformCommercePlanCatalogOut["items"][number]["revisions"][number];
+    onEditDraft: (draft: {
+      planCode: string;
+      revisionId: string;
+      expectedRevision: number;
+    }) => void;
     onPublished: () => void;
   }>,
 ) {
@@ -166,11 +196,27 @@ function PlanRevisionRow(
             {new Date(props.revision.publishedAt).toLocaleDateString()}
           </time>
         )}
-        {props.revision.status === "draft" && (
-          <Button disabled={pending} onClick={() => void publish()} size="sm">
-            {pending ? t("PUBLISHING") : t("PUBLISH")}
-          </Button>
-        )}
+        {props.revision.status === "draft" ? (
+          <div className="flex gap-2">
+            <Button
+              disabled={pending}
+              onClick={() =>
+                props.onEditDraft({
+                  planCode: props.planCode,
+                  revisionId: props.revision.id,
+                  expectedRevision: props.revision.revision,
+                })
+              }
+              size="sm"
+              variant="outline"
+            >
+              {t("EDIT_DRAFT")}
+            </Button>
+            <Button disabled={pending} onClick={() => void publish()} size="sm">
+              {pending ? t("PUBLISHING") : t("PUBLISH")}
+            </Button>
+          </div>
+        ) : null}
       </div>
       {error ? <MutationError message={error} /> : null}
     </div>
@@ -327,5 +373,88 @@ function MutationError(props: Readonly<{ message: string }>) {
       <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
       <AlertDescription>{props.message}</AlertDescription>
     </Alert>
+  );
+}
+
+function UpdateDraftDialog(
+  props: Readonly<{
+    draft: { planCode: string; revisionId: string; expectedRevision: number } | null;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onCompleted: () => void;
+  }>,
+) {
+  const { t } = useTranslation("commerce");
+  const [terms, setTerms] = useState(DEFAULT_TERMS);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const attemptRef = useRef<IdempotencyAttempt | null>(null);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!props.draft) return;
+    let parsed: PlanRevisionTermsInput;
+    try {
+      parsed = JSON.parse(terms) as PlanRevisionTermsInput;
+    } catch {
+      setError(t("TERMS_JSON_INVALID"));
+      return;
+    }
+    const fingerprint = JSON.stringify([props.draft, parsed]);
+    const attempt = idempotencyAttemptFor(attemptRef.current, fingerprint);
+    attemptRef.current = attempt;
+    setPending(true);
+    setError(null);
+    try {
+      await updatePlanRevision(
+        props.draft.planCode,
+        props.draft.revisionId,
+        { expectedRevision: props.draft.expectedRevision, terms: parsed },
+        attempt.key,
+      );
+      attemptRef.current = null;
+      props.onCompleted();
+      props.onOpenChange(false);
+    } catch {
+      setError(t("ACTION_ERROR"));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingDialog
+      open={props.open}
+      onOpenChange={(open) => !pending && props.onOpenChange(open)}
+      title={t("EDIT_DRAFT")}
+      description={t("EDIT_DRAFT_DESCRIPTION", { plan: props.draft?.planCode ?? "" })}
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => props.onOpenChange(false)} variant="outline">
+            {t("CANCEL")}
+          </Button>
+          <Button disabled={pending} form="update-plan-draft" type="submit">
+            {pending ? t("SAVING") : t("SAVE")}
+          </Button>
+        </>
+      }
+    >
+      <form id="update-plan-draft" onSubmit={submit}>
+        <SettingDialogFields>
+          {error ? <MutationError message={error} /> : null}
+          <SettingDialogField
+            description={t("TERMS_JSON_DESCRIPTION")}
+            title={<label htmlFor="update-plan-terms">{t("PLAN_TERMS")}</label>}
+          >
+            <Textarea
+              id="update-plan-terms"
+              onChange={(event) => setTerms(event.target.value)}
+              rows={14}
+              value={terms}
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
+      </form>
+    </SettingDialog>
   );
 }

@@ -37,6 +37,8 @@
   "CREATE_PLAN_DESCRIPTION": "Create a plan first, then add a version.",
   "CREATE_DRAFT": "Create draft version",
   "CREATE_DRAFT_DESCRIPTION": "Start a new version for {{plan}}. Review its terms before publishing.",
+  "EDIT_DRAFT": "Edit draft version",
+  "EDIT_DRAFT_DESCRIPTION": "Update the draft terms for {{plan}} before publishing.",
   "PLAN_CODE": "Plan code",
   "PLAN_CODE_REQUIRED": "Enter a Plan code.",
   "PLAN_TERMS": "Plan version terms",

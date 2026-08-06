@@ -37,6 +37,8 @@
   "CREATE_PLAN_DESCRIPTION": "先创建套餐，再添加版本。",
   "CREATE_DRAFT": "创建草稿版本",
   "CREATE_DRAFT_DESCRIPTION": "为 {{plan}} 创建新版本，并在发布前审核其条款。",
+  "EDIT_DRAFT": "编辑草稿版本",
+  "EDIT_DRAFT_DESCRIPTION": "发布前更新 {{plan}} 的草稿条款。",
   "PLAN_CODE": "套餐代码",
   "PLAN_CODE_REQUIRED": "请输入套餐代码。",
   "PLAN_TERMS": "版本条款",
