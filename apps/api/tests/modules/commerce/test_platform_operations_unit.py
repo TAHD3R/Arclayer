@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
@@ -10,8 +11,17 @@ from src.config import Settings
 from src.core.connectors import ConnectorDefinition, ConnectorKind, ConnectorTrustLevel
 from src.core.exceptions import ServiceUnavailable
 from src.core.registries import ConnectorRegistry
-from src.models.commerce.payments import CommerceRefundStatus
+from src.models.commerce.billing import BillingProviderMode
+from src.models.commerce.payments import (
+    CommercePaymentCorrectionDisposition,
+    CommerceRefundStatus,
+    CommerceTransactionStatus,
+)
 from src.models.connectors.inbox import ConnectorEventInboxStatus
+from src.modules.commerce.billing_payment_reconciliation_service import (
+    ProviderPaymentCorrectionFacts,
+    ProviderPaymentCorrectionResult,
+)
 from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
 from src.modules.commerce.platform_operations import PlatformCommerceOperationsService
 from src.modules.commerce.platform_operations_schema import (
@@ -208,6 +218,54 @@ async def test_top_up_refund_uses_injected_refund_authority_and_provider_scope()
 
     assert result.transaction_id == transaction_id
     assert result.held_credits == 500
+
+
+@pytest.mark.asyncio
+async def test_payment_correction_is_delegated_to_provider_neutral_recorder() -> None:
+    actor_id = uuid4()
+    facts = ProviderPaymentCorrectionFacts(
+        provider="stripe",
+        provider_mode=BillingProviderMode.TEST,
+        provider_account_id="acct_test",
+        provider_event_id="evt_correction_1",
+        external_transaction_id="pi_1",
+        transaction_status=CommerceTransactionStatus.SUCCEEDED,
+        currency="USD",
+        amount_micros=1_000,
+        provider_event_occurred_at=datetime.now(UTC),
+    )
+    expected = ProviderPaymentCorrectionResult(
+        correction_id=uuid4(),
+        disposition=CommercePaymentCorrectionDisposition.APPLIED,
+        workspace_id=None,
+        transaction_id=None,
+        invoice_id=None,
+        refund_id=None,
+        credit_consequence=None,
+        failure_code=None,
+    )
+
+    class _Recorder:
+        async def reconcile(self, **kwargs: object) -> ProviderPaymentCorrectionResult:
+            assert kwargs["facts"] == facts
+            assert kwargs["actor_user_id"] == actor_id
+            return expected
+
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _settings()),
+        connectors=cast(ConnectorRegistry, _Connectors()),
+        payment_correction_recorder=cast(Any, _Recorder()),
+    )
+
+    result = await service.record_payment_correction(
+        facts=facts,
+        reason="Provider evidence review",
+        evidence_reference="case-45",
+        idempotency_key="correction-45",
+        actor_user_id=actor_id,
+    )
+
+    assert result == expected
 
 
 def test_credit_adjustment_rejects_a_noop_before_any_ledger_write() -> None:

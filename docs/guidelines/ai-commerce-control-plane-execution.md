@@ -1176,3 +1176,10 @@ M2.4b.3b implementation boundary:
 - The route returns a Platform-safe PublicUUID envelope and never exposes payment credentials or treats the Provider API response as local refund completion. Provider-confirmed signed events remain the only completion authority.
 - Focused validation: Platform operations `6 passed`; Platform Commerce router `4 passed`; targeted Ruff/format checks passed. Existing Platform test `ty` warnings are unchanged fixture typing diagnostics.
 - This API closure is complete; M2.4b.5b remains active for Platform payment-fact correction invocation and final M2.4 replay/ordering evidence.
+
+### 2026-08-06 — M2.4b.5b Platform payment-correction operation boundary
+
+- Injected the Provider-neutral `BillingPaymentReconciliationService` into `PlatformCommerceOperationsService` through a typed recorder port. Platform operations can now submit facts obtained from an accepted Provider retrieval boundary with actor, reason, evidence reference, and idempotency identity.
+- The operation is intentionally not a second Provider-event ingress and does not accept raw webhook payloads or generic Credit deltas. It delegates to the append-only correction authority, preserving Provider/mode/account identity and explicit reconciliation-required outcomes.
+- Added focused delegation coverage; Platform operations regression now passes `7` tests. Targeted Ruff/format checks pass; remaining ty diagnostics are pre-existing fixture typing warnings in the same test module.
+- M2.4b.5b is complete. The next active slice is M2.4b.5c: final full-chain correction/replay/ordering coverage and M2.4 closure gates.

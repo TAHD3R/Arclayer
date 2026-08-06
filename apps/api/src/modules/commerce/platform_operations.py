@@ -34,6 +34,11 @@ from src.modules.commerce.billing_event_reconciliation_service import (
     BillingEventReconciliationResult,
     BillingEventReconciliationService,
 )
+from src.modules.commerce.billing_payment_reconciliation_service import (
+    BillingPaymentReconciliationService,
+    ProviderPaymentCorrectionFacts,
+    ProviderPaymentCorrectionResult,
+)
 from src.modules.commerce.billing_top_up_refund_application_service import (
     BillingTopUpRefundApplicationService,
     BillingTopUpRefundResult,
@@ -75,6 +80,18 @@ class ProviderEventReconciler(Protocol):
     ) -> BillingEventReconciliationResult: ...
 
 
+class PaymentCorrectionRecorder(Protocol):
+    async def reconcile(
+        self,
+        *,
+        facts: ProviderPaymentCorrectionFacts,
+        actor_user_id: UUID,
+        reason: str,
+        evidence_reference: str,
+        idempotency_key: str,
+    ) -> ProviderPaymentCorrectionResult: ...
+
+
 class PlatformCommerceOperationsService(BaseService):
     def __init__(
         self,
@@ -84,12 +101,14 @@ class PlatformCommerceOperationsService(BaseService):
         configuration_writer: ProviderConfigurationWriter | None = None,
         event_reconciler: ProviderEventReconciler | None = None,
         refund_applicator: BillingTopUpRefundApplicationService | None = None,
+        payment_correction_recorder: PaymentCorrectionRecorder | None = None,
     ) -> None:
         super().__init__(settings)
         self._connectors = connectors
         self._configuration_writer = configuration_writer
         self._event_reconciler = event_reconciler
         self._refund_applicator = refund_applicator
+        self._payment_correction_recorder = payment_correction_recorder
 
     async def provider_readiness(self) -> ProviderReadinessOut:
         billing = self.settings.billing
@@ -282,6 +301,28 @@ class PlatformCommerceOperationsService(BaseService):
             provider=provider,
         )
 
+    async def record_payment_correction(
+        self,
+        *,
+        facts: ProviderPaymentCorrectionFacts,
+        reason: str,
+        evidence_reference: str,
+        idempotency_key: str,
+        actor_user_id: UUID,
+    ) -> ProviderPaymentCorrectionResult:
+        if self._payment_correction_recorder is None:
+            raise ServiceUnavailable(
+                error="BILLING_PAYMENT_RECONCILIATION_PORT_UNAVAILABLE",
+                details={"protocol": "commerce.payment-correction.v1"},
+            )
+        return await self._payment_correction_recorder.reconcile(
+            facts=facts,
+            actor_user_id=actor_user_id,
+            reason=reason,
+            evidence_reference=evidence_reference,
+            idempotency_key=idempotency_key,
+        )
+
     async def adjust_credits(
         self, *, workspace_id: UUID, request: CreditAdjustmentRequest, actor_user_id: UUID
     ) -> CreditAdjustmentOut:
@@ -406,6 +447,7 @@ def build_platform_commerce_operations_service(
         connectors=connectors,
         event_reconciler=BillingEventReconciliationService(settings),
         refund_applicator=BillingTopUpRefundApplicationService(settings=settings),
+        payment_correction_recorder=BillingPaymentReconciliationService(settings=settings),
     )
 
 
