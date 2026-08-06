@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -10,7 +10,9 @@ from src.config import Settings
 from src.core.connectors import ConnectorDefinition, ConnectorKind, ConnectorTrustLevel
 from src.core.exceptions import ServiceUnavailable
 from src.core.registries import ConnectorRegistry
+from src.models.commerce.payments import CommerceRefundStatus
 from src.models.connectors.inbox import ConnectorEventInboxStatus
+from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
 from src.modules.commerce.platform_operations import PlatformCommerceOperationsService
 from src.modules.commerce.platform_operations_schema import (
     CreditAdjustmentRequest,
@@ -26,7 +28,7 @@ class _Connectors:
 
 
 class _RegisteredConnectors:
-    def __init__(self, *, key: str, capabilities: tuple[str, ...]) -> None:
+    def __init__(self, *, key: str, capabilities: tuple[str, ...], factory=None) -> None:
         self._key = key
         self._registration = SimpleNamespace(
             definition=ConnectorDefinition(
@@ -35,11 +37,20 @@ class _RegisteredConnectors:
                 version="1.0.0",
                 trust_level=ConnectorTrustLevel.OFFICIAL,
                 capabilities=capabilities,
-            )
+            ),
+            factory=factory,
         )
 
     def resolve(self, key: str):  # type: ignore[no-untyped-def]
         return self._registration if key == self._key else None
+
+
+class _RefundConnector:
+    async def create_refund(self, **_: object):
+        raise AssertionError("Provider call belongs to the injected refund applicator")
+
+    async def refund_from_event(self, **_: object):
+        return None
 
 
 def _settings(*, provider: str = "disabled") -> SimpleNamespace:
@@ -155,6 +166,48 @@ async def test_failed_provider_event_reconcile_requires_the_durable_reenqueue_po
 
     assert exc.value.error == "BILLING_PROVIDER_EVENT_RECONCILIATION_PORT_UNAVAILABLE"
     assert exc.value.details == {"protocol": "commerce.provider-event.reconcile.v1"}
+
+
+@pytest.mark.asyncio
+async def test_top_up_refund_uses_injected_refund_authority_and_provider_scope() -> None:
+    transaction_id = uuid4()
+    actor_id = uuid4()
+
+    class _RefundApplicator:
+        async def request_refund(self, **kwargs: object) -> BillingTopUpRefundResult:
+            assert kwargs["transaction_id"] == transaction_id
+            assert kwargs["actor_user_id"] == actor_id
+            assert kwargs["idempotency_key"] == "refund-1"
+            assert isinstance(kwargs["provider"], _RefundConnector)
+            return BillingTopUpRefundResult(
+                refund_id=uuid4(),
+                workspace_id=uuid4(),
+                transaction_id=transaction_id,
+                status=CommerceRefundStatus.PENDING,
+                amount_micros=5_000_000,
+                credit_amount=500,
+                external_refund_id=None,
+                held_credits=500,
+            )
+
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _settings(provider="stripe")),
+        connectors=cast(
+            ConnectorRegistry,
+            _RegisteredConnectors(key="billing.stripe", capabilities=(), factory=_RefundConnector),
+        ),
+        refund_applicator=cast(Any, _RefundApplicator()),
+    )
+
+    result = await service.request_top_up_refund(
+        transaction_id=transaction_id,
+        reason="operator correction",
+        idempotency_key="refund-1",
+        actor_user_id=actor_id,
+    )
+
+    assert result.transaction_id == transaction_id
+    assert result.held_credits == 500
 
 
 def test_credit_adjustment_rejects_a_noop_before_any_ledger_write() -> None:

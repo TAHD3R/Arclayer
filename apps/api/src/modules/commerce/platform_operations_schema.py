@@ -16,6 +16,7 @@ from pydantic import Field, SecretStr, model_validator
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.commerce.billing import BillingProviderMode, SubscriptionTransitionStatus
+from src.models.commerce.payments import CommerceRefundStatus
 from src.models.connectors.inbox import ConnectorEventInboxStatus
 
 
@@ -93,6 +94,21 @@ class ProviderEventQuery(BaseSchema):
 class ProviderEventReconcileRequest(BaseSchema):
     expected_processing_attempts: int = Field(ge=0)
     idempotency_key: str = Field(min_length=1, max_length=128)
+
+
+class TopUpRefundRequest(BaseSchema):
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class TopUpRefundOut(BaseSchema):
+    refund_id: PublicUUID
+    workspace_id: PublicUUID
+    transaction_id: PublicUUID
+    status: CommerceRefundStatus
+    amount_micros: int = Field(gt=0)
+    credit_amount: int = Field(gt=0)
+    external_refund_id: str | None
+    held_credits: int = Field(ge=0)
 
 
 class CreditAdjustmentRequest(BaseSchema):

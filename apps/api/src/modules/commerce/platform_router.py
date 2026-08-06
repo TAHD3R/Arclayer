@@ -11,6 +11,7 @@ from src.core.exceptions import NotFound, ServiceUnavailable
 from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
+from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
 from src.modules.commerce.catalog_schema import (
     PlanIdentityCreate,
     PlanRevisionDraftCreate,
@@ -37,6 +38,8 @@ from src.modules.commerce.platform_operations_schema import (
     ProviderReadinessOut,
     SubscriptionTransitionCancelRequest,
     SubscriptionTransitionDetailOut,
+    TopUpRefundOut,
+    TopUpRefundRequest,
 )
 from src.modules.commerce.platform_read_service import build_platform_commerce_read_service
 from src.modules.commerce.platform_schema import (
@@ -487,6 +490,32 @@ async def reconcile_commerce_provider_event(
             actor_user_id=UUID(str(principal.actor_id)),
         )
     )
+
+
+@router.post(
+    "/transactions/{transaction_id}/refunds",
+    operation_id="platform_request_top_up_refund",
+    response_model=ResponseModel[TopUpRefundOut],
+    summary="Request one idempotent full top-up refund",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE)],
+)
+async def request_top_up_refund(
+    transaction_id: PublicUUID,
+    payload: TopUpRefundRequest,
+    idempotency_key: IdempotencyKey,
+    principal: CurrentPlatformSession,
+    settings: Settings = Depends(get_settings),
+    connectors: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[TopUpRefundOut]:
+    result: BillingTopUpRefundResult = await build_platform_commerce_operations_service(
+        settings=settings, connectors=connectors
+    ).request_top_up_refund(
+        transaction_id=transaction_id,
+        reason=payload.reason,
+        idempotency_key=idempotency_key,
+        actor_user_id=UUID(str(principal.actor_id)),
+    )
+    return ApiResponse.success(data=TopUpRefundOut.model_validate(result.model_dump()))
 
 
 @router.post(

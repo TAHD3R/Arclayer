@@ -1169,3 +1169,10 @@ M2.4b.3b implementation boundary:
 - Added migration `0129_auto_20260807_0044` and focused unit coverage for matching top-up refund consequence, account-scoped missing projection, idempotency conflict, and invalid refund shape.
 - Validation for this recoverable slice: focused payment-reconciliation unit tests `4 passed`; targeted Ruff check, format check, and `ty` checks passed; `db:upgrade` applied the new migration and `db:migrate` reported no changes.
 - M2.4b.5a is complete. The next active slice is M2.4b.5b: wire the correction authority into the eligible Platform reconciliation control surface and close M2.4b replay/ordering/API evidence without changing the accepted Stripe settlement or refund authorities.
+
+### 2026-08-06 — M2.4b.5a API surface closure
+
+- Added the required Platform `POST /system/commerce/transactions/{transactionId}/refunds` route with exact `Idempotency-Key`, `commerce.subscriptions.manage` permission, Provider connector resolution, and the existing Provider-neutral top-up refund hold authority.
+- The route returns a Platform-safe PublicUUID envelope and never exposes payment credentials or treats the Provider API response as local refund completion. Provider-confirmed signed events remain the only completion authority.
+- Focused validation: Platform operations `6 passed`; Platform Commerce router `4 passed`; targeted Ruff/format checks passed. Existing Platform test `ty` warnings are unchanged fixture typing diagnostics.
+- This API closure is complete; M2.4b.5b remains active for Platform payment-fact correction invocation and final M2.4 replay/ordering evidence.

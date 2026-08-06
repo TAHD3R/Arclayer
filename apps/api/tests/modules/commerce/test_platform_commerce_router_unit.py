@@ -10,7 +10,9 @@ from fastapi import FastAPI
 
 from src.common.utils.public_ids import encode_uuid
 from src.models.commerce.billing import BillingCycle, PlanRevisionStatus, SubscriptionStatus
+from src.models.commerce.payments import CommerceRefundStatus
 from src.modules.commerce import platform_router
+from src.modules.commerce.billing_top_up_refund_application_service import BillingTopUpRefundResult
 from src.modules.commerce.platform_schema import (
     PlatformCommercePlanCatalogOut,
     PlatformCommercePlanIdentityOut,
@@ -280,3 +282,45 @@ async def test_catalog_mutations_use_canonical_plan_scoped_paths(monkeypatch) ->
     assert service.create_draft.await_args.kwargs["plan_code"] == "premium"
     assert service.update_draft.await_args.kwargs["expected_revision"] == 1
     assert service.publish_draft.await_args.kwargs["expected_revision"] == 1
+
+
+async def test_platform_top_up_refund_route_uses_idempotency_and_operator_authority(monkeypatch) -> None:
+    actor_id = uuid4()
+    transaction_id = uuid4()
+    result = BillingTopUpRefundResult(
+        refund_id=uuid4(),
+        workspace_id=uuid4(),
+        transaction_id=transaction_id,
+        status=CommerceRefundStatus.PENDING,
+        amount_micros=5_000_000,
+        credit_amount=500,
+        external_refund_id=None,
+        held_credits=500,
+    )
+    request_refund = AsyncMock(return_value=result)
+    service = SimpleNamespace(request_top_up_refund=request_refund)
+    monkeypatch.setattr(platform_router, "build_platform_commerce_operations_service", lambda **_: service)
+
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=actor_id, is_instance_owner=True)
+
+    app = FastAPI()
+    app.include_router(platform_router.router, prefix="/platform-api/v1/commerce")
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
+    app.dependency_overrides[platform_router.get_connector_registry] = lambda: SimpleNamespace()
+
+    async with asgi_client(app) as client:
+        response = await client.post(
+            f"/platform-api/v1/commerce/transactions/{encode_uuid(transaction_id)}/refunds",
+            headers={"Idempotency-Key": "refund-route-1"},
+            json={"reason": "confirmed provider refund"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["transactionId"] == encode_uuid(transaction_id)
+    request_refund.assert_awaited_once_with(
+        transaction_id=transaction_id,
+        reason="confirmed provider refund",
+        idempotency_key="refund-route-1",
+        actor_user_id=actor_id,
+    )

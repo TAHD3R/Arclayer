@@ -29,9 +29,14 @@ from src.models.commerce.credit_allocation import (
 )
 from src.models.connectors.inbox import ConnectorEventInbox
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.commerce.billing_connector import BillingRefundConnector
 from src.modules.commerce.billing_event_reconciliation_service import (
     BillingEventReconciliationResult,
     BillingEventReconciliationService,
+)
+from src.modules.commerce.billing_top_up_refund_application_service import (
+    BillingTopUpRefundApplicationService,
+    BillingTopUpRefundResult,
 )
 from src.modules.commerce.platform_operations_schema import (
     CreditAdjustmentOut,
@@ -78,11 +83,13 @@ class PlatformCommerceOperationsService(BaseService):
         connectors: ConnectorRegistry,
         configuration_writer: ProviderConfigurationWriter | None = None,
         event_reconciler: ProviderEventReconciler | None = None,
+        refund_applicator: BillingTopUpRefundApplicationService | None = None,
     ) -> None:
         super().__init__(settings)
         self._connectors = connectors
         self._configuration_writer = configuration_writer
         self._event_reconciler = event_reconciler
+        self._refund_applicator = refund_applicator
 
     async def provider_readiness(self) -> ProviderReadinessOut:
         billing = self.settings.billing
@@ -248,6 +255,33 @@ class PlatformCommerceOperationsService(BaseService):
         )
         return _event_out(result.inbox, job_id=result.reconciliation_job_id)
 
+    async def request_top_up_refund(
+        self,
+        *,
+        transaction_id: UUID,
+        reason: str,
+        idempotency_key: str,
+        actor_user_id: UUID,
+    ) -> BillingTopUpRefundResult:
+        if self._refund_applicator is None:
+            raise ServiceUnavailable(
+                error="BILLING_TOP_UP_REFUND_APPLICATION_PORT_UNAVAILABLE",
+                details={"protocol": "commerce.top-up-refund.v1"},
+            )
+        registration = self._connectors.resolve(f"billing.{self.settings.billing.provider}")
+        if registration is None:
+            raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
+        provider = registration.factory()
+        if not isinstance(provider, BillingRefundConnector):
+            raise ServiceUnavailable(error="BILLING_REFUND_CONNECTOR_UNAVAILABLE")
+        return await self._refund_applicator.request_refund(
+            transaction_id=transaction_id,
+            actor_user_id=actor_user_id,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            provider=provider,
+        )
+
     async def adjust_credits(
         self, *, workspace_id: UUID, request: CreditAdjustmentRequest, actor_user_id: UUID
     ) -> CreditAdjustmentOut:
@@ -371,6 +405,7 @@ def build_platform_commerce_operations_service(
         settings=settings,
         connectors=connectors,
         event_reconciler=BillingEventReconciliationService(settings),
+        refund_applicator=BillingTopUpRefundApplicationService(settings=settings),
     )
 
 
