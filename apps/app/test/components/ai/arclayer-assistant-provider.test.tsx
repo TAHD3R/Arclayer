@@ -217,7 +217,7 @@ describe("ArclayerAssistantProvider", () => {
             custom: { selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID] },
           },
         }),
-      ).rejects.toThrow("Run rejected");
+      ).rejects.toThrow("errors:AGENT_RUN_FAILED");
     });
 
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([

@@ -6,13 +6,14 @@ from uuid import UUID, uuid4
 
 from asgi_correlation_id import correlation_id
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.exceptions import OperationalError
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.events import events
-from src.core.exceptions import Conflict, NotFound
+from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from src.core.i18n import t
 from src.core.services import BaseService, DomainEventPublisher
 from src.llm.policy import (
@@ -234,6 +235,11 @@ class AgentRunService(BaseService):
             AgentBuilderContextError,
         ) as error:
             self._raise_http(error)
+        except OperationalError as error:
+            raise ServiceUnavailable(
+                message=t("errors", "AGENT_RUN_CREATE_FAILED"),
+                error="AGENT_RUN_CREATE_FAILED",
+            ) from error
         if job_result is not None:
             await self._job_service.publish_created_after_commit(job_result)
         return _run_create_response(workspace_id=workspace_id, head=head)

@@ -15,14 +15,22 @@ Phase 1: simple token bucket, no hierarchical limiting.
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Protocol
+from uuid import uuid4
+
+
+class RateLimiter(Protocol):
+    async def is_allowed(self, key: str, *, cost: int = 1) -> bool: ...
+
+
+class RateLimitBackendUnavailable(RuntimeError):
+    """Raised when the shared rate-limit authority cannot be reached."""
 
 
 class TokenBucket:
-    """Local token bucket for single-process rate limiting.
+    """Legacy single-process helper retained for isolated unit tests only.
 
-    Used as a fast-path check before hitting the distributed Valkey limiter,
-    and as a standalone rate limiter when Valkey is unavailable.
+    Production AI traffic is governed by :class:`ValkeyRateLimiter`.
     """
 
     def __init__(
@@ -66,8 +74,9 @@ class TokenBucket:
 class ValkeyRateLimiter:
     """Distributed rate limiter backed by Valkey.
 
-    Uses a sliding window approach with sorted sets for accuracy.
-    Falls back to local-only limiting when Valkey is unreachable.
+    Uses a sliding window approach with one atomic Valkey script per request.
+    The script removes expired entries, checks capacity, and records the whole
+    request before returning, so concurrent workers cannot oversubscribe a key.
     """
 
     def __init__(
@@ -77,53 +86,65 @@ class ValkeyRateLimiter:
         prefix: str = "arclayer:ratelimit",
         capacity: int = 100,
         window_seconds: int = 60,
-        fallback_bucket: TokenBucket | None = None,
     ) -> None:
+        if valkey_client is None:
+            raise ValueError("ValkeyRateLimiter requires a Valkey client")
         self._valkey = valkey_client
         self._prefix = prefix
         self._capacity = capacity
         self._window = window_seconds
-        self._local = fallback_bucket or TokenBucket(
-            capacity=capacity,
-            refill_rate=capacity / window_seconds,
-        )
+        if capacity < 1:
+            raise ValueError("capacity must be positive")
+        if window_seconds < 1:
+            raise ValueError("window_seconds must be positive")
 
     async def is_allowed(self, key: str, *, cost: int = 1) -> bool:
         """Check if a request identified by `key` is allowed under the rate limit.
 
         Returns True if allowed, False if rate limited.
         """
-        # Fast path: local check first.
-        if not self._local.consume(cost):
-            return False
-
-        # Distributed check with Valkey.
-        if self._valkey is not None:
-            return await self._check_distributed(key, cost)
-
-        return True
+        if cost < 1:
+            raise ValueError("cost must be positive")
+        return await self._check_distributed(key, cost)
 
     async def _check_distributed(self, key: str, cost: int) -> bool:
         now = time.time()
         window_start = now - self._window
-        rkey = f"{self._prefix}:{key}"
+        rkey = self._key(key)
+        member_prefix = uuid4().hex
+        script = """
+        redis.call('zremrangebyscore', KEYS[1], 0, ARGV[1])
+        local current = redis.call('zcard', KEYS[1])
+        local cost = tonumber(ARGV[3])
+        if current + cost > tonumber(ARGV[4]) then
+            return 0
+        end
+        for index = 1, cost do
+            redis.call('zadd', KEYS[1], ARGV[2], ARGV[6] .. ':' .. index)
+        end
+        redis.call('expire', KEYS[1], ARGV[5])
+        return 1
+        """
 
         try:
             valkey = self._valkey
-            if valkey is None:
-                return True
             raw: Any = valkey.raw if hasattr(valkey, "raw") else valkey
-            async with raw.pipeline() as pipe:
-                pipe.zremrangebyscore(rkey, 0, window_start)
-                pipe.zcard(rkey)
-                results = await pipe.execute()
+            result = await raw.eval(
+                script,
+                1,
+                rkey,
+                window_start,
+                now,
+                cost,
+                self._capacity,
+                self._window + 1,
+                member_prefix,
+            )
+            return bool(int(result))
+        except Exception as exc:
+            raise RateLimitBackendUnavailable("Valkey rate-limit operation failed") from exc
 
-            current = results[1]
-            if current + cost <= self._capacity:
-                await raw.zadd(rkey, {str(now): now})
-                await raw.expire(rkey, self._window + 1)
-                return True
-            return False
-        except Exception:
-            # Valkey unreachable — trust local check.
-            return True
+    def _key(self, key: str) -> str:
+        if hasattr(self._valkey, "key"):
+            return str(self._valkey.key(self._prefix, key))
+        return f"{self._prefix}:{key}"

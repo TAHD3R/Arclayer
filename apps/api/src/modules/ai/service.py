@@ -13,7 +13,7 @@ from src.llm.budget import BudgetExceededError
 from src.llm.errors import LLMErrorCode
 from src.llm.mock import MockLLMProvider
 from src.llm.observability import ai_request_span
-from src.llm.rate_limiter import TokenBucket
+from src.llm.rate_limiter import RateLimitBackendUnavailable, RateLimiter, ValkeyRateLimiter
 from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros, detect_provider
 from src.models.ai.ai_budget import AIBudget
 from src.modules.ai.schema import AIReasoningEffort
@@ -22,6 +22,7 @@ from src.modules.system.ai_providers.configuration import (
     resolve_active_system_model,
     resolve_default_system_model,
 )
+from src.platform.cache.valkey import ValkeyClient, build_valkey
 from src.settings.runtime import get_core_settings_value_cached
 
 logger = structlog.get_logger("arclayer.ai.service")
@@ -38,7 +39,7 @@ class AIChatService(BaseService):
         self,
         settings: Settings,
         runtime: LLMRuntime | None = None,
-        rate_limiter: TokenBucket | None = None,
+        rate_limiter: RateLimiter | None = None,
     ) -> None:
         super().__init__(settings)
         self._settings = settings
@@ -54,15 +55,23 @@ class AIChatService(BaseService):
         if rate_limiter is not None:
             self._rate_limiter = rate_limiter
         elif settings.ai.rate_limit_enabled:
-            self._rate_limiter = TokenBucket(
-                capacity=settings.ai.rate_limit_capacity,
-                refill_rate=settings.ai.rate_limit_capacity / settings.ai.rate_limit_window_seconds,
-                refill_interval=1.0,
-            )
+            if not settings.valkey.enabled:
+                if settings.database.enabled:
+                    raise RuntimeError("AI rate limiting requires Valkey when the database is enabled")
+                self._rate_limiter = None
+            else:
+                raw_valkey = build_valkey(settings.valkey)
+                self._rate_limiter = ValkeyRateLimiter(
+                    valkey_client=ValkeyClient(
+                        raw_valkey,
+                        prefix=settings.valkey.prefix,
+                        default_ttl=settings.valkey.default_ttl,
+                    ),
+                    capacity=settings.ai.rate_limit_capacity,
+                    window_seconds=settings.ai.rate_limit_window_seconds,
+                )
         else:
             self._rate_limiter = None
-        # TODO (Phase 4): Wire ValkeyRateLimiter for global rate limiting across
-        # multi-worker deployments. The current TokenBucket is process-local.
 
     async def _resolve_budget(self, workspace_id: UUID) -> AIBudget | None:
         """Get or create the current monthly budget for a workspace."""
@@ -461,9 +470,21 @@ class AIChatService(BaseService):
 
     async def _check_rate_limit(self, key: str) -> None:
         """Check rate limit before processing a request. No-op if limiter is disabled."""
-        if self._rate_limiter is None:
+        limiter = self._rate_limiter
+        if limiter is None:
             return
-        if not self._rate_limiter.consume(1):
+        try:
+            allowed = await limiter.is_allowed(key)
+        except RateLimitBackendUnavailable as exc:
+            raise LLMRuntimeError(
+                code=LLMErrorCode.SYSTEM_INTERNAL_ERROR,
+                message=_llm_error_message(
+                    LLMErrorCode.SYSTEM_INTERNAL_ERROR,
+                    default="AI requests are temporarily unavailable. Please try again.",
+                ),
+                status_code=503,
+            ) from exc
+        if not allowed:
             raise LLMRuntimeError(
                 code=LLMErrorCode.RATE_LIMIT_EXCEEDED,
                 message=_llm_error_message(

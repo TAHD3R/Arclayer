@@ -10,6 +10,7 @@ import {
 } from "@assistant-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { ApiError } from "@/lib/http";
 import {
   cancelAgentRun,
   createAgentRun,
@@ -110,6 +111,24 @@ function isRunActive(projection: AgentRunProjectionV1): boolean {
 
 function isRunBlockingQueue(projection: AgentRunProjectionV1): boolean {
   return isRunActive(projection) || projection.runStatus === "interrupted";
+}
+
+function toUserFacingRuntimeError(
+  error: unknown,
+  localize: ArclayerThreadRuntimeOptions["localize"],
+): Error {
+  const code =
+    error instanceof ApiError && error.error
+      ? error.error
+      : error instanceof AgentRuntimeProtocolError
+        ? error.code
+        : "AGENT_RUN_FAILED";
+  const key = `errors:${code}`;
+  const message = localize(key);
+  const fallback = localize("errors:AGENT_RUN_FAILED");
+  const userError = new Error(message === key ? fallback : message);
+  userError.cause = error;
+  return userError;
 }
 
 function humanInterrupt(projection: AgentRunProjectionV1, toolCallId: string) {
@@ -215,7 +234,9 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         await continueRun(thread.activeRunId, next, controller);
       }
     })().catch((error: unknown) => {
-      if (!controller.signal.aborted) setRuntimeError(error);
+      if (!controller.signal.aborted) {
+        setRuntimeError(toUserFacingRuntimeError(error, options.localize));
+      }
     });
     return () => controller.abort();
   }, [continueRun, options.workspaceId, publishProjection, remoteThreadId]);
@@ -316,6 +337,8 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         );
         publishProjection(initial);
         await continueRun(created.runId, initial, controller);
+      } catch (error: unknown) {
+        throw toUserFacingRuntimeError(error, options.localize);
       } finally {
         setIsSubmitting(false);
       }
@@ -338,7 +361,9 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const [messageQueue] = useState(() =>
     createMessageQueue({
       run: (message) => {
-        void runAgentMessageRef.current(message).catch(setRuntimeError);
+        void runAgentMessageRef.current(message).catch((error: unknown) => {
+          setRuntimeError(toUserFacingRuntimeError(error, options.localize));
+        });
       },
     }),
   );
@@ -372,7 +397,9 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
       await respondWithHumanResult(toolCallId, result);
     },
     onResumeToolCall: ({ toolCallId, payload }) => {
-      void respondWithHumanResult(toolCallId, payload).catch(setRuntimeError);
+      void respondWithHumanResult(toolCallId, payload).catch((error: unknown) => {
+        setRuntimeError(toUserFacingRuntimeError(error, options.localize));
+      });
     },
     onRespondToToolApproval: async ({ approvalId, approved, optionId, reason }) => {
       const command = approvalCommand(projectionRef.current, approvalId);

@@ -6,7 +6,28 @@ import time
 
 import pytest
 
-from src.llm.rate_limiter import TokenBucket
+from src.llm.rate_limiter import RateLimitBackendUnavailable, TokenBucket, ValkeyRateLimiter
+
+
+class _FakeRawValkey:
+    def __init__(self, result=1, error: Exception | None = None):
+        self.result = result
+        self.error = error
+        self.calls: list[tuple[object, ...]] = []
+
+    async def eval(self, *args):
+        self.calls.append(args)
+        if self.error is not None:
+            raise self.error
+        return self.result
+
+
+class _FakeValkey:
+    def __init__(self, raw):
+        self.raw = raw
+
+    def key(self, *parts: str) -> str:
+        return ":".join(("test", *parts))
 
 
 class TestTokenBucket:
@@ -55,3 +76,30 @@ class TestTokenBucket:
     def test_zero_capacity(self):
         bucket = TokenBucket(capacity=0, refill_rate=0.0)
         assert not bucket.consume(1)
+
+
+class TestValkeyRateLimiter:
+    async def test_uses_atomic_eval_and_shared_key(self):
+        raw = _FakeRawValkey(result=1)
+        limiter = ValkeyRateLimiter(
+            valkey_client=_FakeValkey(raw),
+            capacity=3,
+            window_seconds=60,
+        )
+
+        assert await limiter.is_allowed("workspace-1")
+        assert raw.calls[0][1] == 1
+        assert raw.calls[0][2] == "test:arclayer:ratelimit:workspace-1"
+
+    async def test_returns_false_when_atomic_script_rejects_request(self):
+        raw = _FakeRawValkey(result=0)
+        limiter = ValkeyRateLimiter(valkey_client=_FakeValkey(raw), capacity=1, window_seconds=60)
+
+        assert not await limiter.is_allowed("workspace-1")
+
+    async def test_surfaces_backend_failure_without_local_fallback(self):
+        raw = _FakeRawValkey(error=ConnectionError("offline"))
+        limiter = ValkeyRateLimiter(valkey_client=_FakeValkey(raw), capacity=1, window_seconds=60)
+
+        with pytest.raises(RateLimitBackendUnavailable):
+            await limiter.is_allowed("workspace-1")
