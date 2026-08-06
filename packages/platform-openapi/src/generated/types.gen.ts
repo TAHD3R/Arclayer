@@ -572,6 +572,11 @@ export type CommercePlanRevisionOut = {
 };
 
 /**
+ * CommerceRefundStatus
+ */
+export type CommerceRefundStatus = 'pending' | 'succeeded' | 'failed' | 'canceled';
+
+/**
  * CommercialCorrectionApplyPayload
  */
 export type CommercialCorrectionApplyPayload = {
@@ -848,6 +853,10 @@ export type CreditAdjustmentRequest = {
      * Expectedaccountrevision
      */
     expectedAccountRevision: number;
+    /**
+     * Expiresat
+     */
+    expiresAt: string | null;
     /**
      * Idempotencykey
      */
@@ -13849,6 +13858,56 @@ export type ResponseModelRenewalTransitionScheduleOut = {
 };
 
 /**
+ * ResponseModel[SimulatedCheckoutOutcomeOut]
+ */
+export type ResponseModelSimulatedCheckoutOutcomeOut = {
+    data?: SimulatedCheckoutOutcomeOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SimulatorReadinessOut]
+ */
+export type ResponseModelSimulatorReadinessOut = {
+    data?: SimulatorReadinessOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[StorageProfileDeleteOut]
  */
 export type ResponseModelStorageProfileDeleteOut = {
@@ -14278,6 +14337,31 @@ export type ResponseModelSystemPluginDetailOut = {
  */
 export type ResponseModelSystemPluginOperationOut = {
     data?: SystemPluginOperationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[TopUpRefundOut]
+ */
+export type ResponseModelTopUpRefundOut = {
+    data?: TopUpRefundOut | null;
     /**
      * Error
      */
@@ -14771,6 +14855,88 @@ export type RoleResponsibilityImpact = {
      * Userid
      */
     userId: string;
+};
+
+/**
+ * SimulatedCheckoutOutcomeOut
+ */
+export type SimulatedCheckoutOutcomeOut = {
+    /**
+     * Accepted
+     */
+    accepted: boolean;
+    /**
+     * Checkoutsessionid
+     */
+    checkoutSessionId: string;
+    /**
+     * Eventcreated
+     */
+    eventCreated: boolean;
+    /**
+     * Inboxid
+     */
+    inboxId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Outcome
+     */
+    outcome: 'pending' | 'succeeded' | 'failed' | 'canceled';
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+};
+
+/**
+ * SimulatedCheckoutOutcomeWrite
+ */
+export type SimulatedCheckoutOutcomeWrite = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Outcome
+     */
+    outcome: 'pending' | 'succeeded' | 'failed' | 'canceled';
+};
+
+/**
+ * SimulatorReadinessOut
+ */
+export type SimulatorReadinessOut = {
+    /**
+     * Connectorregistered
+     */
+    connectorRegistered: boolean;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Environment
+     */
+    environment: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Rejectioncode
+     */
+    rejectionCode?: string | null;
+    /**
+     * Signingconfigured
+     */
+    signingConfigured: boolean;
+    /**
+     * Supportedoutcomes
+     */
+    supportedOutcomes: Array<'pending' | 'succeeded' | 'failed' | 'canceled'>;
 };
 
 /**
@@ -16823,6 +16989,51 @@ export type SystemPluginProvidesOut = {
  * SystemPluginSourceType
  */
 export type SystemPluginSourceType = 'bundled' | 'catalog' | 'manual_upload';
+
+/**
+ * TopUpRefundOut
+ */
+export type TopUpRefundOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Creditamount
+     */
+    creditAmount: number;
+    /**
+     * Externalrefundid
+     */
+    externalRefundId: string | null;
+    /**
+     * Heldcredits
+     */
+    heldCredits: number;
+    /**
+     * Refundid
+     */
+    refundId: string;
+    status: CommerceRefundStatus;
+    /**
+     * Transactionid
+     */
+    transactionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * TopUpRefundRequest
+ */
+export type TopUpRefundRequest = {
+    /**
+     * Reason
+     */
+    reason: string;
+};
 
 /**
  * UploadAbortOut
@@ -19930,6 +20141,102 @@ export type PlatformCommerceReconcileCommerceProviderEventResponses = {
 
 export type PlatformCommerceReconcileCommerceProviderEventResponse = PlatformCommerceReconcileCommerceProviderEventResponses[keyof PlatformCommerceReconcileCommerceProviderEventResponses];
 
+export type PlatformCommerceGetCommerceSimulatorData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/simulator';
+};
+
+export type PlatformCommerceGetCommerceSimulatorResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatorReadinessOut;
+};
+
+export type PlatformCommerceGetCommerceSimulatorResponse = PlatformCommerceGetCommerceSimulatorResponses[keyof PlatformCommerceGetCommerceSimulatorResponses];
+
+export type PlatformCommerceSubmitSimulatedCheckoutOutcomeData = {
+    body: SimulatedCheckoutOutcomeWrite;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+        /**
+         * Checkout Session Id
+         */
+        checkout_session_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/simulator/workspaces/{workspace_id}/checkout-sessions/{checkout_session_id}/outcome';
+};
+
+export type PlatformCommerceSubmitSimulatedCheckoutOutcomeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceSubmitSimulatedCheckoutOutcomeError = PlatformCommerceSubmitSimulatedCheckoutOutcomeErrors[keyof PlatformCommerceSubmitSimulatedCheckoutOutcomeErrors];
+
+export type PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatedCheckoutOutcomeOut;
+};
+
+export type PlatformCommerceSubmitSimulatedCheckoutOutcomeResponse = PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses[keyof PlatformCommerceSubmitSimulatedCheckoutOutcomeResponses];
+
+export type PlatformCommerceSubmitSimulatedTopUpOutcomeData = {
+    body: SimulatedCheckoutOutcomeWrite;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+        /**
+         * Checkout Session Id
+         */
+        checkout_session_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/simulator/workspaces/{workspace_id}/top-up-checkout-sessions/{checkout_session_id}/outcome';
+};
+
+export type PlatformCommerceSubmitSimulatedTopUpOutcomeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceSubmitSimulatedTopUpOutcomeError = PlatformCommerceSubmitSimulatedTopUpOutcomeErrors[keyof PlatformCommerceSubmitSimulatedTopUpOutcomeErrors];
+
+export type PlatformCommerceSubmitSimulatedTopUpOutcomeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatedCheckoutOutcomeOut;
+};
+
+export type PlatformCommerceSubmitSimulatedTopUpOutcomeResponse = PlatformCommerceSubmitSimulatedTopUpOutcomeResponses[keyof PlatformCommerceSubmitSimulatedTopUpOutcomeResponses];
+
 export type PlatformCommerceScheduleSubscriptionRevisionTransitionData = {
     body: RenewalTransitionScheduleRequest;
     path?: never;
@@ -20115,6 +20422,42 @@ export type PlatformCommerceGetPlatformCommerceSubscriptionResponses = {
 };
 
 export type PlatformCommerceGetPlatformCommerceSubscriptionResponse = PlatformCommerceGetPlatformCommerceSubscriptionResponses[keyof PlatformCommerceGetPlatformCommerceSubscriptionResponses];
+
+export type PlatformCommerceRequestTopUpRefundData = {
+    body: TopUpRefundRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Transaction Id
+         */
+        transaction_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/transactions/{transaction_id}/refunds';
+};
+
+export type PlatformCommerceRequestTopUpRefundErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceRequestTopUpRefundError = PlatformCommerceRequestTopUpRefundErrors[keyof PlatformCommerceRequestTopUpRefundErrors];
+
+export type PlatformCommerceRequestTopUpRefundResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTopUpRefundOut;
+};
+
+export type PlatformCommerceRequestTopUpRefundResponse = PlatformCommerceRequestTopUpRefundResponses[keyof PlatformCommerceRequestTopUpRefundResponses];
 
 export type PlatformCommerceAdjustWorkspaceCreditsData = {
     body: CreditAdjustmentRequest;

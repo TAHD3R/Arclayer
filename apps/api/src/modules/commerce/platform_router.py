@@ -36,6 +36,7 @@ from src.modules.commerce.platform_operations_schema import (
     ProviderEventQuery,
     ProviderEventReconcileRequest,
     ProviderReadinessOut,
+    SimulatorReadinessOut,
     SubscriptionTransitionCancelRequest,
     SubscriptionTransitionDetailOut,
     TopUpRefundOut,
@@ -53,6 +54,10 @@ from src.modules.commerce.platform_schema import (
 )
 from src.modules.commerce.schema import WorkspaceCommerceOverviewOut
 from src.modules.commerce.service import build_commerce_service
+from src.modules.commerce.simulated_checkout_outcome_service import (
+    SimulatedCheckoutOutcomeOut,
+    SimulatedCheckoutOutcomeWrite,
+)
 from src.modules.commerce.subscription_transitions.composition import build_subscription_transition_service
 from src.modules.commerce.subscription_transitions.platform_operations import (
     build_platform_subscription_transition_operations,
@@ -388,6 +393,82 @@ async def get_commerce_provider(
             settings=settings, connectors=connectors
         ).provider_readiness()
     )
+
+
+@router.get(
+    "/simulator",
+    operation_id="platform_get_commerce_simulator_readiness",
+    response_model=ResponseModel[SimulatorReadinessOut],
+    summary="Read development/test billing simulator readiness",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_READ)],
+)
+async def get_commerce_simulator(
+    settings: Settings = Depends(get_settings),
+    connectors: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[SimulatorReadinessOut]:
+    return ApiResponse.success(
+        data=await build_platform_commerce_operations_service(
+            settings=settings, connectors=connectors
+        ).simulator_readiness()
+    )
+
+
+@router.post(
+    "/simulator/workspaces/{workspace_id}/checkout-sessions/{checkout_session_id}/outcome",
+    operation_id="platform_submit_simulated_checkout_outcome",
+    response_model=ResponseModel[SimulatedCheckoutOutcomeOut],
+    summary="Submit one authorized simulated subscription Checkout outcome",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE)],
+)
+async def submit_simulated_checkout_outcome(
+    workspace_id: PublicUUID,
+    checkout_session_id: PublicUUID,
+    payload: SimulatedCheckoutOutcomeWrite,
+    idempotency_key: IdempotencyKey,
+    principal: CurrentPlatformSession,
+    settings: Settings = Depends(get_settings),
+    connectors: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[SimulatedCheckoutOutcomeOut]:
+    result = await build_platform_commerce_operations_service(
+        settings=settings, connectors=connectors
+    ).submit_simulator_outcome(
+        workspace_id=workspace_id,
+        checkout_session_id=checkout_session_id,
+        kind="subscription",
+        payload=payload,
+        idempotency_key=idempotency_key,
+        actor_user_id=UUID(str(principal.actor_id)),
+    )
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/simulator/workspaces/{workspace_id}/top-up-checkout-sessions/{checkout_session_id}/outcome",
+    operation_id="platform_submit_simulated_top_up_outcome",
+    response_model=ResponseModel[SimulatedCheckoutOutcomeOut],
+    summary="Submit one authorized simulated top-up Checkout outcome",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE)],
+)
+async def submit_simulated_top_up_outcome(
+    workspace_id: PublicUUID,
+    checkout_session_id: PublicUUID,
+    payload: SimulatedCheckoutOutcomeWrite,
+    idempotency_key: IdempotencyKey,
+    principal: CurrentPlatformSession,
+    settings: Settings = Depends(get_settings),
+    connectors: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[SimulatedCheckoutOutcomeOut]:
+    result = await build_platform_commerce_operations_service(
+        settings=settings, connectors=connectors
+    ).submit_simulator_outcome(
+        workspace_id=workspace_id,
+        checkout_session_id=checkout_session_id,
+        kind="top_up",
+        payload=payload,
+        idempotency_key=idempotency_key,
+        actor_user_id=UUID(str(principal.actor_id)),
+    )
+    return ApiResponse.success(data=result)
 
 
 @router.put(

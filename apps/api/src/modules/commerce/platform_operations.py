@@ -55,8 +55,15 @@ from src.modules.commerce.platform_operations_schema import (
     ProviderEventQuery,
     ProviderEventReconcileRequest,
     ProviderReadinessOut,
+    SimulatorReadinessOut,
 )
 from src.modules.commerce.platform_schema import PlatformCommerceSubscriptionOut
+from src.modules.commerce.simulated_checkout_outcome_service import (
+    SimulatedCheckoutOutcomeOut,
+    SimulatedCheckoutOutcomeWrite,
+    build_simulated_checkout_outcome_service,
+)
+from src.modules.commerce.simulated_top_up_settlement_service import build_simulated_top_up_settlement_service
 
 
 class ProviderConfigurationWriter(Protocol):
@@ -136,6 +143,55 @@ class PlatformCommerceOperationsService(BaseService):
             connector_registered=registration is not None,
             supported_capabilities=() if registration is None else registration.definition.capabilities,
             missing_prerequisites=tuple(missing),
+        )
+
+    async def simulator_readiness(self) -> SimulatorReadinessOut:
+        environment = str(getattr(self.settings, "app_env", "unknown"))
+        if environment not in {"development", "test"}:
+            raise ServiceUnavailable(error="BILLING_SIMULATOR_PRODUCTION_FORBIDDEN")
+        provider = self.settings.billing.provider
+        registration = self._connectors.resolve("billing.simulated")
+        signing_configured = bool(self.settings.billing.simulated_signing_secret.get_secret_value())
+        enabled = provider == "simulated" and signing_configured and registration is not None
+        return SimulatorReadinessOut(
+            enabled=enabled,
+            environment=environment,
+            provider=provider,
+            signing_configured=signing_configured,
+            connector_registered=registration is not None,
+            supported_outcomes=("pending", "succeeded", "failed", "canceled"),
+            rejection_code=None
+            if enabled
+            else ("BILLING_SIMULATOR_NOT_CONFIGURED" if provider != "simulated" else "BILLING_SIMULATOR_NOT_READY"),
+        )
+
+    async def submit_simulator_outcome(
+        self,
+        *,
+        workspace_id: UUID,
+        checkout_session_id: UUID,
+        kind: str,
+        payload: SimulatedCheckoutOutcomeWrite,
+        idempotency_key: str,
+        actor_user_id: UUID,
+    ) -> SimulatedCheckoutOutcomeOut:
+        environment = str(getattr(self.settings, "app_env", "unknown"))
+        if environment not in {"development", "test"}:
+            raise ServiceUnavailable(error="BILLING_SIMULATOR_PRODUCTION_FORBIDDEN")
+        if self.settings.billing.provider != "simulated":
+            raise ServiceUnavailable(error="BILLING_SIMULATOR_NOT_CONFIGURED")
+        if kind == "subscription":
+            service = build_simulated_checkout_outcome_service(self.settings, self._connectors)
+        elif kind == "top_up":
+            service = build_simulated_top_up_settlement_service(self.settings, self._connectors)
+        else:
+            raise ServiceUnavailable(error="BILLING_SIMULATOR_OUTCOME_KIND_UNSUPPORTED")
+        return await service.create(
+            workspace_id=workspace_id,
+            checkout_session_id=checkout_session_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            payload=payload,
         )
 
     async def get_subscription(self, *, subscription_id: UUID) -> PlatformCommerceSubscriptionOut | None:

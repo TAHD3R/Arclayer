@@ -5,6 +5,7 @@ import {
   platformCommerceCreatePlanRevision,
   platformCommerceGetCommerceDunningPolicy,
   platformCommerceGetCommerceProvider,
+  platformCommerceGetCommerceSimulator,
   platformCommerceGetPlatformCommerceSubscription,
   platformCommerceGetWorkspaceCommerceOverview,
   platformCommerceListCommercePlans,
@@ -17,6 +18,8 @@ import {
   platformCommercePutCommerceProvider,
   platformCommerceReconcileCommerceProviderEvent,
   platformCommerceScheduleSubscriptionRevisionTransition,
+  platformCommerceSubmitSimulatedCheckoutOutcome,
+  platformCommerceSubmitSimulatedTopUpOutcome,
   platformCommerceUpdatePlanRevision,
   type CommercialCorrectionApplyPayload,
   type CommercialCorrectionPreviewRequest,
@@ -32,6 +35,7 @@ import {
   type PlanRevisionPublish,
   type ProviderConfigurationWriteWritable,
   type ProviderEventReconcileRequest,
+  type SimulatedCheckoutOutcomeWrite,
   type PlatformCommercePlanCatalogOut,
   type PlatformCommerceSubscriptionListOut,
   type RenewalTransitionScheduleRequest,
@@ -162,6 +166,42 @@ export async function publishPlanRevision(
 
 export async function getCommerceProvider() {
   return unwrap(await platformCommerceGetCommerceProvider({ client: platformApiClient }));
+}
+
+export async function getCommerceSimulator() {
+  return unwrap(await platformCommerceGetCommerceSimulator({ client: platformApiClient }));
+}
+
+export async function submitSimulatedCheckoutOutcome(
+  workspaceId: string,
+  checkoutSessionId: string,
+  body: SimulatedCheckoutOutcomeWrite,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommerceSubmitSimulatedCheckoutOutcome({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { workspace_id: workspaceId, checkout_session_id: checkoutSessionId },
+    }),
+  );
+}
+
+export async function submitSimulatedTopUpOutcome(
+  workspaceId: string,
+  checkoutSessionId: string,
+  body: SimulatedCheckoutOutcomeWrite,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommerceSubmitSimulatedTopUpOutcome({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { workspace_id: workspaceId, checkout_session_id: checkoutSessionId },
+    }),
+  );
 }
 
 export async function putCommerceProvider(body: ProviderConfigurationWriteWritable) {

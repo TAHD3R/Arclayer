@@ -29,6 +29,10 @@ from src.modules.commerce.platform_operations_schema import (
     ProviderConfigurationWrite,
     ProviderEventReconcileRequest,
 )
+from src.modules.commerce.simulated_checkout_outcome_service import (
+    SimulatedCheckoutOutcomeOut,
+    SimulatedCheckoutOutcomeWrite,
+)
 
 
 class _Connectors:
@@ -75,12 +79,16 @@ def _settings(*, provider: str = "disabled") -> SimpleNamespace:
 
 def _simulated_settings(*, signing_secret_configured: bool) -> SimpleNamespace:
     return SimpleNamespace(
+        app_env="test",
         billing=SimpleNamespace(
             provider="simulated",
             provider_configured=True,
             webhook_secret_configured=signing_secret_configured,
             webhook_enabled=signing_secret_configured,
-        )
+            simulated_signing_secret=SimpleNamespace(
+                get_secret_value=lambda: "secret" if signing_secret_configured else ""
+            ),
+        ),
     )
 
 
@@ -125,6 +133,70 @@ async def test_simulated_provider_readiness_requires_its_signing_secret() -> Non
     assert readiness.configured is False
     assert readiness.webhook_ready is False
     assert readiness.missing_prerequisites == ("webhook_secret",)
+
+
+@pytest.mark.asyncio
+async def test_simulator_readiness_is_explicit_and_distinct_from_provider_readiness() -> None:
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _simulated_settings(signing_secret_configured=True)),
+        connectors=cast(
+            ConnectorRegistry,
+            _RegisteredConnectors(key="billing.simulated", capabilities=("subscription_webhook",)),
+        ),
+    )
+
+    readiness = await service.simulator_readiness()
+
+    assert readiness.enabled is True
+    assert readiness.environment == "test"
+    assert readiness.provider == "simulated"
+    assert readiness.supported_outcomes == ("pending", "succeeded", "failed", "canceled")
+    assert readiness.rejection_code is None
+
+
+@pytest.mark.asyncio
+async def test_simulator_outcome_delegates_to_the_selected_signed_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    checkout_id = uuid4()
+    actor_id = uuid4()
+    expected = SimulatedCheckoutOutcomeOut(
+        checkout_session_id=checkout_id,
+        outcome="succeeded",
+        provider_event_id="sim_evt_platform",
+        accepted=True,
+        event_created=True,
+        inbox_id=uuid4(),
+        job_id=uuid4(),
+    )
+
+    class _Service:
+        async def create(self, **kwargs: object) -> SimulatedCheckoutOutcomeOut:
+            assert kwargs["workspace_id"] == workspace_id
+            assert kwargs["checkout_session_id"] == checkout_id
+            assert kwargs["actor_user_id"] == actor_id
+            return expected
+
+    monkeypatch.setattr(
+        "src.modules.commerce.platform_operations.build_simulated_top_up_settlement_service",
+        lambda _settings, _connectors: _Service(),
+    )
+    service = PlatformCommerceOperationsService(
+        settings=cast(Settings, _simulated_settings(signing_secret_configured=True)),
+        connectors=cast(ConnectorRegistry, _Connectors()),
+    )
+
+    result = await service.submit_simulator_outcome(
+        workspace_id=workspace_id,
+        checkout_session_id=checkout_id,
+        kind="top_up",
+        payload=SimulatedCheckoutOutcomeWrite(outcome="succeeded", expected_revision=1),
+        idempotency_key="sim-1",
+        actor_user_id=actor_id,
+    )
+
+    assert result == expected
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,7 @@ they never act as tenant billing contacts.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
@@ -27,6 +27,16 @@ class ProviderReadinessOut(BaseSchema):
     connector_registered: bool
     supported_capabilities: tuple[str, ...]
     missing_prerequisites: tuple[str, ...]
+
+
+class SimulatorReadinessOut(BaseSchema):
+    enabled: bool
+    environment: str
+    provider: str
+    signing_configured: bool
+    connector_registered: bool
+    supported_outcomes: tuple[Literal["pending", "succeeded", "failed", "canceled"], ...]
+    rejection_code: str | None = None
 
 
 class ProviderConfigurationWrite(BaseSchema):

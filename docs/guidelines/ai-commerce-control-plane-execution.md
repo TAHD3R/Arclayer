@@ -1190,3 +1190,12 @@ M2.4b.3b implementation boundary:
 - Correction facts with a missing local projection, account mismatch, test/live mismatch, identity mismatch, status/amount mismatch, or impossible Credit consequence persist `reconciliation_required` evidence and never fabricate a grant, refund, negative balance, or generic Credit adjustment.
 - Final focused validation for M2.4b.5c: Stripe full-chain correction/replay integration `1 passed`; prior Stripe top-up/refund full-chain remains green; focused payment-correction unit `4 passed`; Platform operations `7 passed`; Platform Commerce router `4 passed`; targeted Ruff/format/`ty` checks passed; migration generation reports no changes.
 - M2.4b.5 and M2.4 are complete. M2.5 simulator control plane and OpenAPI surfaces is now the next active milestone; no Stripe settlement/refund authority was changed in this closure slice.
+
+### 2026-08-06 — M2.5a Platform simulator control surface and OpenAPI
+
+- Added an explicit Platform simulator readiness endpoint for development/test deployments. It reports simulator signing, connector registration, supported outcomes, and a stable rejection code without exposing secrets; production rejects the surface explicitly.
+- Added separate Platform subscription-Checkout and top-up-Checkout simulator outcome commands. Both require the exact Platform subscription-management permission and `Idempotency-Key`, then delegate to the existing signed Provider acceptance, encrypted inbox, pinned Job, and application projection services.
+- The Platform routes never accept raw Provider payloads, mutate commercial state inline, or impersonate Stripe; the existing Workspace simulator routes and real Stripe routes remain unchanged.
+- Regenerated `@arclayer/platform-openapi` and added typed Platform API wrappers for simulator readiness and both outcome commands.
+- Validation: API focused Platform commerce suite `14 passed`; targeted API Ruff check/format passed; targeted API `ty` has only pre-existing test fixture warnings; Platform commerce API tests `3 passed`; Platform OpenAPI typecheck passed; Platform lint and format check passed.
+- M2.5a is complete. The next active slice is M2.5b: durable Platform read projections for Checkout, transaction, invoice, refund, inbox, Job, and application outcomes, followed by M2.5 closure gates.

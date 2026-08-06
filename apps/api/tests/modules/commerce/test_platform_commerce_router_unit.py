@@ -21,6 +21,9 @@ from src.modules.commerce.platform_schema import (
     PlatformCommerceSubscriptionListOut,
 )
 from src.modules.commerce.schema import WorkspaceCommerceOverviewOut
+from src.modules.commerce.simulated_checkout_outcome_service import (
+    SimulatedCheckoutOutcomeOut,
+)
 from src.modules.platform_identity.http import get_current_platform_session
 from tests.utils.asgi_client import asgi_client
 
@@ -324,3 +327,59 @@ async def test_platform_top_up_refund_route_uses_idempotency_and_operator_author
         idempotency_key="refund-route-1",
         actor_user_id=actor_id,
     )
+
+
+async def test_platform_simulator_routes_expose_readiness_and_signed_outcome_command(monkeypatch) -> None:
+    actor_id = uuid4()
+    workspace_id = uuid4()
+    checkout_id = uuid4()
+    result = SimulatedCheckoutOutcomeOut(
+        checkout_session_id=checkout_id,
+        outcome="succeeded",
+        provider_event_id="sim_evt_platform_route",
+        accepted=True,
+        event_created=True,
+        inbox_id=uuid4(),
+        job_id=uuid4(),
+    )
+    readiness = SimpleNamespace(
+        enabled=True,
+        environment="test",
+        provider="simulated",
+        signing_configured=True,
+        connector_registered=True,
+        supported_outcomes=("pending", "succeeded", "failed", "canceled"),
+        rejection_code=None,
+    )
+    simulator_readiness = AsyncMock(return_value=readiness)
+    submit_outcome = AsyncMock(return_value=result)
+    service = SimpleNamespace(simulator_readiness=simulator_readiness, submit_simulator_outcome=submit_outcome)
+    monkeypatch.setattr(platform_router, "build_platform_commerce_operations_service", lambda **_: service)
+
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=actor_id, is_instance_owner=True)
+
+    app = FastAPI()
+    app.include_router(platform_router.router, prefix="/platform-api/v1/commerce")
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
+    app.dependency_overrides[platform_router.get_connector_registry] = lambda: SimpleNamespace()
+
+    async with asgi_client(app) as client:
+        readiness_response = await client.get("/platform-api/v1/commerce/simulator")
+        outcome_response = await client.post(
+            f"/platform-api/v1/commerce/simulator/workspaces/{encode_uuid(workspace_id)}/top-up-checkout-sessions/{encode_uuid(checkout_id)}/outcome",
+            headers={"Idempotency-Key": "sim-route-1"},
+            json={"outcome": "succeeded", "expectedRevision": 1},
+        )
+
+    assert readiness_response.status_code == 200
+    assert readiness_response.json()["data"]["enabled"] is True
+    assert outcome_response.status_code == 200
+    assert outcome_response.json()["data"]["providerEventId"] == "sim_evt_platform_route"
+    simulator_readiness.assert_awaited_once_with()
+    submit_outcome.assert_awaited_once()
+    call = submit_outcome.await_args
+    assert call is not None
+    assert call.kwargs["kind"] == "top_up"
+    assert call.kwargs["workspace_id"] == workspace_id
+    assert call.kwargs["actor_user_id"] == actor_id
