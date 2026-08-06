@@ -118,7 +118,7 @@ async def test_system_agent_control_plane_requires_real_validation_before_public
             "customApprovalProfiles": ["human-input-v1"],
             "officialDefinitionsMutable": False,
             "versionsImmutable": True,
-            "runtimeValidationPortAvailable": False,
+            "runtimeValidationPortAvailable": True,
             "versionPublicationRequiresRuntimeValidation": True,
         }
 
@@ -140,8 +140,9 @@ async def test_system_agent_control_plane_requires_real_validation_before_public
             f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",
             json={"state": "published"},
         )
-        assert publish.status_code == 409, publish.text
-        assert publish.json()["error"] == "AGENT_VERSION_VALIDATION_PORT_UNAVAILABLE"
+        assert publish.status_code == 200, publish.text
+        assert publish.json()["data"]["state"] == "published"
+        assert publish.json()["data"]["publishedAt"] is not None
 
         retired = await client.patch(
             f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",

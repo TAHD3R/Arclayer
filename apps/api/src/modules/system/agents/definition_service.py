@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -10,6 +11,7 @@ from src.common.constants.events import (
     SYSTEM_AGENT_DEFINITION_CREATED,
     SYSTEM_AGENT_DEFINITION_UPDATED,
     SYSTEM_AGENT_VERSION_CREATED,
+    SYSTEM_AGENT_VERSION_PUBLISHED,
     SYSTEM_AGENT_VERSION_RETIRED,
 )
 from src.core.http.pagination import PageData, PageParams
@@ -54,7 +56,7 @@ def agent_catalog_capabilities() -> SystemAgentCatalogCapabilitiesOut:
             "customApprovalProfiles": sorted(SUPPORTED_APPROVAL_PROFILES),
             "officialDefinitionsMutable": False,
             "versionsImmutable": True,
-            "runtimeValidationPortAvailable": False,
+            "runtimeValidationPortAvailable": True,
             "versionPublicationRequiresRuntimeValidation": True,
         },
     )
@@ -217,7 +219,22 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
                     return self._project_version(version)
                 if version.state == AgentVersionState.RETIRED:
                     self._raise_conflict("AGENT_VERSION_RETIRED")
-                self._raise_conflict("AGENT_VERSION_VALIDATION_PORT_UNAVAILABLE")
+                self._validate_persisted_version_for_publication(version)
+                version.state = AgentVersionState.PUBLISHED
+                version.published_at = datetime.now(UTC)
+                await self._repository.save_version(
+                    version=version,
+                    update_fields=("state", "published_at"),
+                    conn=conn,
+                )
+                await self._write_version_activity(
+                    event_name=SYSTEM_AGENT_VERSION_PUBLISHED,
+                    actor_user_id=actor_user_id,
+                    definition=definition,
+                    version=version,
+                    conn=conn,
+                )
+                return self._project_version(version)
             if version.state == AgentVersionState.RETIRED:
                 return self._project_version(version)
             if await self._repository.has_enabled_assignment_for_version(
@@ -330,6 +347,31 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
             return project_version(version)
         except SystemAgentProjectionError as error:
             SystemAgentDefinitionService._raise_conflict(str(error))
+
+    @staticmethod
+    def _validate_persisted_version_for_publication(version: AgentVersionRecord) -> None:
+        if not isinstance(version.instructions, str) or not version.instructions.strip():
+            SystemAgentDefinitionService._raise_conflict("AGENT_VERSION_INVALID")
+        if version.model_policy.get("routingPolicy", version.model_policy.get("routing_policy")) != "workspace_default":
+            SystemAgentDefinitionService._raise_conflict("AGENT_VERSION_INVALID")
+        if tuple(version.tool_grants) != SUPPORTED_TOOL_GRANTS:
+            SystemAgentDefinitionService._raise_conflict("AGENT_TOOL_GRANTS_UNSUPPORTED")
+        if version.skill_grant_workspace_id is not None or version.skill_installation_ids:
+            SystemAgentDefinitionService._raise_conflict("AGENT_WORKSPACE_CONTENT_BOUNDARY")
+        if version.knowledge_base_ids:
+            SystemAgentDefinitionService._raise_conflict("AGENT_KNOWLEDGE_GRANTS_UNAVAILABLE")
+        approval_profile = version.approval_profile
+        if (
+            not isinstance(approval_profile, dict)
+            or approval_profile.get("profileId", approval_profile.get("profile_id")) not in SUPPORTED_APPROVAL_PROFILES
+        ):
+            SystemAgentDefinitionService._raise_conflict("AGENT_APPROVAL_PROFILE_UNSUPPORTED")
+        compatibility = version.compatibility
+        if (
+            not isinstance(compatibility, dict)
+            or compatibility.get("agentRuntimeProtocol", compatibility.get("agent_runtime_protocol")) != 1
+        ):
+            SystemAgentDefinitionService._raise_conflict("AGENT_VERSION_INVALID")
 
 
 def _definition_values(
