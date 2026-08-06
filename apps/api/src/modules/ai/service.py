@@ -32,14 +32,7 @@ _STRUCTURED_TOOL_DEFAULT_MAX_TOKENS = {
 
 
 class AIChatService(BaseService):
-    """Chat completion service wrapping LLMRuntime with workspace context and budget controls.
-
-    Responsible for:
-    - Workspace context extraction and forwarding
-    - Model policy check (stub for Phase 1)
-    - Budget integration (stub for Phase 1)
-    - Error code mapping for circuit breaker
-    """
+    """Chat completion service wrapping LLMRuntime with context, budget, and error controls."""
 
     def __init__(
         self,
@@ -72,10 +65,7 @@ class AIChatService(BaseService):
         # multi-worker deployments. The current TokenBucket is process-local.
 
     async def _resolve_budget(self, workspace_id: UUID) -> AIBudget | None:
-        """Get or create a monthly budget for a workspace.
-
-        Falls back to None if the database is unavailable (e.g. in tests).
-        """
+        """Get or create the current monthly budget for a workspace."""
         from datetime import UTC, datetime
 
         from src.llm.budget import get_or_create_budget

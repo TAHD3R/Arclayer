@@ -40,8 +40,8 @@ After each independently verifiable part:
 | M2 Simulated Billing Provider | Complete | Development/test gate, signed webhook, inbox/Job/application projections, checkout/payment/refund lifecycle |
 | M3 Platform Billing redesign | Complete | Replace legacy `/billing/*` pages with complete CRUD and Operational Ledger layouts |
 | M4 Product Plan & Usage / People | Complete | New Plan & Usage, People Usage column, member limits, billing/invoice/refill/recovery lifecycle, icon-free ChromeTabs, Workspace setting |
-| M5 Global AI administration | In progress | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
-| M6 Remaining referenced product features | Pending | Implement the approved Image #6/#7/#8 interaction contracts after their concrete repository surfaces are mapped |
+| M5 Global AI administration | Complete | Rebuild tasks/assistants/policies, delete Workspace rollout, enforce immutable global policies |
+| M6 Remaining referenced product features | Blocked / unmapped | No concrete Image #6/#7/#8 repository contract, asset, or mapped interaction surface exists in the current repository |
 
 ## M0 — Credit accounting foundation
 
@@ -1329,3 +1329,11 @@ M2.4b.3b implementation boundary:
 - Capability metadata now reports the real runtime validation port as available. The previous `AGENT_VERSION_VALIDATION_PORT_UNAVAILABLE` branch is removed from the publish authority rather than hidden behind a compatibility fallback.
 - Validation: system Agent control-plane integration with `RUN_INTEGRATION_TESTS=1` `4 passed`; targeted Ruff, format, and `ty` passed. Full `api:check`, Code Review Engine, staged GitNexus detection, and staged whitespace checks remain required before commit.
 - The next active M5 slice is final AI task recovery/assistant surface audit and removal of any remaining Phase-1 stubs. M6 remains pending until Image #6/#7/#8 repository contracts are concrete.
+
+### 2026-08-06 — M5 final task/recovery audit (complete) and M6 contract assessment (blocked/unmapped)
+
+- AI task recovery is server-authoritative across cancel, retry, and reconcile: each command locks the durable Run/Job state, validates actor authority and effect/retry eligibility, persists an idempotent recovery generation or terminal transition, writes Activity evidence in the same transaction, and publishes only after commit. Existing Platform and API recovery regressions remain green.
+- Removed the remaining misleading Phase-1 stub wording from `AIChatService`; its current implementation already performs runtime model resolution, policy enforcement through `LLMRuntime`, Workspace budget reservation/settlement, rate limiting, provider error mapping, and usage evidence. The remaining process-local TokenBucket TODO is a separately documented multi-worker rate-limiter evolution, not an unimplemented M5 policy control.
+- M5 is complete for all mapped AI Operations contracts currently present: tasks/recovery, assistants/versions, provider readiness, immutable global policy, runtime re-evaluation, and audit/idempotency boundaries.
+- M6 assessment searched the repository for Image #6/#7/#8 references, concrete assets, and repository-backed interaction contracts. No such numbered visual contract or mapped surface exists; only generic image/asset capabilities in unrelated canonical specs are present. M6 is therefore explicitly blocked/unmapped and no invented feature was added.
+- Validation for this closeout slice: Platform/API recovery and assistant focused coverage remains green; targeted Ruff/format/`ty` checks pass. Full package typecheck continues to expose the known repository baseline diagnostics recorded above; no M6 implementation claim is made without a concrete contract.
