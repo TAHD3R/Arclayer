@@ -1358,3 +1358,10 @@ M2.4b.3b implementation boundary:
 - Billing pages now describe transaction, invoice, and refund records instead of “projections”; payment corrections use payment-service details and supporting references instead of Provider facts/evidence; money inputs explain the smallest currency unit instead of exposing `micros`.
 - AI administration now consistently says “AI 服务” / “AI service”, uses task limits and current policy status, and removes user-facing Provider/runtime/control-surface terminology. Navigation and permission labels follow the same terminology.
 - Validation: Platform locale parity passed for all `15` namespaces; Platform format check passed across `303` files; a full locale scan found no remaining `Credits`, `Provider`, `checkout`, projection, control-plane/control-surface, runtime, micros, “投影”, “控制面”, “供应商”, “服务商”, or “运行时” values in Platform locale resources.
+
+### 2026-08-06 — Spec copy final audit (complete)
+
+- Rechecked every locale line added by the M0–M5 Spec implementation range, including the shared Product resources, Product error mirror, Platform resources, and execution record.
+- Replaced the remaining internal-looking retry/concurrency, plan-price, policy-version, and payment-request wording with user actions and plain outcomes. Locale key names remain stable for API/error compatibility.
+- Final terminology boundary: Chinese uses “AI 额度 / 支付服务 / 安全支付页面 / 平台管理后台”; English uses “AI credits / payment service / secure payment page / admin console”. `revision`, `evidence`, `idempotency`, `settlement`, and Provider-specific wording remain only in keys or non-user implementation code, not in the reviewed user-facing values.
+- Validation: Product locale parity `23 namespaces` passed; Platform locale parity `15 namespaces` passed; Product and Platform format checks passed; changed locale JSON parsed successfully. This copy audit is complete.
