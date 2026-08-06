@@ -6595,6 +6595,11 @@ export type CheckoutSessionCreate = {
 };
 
 /**
+ * CommerceInvoiceStatus
+ */
+export type CommerceInvoiceStatus = 'open' | 'paid' | 'void' | 'uncollectible' | 'refunded' | 'partially_refunded';
+
+/**
  * CommercePlanRevisionOut
  */
 export type CommercePlanRevisionOut = {
@@ -16458,6 +16463,54 @@ export type PageDataWorkspaceInviteLinkParticipantOut = {
 };
 
 /**
+ * PageData[WorkspaceInvoiceOut]
+ */
+export type PageDataWorkspaceInvoiceOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<WorkspaceInvoiceOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[WorkspaceJobOut]
  */
 export type PageDataWorkspaceJobOut = {
@@ -23686,6 +23739,31 @@ export type ResponseModelPageDataWorkspaceInviteLinkParticipantOut = {
 };
 
 /**
+ * ResponseModel[PageData[WorkspaceInvoiceOut]]
+ */
+export type ResponseModelPageDataWorkspaceInvoiceOut = {
+    data?: PageDataWorkspaceInvoiceOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[WorkspaceJobOut]]
  */
 export type ResponseModelPageDataWorkspaceJobOut = {
@@ -30301,6 +30379,16 @@ export type TokenPair = {
 };
 
 /**
+ * TopUpCheckoutSessionCreate
+ */
+export type TopUpCheckoutSessionCreate = {
+    /**
+     * Topupofferid
+     */
+    topUpOfferId: string;
+};
+
+/**
  * TwoFactorCapabilitiesOut
  */
 export type TwoFactorCapabilitiesOut = {
@@ -33131,6 +33219,53 @@ export type WorkspaceInviteLinkRenewRequest = {
      * New invite link TTL in seconds (default 7 days). Set null to never expire.
      */
     expiresInSeconds?: number | null;
+};
+
+/**
+ * WorkspaceInvoiceOut
+ */
+export type WorkspaceInvoiceOut = {
+    /**
+     * Amountduemicros
+     */
+    amountDueMicros: number;
+    /**
+     * Amountpaidmicros
+     */
+    amountPaidMicros: number;
+    /**
+     * Amountrefundedmicros
+     */
+    amountRefundedMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Externalinvoiceid
+     */
+    externalInvoiceId: string;
+    /**
+     * Invoiceid
+     */
+    invoiceId: string;
+    /**
+     * Issuedat
+     */
+    issuedAt: string;
+    /**
+     * Paidat
+     */
+    paidAt: string | null;
+    /**
+     * Periodend
+     */
+    periodEnd: string | null;
+    /**
+     * Periodstart
+     */
+    periodStart: string | null;
+    status: CommerceInvoiceStatus;
 };
 
 /**
@@ -45755,6 +45890,51 @@ export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses = {
 
 export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponse = DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses[keyof DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses];
 
+export type DomainWorkspacesListWorkspaceInvoicesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/commerce/invoices';
+};
+
+export type DomainWorkspacesListWorkspaceInvoicesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceInvoicesError = DomainWorkspacesListWorkspaceInvoicesErrors[keyof DomainWorkspacesListWorkspaceInvoicesErrors];
+
+export type DomainWorkspacesListWorkspaceInvoicesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataWorkspaceInvoiceOut;
+};
+
+export type DomainWorkspacesListWorkspaceInvoicesResponse = DomainWorkspacesListWorkspaceInvoicesResponses[keyof DomainWorkspacesListWorkspaceInvoicesResponses];
+
 export type DomainWorkspacesListMemberCreditLimitsData = {
     body?: never;
     path: {
@@ -46008,6 +46188,86 @@ export type DomainWorkspacesListWorkspacePlansResponses = {
 };
 
 export type DomainWorkspacesListWorkspacePlansResponse = DomainWorkspacesListWorkspacePlansResponses[keyof DomainWorkspacesListWorkspacePlansResponses];
+
+export type DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionData = {
+    body: TopUpCheckoutSessionCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/top-up-checkout-session';
+};
+
+export type DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionError = DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionErrors[keyof DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionErrors];
+
+export type DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBillingRedirectOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionResponse = DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionResponses[keyof DomainWorkspacesCreateWorkspaceTopUpCheckoutSessionResponses];
+
+export type DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeData = {
+    body: SimulatedCheckoutOutcomeWrite;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Checkout Session Id
+         */
+        checkout_session_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/top-up-checkout-session/{checkout_session_id}/outcome';
+};
+
+export type DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeError = DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeErrors[keyof DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeErrors];
+
+export type DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSimulatedCheckoutOutcomeOut;
+};
+
+export type DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeResponse = DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeResponses[keyof DomainWorkspacesCreateSimulatedTopUpCheckoutOutcomeResponses];
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;

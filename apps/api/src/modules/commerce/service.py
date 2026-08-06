@@ -9,6 +9,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
+from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.commerce.billing import (
     BillingCycle,
@@ -42,6 +43,8 @@ from src.modules.commerce.schema import (
     WorkspaceCreditsOut,
     WorkspaceSubscriptionOut,
 )
+from src.modules.commerce.workspace_payment_read_repository import WorkspacePaymentReadRepository
+from src.modules.commerce.workspace_payment_read_schema import WorkspaceInvoiceOut
 
 if TYPE_CHECKING:
     from src.models.ai.ai_budget_reservation import AIBudgetReservation
@@ -188,10 +191,12 @@ class CommerceService(BaseService):
         *,
         repository: CommerceRepository,
         free_allowance: FreeWorkspaceAllowanceAuthority | None = None,
+        payment_read: WorkspacePaymentReadRepository | None = None,
     ) -> None:
         super().__init__(settings)
         self._repository = repository
         self._free_allowance = free_allowance or build_free_workspace_allowance_authority()
+        self._payment_read = payment_read or WorkspacePaymentReadRepository()
 
     async def list_selling_revisions(self, *, include_inactive: bool) -> list[CommercePlanRevisionOut]:
         revisions = await self._repository.list_selling_revisions(include_inactive=include_inactive)
@@ -246,7 +251,9 @@ class CommerceService(BaseService):
             return subscription, account, revision
         revision = await self._repository.get_free_revision(conn=conn)
         if revision is None:
-            raise Conflict(error="FREE_PLAN_REVISION_UNAVAILABLE")
+            raise Conflict(
+                message=t("errors", "FREE_PLAN_REVISION_UNAVAILABLE"), error="FREE_PLAN_REVISION_UNAVAILABLE"
+            )
         owner_user_id = UUID(str(workspace.owner_user_id))
         await self._free_allowance.assert_eligible(
             prospective_owner_user_id=owner_user_id,
@@ -461,6 +468,34 @@ class CommerceService(BaseService):
             prev=params.page - 1 if params.page > 1 and pages else None,
         )
 
+    async def list_invoices(self, *, workspace_id: UUID, params: PageParams) -> PageData[WorkspaceInvoiceOut]:
+        rows, total = await self._payment_read.list_invoices(workspace_id=workspace_id, params=params)
+        pages = (total + params.size - 1) // params.size if total else 0
+        return PageData(
+            items=[
+                WorkspaceInvoiceOut(
+                    invoice_id=row.id,
+                    external_invoice_id=row.external_invoice_id,
+                    status=row.status,
+                    currency=row.currency,
+                    amount_due_micros=int(row.amount_due_micros),
+                    amount_paid_micros=int(row.amount_paid_micros),
+                    amount_refunded_micros=int(row.amount_refunded_micros),
+                    period_start=row.period_start,
+                    period_end=row.period_end,
+                    issued_at=row.issued_at,
+                    paid_at=row.paid_at,
+                )
+                for row in rows
+            ],
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=params.page - 1 if params.page > 1 and pages else None,
+        )
+
 
 def _usage_out(usage: WorkspaceUsageAggregate | None) -> WorkspaceCommerceUsageOut:
     return WorkspaceCommerceUsageOut(
@@ -472,4 +507,4 @@ def _usage_out(usage: WorkspaceUsageAggregate | None) -> WorkspaceCommerceUsageO
 
 
 def build_commerce_service(settings: Settings) -> CommerceService:
-    return CommerceService(settings, repository=CommerceRepository())
+    return CommerceService(settings, repository=CommerceRepository(), payment_read=WorkspacePaymentReadRepository())

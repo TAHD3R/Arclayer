@@ -37,6 +37,7 @@
   "BILLING_WEBHOOK_SIGNATURE_EXPIRED": "The billing webhook signature has expired.",
   "BILLING_WEBHOOK_SIGNATURE_INVALID": "The billing webhook signature is invalid.",
   "BILLING_WEBHOOK_STORAGE_UNAVAILABLE": "The billing event could not be stored securely. Try again later.",
+  "FREE_PLAN_REVISION_UNAVAILABLE": "The Free plan is not available right now.",
   "EMAIL_VERIFICATION_NOT_REQUIRED": "This email address has already been verified.",
   "EMAIL_VERIFICATION_STORE_UNAVAILABLE": "Email verification is temporarily unavailable. Try again later.",
   "EMAIL_VERIFICATION_TOKEN_INVALID": "This email verification link is invalid or has expired.",

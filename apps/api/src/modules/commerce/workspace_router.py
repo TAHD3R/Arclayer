@@ -32,6 +32,7 @@ from src.modules.commerce.simulated_checkout_outcome_service import (
 )
 from src.modules.commerce.simulated_top_up_settlement_service import build_simulated_top_up_settlement_service
 from src.modules.commerce.top_up_checkout_service import build_top_up_checkout_service
+from src.modules.commerce.workspace_payment_read_schema import WorkspaceInvoiceOut
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_member_access
 
@@ -102,6 +103,20 @@ async def get_workspace_commerce_overview(
 ) -> ResponseModel[WorkspaceCommerceOverviewOut]:
     overview = await build_commerce_service(settings).get_overview(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=overview)
+
+
+@router.get(
+    "/invoices",
+    response_model=ResponseModel[PageData[WorkspaceInvoiceOut]],
+    summary="List Workspace invoice projections",
+)
+async def list_workspace_invoices(
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    params: PageParams = Depends(get_page_params),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[WorkspaceInvoiceOut]]:
+    invoices = await build_commerce_service(settings).list_invoices(workspace_id=ctx.workspace_id, params=params)
+    return ApiResponse.success(data=invoices)
 
 
 @router.post(

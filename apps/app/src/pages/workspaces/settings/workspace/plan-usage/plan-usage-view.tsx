@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { CommercialAccessRecoveryView, WorkspaceCommerceOverview } from "@/api/commerce";
+import type {
+  CommercialAccessRecoveryView,
+  WorkspaceCommerceOverview,
+  WorkspaceInvoicePage,
+} from "@/api/commerce";
 import { CreditLedgerTable } from "@/components/commerce/credit-ledger-table";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
@@ -193,6 +197,37 @@ function PaymentRecoverySummary(props: {
   );
 }
 
+function InvoiceSummary({ invoices }: { invoices: WorkspaceInvoicePage["items"] }) {
+  const { t } = useTranslation(["commerce"]);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("commerce:INVOICES_TITLE")}</CardTitle>
+        <CardDescription>{t("commerce:INVOICES_DESCRIPTION")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {invoices.length === 0 ? (
+          <p className="text-callout text-label-secondary">{t("commerce:INVOICES_EMPTY")}</p>
+        ) : (
+          <ul className="space-y-3 text-footnote">
+            {invoices.slice(0, 5).map((invoice) => (
+              <li
+                className="flex flex-wrap justify-between gap-3 border-b border-border/60 pb-3 last:border-b-0"
+                key={invoice.invoiceId}
+              >
+                <span>{invoice.status}</span>
+                <span className="tabular-nums">
+                  {invoice.amountPaidMicros}/{invoice.amountDueMicros} {invoice.currency}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string }) {
   const { t } = useTranslation(["commerce", "common"]);
   const [plansOpen, setPlansOpen] = useState(false);
@@ -223,6 +258,10 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
               pending={controller.billingPortalMutation.isPending}
               onRecover={() => controller.billingPortalMutation.mutate()}
             />
+          ) : null}
+
+          {controller.canManageCommerce ? (
+            <InvoiceSummary invoices={controller.invoicesQuery.data?.items ?? []} />
           ) : null}
 
           {controller.managementAccessStatus === "error" ? (

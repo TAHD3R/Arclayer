@@ -8,12 +8,14 @@ import type {
   DomainWorkspacesListMemberCreditLimitsData,
   DomainWorkspacesListMemberCreditUsageData,
   DomainWorkspacesListWorkspaceCreditLedgerData,
+  DomainWorkspacesListWorkspaceInvoicesData,
   MemberCreditConfigurationMutationOut,
   MemberCreditDefaultLimitWrite,
   MemberCreditLimitsPageOut,
   MemberCreditOverrideWrite,
   MemberCreditUsagePageOut,
   PageDataCreditLedgerOut,
+  PageDataWorkspaceInvoiceOut,
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
 } from "@arclayer/openapi";
@@ -23,6 +25,7 @@ type ListMemberCreditLimitsParams = NonNullable<
   DomainWorkspacesListMemberCreditLimitsData["query"]
 >;
 type ListMemberCreditUsageParams = NonNullable<DomainWorkspacesListMemberCreditUsageData["query"]>;
+type ListWorkspaceInvoicesParams = NonNullable<DomainWorkspacesListWorkspaceInvoicesData["query"]>;
 type MemberCreditCommandMetadata = Pick<
   MemberCreditDefaultLimitWrite,
   "expectedRevision" | "idempotencyKey"
@@ -38,6 +41,10 @@ export type MemberCreditLimitsPage = Omit<MemberCreditLimitsPageOut, "items"> & 
 
 export type MemberCreditUsagePage = Omit<MemberCreditUsagePageOut, "items"> & {
   items: NonNullable<MemberCreditUsagePageOut["items"]>;
+};
+
+export type WorkspaceInvoicePage = Omit<PageDataWorkspaceInvoiceOut, "items"> & {
+  items: NonNullable<PageDataWorkspaceInvoiceOut["items"]>;
 };
 
 export type MemberCreditLimitInput =
@@ -68,6 +75,13 @@ function requireMemberCreditLimitsPage(page: MemberCreditLimitsPageOut): MemberC
 function requireMemberCreditUsagePage(page: MemberCreditUsagePageOut): MemberCreditUsagePage {
   if (!Array.isArray(page.items)) {
     throw new Error("Invalid member credit usage pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireWorkspaceInvoicePage(page: PageDataWorkspaceInvoiceOut): WorkspaceInvoicePage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid workspace invoice pagination response");
   }
   return { ...page, items: page.items };
 }
@@ -176,6 +190,19 @@ export async function listWorkspaceMemberCreditUsage(
     { signal },
   );
   return requireMemberCreditUsagePage(page);
+}
+
+export async function listWorkspaceInvoices(
+  workspaceId: string,
+  params: ListWorkspaceInvoicesParams = {},
+  signal?: AbortSignal,
+): Promise<WorkspaceInvoicePage> {
+  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 20 });
+  const page = await api.get<PageDataWorkspaceInvoiceOut>(
+    workspacePath(workspaceId, `/commerce/invoices${query}`),
+    { signal },
+  );
+  return requireWorkspaceInvoicePage(page);
 }
 
 export async function listWorkspaceMemberCreditLimits(

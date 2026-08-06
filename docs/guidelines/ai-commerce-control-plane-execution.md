@@ -1247,3 +1247,10 @@ M2.4b.3b implementation boundary:
 - Added a Product `getWorkspacePaymentRecovery` wrapper and a query-backed Plan & Usage recovery card. Billing contacts now see the server-authoritative `normal`, `payment_grace`, or `payment_restricted` state, recovery deadline, and the existing Provider Portal recovery action without inferring authority from local UI state.
 - Product lint, format, locale parity, focused Commerce regression, and targeted typecheck passed for the changed code. The package typecheck remains blocked only by the existing browser acceptance support import.
 - M4 remains in progress. Invoice and refill projections are the next M4 implementation slice after the active M3.2 Platform catalog work.
+
+### 2026-08-06 — M4 invoice projection slice
+
+- Added the Workspace-scoped `GET /workspaces/{workspaceId}/commerce/invoices` read path with a dedicated Tortoise repository, pagination, exact Workspace ownership, sanitized Provider invoice facts, and no payment credentials or hosted URLs.
+- Regenerated Product OpenAPI and added a typed Product invoice wrapper. Plan & Usage now renders the first page of invoice evidence alongside the existing plan, Credits, Usage, member limits, and payment-recovery controls.
+- Focused validation: API billing/member router regression `11 passed`; targeted API Ruff/format/`ty` passed; Product API/OpenAPI typecheck passed; Product Commerce API tests `9 passed`; Product lint, locale parity, and focused UI regressions passed. The broad Product typecheck remains blocked only by the known browser support import.
+- M4 invoice projection is complete. Auto-refill configuration and refill lifecycle remain the next M4 slice after M3.3.

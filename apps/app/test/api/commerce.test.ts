@@ -24,6 +24,7 @@ import {
   getWorkspacePaymentRecovery,
   listWorkspaceMemberCreditLimits,
   listWorkspaceMemberCreditUsage,
+  listWorkspaceInvoices,
   setWorkspaceDefaultMemberCreditLimit,
   setWorkspaceMemberCreditOverride,
 } from "@/api/commerce";
@@ -127,6 +128,37 @@ describe("commerce member Credit API", () => {
     expect(apiGetMock).toHaveBeenCalledWith(
       "/workspaces/workspace%2Fid/commerce/member-usage?page=1&size=20",
       { signal: controller.signal },
+    );
+  });
+
+  it("lists workspace invoices with canonical pagination", async () => {
+    apiGetMock.mockResolvedValueOnce({
+      ...pagination,
+      items: [
+        {
+          invoiceId: "invoice-1",
+          externalInvoiceId: "in_1",
+          status: "paid",
+          currency: "USD",
+          amountDueMicros: 1_000_000,
+          amountPaidMicros: 1_000_000,
+          amountRefundedMicros: 0,
+          periodStart: null,
+          periodEnd: null,
+          issuedAt: "2026-08-01T00:00:00Z",
+          paidAt: "2026-08-01T00:00:00Z",
+        },
+      ],
+    });
+
+    await expect(
+      listWorkspaceInvoices("workspace/id", { page: 2, size: 10 }),
+    ).resolves.toMatchObject({
+      items: [{ invoiceId: "invoice-1" }],
+    });
+    expect(apiGetMock).toHaveBeenCalledWith(
+      "/workspaces/workspace%2Fid/commerce/invoices?page=2&size=10",
+      { signal: undefined },
     );
   });
 
