@@ -473,6 +473,25 @@ class StripeBillingConnector:
         )
         return self._checkout_session_from_body(body)
 
+    async def create_top_up_checkout_session(
+        self,
+        *,
+        workspace_id: str,
+        top_up_offer_id: str,
+        top_up_offer_revision: int,
+        credit_amount: int,
+        external_price_id: str,
+        currency: str,
+        amount_micros: int,
+        success_url: str,
+        cancel_url: str,
+        customer_id: str | None,
+        idempotency_key: str,
+    ) -> CheckoutSession:
+        del workspace_id, top_up_offer_id, top_up_offer_revision, credit_amount, external_price_id
+        del currency, amount_micros, success_url, cancel_url, customer_id, idempotency_key
+        raise ServiceUnavailable(error="BILLING_TOP_UP_CHECKOUT_NOT_AVAILABLE")
+
     async def create_portal_session(
         self,
         *,

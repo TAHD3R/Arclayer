@@ -13,7 +13,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from src.core.exceptions import BadRequest
+from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.extensions.manager import ExtensionManager
 from src.modules.commerce.billing_connector import BillingConnector
 from src.modules.commerce.convergence.schema import PlanRevisionRef
@@ -230,6 +230,34 @@ async def test_stripe_checkout_rejects_an_invalid_catalog_external_price_id() ->
         )
 
     assert captured.value.error == "BILLING_PRICE_NOT_SUPPORTED"
+
+
+@pytest.mark.asyncio
+async def test_stripe_top_up_checkout_is_explicitly_unavailable_before_provider_io() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(500)
+
+    provider = _provider(httpx.MockTransport(handler))
+    with pytest.raises(ServiceUnavailable) as captured:
+        await provider.create_top_up_checkout_session(
+            workspace_id=str(uuid4()),
+            top_up_offer_id=str(uuid4()),
+            top_up_offer_revision=1,
+            credit_amount=2_000,
+            external_price_id="price_credits2000",
+            currency="USD",
+            amount_micros=20_000_000,
+            success_url="https://app.example.test/?billing=top-up-success",
+            cancel_url="https://app.example.test/?billing=top-up-canceled",
+            customer_id="cus_test",
+            idempotency_key="arclayer:top-up-checkout:unit",
+        )
+
+    assert captured.value.error == "BILLING_TOP_UP_CHECKOUT_NOT_AVAILABLE"
+    assert requests == []
 
 
 @pytest.mark.asyncio

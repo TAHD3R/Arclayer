@@ -200,6 +200,36 @@ async def test_simulated_connector_creates_visible_pending_checkout_facts() -> N
 
 
 @pytest.mark.asyncio
+async def test_simulated_connector_creates_deterministic_visible_top_up_checkout_facts() -> None:
+    connector = _connector()
+    offer_id = str(uuid4())
+    kwargs = {
+        "workspace_id": str(uuid4()),
+        "top_up_offer_id": offer_id,
+        "top_up_offer_revision": 4,
+        "credit_amount": 2_000,
+        "external_price_id": "sim_price_credits_2000",
+        "currency": "USD",
+        "amount_micros": 20_000_000,
+        "success_url": "https://app.example.test/?billing=top-up-success",
+        "cancel_url": "https://app.example.test/?billing=top-up-canceled",
+        "customer_id": None,
+        "idempotency_key": "arclayer:top-up-checkout:unit",
+    }
+
+    checkout = await connector.create_top_up_checkout_session(**kwargs)
+    replay = await connector.create_top_up_checkout_session(**kwargs)
+
+    assert checkout.external_session_id == replay.external_session_id
+    assert checkout.external_session_id.startswith("sim_top_up_cs_")
+    assert checkout.provider_account_id == "platform"
+    assert checkout.url == replay.url
+    assert "billingProvider=simulated" in checkout.url
+    assert f"simulatedTopUpCheckout={checkout.external_session_id}" in checkout.url
+    assert checkout.expires_at.timestamp() > time.time()
+
+
+@pytest.mark.asyncio
 async def test_simulated_connector_normalizes_checkout_outcome_without_subscription_effect() -> None:
     connector = _connector()
 

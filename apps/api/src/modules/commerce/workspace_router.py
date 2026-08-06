@@ -19,6 +19,7 @@ from src.modules.commerce.schema import (
     CheckoutSessionCreate,
     CommercePlanRevisionOut,
     CreditLedgerOut,
+    TopUpCheckoutSessionCreate,
     WorkspaceCommerceOverviewOut,
     WorkspacePlanCatalogOut,
     WorkspacePlanOptionOut,
@@ -29,6 +30,7 @@ from src.modules.commerce.simulated_checkout_outcome_service import (
     SimulatedCheckoutOutcomeWrite,
     build_simulated_checkout_outcome_service,
 )
+from src.modules.commerce.top_up_checkout_service import build_top_up_checkout_service
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_member_access
 
@@ -115,6 +117,28 @@ async def create_workspace_checkout_session(
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[BillingRedirectOut]:
     redirect = await build_billing_service(settings, connector_registry).create_checkout(
+        workspace_id=ctx.workspace_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=redirect)
+
+
+@router.post(
+    "/top-up-checkout-session",
+    response_model=ResponseModel[BillingRedirectOut],
+    summary="Create a provider-hosted Credit top-up checkout session",
+)
+async def create_workspace_top_up_checkout_session(
+    payload: TopUpCheckoutSessionCreate,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[BillingRedirectOut]:
+    redirect = await build_top_up_checkout_service(settings, connector_registry).create(
         workspace_id=ctx.workspace_id,
         actor_user_id=actor_user_id,
         idempotency_key=idempotency_key,

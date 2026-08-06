@@ -71,6 +71,9 @@ class _Connector:
     async def create_checkout_session(self, **_kwargs: Any) -> CheckoutSession:
         raise AssertionError("checkout must not run in a webhook worker")
 
+    async def create_top_up_checkout_session(self, **_kwargs: Any) -> CheckoutSession:
+        raise AssertionError("top-up checkout must not run in a webhook worker")
+
     async def create_portal_session(self, **_kwargs: Any) -> CheckoutSession:
         raise AssertionError("portal must not run in a webhook worker")
 

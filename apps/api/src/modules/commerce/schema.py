@@ -163,6 +163,10 @@ class CheckoutSessionCreate(BaseSchema):
     billing_interval: BillingCycle
 
 
+class TopUpCheckoutSessionCreate(BaseSchema):
+    top_up_offer_id: PublicUUID
+
+
 class BillingRedirectOut(BaseSchema):
     url: str
 

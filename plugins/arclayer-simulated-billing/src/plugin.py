@@ -214,6 +214,33 @@ class SimulatedBillingConnector:
             expires_at=datetime.now(UTC) + _CHECKOUT_SESSION_TTL,
         )
 
+    async def create_top_up_checkout_session(
+        self,
+        *,
+        workspace_id: str,
+        top_up_offer_id: str,
+        top_up_offer_revision: int,
+        credit_amount: int,
+        external_price_id: str,
+        currency: str,
+        amount_micros: int,
+        success_url: str,
+        cancel_url: str,
+        customer_id: str | None,
+        idempotency_key: str,
+    ) -> CheckoutSession:
+        del workspace_id, top_up_offer_id, top_up_offer_revision, credit_amount, external_price_id
+        del currency, amount_micros, cancel_url, customer_id
+        digest = hashlib.sha256(idempotency_key.encode()).hexdigest()[:32]
+        external_session_id = f"sim_top_up_cs_{digest}"
+        separator = "&" if "?" in success_url else "?"
+        return CheckoutSession(
+            url=(f"{success_url}{separator}billingProvider=simulated&simulatedTopUpCheckout={external_session_id}"),
+            external_session_id=external_session_id,
+            provider_account_id=_PROVIDER_ACCOUNT_ID,
+            expires_at=datetime.now(UTC) + _CHECKOUT_SESSION_TTL,
+        )
+
     async def create_portal_session(
         self,
         *,

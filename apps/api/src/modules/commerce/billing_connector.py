@@ -192,7 +192,7 @@ class BillingWebhookEnvelope(BaseModel):
 
 def build_billing_operation_idempotency_key(
     *,
-    operation: Literal["checkout", "portal"],
+    operation: Literal["checkout", "portal", "top-up-checkout"],
     business_identity: tuple[str, ...],
 ) -> str:
     if not business_identity or any(not component for component in business_identity):
@@ -216,6 +216,22 @@ class BillingConnector(Protocol):
         external_price_id: str,
         billing_cycle: str,
         currency: str,
+        success_url: str,
+        cancel_url: str,
+        customer_id: str | None,
+        idempotency_key: str,
+    ) -> CheckoutSession: ...
+
+    async def create_top_up_checkout_session(
+        self,
+        *,
+        workspace_id: str,
+        top_up_offer_id: str,
+        top_up_offer_revision: int,
+        credit_amount: int,
+        external_price_id: str,
+        currency: str,
+        amount_micros: int,
         success_url: str,
         cancel_url: str,
         customer_id: str | None,
