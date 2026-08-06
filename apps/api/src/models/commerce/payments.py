@@ -70,6 +70,13 @@ class CommercePaymentCorrectionDisposition(StrEnum):
     RECONCILIATION_REQUIRED = "reconciliation_required"
 
 
+class CommerceAutoRefillExecutionState(StrEnum):
+    """Provider capability state for Workspace automatic top-up execution."""
+
+    DISABLED = "disabled"
+    UNAVAILABLE = "unavailable"
+
+
 class CommerceCreditTopUpOffer(BaseModel):
     """Stable operator-managed Credit top-up product identity."""
 
@@ -586,3 +593,33 @@ class WorkspaceAutoRefillPolicy(BaseModel):
         table = "commerce_workspace_auto_refill_policies"
         table_description = "Workspace automatic top-up policy with a monetary ceiling."
         abstract = False
+
+
+class WorkspaceAutoRefillCommandReceipt(BaseModel):
+    """Immutable idempotency receipt for one Workspace auto-refill policy write."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace", related_name="auto_refill_command_receipts", on_delete=fields.CASCADE
+    )
+    actor_user_id = fields.UUIDField(db_index=True)
+    idempotency_key_hash = fields.CharField(max_length=64)
+    request_fingerprint = fields.CharField(max_length=64)
+    result_revision = fields.BigIntField()
+    result_snapshot = fields.JSONField()
+    audit_event = fields.ForeignKeyField(
+        "models.AuditEvent",
+        source_field="audit_event_id",
+        related_name="commerce_auto_refill_command_receipts",
+        on_delete=fields.RESTRICT,
+    )
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        audit_event_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_workspace_auto_refill_command_receipts"
+        table_description = "Durable idempotency receipts for automatic top-up policy commands."
+        abstract = False
+        unique_together = (("workspace_id", "idempotency_key_hash"),)
+        indexes = (("workspace_id", "created_at"),)

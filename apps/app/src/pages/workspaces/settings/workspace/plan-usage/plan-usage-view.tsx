@@ -16,6 +16,7 @@ import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import { DefaultMemberCreditLimitEditor } from "./default-member-credit-limit-editor";
+import { AutoRefillPolicyCard } from "./auto-refill-policy-card";
 import { MemberCreditUsageTable } from "./member-credit-usage-table";
 import { usePlanUsageController } from "./use-plan-usage-controller";
 
@@ -233,6 +234,9 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
   const [plansOpen, setPlansOpen] = useState(false);
   const controller = usePlanUsageController(workspaceId);
   const overview = controller.overviewQuery.data;
+  const recoveryQuery = controller.recoveryQuery;
+  const invoicesQuery = controller.invoicesQuery;
+  const limitsQuery = controller.limitsQuery;
 
   return (
     <ContentGuard
@@ -252,16 +256,37 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
             onComparePlans={() => setPlansOpen(true)}
           />
 
-          {controller.canManageCommerce && controller.recoveryQuery.data ? (
+          {controller.canManageCommerce && recoveryQuery?.data ? (
             <PaymentRecoverySummary
-              recovery={controller.recoveryQuery.data}
+              recovery={recoveryQuery.data}
               pending={controller.billingPortalMutation.isPending}
               onRecover={() => controller.billingPortalMutation.mutate()}
             />
           ) : null}
 
+          {controller.canManageCommerce && invoicesQuery ? (
+            <InvoiceSummary invoices={invoicesQuery.data?.items ?? []} />
+          ) : null}
+
           {controller.canManageCommerce ? (
-            <InvoiceSummary invoices={controller.invoicesQuery.data?.items ?? []} />
+            controller.autoRefillQuery ? (
+              <ContentGuard
+                loading={controller.autoRefillQuery.isLoading}
+                error={controller.autoRefillQuery.error}
+                onRetry={() => void controller.autoRefillQuery?.refetch()}
+                loadingVariant="form"
+              >
+                {controller.autoRefillQuery.data ? (
+                  <AutoRefillPolicyCard
+                    policy={controller.autoRefillQuery.data}
+                    pending={controller.autoRefillPending}
+                    feedback={controller.autoRefillFeedback}
+                    onEdit={controller.clearAutoRefillFeedback}
+                    onSave={controller.saveAutoRefill}
+                  />
+                ) : null}
+              </ContentGuard>
+            ) : null
           ) : null}
 
           {controller.managementAccessStatus === "error" ? (
@@ -281,18 +306,18 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
             </Alert>
           ) : null}
 
-          {controller.canManageCommerce ? (
+          {controller.canManageCommerce && limitsQuery ? (
             <ContentGuard
-              loading={controller.limitsQuery.isLoading}
-              error={controller.limitsQuery.error}
-              onRetry={() => void controller.limitsQuery.refetch()}
+              loading={limitsQuery.isLoading}
+              error={limitsQuery.error}
+              onRetry={() => void limitsQuery.refetch()}
               loadingVariant="form"
             >
-              {controller.limitsQuery.data ? (
+              {limitsQuery.data ? (
                 <SettingsSectionAnchor section="default-member-credit-limit">
                   <DefaultMemberCreditLimitEditor
-                    limit={controller.limitsQuery.data.defaultLimit}
-                    configurationRevision={controller.limitsQuery.data.configurationRevision}
+                    limit={limitsQuery.data.defaultLimit}
+                    configurationRevision={limitsQuery.data.configurationRevision}
                     pending={controller.defaultLimitPending}
                     feedback={controller.defaultLimitFeedback}
                     onEdit={controller.clearDefaultLimitFeedback}

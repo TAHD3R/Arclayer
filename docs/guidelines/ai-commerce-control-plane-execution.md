@@ -1278,3 +1278,9 @@ M2.4b.3b implementation boundary:
 - Added a Platform subscription detail card showing plan revision, billing cycle, cancellation boundary, commercial access state, and recovery deadline. The signed Provider-event ledger and payment correction surface remain separate evidence/control paths.
 - Validation: API platform router `7 passed`; API targeted Ruff check/format passed; Platform OpenAPI generation/typecheck passed; Platform lint/format/locale parity passed; Platform Commerce API `5 passed`. Platform package typecheck remains blocked only by the pre-existing browser acceptance support import. Code Review Engine had zero blocking findings; its report-only dataclass/i18n findings are pre-existing prototype findings in the touched shared Commerce files.
 - M3.3 is complete. M4 auto-refill configuration and refill lifecycle is now the only active implementation slice.
+
+### 2026-08-06 — M4.1 auto-refill policy authority (in progress)
+
+- The remaining M4 slice starts with a Workspace-scoped automatic top-up policy authority. The policy is revisioned and idempotent, pins an immutable Credit top-up offer revision and Provider Price/currency snapshot, and is writable only through `workspace:commerce:manage`.
+- The current BillingConnector contract creates Checkout sessions and normalizes signed settlement events but does not expose an automatic PaymentMethod charge capability. Enabling a policy therefore fails explicitly with `BILLING_AUTO_REFILL_UNAVAILABLE`; no Checkout creation, return URL, Provider response, or direct Credit mutation is treated as refill completion.
+- The first recoverable implementation part is the policy GET/PUT API and Product Plan & Usage control surface. Refill attempt execution remains a separate lifecycle part that must add a real Provider capability or surface an explicit unavailable state.

@@ -13,6 +13,8 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.authorization import require_workspace_commerce_manage_access
+from src.modules.commerce.auto_refill_schema import WorkspaceAutoRefillPolicyOut, WorkspaceAutoRefillPolicyWrite
+from src.modules.commerce.auto_refill_service import build_auto_refill_service
 from src.modules.commerce.billing_service import build_billing_service
 from src.modules.commerce.schema import (
     BillingRedirectOut,
@@ -103,6 +105,40 @@ async def get_workspace_commerce_overview(
 ) -> ResponseModel[WorkspaceCommerceOverviewOut]:
     overview = await build_commerce_service(settings).get_overview(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=overview)
+
+
+@router.get(
+    "/auto-refill",
+    response_model=ResponseModel[WorkspaceAutoRefillPolicyOut],
+    summary="Get Workspace automatic top-up policy",
+)
+async def get_workspace_auto_refill_policy(
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[WorkspaceAutoRefillPolicyOut]:
+    result = await build_auto_refill_service(settings, connector_registry).get(workspace_id=ctx.workspace_id)
+    return ApiResponse.success(data=result)
+
+
+@router.put(
+    "/auto-refill",
+    response_model=ResponseModel[WorkspaceAutoRefillPolicyOut],
+    summary="Update Workspace automatic top-up policy",
+)
+async def update_workspace_auto_refill_policy(
+    payload: WorkspaceAutoRefillPolicyWrite,
+    actor_user_id: ActorUserId,
+    ctx: WorkspaceContext = Depends(require_workspace_commerce_manage_access),
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> ResponseModel[WorkspaceAutoRefillPolicyOut]:
+    result = await build_auto_refill_service(settings, connector_registry).update(
+        workspace_id=ctx.workspace_id,
+        actor_user_id=actor_user_id,
+        command=payload,
+    )
+    return ApiResponse.success(data=result)
 
 
 @router.get(

@@ -3,12 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createWorkspaceCustomerPortalSession,
+  getWorkspaceAutoRefillPolicy,
   getWorkspacePaymentRecovery,
   listWorkspaceInvoices,
+  updateWorkspaceAutoRefillPolicy,
   listWorkspaceMemberCreditLimits,
   setWorkspaceDefaultMemberCreditLimit,
   type MemberCreditLimitInput,
   type MemberCreditLimitsPage,
+  type WorkspaceAutoRefillPolicyCommand,
 } from "@/api/commerce";
 import { useWorkspaceCommerceManagementAccess } from "@/hooks/use-workspace-commerce-management-access";
 import { ApiError } from "@/lib/http";
@@ -48,7 +51,12 @@ export function usePlanUsageController(workspaceId: string) {
   const queryClient = useQueryClient();
   const access = useWorkspaceCommerceManagementAccess(workspaceId);
   const [defaultLimitFeedback, setDefaultLimitFeedback] = useState<DefaultLimitFeedback>("idle");
+  const [autoRefillFeedback, setAutoRefillFeedback] = useState<"idle" | "saved" | "error">("idle");
   const attemptRef = useRef<DefaultLimitAttempt | null>(null);
+  const autoRefillAttemptRef = useRef<Readonly<{
+    fingerprint: string;
+    idempotencyKey: string;
+  }> | null>(null);
 
   const limitsQuery = useQuery({
     queryKey: memberCreditConfigurationQueryKey(workspaceId),
@@ -72,6 +80,15 @@ export function usePlanUsageController(workspaceId: string) {
   const invoicesQuery = useQuery({
     queryKey: ["workspace-commerce", workspaceId, "invoices"],
     queryFn: ({ signal }) => listWorkspaceInvoices(workspaceId, { page: 1, size: 20 }, signal),
+    enabled: access.canManageCommerce,
+    retry: false,
+    staleTime: 30_000,
+    meta: { silent: true },
+  });
+
+  const autoRefillQuery = useQuery({
+    queryKey: ["workspace-commerce", workspaceId, "auto-refill"],
+    queryFn: ({ signal }) => getWorkspaceAutoRefillPolicy(workspaceId, signal),
     enabled: access.canManageCommerce,
     retry: false,
     staleTime: 30_000,
@@ -171,11 +188,55 @@ export function usePlanUsageController(workspaceId: string) {
     onError: notifyError,
   });
 
+  const autoRefillMutation = useMutation({
+    retry: false,
+    mutationFn: async (command: WorkspaceAutoRefillPolicyCommand) => {
+      const result = await updateWorkspaceAutoRefillPolicy(workspaceId, command);
+      if (
+        result.workspaceId !== workspaceId ||
+        !Number.isSafeInteger(result.revision) ||
+        result.revision < command.expectedRevision ||
+        !Array.isArray(result.availableOffers)
+      ) {
+        throw new ApiError({
+          status: 500,
+          error: "PRODUCT_API_RESPONSE_INVALID",
+          message: "Automatic refill returned invalid workspace scope",
+        });
+      }
+      return result;
+    },
+    onSuccess: async () => {
+      autoRefillAttemptRef.current = null;
+      setAutoRefillFeedback("saved");
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace-commerce", workspaceId, "auto-refill"],
+      });
+    },
+    onError: () => setAutoRefillFeedback("error"),
+  });
+
+  const saveAutoRefill = useCallback(
+    async (command: Omit<WorkspaceAutoRefillPolicyCommand, "idempotencyKey">) => {
+      const fingerprint = JSON.stringify(command);
+      const currentAttempt = autoRefillAttemptRef.current;
+      const idempotencyKey =
+        currentAttempt?.fingerprint === fingerprint
+          ? currentAttempt.idempotencyKey
+          : globalThis.crypto.randomUUID();
+      autoRefillAttemptRef.current = { fingerprint, idempotencyKey };
+      setAutoRefillFeedback("idle");
+      await autoRefillMutation.mutateAsync({ ...command, idempotencyKey });
+    },
+    [autoRefillMutation],
+  );
+
   return {
     overviewQuery: access.overviewQuery,
     limitsQuery,
     recoveryQuery,
     invoicesQuery,
+    autoRefillQuery,
     managementAccessStatus: access.managementAccessStatus,
     canManageCommerce: access.canManageCommerce,
     permissionError: access.error,
@@ -185,5 +246,9 @@ export function usePlanUsageController(workspaceId: string) {
     defaultLimitPending: defaultLimitMutation.isPending,
     saveDefaultLimit,
     clearDefaultLimitFeedback: () => setDefaultLimitFeedback("idle"),
+    autoRefillFeedback,
+    autoRefillPending: autoRefillMutation.isPending,
+    saveAutoRefill,
+    clearAutoRefillFeedback: () => setAutoRefillFeedback("idle"),
   };
 }

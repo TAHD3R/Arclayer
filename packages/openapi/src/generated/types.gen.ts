@@ -3126,6 +3126,32 @@ export type AuthzSnapshot = {
 };
 
 /**
+ * AutoRefillOfferOut
+ */
+export type AutoRefillOfferOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    /**
+     * Creditamount
+     */
+    creditAmount: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Offercode
+     */
+    offerCode: string;
+    /**
+     * Offerid
+     */
+    offerId: string;
+};
+
+/**
  * AutomationCatalogOut
  */
 export type AutomationCatalogOut = {
@@ -6593,6 +6619,13 @@ export type CheckoutSessionCreate = {
      */
     planCode: string;
 };
+
+/**
+ * CommerceAutoRefillExecutionState
+ *
+ * Provider capability state for Workspace automatic top-up execution.
+ */
+export type CommerceAutoRefillExecutionState = 'disabled' | 'unavailable';
 
 /**
  * CommerceInvoiceStatus
@@ -26464,6 +26497,31 @@ export type ResponseModelWorkspaceAssignRoleToMembersResult = {
 };
 
 /**
+ * ResponseModel[WorkspaceAutoRefillPolicyOut]
+ */
+export type ResponseModelWorkspaceAutoRefillPolicyOut = {
+    data?: WorkspaceAutoRefillPolicyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceCommerceOverviewOut]
  */
 export type ResponseModelWorkspaceCommerceOverviewOut = {
@@ -32274,6 +32332,104 @@ export type WorkspaceAssignRoleToMembersResult = {
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * WorkspaceAutoRefillPolicyOut
+ */
+export type WorkspaceAutoRefillPolicyOut = {
+    /**
+     * Availableoffers
+     */
+    availableOffers?: Array<AutoRefillOfferOut>;
+    /**
+     * Configured
+     */
+    configured: boolean;
+    /**
+     * Creditamount
+     */
+    creditAmount: number | null;
+    /**
+     * Currency
+     */
+    currency: string | null;
+    executionState: CommerceAutoRefillExecutionState;
+    /**
+     * Isenabled
+     */
+    isEnabled: boolean;
+    /**
+     * Monthlyceilingmicros
+     */
+    monthlyCeilingMicros: number | null;
+    /**
+     * Offercode
+     */
+    offerCode: string | null;
+    /**
+     * Offerid
+     */
+    offerId: string | null;
+    /**
+     * Offerrevision
+     */
+    offerRevision: number | null;
+    /**
+     * Provider
+     */
+    provider: string | null;
+    providerMode: BillingProviderMode | null;
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Triggerbelowcredits
+     */
+    triggerBelowCredits: number | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceAutoRefillPolicyWrite
+ */
+export type WorkspaceAutoRefillPolicyWrite = {
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Isenabled
+     */
+    isEnabled: boolean;
+    /**
+     * Monthlyceilingmicros
+     */
+    monthlyCeilingMicros: number;
+    /**
+     * Offerid
+     */
+    offerId: string;
+    /**
+     * Triggerbelowcredits
+     */
+    triggerBelowCredits: number;
 };
 
 /**
@@ -45732,6 +45888,70 @@ export type DomainWorkspacesSchedulePlanAccessConvergenceResponses = {
 };
 
 export type DomainWorkspacesSchedulePlanAccessConvergenceResponse = DomainWorkspacesSchedulePlanAccessConvergenceResponses[keyof DomainWorkspacesSchedulePlanAccessConvergenceResponses];
+
+export type DomainWorkspacesGetWorkspaceAutoRefillPolicyData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/auto-refill';
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillPolicyError = DomainWorkspacesGetWorkspaceAutoRefillPolicyErrors[keyof DomainWorkspacesGetWorkspaceAutoRefillPolicyErrors];
+
+export type DomainWorkspacesGetWorkspaceAutoRefillPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceAutoRefillPolicyOut;
+};
+
+export type DomainWorkspacesGetWorkspaceAutoRefillPolicyResponse = DomainWorkspacesGetWorkspaceAutoRefillPolicyResponses[keyof DomainWorkspacesGetWorkspaceAutoRefillPolicyResponses];
+
+export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyData = {
+    body: WorkspaceAutoRefillPolicyWrite;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/auto-refill';
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyError = DomainWorkspacesUpdateWorkspaceAutoRefillPolicyErrors[keyof DomainWorkspacesUpdateWorkspaceAutoRefillPolicyErrors];
+
+export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceAutoRefillPolicyOut;
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponse = DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses[keyof DomainWorkspacesUpdateWorkspaceAutoRefillPolicyResponses];
 
 export type DomainWorkspacesCreateWorkspaceCheckoutSessionData = {
     body: CheckoutSessionCreate;

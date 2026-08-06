@@ -17,6 +17,8 @@ import type {
   PageDataCreditLedgerOut,
   PageDataWorkspaceInvoiceOut,
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
+  WorkspaceAutoRefillPolicyOut,
+  WorkspaceAutoRefillPolicyWrite,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
 } from "@arclayer/openapi";
 
@@ -104,6 +106,8 @@ export type {
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
   WorkspacePlanOptionOut as WorkspacePlanOption,
+  WorkspaceAutoRefillPolicyOut as WorkspaceAutoRefillPolicy,
+  WorkspaceAutoRefillPolicyWrite as WorkspaceAutoRefillPolicyCommand,
 } from "@arclayer/openapi";
 
 export function getWorkspaceCommerceOverview(
@@ -142,6 +146,28 @@ export function getWorkspacePaymentRecovery(
     {
       signal,
     },
+  );
+}
+
+export function getWorkspaceAutoRefillPolicy(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<WorkspaceAutoRefillPolicyOut> {
+  return api.get<WorkspaceAutoRefillPolicyOut>(
+    workspacePath(workspaceId, "/commerce/auto-refill"),
+    {
+      signal,
+    },
+  );
+}
+
+export function updateWorkspaceAutoRefillPolicy(
+  workspaceId: string,
+  payload: WorkspaceAutoRefillPolicyWrite,
+): Promise<WorkspaceAutoRefillPolicyOut> {
+  return api.put<WorkspaceAutoRefillPolicyOut>(
+    workspacePath(workspaceId, "/commerce/auto-refill"),
+    payload,
   );
 }
 
