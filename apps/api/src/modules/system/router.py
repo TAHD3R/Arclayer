@@ -21,6 +21,7 @@ from src.modules.support_access.platform_router import router as support_access_
 from src.modules.system.admin.notifications.system_router import router as system_notifications_router
 from src.modules.system.agents.router import assignments_router as system_agent_assignments_router
 from src.modules.system.agents.router import router as system_agents_router
+from src.modules.system.ai_policy.router import router as system_ai_policy_router
 from src.modules.system.ai_providers.router import router as system_ai_providers_router
 from src.modules.system.directory.router import router as system_directory_router
 from src.modules.system.mail.router import router as system_mail_router
@@ -93,6 +94,7 @@ platform_router.include_router(platform_capabilities_router)
 platform_router.include_router(platform_identity_management_router)
 platform_router.include_router(platform_saved_views_router)
 platform_router.include_router(system_ai_providers_router, prefix="/ai")
+platform_router.include_router(system_ai_policy_router, prefix="/ai")
 platform_router.include_router(system_agents_router, prefix="/agents")
 platform_router.include_router(system_skills_router, prefix="/skills")
 platform_router.include_router(system_agent_assignments_router, prefix="/agent-assignments")

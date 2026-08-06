@@ -1,4 +1,5 @@
 import {
+  platformApplyAiPolicy,
   platformApplySystemAiProviderAvailability,
   platformCancelPlatformAiTask,
   platformCreateSystemAiProvider,
@@ -6,6 +7,10 @@ import {
   platformGetPlatformAiProviderReadiness,
   platformListPlatformAiTasks,
   platformListSystemAiProviders,
+  platformGetAiPolicy,
+  platformPreviewAiPolicy,
+  platformPublishAiPolicy,
+  platformSaveAiPolicyDraft,
   platformPreviewSystemAiProviderAvailability,
   platformReconcilePlatformAiTask,
   platformRetryPlatformAiTask,
@@ -15,6 +20,14 @@ import {
   type PlatformAiTaskOut,
   type PageDataPlatformAiTaskOut,
   type PlatformAiTaskActionRequest,
+  type AiPolicyApplyOut,
+  type AiPolicyApplyRequest,
+  type AiPolicyDraftInput,
+  type AiPolicyOut,
+  type AiPolicyPreviewOut,
+  type AiPolicyPreviewRequest,
+  type AiPolicyPublishRequest,
+  type AiPolicyRevisionOut,
   type SystemAiProviderCreateRequest,
   type SystemAiProviderAvailabilityPreviewOut,
   type SystemAiProviderListOut,
@@ -156,6 +169,26 @@ export function executeAiTaskAction(
   if (action === "retry") return platformRetryPlatformAiTask(options).then(unwrap);
   if (action === "cancel") return platformCancelPlatformAiTask(options).then(unwrap);
   return platformReconcilePlatformAiTask(options).then(unwrap);
+}
+
+export function getAiPolicy(): Promise<AiPolicyOut> {
+  return platformGetAiPolicy({ client: platformApiClient }).then(unwrap);
+}
+
+export function saveAiPolicyDraft(body: AiPolicyDraftInput): Promise<AiPolicyRevisionOut> {
+  return platformSaveAiPolicyDraft({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function previewAiPolicy(body: AiPolicyPreviewRequest): Promise<AiPolicyPreviewOut> {
+  return platformPreviewAiPolicy({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function publishAiPolicy(body: AiPolicyPublishRequest): Promise<AiPolicyRevisionOut> {
+  return platformPublishAiPolicy({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function applyAiPolicy(body: AiPolicyApplyRequest): Promise<AiPolicyApplyOut> {
+  return platformApplyAiPolicy({ client: platformApiClient, body }).then(unwrap);
 }
 
 export type { PlatformAiTaskOut };

@@ -360,6 +360,217 @@ export type AgentVersionProvenance = {
 };
 
 /**
+ * AiPolicyApplyOut
+ */
+export type AiPolicyApplyOut = {
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+    revision: AiPolicyRevisionOut;
+};
+
+/**
+ * AiPolicyApplyRequest
+ */
+export type AiPolicyApplyRequest = {
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Revisionid
+     */
+    revisionId: string;
+};
+
+/**
+ * AiPolicyDraftInput
+ */
+export type AiPolicyDraftInput = {
+    /**
+     * Allowedmodels
+     */
+    allowedModels?: Array<string>;
+    /**
+     * Approvalrequiredeffectclasses
+     */
+    approvalRequiredEffectClasses?: Array<'read' | 'write' | 'external_egress' | 'destructive'>;
+    /**
+     * Defaultmodel
+     */
+    defaultModel?: string | null;
+    /**
+     * Externaldataegressallowed
+     */
+    externalDataEgressAllowed?: boolean;
+    /**
+     * Maxconcurrentruns
+     */
+    maxConcurrentRuns?: number;
+    /**
+     * Maxcostmicrosperrequest
+     */
+    maxCostMicrosPerRequest?: number;
+    /**
+     * Maxtokensperrequest
+     */
+    maxTokensPerRequest?: number;
+    /**
+     * Retentiondays
+     */
+    retentionDays?: number;
+    /**
+     * Retrylimit
+     */
+    retryLimit?: number;
+    /**
+     * Toolallowlist
+     */
+    toolAllowlist?: Array<string>;
+};
+
+/**
+ * AiPolicyOut
+ */
+export type AiPolicyOut = {
+    draft?: AiPolicyRevisionOut | null;
+    published?: AiPolicyRevisionOut | null;
+};
+
+/**
+ * AiPolicyPreviewOut
+ */
+export type AiPolicyPreviewOut = {
+    /**
+     * Draftid
+     */
+    draftId: string;
+    /**
+     * Isapplicable
+     */
+    isApplicable: boolean;
+    /**
+     * Modelcount
+     */
+    modelCount: number;
+    /**
+     * Sourcehash
+     */
+    sourceHash: string;
+    /**
+     * Toolcount
+     */
+    toolCount: number;
+    /**
+     * Unsupportedcontrols
+     */
+    unsupportedControls?: Array<string>;
+};
+
+/**
+ * AiPolicyPreviewRequest
+ */
+export type AiPolicyPreviewRequest = {
+    /**
+     * Draftid
+     */
+    draftId: string;
+};
+
+/**
+ * AiPolicyPublishRequest
+ */
+export type AiPolicyPublishRequest = {
+    /**
+     * Draftid
+     */
+    draftId: string;
+    /**
+     * Previewhash
+     */
+    previewHash: string;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
+ * AiPolicyRevisionOut
+ */
+export type AiPolicyRevisionOut = {
+    /**
+     * Allowedmodels
+     */
+    allowedModels?: Array<string>;
+    /**
+     * Appliedat
+     */
+    appliedAt?: string | null;
+    /**
+     * Approvalrequiredeffectclasses
+     */
+    approvalRequiredEffectClasses?: Array<'read' | 'write' | 'external_egress' | 'destructive'>;
+    /**
+     * Contenthash
+     */
+    contentHash: string;
+    /**
+     * Defaultmodel
+     */
+    defaultModel?: string | null;
+    /**
+     * Externaldataegressallowed
+     */
+    externalDataEgressAllowed?: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Maxconcurrentruns
+     */
+    maxConcurrentRuns?: number;
+    /**
+     * Maxcostmicrosperrequest
+     */
+    maxCostMicrosPerRequest?: number;
+    /**
+     * Maxtokensperrequest
+     */
+    maxTokensPerRequest?: number;
+    /**
+     * Publishedat
+     */
+    publishedAt?: string | null;
+    /**
+     * Retentiondays
+     */
+    retentionDays?: number;
+    /**
+     * Retrylimit
+     */
+    retryLimit?: number;
+    /**
+     * Sequence
+     */
+    sequence: number;
+    /**
+     * Status
+     */
+    status: 'draft' | 'published' | 'retired';
+    /**
+     * Toolallowlist
+     */
+    toolAllowlist?: Array<string>;
+};
+
+/**
  * AuditEventOrdering
  */
 export type AuditEventOrdering = '-occurred_at' | 'occurred_at';
@@ -9005,7 +9216,7 @@ export type PlatformPermissionCatalogItemOut = {
  *
  * Stable exact permission identifiers for Platform API authorization.
  */
-export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-skills:read' | 'platform:ai-skills:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:workspace-capability-rollout:apply';
+export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-skills:read' | 'platform:ai-skills:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-policy:read' | 'platform:ai-policy:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:workspace-capability-rollout:apply';
 
 /**
  * PlatformProvisioningSettingsOut
@@ -11765,6 +11976,106 @@ export type RenewalTransitionScheduleRequest = {
  * ResourceLimitKind
  */
 export type ResourceLimitKind = 'limited' | 'unlimited';
+
+/**
+ * ResponseModel[AiPolicyApplyOut]
+ */
+export type ResponseModelAiPolicyApplyOut = {
+    data?: AiPolicyApplyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AiPolicyOut]
+ */
+export type ResponseModelAiPolicyOut = {
+    data?: AiPolicyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AiPolicyPreviewOut]
+ */
+export type ResponseModelAiPolicyPreviewOut = {
+    data?: AiPolicyPreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AiPolicyRevisionOut]
+ */
+export type ResponseModelAiPolicyRevisionOut = {
+    data?: AiPolicyRevisionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
 
 /**
  * ResponseModel[AuditEventOut]
@@ -20244,6 +20555,122 @@ export type PlatformRetryPlatformAiTaskResponses = {
 };
 
 export type PlatformRetryPlatformAiTaskResponse = PlatformRetryPlatformAiTaskResponses[keyof PlatformRetryPlatformAiTaskResponses];
+
+export type PlatformGetAiPolicyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai/policies';
+};
+
+export type PlatformGetAiPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiPolicyOut;
+};
+
+export type PlatformGetAiPolicyResponse = PlatformGetAiPolicyResponses[keyof PlatformGetAiPolicyResponses];
+
+export type PlatformApplyAiPolicyData = {
+    body: AiPolicyApplyRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai/policies/apply';
+};
+
+export type PlatformApplyAiPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformApplyAiPolicyError = PlatformApplyAiPolicyErrors[keyof PlatformApplyAiPolicyErrors];
+
+export type PlatformApplyAiPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiPolicyApplyOut;
+};
+
+export type PlatformApplyAiPolicyResponse = PlatformApplyAiPolicyResponses[keyof PlatformApplyAiPolicyResponses];
+
+export type PlatformSaveAiPolicyDraftData = {
+    body: AiPolicyDraftInput;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai/policies/draft';
+};
+
+export type PlatformSaveAiPolicyDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformSaveAiPolicyDraftError = PlatformSaveAiPolicyDraftErrors[keyof PlatformSaveAiPolicyDraftErrors];
+
+export type PlatformSaveAiPolicyDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiPolicyRevisionOut;
+};
+
+export type PlatformSaveAiPolicyDraftResponse = PlatformSaveAiPolicyDraftResponses[keyof PlatformSaveAiPolicyDraftResponses];
+
+export type PlatformPreviewAiPolicyData = {
+    body: AiPolicyPreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai/policies/previews';
+};
+
+export type PlatformPreviewAiPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPreviewAiPolicyError = PlatformPreviewAiPolicyErrors[keyof PlatformPreviewAiPolicyErrors];
+
+export type PlatformPreviewAiPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiPolicyPreviewOut;
+};
+
+export type PlatformPreviewAiPolicyResponse = PlatformPreviewAiPolicyResponses[keyof PlatformPreviewAiPolicyResponses];
+
+export type PlatformPublishAiPolicyData = {
+    body: AiPolicyPublishRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai/policies/publish';
+};
+
+export type PlatformPublishAiPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPublishAiPolicyError = PlatformPublishAiPolicyErrors[keyof PlatformPublishAiPolicyErrors];
+
+export type PlatformPublishAiPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiPolicyRevisionOut;
+};
+
+export type PlatformPublishAiPolicyResponse = PlatformPublishAiPolicyResponses[keyof PlatformPublishAiPolicyResponses];
 
 export type PlatformListSystemAiProvidersData = {
     body?: never;

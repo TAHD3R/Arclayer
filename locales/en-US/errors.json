@@ -1102,5 +1102,11 @@
   "WORKSPACE_OWNER_TRANSFER_REQUIRED": "Transfer workspace ownership to another active member before leaving.",
   "WORKSPACE_SETTINGS_MANAGE_REQUIRED": "You do not have permission to manage workspace settings",
   "WORKSPACE_SUBSCRIPTION_REQUIRED": "This workspace does not yet have a confirmed plan subscription, so this action cannot be completed.",
-  "WORKSPACE_TENANT_NOT_FOUND": "We could not find the workspace. Refresh and try again."
+  "WORKSPACE_TENANT_NOT_FOUND": "We could not find the workspace. Refresh and try again.",
+  "AI_POLICY_PREVIEW_STALE": "The AI policy preview is stale. Create a new preview and try again.",
+  "AI_POLICY_UNSUPPORTED_CONTROL": "This AI policy contains a control that the current runtime cannot enforce.",
+  "AI_POLICY_REVISION_NOT_FOUND": "The selected AI policy revision is no longer available.",
+  "AI_POLICY_APPLY_IDEMPOTENCY_CONFLICT": "This apply request conflicts with an earlier AI policy apply.",
+  "AI_POLICY_DRAFT_NOT_FOUND": "The selected AI policy draft is no longer available.",
+  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "Choose an allowed-model list before setting a default model."
 }

@@ -14,6 +14,7 @@ from src.llm.policy import (
     resolve_provider_retention_params,
 )
 from src.llm.runtime import LLMRuntimeError
+from src.models.ai.global_policy import GlobalAiPolicyRevision
 from src.models.ai.model_policy import ModelPolicy, ModelPolicyScope
 
 
@@ -64,9 +65,11 @@ class TestResolveModelPolicy:
         """No DB policies -> global default (all models, no limits)."""
         workspace_id = uuid4()
 
-        qs = _make_mock_queryset([])
+        qs = Mock()
+        qs.order_by.return_value = qs
+        qs.first = AsyncMock(return_value=None)
 
-        with patch.object(ModelPolicy, "filter", return_value=qs):
+        with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
             policy = await resolve_model_policy(workspace_id, None)
             assert policy.allowed_models == []
             assert policy.max_tokens_per_request == 0
@@ -74,76 +77,60 @@ class TestResolveModelPolicy:
             assert policy.data_retention_enabled is False
 
     @pytest.mark.asyncio
-    async def test_workspace_policy_overrides_default(self):
-        """user_id=None → 2 filter calls: workspace, then global."""
+    async def test_workspace_policy_is_ignored(self):
+        """Workspace rows cannot override the deployment policy."""
         workspace_id = uuid4()
-        ws_policy = make_policy(
-            scope=ModelPolicyScope.WORKSPACE,
-            scope_id=workspace_id,
-            allowed_models=["gpt-4o-mini"],
-            max_tokens_per_request=4096,
+
+        published = Mock(
+            id=uuid4(),
+            sequence=1,
+            allowed_models=["gpt-4o"],
+            max_tokens_per_request=2048,
+            max_cost_micros_per_request=0,
+            external_data_egress_allowed=False,
         )
+        qs = Mock()
+        qs.order_by.return_value = qs
+        qs.first = AsyncMock(return_value=published)
 
-        ws_qs = _make_mock_queryset([ws_policy])
-        empty_qs = _make_mock_queryset([])
-        filter_mock = Mock(side_effect=[ws_qs, empty_qs])
-
-        with patch.object(ModelPolicy, "filter", new=filter_mock):
+        with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
             policy = await resolve_model_policy(workspace_id, None)
-            assert policy.allowed_models == ["gpt-4o-mini"]
-            assert policy.max_tokens_per_request == 4096
+            assert policy.allowed_models == ["gpt-4o"]
+            assert policy.max_tokens_per_request == 2048
 
     @pytest.mark.asyncio
-    async def test_user_policy_overrides_workspace_on_set_fields(self):
-        """user_id set → 3 filter calls: user, workspace, global."""
+    async def test_user_policy_is_ignored(self):
+        """User rows cannot override the deployment policy."""
         workspace_id = uuid4()
         user_id = uuid4()
 
-        ws_policy = make_policy(
-            scope=ModelPolicyScope.WORKSPACE,
-            scope_id=workspace_id,
-            allowed_models=["gpt-4o-mini"],
-            max_tokens_per_request=4096,
-        )
-        user_policy = make_policy(
-            scope=ModelPolicyScope.USER,
-            scope_id=user_id,
-            allowed_models=["gpt-4o-mini", "claude-sonnet-4-6"],
-            max_tokens_per_request=0,  # Inherit from workspace
-        )
+        qs = Mock()
+        qs.order_by.return_value = qs
+        qs.first = AsyncMock(return_value=None)
 
-        user_qs = _make_mock_queryset([user_policy])
-        ws_qs = _make_mock_queryset([ws_policy])
-        global_qs = _make_mock_queryset([])
-        filter_mock = Mock(side_effect=[user_qs, ws_qs, global_qs])
-
-        with patch.object(ModelPolicy, "filter", new=filter_mock):
+        with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
             policy = await resolve_model_policy(workspace_id, user_id)
-            assert policy.allowed_models == ["gpt-4o-mini", "claude-sonnet-4-6"]
-            assert policy.max_tokens_per_request == 4096
+            assert policy.allowed_models == []
+            assert policy.max_tokens_per_request == 0
 
     @pytest.mark.asyncio
-    async def test_highest_priority_wins_within_same_tier(self):
-        """user_id=None → 2 filter calls: workspace (2 policies), global (none)."""
+    async def test_latest_published_revision_wins(self):
+        """The latest published global revision is the sole runtime authority."""
         workspace_id = uuid4()
-        low_prio = make_policy(
-            scope=ModelPolicyScope.WORKSPACE,
-            scope_id=workspace_id,
-            allowed_models=["gpt-4o-mini"],
-            priority=50,
-        )
-        high_prio = make_policy(
-            scope=ModelPolicyScope.WORKSPACE,
-            scope_id=workspace_id,
+
+        published = Mock(
+            id=uuid4(),
+            sequence=4,
             allowed_models=["gpt-4o-mini", "gpt-4o"],
-            priority=10,
+            max_tokens_per_request=0,
+            max_cost_micros_per_request=0,
+            external_data_egress_allowed=True,
         )
+        qs = Mock()
+        qs.order_by.return_value = qs
+        qs.first = AsyncMock(return_value=published)
 
-        ws_qs = _make_mock_queryset([high_prio, low_prio])
-        empty_qs = _make_mock_queryset([])
-        filter_mock = Mock(side_effect=[ws_qs, empty_qs])
-
-        with patch.object(ModelPolicy, "filter", new=filter_mock):
+        with patch.object(GlobalAiPolicyRevision, "filter", return_value=qs):
             policy = await resolve_model_policy(workspace_id, None)
             assert policy.allowed_models == ["gpt-4o-mini", "gpt-4o"]
 

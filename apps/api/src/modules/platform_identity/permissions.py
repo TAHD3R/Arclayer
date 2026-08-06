@@ -47,6 +47,8 @@ class PlatformPermissionCode(StrEnum):
     AI_ASSIGNMENTS_MANAGE = "platform:ai-assignments:manage"
     AI_RUNTIME_SETTINGS_READ = "platform:ai-runtime-settings:read"
     AI_RUNTIME_SETTINGS_MANAGE = "platform:ai-runtime-settings:manage"
+    AI_POLICY_READ = "platform:ai-policy:read"
+    AI_POLICY_MANAGE = "platform:ai-policy:manage"
     AI_TASKS_READ = "platform:ai-tasks:read"
     AI_TASKS_RECOVER = "platform:ai-tasks:recover"
 

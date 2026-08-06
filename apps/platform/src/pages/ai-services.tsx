@@ -25,13 +25,18 @@ import type {
 import { ProviderIconImage } from "@/ai/ai-provider-icon";
 import {
   applyAiProviderAvailability,
+  applyAiPolicy,
   deleteAiProvider,
   executeAiTaskAction,
+  getAiPolicy,
   getAiProviderReadiness,
   listAiProviders,
   listAiTasks,
   PlatformAiServicesApiError,
   previewAiProviderAvailability,
+  previewAiPolicy,
+  publishAiPolicy,
+  saveAiPolicyDraft,
   testAiProviderReadiness,
   updateAiProvider,
 } from "@/ai/ai-services-api";
@@ -66,6 +71,8 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1075,14 +1082,190 @@ function assistantCapabilityFlag(
 
 export function AiPoliciesPage() {
   const { t } = useTranslation("ai");
+  const load = useCallback(() => getAiPolicy(), []);
+  const { state, retry } = useMonitoringQuery(load, []);
+  const [pending, setPending] = useState<string | null>(null);
+  const [models, setModels] = useState("");
+  const [defaultModel, setDefaultModel] = useState("");
+  const [maxTokens, setMaxTokens] = useState("0");
+  const [maxCost, setMaxCost] = useState("0");
+  const [egress, setEgress] = useState(false);
+  const [reason, setReason] = useState("");
+  const policy = state.status === "ready" ? state.data : undefined;
+  const draft = policy?.draft;
+  const published = policy?.published;
+  const saveDraft = async () => {
+    setPending("save");
+    try {
+      await saveAiPolicyDraft({
+        allowedModels: models
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        defaultModel: defaultModel.trim() || null,
+        maxTokensPerRequest: Number(maxTokens),
+        maxCostMicrosPerRequest: Number(maxCost),
+        maxConcurrentRuns: 0,
+        externalDataEgressAllowed: egress,
+        toolAllowlist: [],
+        approvalRequiredEffectClasses: [],
+        retryLimit: 0,
+        retentionDays: 0,
+      });
+      toast.success(t("POLICY_DRAFT_SAVED"));
+      retry();
+    } catch (error) {
+      toast.error(t("ACTION_FAILED"), {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPending(null);
+    }
+  };
+  const publish = async () => {
+    if (!draft) return;
+    setPending("publish");
+    try {
+      const preview = await previewAiPolicy({ draftId: draft.id });
+      if (!preview.isApplicable) throw new Error("AI_POLICY_UNSUPPORTED_CONTROL");
+      await publishAiPolicy({
+        draftId: draft.id,
+        previewHash: preview.sourceHash,
+        reason: reason.trim() || "Platform policy change",
+      });
+      toast.success(t("POLICY_PUBLISHED"));
+      retry();
+    } catch (error) {
+      toast.error(t("ACTION_FAILED"), {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPending(null);
+    }
+  };
+  const apply = async () => {
+    if (!published) return;
+    setPending("apply");
+    try {
+      await applyAiPolicy({
+        revisionId: published.id,
+        idempotencyKey: crypto.randomUUID(),
+        reason: reason.trim() || "Platform policy apply",
+      });
+      toast.success(t("POLICY_APPLIED"));
+      retry();
+    } catch (error) {
+      toast.error(t("ACTION_FAILED"), {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPending(null);
+    }
+  };
   return (
     <AiPage description={t("POLICIES_DESCRIPTION")} title={t("POLICIES_TITLE")}>
-      <Empty className="min-h-72 border bg-card">
-        <EmptyHeader>
-          <EmptyTitle>{t("POLICIES_UNAVAILABLE_TITLE")}</EmptyTitle>
-          <EmptyDescription>{t("POLICIES_UNAVAILABLE_DESCRIPTION")}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <AiState empty={() => false} retry={retry} state={state}>
+        {() => (
+          <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("POLICY_DRAFT_TITLE")}</CardTitle>
+                <CardDescription>{t("POLICY_DRAFT_DESCRIPTION")}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="ai-policy-models">{t("POLICY_ALLOWED_MODELS")}</Label>
+                  <Input
+                    id="ai-policy-models"
+                    onChange={(event) => setModels(event.target.value)}
+                    value={models}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ai-policy-default-model">{t("POLICY_DEFAULT_MODEL")}</Label>
+                  <Input
+                    id="ai-policy-default-model"
+                    onChange={(event) => setDefaultModel(event.target.value)}
+                    value={defaultModel}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ai-policy-max-tokens">{t("POLICY_MAX_TOKENS")}</Label>
+                  <Input
+                    id="ai-policy-max-tokens"
+                    min={0}
+                    onChange={(event) => setMaxTokens(event.target.value)}
+                    type="number"
+                    value={maxTokens}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ai-policy-max-cost">{t("POLICY_MAX_COST")}</Label>
+                  <Input
+                    id="ai-policy-max-cost"
+                    min={0}
+                    onChange={(event) => setMaxCost(event.target.value)}
+                    type="number"
+                    value={maxCost}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input
+                    checked={egress}
+                    onChange={(event) => setEgress(event.target.checked)}
+                    type="checkbox"
+                  />
+                  {t("POLICY_EXTERNAL_EGRESS")}
+                </label>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="ai-policy-reason">{t("POLICY_REASON")}</Label>
+                  <Input
+                    id="ai-policy-reason"
+                    onChange={(event) => setReason(event.target.value)}
+                    value={reason}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 md:col-span-2">
+                  <Button disabled={pending !== null} onClick={() => void saveDraft()}>
+                    {t("SAVE_DRAFT")}
+                  </Button>
+                  <Button
+                    disabled={!draft || pending !== null}
+                    onClick={() => void publish()}
+                    variant="secondary"
+                  >
+                    {t("PUBLISH")}
+                  </Button>
+                  <Button
+                    disabled={!published || pending !== null}
+                    onClick={() => void apply()}
+                    variant="outline"
+                  >
+                    {t("APPLY")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("POLICY_CURRENT_TITLE")}</CardTitle>
+                <CardDescription>{t("POLICY_CURRENT_DESCRIPTION")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>{t("POLICY_DRAFT_STATUS", { sequence: draft?.sequence ?? t("NONE") })}</p>
+                <p>
+                  {t("POLICY_PUBLISHED_STATUS", { sequence: published?.sequence ?? t("NONE") })}
+                </p>
+                <p>
+                  {t("POLICY_APPLIED_STATUS", {
+                    applied: published?.appliedAt ? t("YES") : t("NO"),
+                  })}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </AiState>
     </AiPage>
   );
 }

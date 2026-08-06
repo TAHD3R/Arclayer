@@ -1102,5 +1102,11 @@
   "WORKSPACE_OWNER_TRANSFER_REQUIRED": "请先将工作空间所有权转移给其他活跃成员，再离开。",
   "WORKSPACE_SETTINGS_MANAGE_REQUIRED": "你没有管理该工作空间设置的权限",
   "WORKSPACE_SUBSCRIPTION_REQUIRED": "该工作空间还没有可确认的套餐订阅，暂时无法完成此操作。",
-  "WORKSPACE_TENANT_NOT_FOUND": "未找到工作空间。请刷新后重试。"
+  "WORKSPACE_TENANT_NOT_FOUND": "未找到工作空间。请刷新后重试。",
+  "AI_POLICY_PREVIEW_STALE": "AI 规则预览已过期，请重新生成预览后重试。",
+  "AI_POLICY_UNSUPPORTED_CONTROL": "当前运行时无法执行该 AI 规则中的某项控制。",
+  "AI_POLICY_REVISION_NOT_FOUND": "所选 AI 规则修订已不可用。",
+  "AI_POLICY_APPLY_IDEMPOTENCY_CONFLICT": "此次应用请求与之前的 AI 规则应用请求冲突。",
+  "AI_POLICY_DRAFT_NOT_FOUND": "所选 AI 规则草稿已不可用。",
+  "AI_POLICY_DEFAULT_MODEL_REQUIRES_ALLOWLIST": "请先选择允许的模型列表，再设置默认模型。"
 }

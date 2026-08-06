@@ -42,6 +42,8 @@ const PERMISSION_COPY = {
   "platform:ai-assignments:manage": { action: "MANAGE", resource: "AI_ASSIGNMENTS" },
   "platform:ai-runtime-settings:read": { action: "VIEW", resource: "AI_RUNTIME_SETTINGS" },
   "platform:ai-runtime-settings:manage": { action: "MANAGE", resource: "AI_RUNTIME_SETTINGS" },
+  "platform:ai-policy:read": { action: "VIEW", resource: "AI_POLICY" },
+  "platform:ai-policy:manage": { action: "MANAGE", resource: "AI_POLICY" },
   "platform:ai-tasks:read": { action: "VIEW", resource: "AI_TASKS" },
   "platform:ai-tasks:recover": { action: "RECOVER", resource: "AI_TASKS" },
   "platform:site-delivery:read": { action: "VIEW", resource: "SITE_DELIVERY" },

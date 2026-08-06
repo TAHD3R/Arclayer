@@ -53,6 +53,11 @@ describe("AI and Hosting Platform operation contracts", () => {
     expect(aiApi).toContain("platformPreviewSystemAiProviderAvailability");
     expect(aiApi).toContain("platformApplySystemAiProviderAvailability");
     expect(aiApi).toContain("platformDeleteSystemAiProvider");
+    expect(aiApi).toContain("platformGetAiPolicy");
+    expect(aiApi).toContain("platformSaveAiPolicyDraft");
+    expect(aiApi).toContain("platformPreviewAiPolicy");
+    expect(aiApi).toContain("platformPublishAiPolicy");
+    expect(aiApi).toContain("platformApplyAiPolicy");
     expect(hostingApi).toContain("platformRetryPlatformDeliveryIssue");
     expect(hostingApi).toContain("platformReconcilePlatformDeliveryIssue");
     expect(hostingApi).toContain("platformRestorePlatformDeliveryIssue");
@@ -76,7 +81,7 @@ describe("AI and Hosting Platform operation contracts", () => {
     expect(aiPage).toContain("AiAssistantEditorDialog");
     expect(aiPage).toContain("AiAssistantVersionDialog");
     expect(aiPage).toContain("retireAiAssistantVersion");
-    expect(aiPage).toContain("POLICIES_UNAVAILABLE_TITLE");
+    expect(aiPage).toContain("POLICY_DRAFT_TITLE");
     expect(aiPage).not.toContain("window.prompt");
     expect(providerDialogs).toContain("createAiProvider");
     expect(providerDialogs).toContain("updateAiProvider");

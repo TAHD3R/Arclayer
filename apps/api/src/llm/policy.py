@@ -1,8 +1,4 @@
-"""ModelPolicy Runtime Enforcement.
-
-Resolves the active policy by priority: user > workspace > global default.
-Enforces model allowlists, token limits, cost limits, and data retention.
-"""
+"""Deployment-wide AI policy runtime enforcement."""
 
 from __future__ import annotations
 
@@ -12,7 +8,7 @@ import structlog
 
 from src.llm.errors import ERROR_CODE_STATUS, LLMErrorCode
 from src.llm.runtime import LLMRuntimeError
-from src.models.ai.model_policy import ModelPolicy
+from src.models.ai.model_policy import ModelPolicy, ModelPolicyScope
 
 logger = structlog.get_logger("arclayer.llm.policy")
 
@@ -23,59 +19,17 @@ async def resolve_model_policy(
     *,
     global_data_retention_enabled: bool = False,
 ) -> ModelPolicy:
-    """Resolve the active policy by priority: user > workspace > global default.
+    """Read the current published deployment policy before every effect.
 
-    Merge rule (field-level inheritance):
-    - Each field on a higher-priority policy that is explicitly set (non-null,
-      non-zero sentinel) overrides the lower-tier value.
-    - Fields left at their defaults inherit from the next tier down.
-    - allowed_models=[] at any tier means "allow all models at this tier"
-      (acts as unset — inherits).
-    - max_tokens_per_request=0/null means "no limit at this tier"
-      (acts as unset — inherits).
-    - max_cost_micros_per_request=0/null means "no limit at this tier"
-      (acts as unset — inherits).
-    - When multiple policies exist at the same tier, take the highest
-      priority value (higher number = higher priority).
+    Workspace and user policy rows are intentionally not consulted. The legacy
+    ``ModelPolicy`` object remains the enforcement DTO while the persisted
+    authority is ``GlobalAiPolicyRevision``.
     """
-    from src.models.ai.model_policy import ModelPolicy, ModelPolicyScope
+    from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
 
-    # Collect policies at each tier, ordered by priority descending.
-    user_policies = []
-    if user_id is not None:
-        user_policies = (
-            await ModelPolicy
-            .filter(
-                scope=ModelPolicyScope.USER,
-                scope_id=user_id,
-                is_active=True,
-            )
-            .order_by("priority")
-            .all()
-        )
-
-    ws_policies = (
-        await ModelPolicy
-        .filter(
-            scope=ModelPolicyScope.WORKSPACE,
-            scope_id=workspace_id,
-            is_active=True,
-        )
-        .order_by("priority")
-        .all()
+    published = (
+        await GlobalAiPolicyRevision.filter(status=GlobalAiPolicyRevisionStatus.PUBLISHED).order_by("-sequence").first()
     )
-
-    global_policies = (
-        await ModelPolicy
-        .filter(
-            scope=ModelPolicyScope.GLOBAL,
-            is_active=True,
-        )
-        .order_by("priority")
-        .all()
-    )
-
-    # Build the default policy.
     default = ModelPolicy(
         id=UUID(int=0),
         name="_default",
@@ -85,13 +39,17 @@ async def resolve_model_policy(
         max_cost_micros_per_request=0,
         data_retention_enabled=global_data_retention_enabled,
     )
-
-    # Merge: user > workspace > global > default.
-    merged = _merge_policies(
-        user_policies,
-        _merge_policies(ws_policies, _merge_policies(global_policies, default)),
+    if published is None:
+        return default
+    return ModelPolicy(
+        id=published.id,
+        name=f"global:{published.sequence}",
+        scope=ModelPolicyScope.GLOBAL,
+        allowed_models=list(published.allowed_models),
+        max_tokens_per_request=published.max_tokens_per_request,
+        max_cost_micros_per_request=published.max_cost_micros_per_request,
+        data_retention_enabled=not published.external_data_egress_allowed,
     )
-    return merged
 
 
 def _merge_policies(
