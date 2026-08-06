@@ -390,7 +390,7 @@ M2 execution parts:
    - Add explicit Platform simulator/readiness/event/retry/reconciliation APIs and generated contracts needed by the later Platform Billing redesign.
    - Keep simulation visually and contractually distinct from Stripe; reject the entire surface in production and outside authorized Platform operations.
    - Expose durable checkout, transaction, invoice, refund, inbox, Job, and application outcomes rather than templated success responses.
-7. M2.6 full lifecycle and Stripe regression closure. — In progress
+7. M2.6 full lifecycle and Stripe regression closure. — Complete
    - Verify success/failure/pending/cancel/duplicate/delay/out-of-order, renewal, dunning recovery, top-up, refund, retry, and reconciliation lifecycles.
    - Verify production rejection, no Stripe secret dependency, no Stripe or Connect impersonation, exact connector-version pinning, and unchanged real Stripe Checkout/Portal/webhook paths.
    - Run API/OpenAPI/package gates, staged GitNexus detection, changed-scope Code Review Engine, update this record, and commit M2.
@@ -1215,3 +1215,11 @@ M2.4b.3b implementation boundary:
 - Verified simulated Checkout outcome unit/router coverage, the durable simulator state projection, Platform API wrapper tests, and signed simulated lifecycle regressions. Focused simulated suite passed `36` tests with `19` integration tests explicitly skipped when disabled; `RUN_INTEGRATION_TESTS=1` passed `19` simulated PostgreSQL lifecycle tests.
 - Platform lint, format, locale parity, OpenAPI generation/typecheck, and targeted API static checks passed. Changed-scope Code Review Engine returned zero findings; staged GitNexus remained LOW with no affected execution flow.
 - M2.5 is complete. The only active part is M2.6 full lifecycle and Stripe regression closure.
+
+### 2026-08-06 — M2.6 full lifecycle and Stripe regression closure
+
+- Closed the simulated and Stripe Provider regression matrix across signed acceptance, encrypted inbox, pinned Jobs, outcome normalization, subscription/access projection, top-up settlement, refund confirmation, correction evidence, replay, stale/revision conflicts, and out-of-order protection.
+- Final focused Commerce regression passed `101` tests with `7` integration tests explicitly skipped when integration is disabled. With `RUN_INTEGRATION_TESTS=1`, the Stripe payment projection and simulated top-up integration files passed `7` PostgreSQL tests; the full simulated subscription lifecycle integration had already passed `19` tests in the M2.5 closure.
+- Reconfirmed production simulator rejection, absence of Stripe secret dependency in simulated readiness, exact connector-version/event boundaries, no direct Credit mutation from Checkout/return/control routes, and no Stripe Connect surface.
+- API targeted Ruff/format/`ty`, Platform lint/format/locale, Platform OpenAPI generation/typecheck, changed-scope Code Review Engine, staged GitNexus detection, and staged diff checks passed. Broad API typecheck remains blocked only by the known repository baseline diagnostics; Platform package typecheck remains blocked only by the existing browser support import.
+- M2 and all M2.1–M2.6 implementation parts are complete. The next milestone is M3 Platform Billing redesign.
