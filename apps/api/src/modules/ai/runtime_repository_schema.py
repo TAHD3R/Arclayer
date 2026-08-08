@@ -64,6 +64,7 @@ class PersistedAgentMessagePart(BaseSchema):
     type: str
     status: str
     text: str | None
+    payload: JsonObject = Field(default_factory=dict)
 
 
 class PersistedAgentMessage(BaseSchema):

@@ -149,6 +149,17 @@ class FakeBackgroundJobRepository:
         _ = conn
         return self.jobs.get(job_id)
 
+    async def get_job_dispatch(self, *, job_id: UUID, dispatch_sequence: int, conn):
+        _ = conn
+        return next(
+            (
+                dispatch
+                for dispatch in self.dispatches
+                if dispatch.job_id == job_id and dispatch.dispatch_sequence == dispatch_sequence
+            ),
+            None,
+        )
+
     async def update_job_fields(self, *, job, fields: dict[str, object], conn) -> None:
         _ = conn
         for name, value in fields.items():
@@ -567,3 +578,26 @@ async def test_terminal_job_returns_existing_state_for_cancellation_request() ->
 
     assert result.internal_status == JobInternalStatus.SUCCEEDED
     assert result.cancel_requested_at is None
+
+
+@pytest.mark.asyncio
+async def test_resume_rejects_an_exhausted_job_before_creating_an_unclaimable_dispatch() -> None:
+    service, repository, _ = create_service(max_attempts=3)
+    command = create_command(max_attempts=3)
+    job = await service.create_job(command)
+    job.internal_status = JobInternalStatus.WAITING_FOR_USER
+    job.attempt_count = job.max_attempts
+    dispatch_count = len(repository.dispatches)
+
+    with pytest.raises(Conflict) as exc_info:
+        async with service.tx() as conn:
+            await service.resume_waiting_job_in_transaction(
+                job_id=job.id,
+                actor_user_id=command.actor_user_id,
+                resumed_at=datetime(2026, 8, 8, 12, tzinfo=UTC),
+                conn=cast(Any, conn),
+            )
+
+    assert exc_info.value.error == "BACKGROUND_JOB_NOT_CLAIMABLE"
+    assert len(repository.dispatches) == dispatch_count
+    assert job.internal_status == JobInternalStatus.WAITING_FOR_USER

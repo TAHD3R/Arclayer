@@ -7,9 +7,12 @@ from typing import Protocol
 from taskiq import Context, TaskiqDepends
 
 from src.common.types.json_types import JsonObject
+from src.core.exceptions.types import Conflict
 from src.modules.jobs.execution_schema import (
     DurableJobExecutionOutcome,
+    JobDeliveryClaim,
     JobDeliveryCommand,
+    JobDeliveryDisposition,
 )
 from src.modules.jobs.schema import JobDispatchEnvelope
 from src.platform.jobs.durable.ack import authorize_durable_ack
@@ -55,7 +58,18 @@ def build_durable_delivery_handler(
             transport_message_id=context.message.task_id,
             received_at=clock(),
         )
-        outcome = await executor.execute_delivery(command=command)
+        try:
+            outcome = await executor.execute_delivery(command=command)
+        except Conflict as error:
+            if error.error != "BACKGROUND_JOB_NOT_CLAIMABLE":
+                raise
+            outcome = DurableJobExecutionOutcome(
+                delivery=JobDeliveryClaim(
+                    job_id=envelope.job_id,
+                    dispatch_sequence=envelope.dispatch_sequence,
+                    disposition=JobDeliveryDisposition.STALE_DELIVERY,
+                )
+            )
         if not isinstance(outcome, DurableJobExecutionOutcome):
             raise DurableTaskExecutionOutcomeError(
                 "durable executor must return a validated DurableJobExecutionOutcome"

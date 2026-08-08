@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
+from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.runtime_builder_v1 import AgentRunBuilderSnapshotV1Record
 from src.models.agents.runtime_design_system_v1 import AgentRunDesignSystemSnapshotV1Record
@@ -255,7 +257,12 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
         parts_by_message: dict[UUID, list[PersistedAgentMessagePart]] = {}
         for part in parts:
             parts_by_message.setdefault(part.message_id, []).append(
-                PersistedAgentMessagePart(type=part.type, status=part.status, text=part.text)
+                PersistedAgentMessagePart(
+                    type=part.type,
+                    status=part.status,
+                    text=part.text,
+                    payload=cast(JsonObject, part.payload),
+                )
             )
         return [
             PersistedAgentMessage(

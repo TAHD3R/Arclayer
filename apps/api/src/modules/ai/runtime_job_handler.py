@@ -197,6 +197,8 @@ class AgentRunJobHandler:
                 outcome=_effect_outcome(effect),
             )
         effect = state.execution_effect
+        if effect is not None and effect.owner_attempt_id != context.lease.attempt_id:
+            effect = None
         if effect is not None and effect.disposition == AgentRunExecutionEffectDisposition.COMMITTED:
             return await self._project_execution_outcome(
                 context=context,
@@ -212,7 +214,7 @@ class AgentRunJobHandler:
             )
         if state.settlement_pending:
             raise self._settlement_pending()
-        if state.has_settled_provider_effect or (state.running_part_ids and state.resume_input is None):
+        if state.resume_input is None and (state.has_settled_provider_effect or state.running_part_ids):
             return await self._project_failure(
                 state=state,
                 error_code="AGENT_PROVIDER_RESULT_UNAVAILABLE",
@@ -412,36 +414,35 @@ class AgentRunJobHandler:
             )
             state = await self._state(context)
         identity = AgentRunJobEventFactory.new_message_identity()
-        await self._runtime_repository.append_event(
-            event=AgentRunJobEventFactory(state).message_started(
-                sequence=state.last_sequence + 1,
-                occurred_at=_utc_now(),
+        occurred_at = _utc_now()
+        factory = AgentRunJobEventFactory(state)
+        sequence = state.last_sequence + 1
+        events: list[AppendableAgentRunEventV1] = [
+            factory.message_started(
+                sequence=sequence,
+                occurred_at=occurred_at,
                 identity=identity,
             )
-        )
-        state = await self._state(context)
-        sequence = state.last_sequence
-        factory = AgentRunJobEventFactory(state)
+        ]
         if chat.content:
             sequence += 1
-            await self._runtime_repository.append_event(
-                event=factory.message_delta(
+            events.append(
+                factory.message_delta(
                     sequence=sequence,
-                    occurred_at=_utc_now(),
+                    occurred_at=occurred_at,
                     identity=identity,
                     text=chat.content,
                 )
             )
         sequence += 1
-        await self._runtime_repository.append_event(
-            event=factory.message_completed(
+        events.append(
+            factory.message_completed(
                 sequence=sequence,
-                occurred_at=_utc_now(),
+                occurred_at=occurred_at,
                 identity=identity,
                 text=chat.content,
             )
         )
-        await context.report_progress(self._progress(phase="settling", completed=2))
         proof = await self._settlement_repository.get_terminal_proof(run_id=state.run_id)
         provisional_usage = build_usage(
             model=chat.model,
@@ -451,23 +452,30 @@ class AgentRunJobHandler:
             settlement="provisional",
         )
         sequence += 1
-        await self._runtime_repository.append_event(
-            event=factory.usage_updated(
+        events.append(
+            factory.usage_updated(
                 sequence=sequence,
-                occurred_at=_utc_now(),
+                occurred_at=occurred_at,
                 usage=provisional_usage,
             )
         )
         sequence += 1
-        completed = await self._runtime_repository.append_event(
-            event=factory.run_completed(
+        events.append(
+            factory.run_completed(
                 sequence=sequence,
-                occurred_at=_utc_now(),
+                occurred_at=occurred_at,
                 identity=identity,
                 usage=provisional_usage.model_copy(update={"settlement": "committed"}),
                 finish_reason=chat.finish_reason,
             )
         )
+        # A committed provider receipt must never leave a partially projected assistant message.
+        persisted = await self._runtime_repository.append_events_atomically(
+            run_id=state.run_id,
+            events=tuple(events),
+        )
+        completed = persisted[-1]
+        await context.report_progress(self._progress(phase="settling", completed=2))
         await context.report_progress(self._progress(phase="settling", completed=_RUN_PROGRESS_TOTAL))
         completed_state = state.model_copy(
             update={
@@ -873,12 +881,28 @@ class AgentRunJobHandler:
         knowledge_context: tuple[AgentKnowledgeEvidence, ...],
     ) -> list[dict[str, str]]:
         persisted = await self._runtime_repository.list_messages(thread_id=state.thread_id)
-        conversation = [
-            {"role": message.role, "content": content}
-            for message in persisted
-            if message.role in {"user", "assistant"}
-            if (content := "\n".join(part.text for part in message.parts if part.text)).strip()
-        ]
+        conversation: list[dict[str, str]] = []
+        for message in persisted:
+            if message.role not in {"user", "assistant"}:
+                continue
+            text_parts = [part.text for part in message.parts if part.text]
+            if text_parts:
+                conversation.append({"role": message.role, "content": "\n".join(text_parts)})
+                continue
+            for part in message.parts:
+                if part.type != "tool-call":
+                    continue
+                tool_name = part.payload.get("toolName")
+                args = part.payload.get("args")
+                if not isinstance(tool_name, str) or not isinstance(args, dict):
+                    raise AgentRuntimePersistenceError("AGENT_TOOL_IDENTITY_MISMATCH")
+                conversation.append({
+                    "role": "assistant",
+                    "content": (
+                        f"Tool call {tool_name}: "
+                        f"{json.dumps(args, ensure_ascii=False, separators=(',', ':'), sort_keys=True)}"
+                    ),
+                })
         if not any(message["role"] == "user" and message["content"] == state.prompt for message in conversation):
             conversation.append({"role": "user", "content": state.prompt})
         return [

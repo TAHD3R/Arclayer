@@ -269,6 +269,11 @@ class BackgroundJobService(BaseService):
                 message=t("errors", "BACKGROUND_JOB_RESUME_DISPATCH_CONFLICT"),
                 error="BACKGROUND_JOB_RESUME_DISPATCH_CONFLICT",
             )
+        if job.attempt_count >= job.max_attempts:
+            raise Conflict(
+                message=t("errors", "BACKGROUND_JOB_NOT_CLAIMABLE"),
+                error="BACKGROUND_JOB_NOT_CLAIMABLE",
+            )
         await self.repository.update_job_fields(
             job=job,
             fields={

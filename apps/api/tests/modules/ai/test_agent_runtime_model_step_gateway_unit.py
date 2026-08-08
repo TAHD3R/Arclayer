@@ -256,7 +256,16 @@ async def test_model_step_turns_function_call_into_human_interrupt_and_consumes_
     assert isinstance(completed, AgentRunExecutionCompleted)
     assert completed.content == "The homepage is planned for design teams."
     assert chat.calls[0][1] is not None
-    assert "Resolved Tool context JSON" in chat.calls[1][0][-2]["content"]
+    assert chat.calls[1][1] == {
+        "tools": [],
+        "tool_choice": "none",
+        "response_format": {"type": "text"},
+    }
+    resumed_messages = chat.calls[1][0]
+    assert resumed_messages[-1]["role"] == "user"
+    assert '"audience":"Design teams"' in resumed_messages[-1]["content"]
+    assert "without asking that question again" in resumed_messages[-1]["content"]
+    assert all("tool_calls" not in message for message in resumed_messages)
 
 
 @pytest.mark.asyncio

@@ -10,6 +10,7 @@ from taskiq import AckableMessage, Context, TaskiqMessage
 from taskiq.utils import maybe_awaitable
 
 from src.common.types.json_types import JsonObject
+from src.core.exceptions.types import Conflict
 from src.models.jobs.background_job import JobWorkloadClass
 from src.modules.jobs.execution_schema import (
     DurableJobExecutionOutcome,
@@ -135,6 +136,28 @@ async def test_delivery_handler_exception_surfaces_and_keeps_delivery_deferred()
         await maybe_awaitable(message.ack())
 
     assert acknowledged == []
+
+
+@pytest.mark.asyncio
+async def test_delivery_handler_acks_a_dispatch_that_is_explicitly_not_claimable() -> None:
+    envelope = _envelope()
+    executor = RecordingExecutor(
+        Conflict(
+            message="job is already terminal",
+            error="BACKGROUND_JOB_NOT_CLAIMABLE",
+        )
+    )
+    handler = build_durable_delivery_handler(executor=executor, worker_id="asset-worker-1")
+    acknowledged: list[str] = []
+    message = _ackable(acknowledged)
+
+    with durable_ack_callback_scope():
+        result = await handler(envelope.model_dump(mode="json", by_alias=True), context=_context())
+        await maybe_awaitable(message.ack())
+
+    diagnostic = DurableJobExecutionOutcome.model_validate(result)
+    assert diagnostic.delivery.disposition == JobDeliveryDisposition.STALE_DELIVERY
+    assert acknowledged == ["acked"]
 
 
 @pytest.mark.asyncio

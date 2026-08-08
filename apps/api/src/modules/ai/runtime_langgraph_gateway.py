@@ -57,8 +57,16 @@ class LangGraphAgentRunExecutionGateway:
         }
         async with self._checkpointer_factory() as checkpointer:
             graph = self._compile_graph(checkpointer)
+            request_state = request.model_dump(
+                mode="json",
+                by_alias=True,
+                exclude={"checkpoint_id", "response_kind", "resume", "interrupted"},
+            )
             result = await graph.ainvoke(
-                Command(resume=resume),
+                Command(
+                    update={"request": request_state},
+                    resume=resume,
+                ),
                 config=_config(thread_id),
             )
             return await _project_graph_result(graph=graph, result=result, thread_id=thread_id)

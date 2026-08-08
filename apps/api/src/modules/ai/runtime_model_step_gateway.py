@@ -105,7 +105,11 @@ class ModelToolAgentRunExecutionGateway:
                     "kind": "human_result",
                     "result": request.resume.get("result"),
                 },
-                expose_tools=True,
+                # A human result completes the interrupted model turn. Do not expose
+                # the same interactive Tool again until a new durable user message
+                # starts another Agent Run; this prevents duplicate questions when
+                # a provider does not honor reconstructed Tool history.
+                expose_tools=False,
             )
         if interrupted.tool_name == BUILDER_STYLE_GUIDE_GENERATE_TOOL and request.response_kind == "approval":
             return await self._resume_style_guide(request=request, interrupted=interrupted)
@@ -423,10 +427,26 @@ class ModelToolAgentRunExecutionGateway:
         expose_tools: bool,
     ) -> AgentRunExecutionOutcome:
         payload = await self._chat_service.chat(
-            _messages(request=request, resolved_tool_context=resolved_tool_context),
+            cast(
+                Any,
+                _messages(
+                    request=request,
+                    resolved_tool_context=resolved_tool_context,
+                    include_structured_history=expose_tools,
+                    include_tool_instructions=expose_tools,
+                ),
+            ),
             context=request.context,
             model=request.model,
-            provider_params=_provider_params(request) if expose_tools else None,
+            provider_params=(
+                _provider_params(request)
+                if expose_tools
+                else {
+                    "tools": [],
+                    "tool_choice": "none",
+                    "response_format": {"type": "text"},
+                }
+            ),
         )
         return _outcome(payload, request=request)
 
@@ -435,35 +455,57 @@ def _messages(
     *,
     request: AgentRunExecutionRequest,
     resolved_tool_context: JsonObject | None,
-) -> list[dict[str, str]]:
+    include_structured_history: bool,
+    include_tool_instructions: bool,
+) -> list[dict[str, object]]:
     messages = list(request.messages)
     instructions: list[str] = []
-    if HUMAN_REQUEST_INPUT_TOOL in request.tool_grants:
+    if include_tool_instructions and HUMAN_REQUEST_INPUT_TOOL in request.tool_grants:
         instructions.append(
             "Use human_request_input only when a concrete user decision or missing value materially blocks the "
             "requested work. Ask one product-ready question. Do not call it for greetings, optional preferences, "
             "or information that can be inferred safely."
         )
-    if _style_guide_available(request):
+    if include_tool_instructions and _style_guide_available(request):
         instructions.append(
             "Use builder_style_guide_generate only when the user asks to create reviewable Style Guide directions. "
             "Provide a concrete objective, locale, and one to three candidates. This Tool queues immutable concept "
             "versions after explicit approval; it never assigns a version, refreshes the canvas, or publishes."
         )
-    if _wireframe_available(request):
+    if include_tool_instructions and _wireframe_available(request):
         instructions.append(
             "Use builder_wireframe_generate only when the user asks to create reviewable Wireframe compositions "
             "for one planned Sitemap page. Pass that page's canonical page item ID, a concrete objective, locale, "
             "and one to three candidates. This Tool queues server-owned previews after explicit approval; it never "
             "applies a candidate, mutates the canvas directly, or publishes."
         )
-    if _design_available(request):
+    if include_tool_instructions and _design_available(request):
         instructions.append(
             "Use builder_design_generate only when the user asks to create reviewable visual Design directions "
             "for one Wireframe-ready Sitemap page. Pass that page's canonical page item ID, a concrete visual "
             "objective, locale, and one to three candidates. This Tool queues server-owned typed Design previews "
             "after explicit approval; it never applies a candidate, mutates the canonical canvas, or publishes."
         )
+    if (
+        resolved_tool_context is not None
+        and isinstance(request, AgentRunResumeExecutionRequest)
+        and request.interrupted is not None
+        and request.interrupted.reason == "human_tool_input"
+        and request.response_kind == "human_result"
+    ):
+        if include_structured_history:
+            return _structured_human_resume_messages(
+                messages=messages,
+                interrupted=request.interrupted,
+                resolved_tool_context=resolved_tool_context,
+                instructions=instructions,
+            )
+        return _plain_human_resume_messages(
+            messages=messages,
+            interrupted=request.interrupted,
+            resolved_tool_context=resolved_tool_context,
+        )
+
     insert_at = max(len(messages) - 1, 0)
     if instructions:
         messages.insert(insert_at, {"role": "system", "content": "\n\n".join(instructions)})
@@ -477,11 +519,120 @@ def _messages(
             separators=(",", ":"),
             sort_keys=True,
         )
-        messages.insert(
-            insert_at + 1,
-            {"role": "system", "content": f"Resolved Tool context JSON: {response_context}"},
-        )
+        messages.append({
+            "role": "user",
+            "content": (
+                f"Resolved Tool context JSON: {response_context}\n"
+                "The interrupted Tool call has already been answered. Continue the task using this result; "
+                "do not repeat that same Tool call or question."
+            ),
+        })
     return messages
+
+
+def _plain_human_resume_messages(
+    *,
+    messages: list[dict[str, str]],
+    interrupted: AgentRunExecutionInterrupted,
+    resolved_tool_context: JsonObject,
+) -> list[dict[str, object]]:
+    marker = f"Tool call {interrupted.tool_name}:"
+    tool_call_index = next(
+        (
+            index
+            for index in range(len(messages) - 1, -1, -1)
+            if messages[index].get("role") == "assistant" and messages[index].get("content", "").startswith(marker)
+        ),
+        len(messages),
+    )
+    history: list[dict[str, object]] = [
+        dict(message) for message in messages[:tool_call_index] if message.get("role") != "system"
+    ]
+    history.insert(
+        0,
+        {
+            "role": "system",
+            "content": (
+                "You are continuing an Arclayer website-planning task after the user answered one question. "
+                "Use the answer below, produce the next useful plain-text planning step, and never emit a Tool call "
+                "in this continuation."
+            ),
+        },
+    )
+    result_context = json.dumps(
+        resolved_tool_context.get("result"),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    history.append({
+        "role": "user",
+        "content": (
+            f"The previous {interrupted.tool_name} question has been answered. "
+            f"Use this answer and continue the task without asking that question again: {result_context}"
+        ),
+    })
+    return history
+
+
+def _structured_human_resume_messages(
+    *,
+    messages: list[dict[str, str]],
+    interrupted: AgentRunExecutionInterrupted,
+    resolved_tool_context: JsonObject,
+    instructions: list[str],
+) -> list[dict[str, object]]:
+    marker = f"Tool call {interrupted.tool_name}:"
+    tool_call_index = next(
+        (
+            index
+            for index in range(len(messages) - 1, -1, -1)
+            if messages[index].get("role") == "assistant" and messages[index].get("content", "").startswith(marker)
+        ),
+        None,
+    )
+    history: list[dict[str, object]] = [
+        dict(message) for message in messages[: tool_call_index if tool_call_index is not None else len(messages)]
+    ]
+    first_user_index = next(
+        (index for index, message in enumerate(history) if message.get("role") == "user"),
+        len(history),
+    )
+    if instructions:
+        history.insert(first_user_index, {"role": "system", "content": "\n\n".join(instructions)})
+    tool_arguments = json.dumps(
+        interrupted.args,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    history.append({
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "id": interrupted.tool_call_id,
+                "type": "function",
+                "function": {
+                    "name": _provider_tool_name(interrupted.tool_name),
+                    "arguments": tool_arguments,
+                },
+            }
+        ],
+    })
+    result = resolved_tool_context.get("result")
+    history.append({
+        "role": "tool",
+        "tool_call_id": interrupted.tool_call_id,
+        "content": json.dumps(result, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+    })
+    return history
+
+
+def _provider_tool_name(tool_name: str) -> str:
+    if tool_name == HUMAN_REQUEST_INPUT_TOOL:
+        return _HUMAN_TOOL_PROVIDER_NAME
+    return tool_name
 
 
 def _provider_params(request: AgentRunExecutionRequest) -> dict[str, object] | None:
