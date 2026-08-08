@@ -1,7 +1,13 @@
 "use client";
 
 import { ThreadListPrimitive, useAuiState } from "@assistant-ui/react";
-import { ArchiveIcon, MessagesSquareIcon, SlidersHorizontalIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  Clock3Icon,
+  FolderIcon,
+  MessagesSquareIcon,
+  SlidersHorizontalIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -64,30 +70,36 @@ export function AgentThreadSidebar({ projects = [] }: AgentThreadSidebarProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>{t("ai:AI_CHAT_THREAD_FILTER_STATUS")}</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs">
+                {t("ai:AI_CHAT_THREAD_FILTER_STATUS")}
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={statusFilter}
                 onValueChange={(value) => setStatusFilter(value as AgentThreadStatusFilter)}
               >
-                <DropdownMenuRadioItem value="active">
+                <DropdownMenuRadioItem value="active" hideIndicator>
                   <MessagesSquareIcon className="size-4" aria-hidden="true" />
                   <span>{t("ai:AI_CHAT_THREAD_ACTIVE")}</span>
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="archived">
+                <DropdownMenuRadioItem value="archived" hideIndicator>
                   <ArchiveIcon className="size-4" aria-hidden="true" />
                   <span>{t("ai:AI_CHAT_THREAD_ARCHIVED")}</span>
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t("ai:AI_CHAT_THREAD_GROUPING")}</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs">
+                {t("ai:AI_CHAT_THREAD_GROUPING")}
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={groupingMode}
                 onValueChange={(value) => setGroupingMode(value as AgentThreadGroupingMode)}
               >
-                <DropdownMenuRadioItem value="project">
+                <DropdownMenuRadioItem value="project" hideIndicator>
+                  <FolderIcon className="size-4" aria-hidden="true" />
                   {t("ai:AI_CHAT_THREAD_GROUP_BY_PROJECT")}
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="time">
+                <DropdownMenuRadioItem value="time" hideIndicator>
+                  <Clock3Icon className="size-4" aria-hidden="true" />
                   {t("ai:AI_CHAT_THREAD_GROUP_BY_TIME")}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>

@@ -13,6 +13,7 @@ const runtimeMocks = vi.hoisted(() => ({
   openDrawer: vi.fn(),
   reload: vi.fn(async () => undefined),
   rename: vi.fn(async (_title: string) => undefined),
+  switchTo: vi.fn(async () => undefined),
   showThreads: true,
   threadMetadataReady: true,
   unarchive: vi.fn(async (_threadId: string) => undefined),
@@ -88,6 +89,7 @@ vi.mock("@assistant-ui/react", async () => {
       return item ? <ItemContext.Provider value={item}>{children}</ItemContext.Provider> : null;
     },
     useAui: () => ({
+      threadListItem: () => ({ switchTo: runtimeMocks.switchTo }),
       threads: () => ({
         reload: runtimeMocks.reload,
         item: ({ id }: { id: string }) => ({
@@ -181,7 +183,12 @@ vi.mock("@arclayer/ui/dropdown-menu", async () => {
     DropdownMenu: ({ children }: { children?: ReactNode }) => children,
     DropdownMenuContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => children,
-    DropdownMenuLabel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DropdownMenuLabel: ({
+      children,
+      ...props
+    }: { children?: ReactNode } & React.ComponentPropsWithoutRef<"div">) => (
+      <div {...props}>{children}</div>
+    ),
     DropdownMenuSeparator: () => <hr />,
     DropdownMenuRadioGroup: ({
       children,
@@ -285,25 +292,48 @@ describe("AgentThreadHistory", () => {
     await waitFor(() => expect(runtimeMocks.delete).toHaveBeenCalledWith("thread-1"));
   });
 
-  it("opens the normalized Drawer for a selected Thread", () => {
+  it("opens the normalized Drawer for a selected Thread", async () => {
     render(<AgentThreadSidebar projects={[{ projectId: "project-1", name: "Marketing site" }]} />);
 
     expect(screen.getByText("Marketing site")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ai:AI_CHAT_THREAD_NEW" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Homepage collaboration/ }));
-    expect(runtimeMocks.openDrawer).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.switchTo).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(runtimeMocks.openDrawer).toHaveBeenCalledTimes(1));
+    expect(runtimeMocks.switchTo.mock.invocationCallOrder[0]).toBeLessThan(
+      runtimeMocks.openDrawer.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("switches grouping modes and collapses conversation groups", () => {
     render(<AgentThreadSidebar projects={[{ projectId: "project-1", name: "Marketing site" }]} />);
 
+    expect(screen.getByText("ai:AI_CHAT_THREAD_FILTER_STATUS")).toHaveClass("text-xs");
+    expect(screen.getByText("ai:AI_CHAT_THREAD_GROUPING")).toHaveClass("text-xs");
+    expect(document.querySelector(".lucide-folder")).toBeInTheDocument();
+    expect(document.querySelector(".lucide-clock-3")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ai:AI_CHAT_THREAD_GROUP_BY_TIME" }));
     const todayGroup = screen.getByRole("button", { name: "ai:AI_CHAT_THREAD_TIME_TODAY" });
+    expect(todayGroup.querySelector(".lucide-chevron-right")).toHaveClass(
+      "transition-[opacity,transform,translate,scale,rotate]",
+      "opacity-60",
+      "rotate-90",
+    );
     expect(todayGroup).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(todayGroup);
     expect(todayGroup).toHaveAttribute("aria-expanded", "false");
+    expect(todayGroup.querySelector(".lucide-chevron-right")).not.toHaveClass("rotate-90");
+  });
+
+  it("keeps the thread menu independent from thread selection", () => {
+    render(<AgentThreadSidebar />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ai:AI_CHAT_THREAD_MORE" }));
+
+    expect(runtimeMocks.switchTo).not.toHaveBeenCalled();
+    expect(runtimeMocks.openDrawer).not.toHaveBeenCalled();
   });
 
   it("distinguishes loading from an empty Thread history", () => {

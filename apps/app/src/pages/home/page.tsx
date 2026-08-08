@@ -266,7 +266,7 @@ export function HomePage() {
         archived: false,
         ordering: "-updated_at",
         page: 1,
-        size: 3,
+        size: 4,
       }),
     staleTime: 30 * 1000,
     retry: false,

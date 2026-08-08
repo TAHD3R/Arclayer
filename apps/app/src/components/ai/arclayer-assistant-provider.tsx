@@ -650,6 +650,8 @@ export function ArclayerAssistantProvider({
       createAgentThreadListAdapter({
         workspaceId: runtimeOptions.workspaceId,
         projectId: runtimeOptions.projectId,
+        // The global history is workspace-scoped; only new Thread creation uses the current project.
+        listProjectId: null,
         leadAgentId: runtimeOptions.leadAgentId,
         initialTitle,
       }),

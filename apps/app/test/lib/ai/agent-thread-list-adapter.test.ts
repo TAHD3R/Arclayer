@@ -43,6 +43,7 @@ describe("Agent backend RemoteThreadListAdapter", () => {
     const adapter = createAgentThreadListAdapter({
       workspaceId: "workspace-1",
       projectId: "project-1",
+      listProjectId: "project-1",
       leadAgentId: "agent-lead",
       initialTitle: "New collaboration",
     });
@@ -113,6 +114,31 @@ describe("Agent backend RemoteThreadListAdapter", () => {
     ]);
     expect(apiMock.updateAgentThread).toHaveBeenLastCalledWith("workspace-1", "thread-1", {
       title: "Build the homepage",
+    });
+  });
+
+  it("keeps Thread creation project-scoped while allowing workspace-wide history", async () => {
+    const adapter = createAgentThreadListAdapter({
+      workspaceId: "workspace-1",
+      projectId: "project-1",
+      listProjectId: null,
+      leadAgentId: "agent-lead",
+      initialTitle: "New collaboration",
+    });
+
+    await adapter.list();
+    expect(apiMock.listAgentThreads).toHaveBeenCalledWith("workspace-1", {
+      projectId: null,
+      cursor: undefined,
+      limit: 50,
+    });
+
+    await adapter.initialize("thread-new");
+    expect(apiMock.createAgentThread).toHaveBeenCalledWith("workspace-1", {
+      idempotencyKey: "thread-new",
+      projectId: "project-1",
+      leadAgentId: "agent-lead",
+      title: "New collaboration",
     });
   });
 });

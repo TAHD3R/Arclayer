@@ -377,7 +377,6 @@ const labels: Record<string, string> = {
   "ai:AI_CHAT_VOICE_UNSUPPORTED": "当前浏览器不支持语音输入。",
   "ai:AI_CHAT_HOME_RECENT_PROJECTS": "最近项目",
   "ai:AI_CHAT_HOME_SEE_ALL_PROJECTS": "查看全部",
-  "ai:AI_CHAT_HOME_CREATE_PROJECT": "新建项目",
   "ai:AI_CHAT_HOME_PROJECT_UPDATED_AT": "更新于 2026-06-01 12:00",
 };
 
@@ -409,7 +408,7 @@ describe("HomePage", () => {
       items: [],
       total: 0,
       page: 1,
-      size: 3,
+      size: 4,
       pages: 1,
       next: null,
       prev: null,
@@ -745,7 +744,7 @@ describe("HomePage", () => {
       items: [createProjectListItem()],
       total: 1,
       page: 1,
-      size: 3,
+      size: 4,
       pages: 1,
       next: null,
       prev: null,
@@ -754,19 +753,19 @@ describe("HomePage", () => {
     const { container } = renderHomePage();
 
     expect(await screen.findByText("最近项目")).toBeInTheDocument();
+    expect(listProjects).toHaveBeenCalledWith(expect.objectContaining({ size: 4 }));
     const routeFrame = container.querySelector('[data-slot="admin-route-frame"]');
     const home = container.querySelector('[data-page="ai-home"]');
     const hero = home?.querySelector('[data-slot="home-ai-entry"]');
-    const createProjectPreview = container.querySelector(
-      '[data-slot="home-create-project-preview"]',
-    );
     const projectPreview = container.querySelector('[data-slot="home-project-preview"]');
 
     expect(routeFrame).toHaveClass("pb-20");
     expect(home).toHaveClass("min-h-full");
     expect(hero).toHaveClass("min-h-[clamp(28rem,52svh,36rem)]");
     expect(screen.getByTestId("home-inspiration-section")).toBeInTheDocument();
-    expect(createProjectPreview).toHaveClass("bg-card", "group-hover:bg-accent");
+    expect(
+      container.querySelector('[data-slot="home-create-project-preview"]'),
+    ).not.toBeInTheDocument();
     expect(projectPreview).toHaveClass("bg-card");
     expect(projectPreview?.querySelector(".h-1\\.5")).not.toBeInTheDocument();
   });
@@ -780,7 +779,7 @@ describe("HomePage", () => {
       items: [createProjectListItem()],
       total: 1,
       page: 1,
-      size: 3,
+      size: 4,
       pages: 1,
       next: null,
       prev: null,
@@ -830,7 +829,7 @@ describe("HomePage", () => {
       items: [createProjectListItem()],
       total: 1,
       page: 1,
-      size: 3,
+      size: 4,
       pages: 1,
       next: null,
       prev: null,

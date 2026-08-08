@@ -13,7 +13,10 @@ import { AgentRuntimeProtocolError } from "./agent-runtime-protocol";
 
 export interface AgentThreadListAdapterOptions {
   readonly workspaceId: string;
+  /** Project context used when initializing a new Thread. */
   readonly projectId: string | null;
+  /** Server-side project filter for history; null means the whole workspace. */
+  readonly listProjectId: string | null;
   readonly leadAgentId: string;
   readonly initialTitle: string;
 }
@@ -51,7 +54,7 @@ export function createAgentThreadListAdapter(
   return {
     async list(page) {
       const result = await listAgentThreads(options.workspaceId, {
-        projectId: options.projectId,
+        projectId: options.listProjectId,
         cursor: page?.after,
         limit: 50,
       });

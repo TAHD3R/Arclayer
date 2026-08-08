@@ -8,6 +8,7 @@ import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 
 const runtimeMocks = vi.hoisted(() => ({
   append: vi.fn(async () => undefined),
+  rename: vi.fn(async (_title: string) => undefined),
   switchToNewThread: vi.fn(async () => undefined),
 }));
 
@@ -26,12 +27,15 @@ const READY_ASSISTANT_STATE = {
 
 vi.mock("@assistant-ui/react", () => ({
   useAui: () => ({
-    threads: () => ({ switchToNewThread: runtimeMocks.switchToNewThread }),
+    threads: () => ({
+      item: ({ id: _id }: { id: string }) => ({ rename: runtimeMocks.rename }),
+      switchToNewThread: runtimeMocks.switchToNewThread,
+    }),
     thread: () => ({ append: runtimeMocks.append }),
   }),
   useAuiState: (selector: (state: unknown) => unknown) =>
     selector({
-      threadListItem: { title: "Homepage collaboration", remoteId: "thread-1" },
+      threadListItem: { id: "thread-1", title: "Homepage collaboration", remoteId: "thread-1" },
       threads: { threadIds: [], archivedThreadIds: [] },
     }),
 }));
@@ -126,6 +130,20 @@ describe("AIDrawerOverlay", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ai:AI_CHAT_NEW_CONVERSATION" }));
     expect(runtimeMocks.switchToNewThread).toHaveBeenCalledTimes(1);
+  });
+
+  it("renames the current conversation from the Drawer header", async () => {
+    render(<AIDrawerOverlay widthPx={360} assistantState={READY_ASSISTANT_STATE} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "ai:AI_CHAT_ACTION_EDIT: Homepage collaboration" }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "ai:AI_CHAT_THREAD_RENAME_INPUT" }), {
+      target: { value: "Homepage launch" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "common:CONFIRM" }));
+
+    await vi.waitFor(() => expect(runtimeMocks.rename).toHaveBeenCalledWith("Homepage launch"));
   });
 
   it("floats the feedback composer above the Thread composer without a history action", () => {

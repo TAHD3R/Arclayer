@@ -124,15 +124,7 @@ export function AISuggestions(props: AISuggestionsProps) {
   const submitSuggestion = useCallback(
     (prompt: string) => {
       if (disabled) return;
-      if (aui.thread().getState().isRunning) {
-        aui.composer().setText(prompt);
-        return;
-      }
-      aui.thread().append({
-        content: [{ type: "text", text: prompt }],
-        runConfig: aui.composer().getState().runConfig,
-      });
-      aui.composer().setText("");
+      aui.composer().setText(prompt);
     },
     [aui, disabled],
   );

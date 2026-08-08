@@ -1,7 +1,6 @@
 import { useCallback, useMemo, type KeyboardEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
@@ -75,13 +74,6 @@ export function HomeRecentProjectsSection({
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const projectItems = useMemo(() => projects.map(mapProjectToListItem), [projects]);
 
-  const openCreateProject = () => {
-    void navigate({
-      to: "/" as never,
-      search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
-    });
-  };
-
   const enterProject = useCallback(
     (project: UserCenterProjectListItem) => {
       setCurrentWorkspaceId(project.workspaceId);
@@ -130,10 +122,6 @@ export function HomeRecentProjectsSection({
         onAction={() => void navigate({ to: "/projects" })}
       />
       <div className="grid grid-flow-col auto-cols-[15rem] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:auto-cols-[16.5rem] md:auto-cols-[18rem] xl:grid-flow-row xl:grid-cols-[repeat(4,minmax(0,1fr))] xl:overflow-visible xl:pb-0 [&::-webkit-scrollbar]:hidden">
-        <CreateProjectHomeCard
-          label={t("ai:AI_CHAT_HOME_CREATE_PROJECT")}
-          onClick={openCreateProject}
-        />
         {projectItems.map((project) => (
           <RecentProjectCard
             key={project.projectId}
@@ -164,32 +152,6 @@ export function HomeRecentProjectsSection({
         iconDialog={projectMenuActions.iconDialog}
       />
     </section>
-  );
-}
-
-function CreateProjectHomeCard(props: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="group flex w-full cursor-pointer flex-col gap-2.5 text-left"
-      data-testid="lovart-home-create-project-card"
-      onClick={props.onClick}
-    >
-      <div
-        data-slot="home-create-project-preview"
-        className="relative w-full overflow-hidden rounded-xl border border-dashed border-border/80 bg-card transition-[background-color,border-color,box-shadow] duration-200 group-hover:border-border group-hover:bg-accent group-hover:shadow-sm"
-        style={{ aspectRatio: "239.2 / 135.4" }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center text-label-secondary transition-colors group-hover:text-label-primary">
-          <PlusIcon className="size-5" aria-hidden="true" />
-        </div>
-      </div>
-      <div className="flex min-h-10 w-full shrink-0 flex-col items-start justify-start px-1">
-        <div className="flex h-5 w-full items-center text-headline text-label-primary">
-          {props.label}
-        </div>
-      </div>
-    </button>
   );
 }
 

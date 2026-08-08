@@ -12,7 +12,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -117,6 +117,11 @@ export function AgentThreadListItem({
   const deleteThread = async () => {
     if (await runMutation(() => threadItem().delete())) setDeleteOpen(false);
   };
+  const selectThread = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    await api.threadListItem().switchTo();
+    onThreadSelect?.();
+  };
   const title = item.title || t("ai:AI_CHAT_NEW_CONVERSATION");
 
   return (
@@ -158,21 +163,21 @@ export function AgentThreadListItem({
               </ThreadActionButton>
             </form>
           ) : (
-            <>
+            <div className="relative grid min-h-11 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] items-center gap-x-1 rounded-md px-1 py-0.5 transition-colors duration-100 hover:bg-accent/40 group-data-[active]/thread:bg-accent/70 motion-reduce:transition-none">
               <ThreadListItemPrimitive.Trigger
-                className="min-w-0 flex-1 rounded-md px-2 py-2 text-left outline-none transition-colors duration-100 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                onClick={onThreadSelect}
-              >
-                <span className="flex items-center gap-1.5 text-caption font-medium text-label-primary">
-                  {pinned ? <PinIcon className="size-3.5 shrink-0" aria-hidden="true" /> : null}
-                  <span className="min-w-0 truncate">
-                    <ThreadListItemPrimitive.Title fallback={t("ai:AI_CHAT_NEW_CONVERSATION")} />
-                  </span>
+                aria-label={title}
+                className="absolute inset-0 z-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={selectThread}
+              />
+              <span className="pointer-events-none relative z-10 col-start-1 row-start-1 flex min-w-0 items-center gap-1.5 px-1 text-caption font-medium text-label-primary">
+                {pinned ? <PinIcon className="size-3.5 shrink-0" aria-hidden="true" /> : null}
+                <span className="min-w-0 truncate">
+                  <ThreadListItemPrimitive.Title fallback={t("ai:AI_CHAT_NEW_CONVERSATION")} />
                 </span>
-                <span className="mt-0.5 block truncate text-caption text-label-tertiary">
-                  {timeText}
-                </span>
-              </ThreadListItemPrimitive.Trigger>
+              </span>
+              <span className="pointer-events-none relative z-10 col-start-1 row-start-2 mt-0.5 min-w-0 truncate px-1 text-caption text-label-tertiary">
+                {timeText}
+              </span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -180,7 +185,7 @@ export function AgentThreadListItem({
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("ai:AI_CHAT_THREAD_MORE")}
-                    className="shrink-0 text-label-secondary opacity-0 transition-opacity duration-100 group-hover/thread:opacity-100 group-focus-within/thread:opacity-100 group-data-[active]/thread:opacity-100 motion-reduce:transition-none hover:text-label-primary"
+                    className="relative z-20 col-start-2 row-start-1 shrink-0 text-label-secondary opacity-0 transition-opacity duration-100 group-hover/thread:opacity-100 group-focus-within/thread:opacity-100 group-data-[active]/thread:opacity-100 motion-reduce:transition-none hover:text-label-primary"
                   >
                     <MoreHorizontalIcon className="size-4" aria-hidden="true" />
                   </Button>
@@ -230,7 +235,7 @@ export function AgentThreadListItem({
                   </DropdownMenuIconItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
+            </div>
           )}
         </div>
         {mutationError ? (

@@ -591,7 +591,6 @@
   "AI_CHAT_INSPIRATION_TEMPLATE_REAL_ESTATE_DETAIL": "围绕项目卖点、户型、社区和咨询入口组织信息，适合需要高质感图片和强信任说明的地产页面。",
   "AI_CHAT_HOME_RECENT_PROJECTS": "最近项目",
   "AI_CHAT_HOME_SEE_ALL_PROJECTS": "查看全部",
-  "AI_CHAT_HOME_CREATE_PROJECT": "新建项目",
   "AI_CHAT_CREATE_PROJECT_PROMPT": "创建一个新的项目",
   "AI_CHAT_HOME_PROJECT_CREATED_AT": "创建于 {{date}}",
   "AI_CHAT_HOME_PROJECT_UPDATED_AT": "更新于 {{date}}",

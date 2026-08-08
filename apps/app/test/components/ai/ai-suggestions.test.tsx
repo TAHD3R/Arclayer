@@ -167,10 +167,8 @@ describe("AISuggestions", () => {
     expect(screen.getByRole("button", { name: "电商内容" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "网站搭建" }));
-    expect(assistantUiMock.append).toHaveBeenCalledWith({
-      content: [{ type: "text", text: "官网改版提示词" }],
-      runConfig: assistantUiMock.composerState.runConfig,
-    });
+    expect(assistantUiMock.append).not.toHaveBeenCalled();
+    expect(assistantUiMock.setText).toHaveBeenCalledWith("官网改版提示词");
   });
 
   it("does not derive normalized thread suggestions from legacy conversation artifacts", () => {
@@ -207,23 +205,17 @@ describe("AISuggestions", () => {
     expect(screen.queryByRole("button", { name: "细化执行方案" })).not.toBeInTheDocument();
   });
 
-  it("sends the selected prompt through the assistant runtime", () => {
+  it("fills the composer with the selected prompt", () => {
     storeMock.workspaceState.currentProjectId = "project-1";
     window.history.pushState({}, "", "/projects/project-1");
     render(<AISuggestions />);
 
     fireEvent.click(screen.getByRole("button", { name: "规划内容模型" }));
 
-    expect(assistantUiMock.append).toHaveBeenCalledWith({
-      content: [
-        {
-          type: "text",
-          text: "请基于当前项目，梳理内容模型、字段结构和工作流可以优化的方向，先给出分阶段计划。",
-        },
-      ],
-      runConfig: assistantUiMock.composerState.runConfig,
-    });
-    expect(assistantUiMock.setText).toHaveBeenCalledWith("");
+    expect(assistantUiMock.append).not.toHaveBeenCalled();
+    expect(assistantUiMock.setText).toHaveBeenCalledWith(
+      "请基于当前项目，梳理内容模型、字段结构和工作流可以优化的方向，先给出分阶段计划。",
+    );
   });
 
   it("fills the composer instead of appending while the thread is running", () => {

@@ -30,7 +30,7 @@ export function AgentThreadListGroup({ label, children }: AgentThreadListGroupPr
               <span className="min-w-0 flex-1 truncate">{label}</span>
               <ChevronRightIcon
                 className={cn(
-                  "size-4 shrink-0 opacity-0 transition-[transform,opacity] duration-150 motion-reduce:transition-none",
+                  "size-4 shrink-0 opacity-60 transition-[opacity,transform,translate,scale,rotate] duration-150 ease-out motion-reduce:transition-none",
                   "group-hover/thread-label:opacity-100 group-focus-visible/thread-label:opacity-100",
                   open && "rotate-90",
                 )}

@@ -215,28 +215,34 @@ function DropdownMenuRadioGroup(props: DropdownMenuRadioGroupProps) {
   return <DropdownMenuRadioGroupPrimitive {...props} />;
 }
 
-type DropdownMenuRadioItemProps = DropdownMenuRadioItemPrimitiveProps;
+type DropdownMenuRadioItemProps = DropdownMenuRadioItemPrimitiveProps & {
+  hideIndicator?: boolean;
+};
 
 function DropdownMenuRadioItem({
   className,
   children,
   disabled,
+  hideIndicator = false,
   ...props
 }: DropdownMenuRadioItemProps) {
   return (
     <DropdownMenuRadioItemPrimitive
       disabled={disabled}
       className={cn(
-        "focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-footnote outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-label-secondary",
+        "focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 text-footnote outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-label-secondary",
+        hideIndicator ? "pl-2" : "pl-8",
         className,
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
-        <DropdownMenuItemIndicatorPrimitive>
-          <CircleIcon className="size-2 fill-current" />
-        </DropdownMenuItemIndicatorPrimitive>
-      </span>
+      {hideIndicator ? null : (
+        <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+          <DropdownMenuItemIndicatorPrimitive>
+            <CircleIcon className="size-2 fill-current" />
+          </DropdownMenuItemIndicatorPrimitive>
+        </span>
+      )}
       {children}
     </DropdownMenuRadioItemPrimitive>
   );

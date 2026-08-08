@@ -1,5 +1,12 @@
 import { useAui, useAuiState } from "@assistant-ui/react";
-import { MessageSquarePlus, PanelRightClose, PlusIcon } from "lucide-react";
+import {
+  CheckIcon,
+  MessageSquarePlus,
+  PanelRightClose,
+  PencilIcon,
+  PlusIcon,
+  XIcon,
+} from "lucide-react";
 import {
   type CSSProperties,
   type ReactNode,
@@ -21,6 +28,7 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
 import { Spinner } from "@arclayer/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
@@ -91,11 +99,59 @@ function AssistantDrawerThread(props: {
   readonly leadAgent: Extract<ArclayerAssistantState, { status: "ready" }>["leadAgent"];
   readonly closeDrawer: () => void;
 }) {
-  const { t } = useTranslation(["ai"]);
+  const { t } = useTranslation(["ai", "common"]);
+  const api = useAui();
   const title = useAuiState((state) => state.threadListItem.title);
+  const threadId = useAuiState((state) => state.threadListItem.id);
   const remoteThreadId = useAuiState((state) => state.threadListItem.remoteId);
   const startNewThread = useAIEntryDispatcher();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(title || t("ai:AI_CHAT_NEW_CONVERSATION"));
+  const [titlePending, setTitlePending] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const displayTitle = title || t("ai:AI_CHAT_NEW_CONVERSATION");
+
+  useEffect(() => {
+    setEditingTitle(false);
+    setDraftTitle(displayTitle);
+    setTitleError(null);
+  }, [displayTitle, threadId]);
+
+  const beginTitleEdit = () => {
+    setDraftTitle(displayTitle);
+    setTitleError(null);
+    setEditingTitle(true);
+  };
+
+  const cancelTitleEdit = () => {
+    setTitleError(null);
+    setEditingTitle(false);
+  };
+
+  const saveTitle = async () => {
+    const nextTitle = draftTitle.trim();
+    if (!nextTitle) {
+      setTitleError(t("ai:AI_CHAT_THREAD_TITLE_REQUIRED"));
+      return;
+    }
+    if (nextTitle === displayTitle) {
+      cancelTitleEdit();
+      return;
+    }
+
+    setTitlePending(true);
+    setTitleError(null);
+    try {
+      await api.threads().item({ id: threadId }).rename(nextTitle);
+      setEditingTitle(false);
+    } catch (error) {
+      console.error("Failed to rename the AI conversation", error);
+      setTitleError(t("ai:AI_CHAT_THREAD_RENAME_FAILED"));
+    } finally {
+      setTitlePending(false);
+    }
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -103,9 +159,65 @@ function AssistantDrawerThread(props: {
         <DrawerIconButton label={t("ai:AI_CHAT_HIDE")} onClick={props.closeDrawer}>
           <PanelRightClose className="size-4" aria-hidden="true" />
         </DrawerIconButton>
-        <div className="min-w-0 flex-1 truncate px-2 text-headline font-semibold text-label-primary">
-          {title || t("ai:AI_CHAT_NEW_CONVERSATION")}
-        </div>
+        {editingTitle ? (
+          <form
+            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 px-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveTitle();
+            }}
+          >
+            <Input
+              value={draftTitle}
+              autoFocus
+              aria-label={t("ai:AI_CHAT_THREAD_RENAME_INPUT")}
+              disabled={titlePending}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") cancelTitleEdit();
+              }}
+              className="h-8 min-w-0 flex-1 text-footnote"
+            />
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("common:CONFIRM")}
+              disabled={titlePending}
+            >
+              <CheckIcon className="size-4" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("common:CANCEL")}
+              disabled={titlePending}
+              onClick={cancelTitleEdit}
+            >
+              <XIcon className="size-4" aria-hidden="true" />
+            </Button>
+            {titleError ? (
+              <p role="alert" className="basis-full truncate px-1 text-xs text-destructive">
+                {titleError}
+              </p>
+            ) : null}
+          </form>
+        ) : (
+          <button
+            type="button"
+            aria-label={`${t("ai:AI_CHAT_ACTION_EDIT")}: ${displayTitle}`}
+            title={t("ai:AI_CHAT_ACTION_EDIT")}
+            onClick={beginTitleEdit}
+            className="group/title flex min-w-0 flex-1 items-center gap-1 rounded-md px-2 text-left text-headline font-semibold text-label-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="min-w-0 flex-1 truncate">{displayTitle}</span>
+            <PencilIcon
+              className="size-3.5 shrink-0 opacity-0 transition-opacity duration-100 group-hover/title:opacity-100 group-focus-visible/title:opacity-100 motion-reduce:transition-none"
+              aria-hidden="true"
+            />
+          </button>
+        )}
         <DrawerIconButton
           label={t("ai:AI_CHAT_FEEDBACK")}
           onClick={() => setFeedbackOpen((current) => !current)}

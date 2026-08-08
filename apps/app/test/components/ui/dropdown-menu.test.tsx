@@ -7,6 +7,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuIconItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@arclayer/ui/dropdown-menu";
 
 function renderMenu() {
@@ -62,5 +64,24 @@ describe("DropdownMenu", () => {
     expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
     expect(item).toHaveClass("data-[highlighted]:bg-destructive/10");
     expect(item).toHaveClass("data-[highlighted]:text-destructive");
+  });
+
+  it("can render radio items without a leading indicator", () => {
+    render(
+      <DropdownMenu open>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup value="active">
+            <DropdownMenuRadioItem value="active" hideIndicator>
+              Active
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+
+    const item = screen.getByRole("menuitemradio", { name: "Active" });
+    expect(item).toHaveClass("pl-2");
+    expect(item).not.toHaveClass("pl-8");
+    expect(item.querySelector("svg")).not.toBeInTheDocument();
   });
 });
