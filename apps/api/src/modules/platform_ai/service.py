@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from math import ceil
-from typing import Final, Literal, Protocol
+from typing import Final, Literal, Protocol, cast
 from uuid import UUID
 
 from tortoise.expressions import Q
@@ -19,6 +19,8 @@ from src.models.agents.runtime_recovery_v1 import (
 from src.models.agents.runtime_v1 import (
     AgentApprovalStatusV1,
     AgentApprovalV1Record,
+    AgentMessageV1Record,
+    AgentRunEventV1Record,
     AgentRunStatusV1,
     AgentRunV1Record,
 )
@@ -34,10 +36,17 @@ from src.modules.platform_ai.schema import (
     PlatformAIProviderActionAvailabilityOut,
     PlatformAIProviderOut,
     PlatformAIProviderReadinessOut,
+    PlatformAIRuntimeHealthOut,
     PlatformAITaskAction,
     PlatformAITaskActionAvailabilityOut,
+    PlatformAITaskDiagnosticsOut,
+    PlatformAITaskDossierOut,
+    PlatformAITaskLinksOut,
     PlatformAITaskListQuery,
+    PlatformAITaskMessageSummaryOut,
     PlatformAITaskOut,
+    PlatformAITaskTimelineEntryOut,
+    PlatformAITaskUsageOut,
 )
 from src.modules.system.ai_providers.schema import SystemAIProviderOut
 
@@ -99,8 +108,39 @@ class PlatformAIOperationsService(BaseService):
     ) -> PageData[PlatformAITaskOut]:
         runs = AgentRunV1Record.all().order_by("-updated_at", "-id")
         runs = runs.filter(status=query.status) if query.status is not None else runs.filter(_attention_task_filter())
-        total = await runs.count()
-        page_runs = await runs.offset((params.page - 1) * params.size).limit(params.size)
+        if query.workspace_id is not None:
+            runs = runs.filter(workspace_id=query.workspace_id)
+        if query.project_id is not None:
+            runs = runs.filter(project_id=query.project_id)
+        if query.agent_id is not None:
+            runs = runs.filter(lead_agent_id=query.agent_id)
+        if query.agent_version_id is not None:
+            runs = runs.filter(lead_agent_version_id=query.agent_version_id)
+        if query.correlation is not None:
+            runs = runs.filter(correlation_id=query.correlation)
+        if query.waiting_reason is not None:
+            runs = runs.filter(interrupt_reason=query.waiting_reason)
+        if query.age_days is not None:
+            runs = runs.filter(created_at__gte=datetime.now(UTC) - timedelta(days=query.age_days))
+        candidate_runs = await runs.all() if query.provider or query.model or query.failure_class else None
+        if candidate_runs is not None:
+            jobs_by_id = await self._jobs_by_run(candidate_runs)
+            attempts_by_job = await _latest_attempts_by_job(job_ids=tuple(jobs_by_id))
+            filtered_runs = [
+                run
+                for run in candidate_runs
+                if _matches_metadata_filters(
+                    run=run,
+                    job=jobs_by_id.get(run.job_id) if run.job_id else None,
+                    attempt=attempts_by_job.get(run.job_id) if run.job_id else None,
+                    query=query,
+                )
+            ]
+            total = len(filtered_runs)
+            page_runs = filtered_runs[(params.page - 1) * params.size : params.page * params.size]
+        else:
+            total = await runs.count()
+            page_runs = await runs.offset((params.page - 1) * params.size).limit(params.size)
         jobs = await self._jobs_by_run(page_runs)
         effects, attempts = await _recovery_evidence_by_job(job_ids=tuple(jobs))
         pending_approval_run_ids = await self._pending_approval_run_ids(page_runs)
@@ -151,6 +191,61 @@ class PlatformAIOperationsService(BaseService):
             waiting_for_workspace_approval=waiting_for_workspace_approval,
         )
 
+    async def get_task_dossier(self, *, task_id: UUID) -> PlatformAITaskDossierOut:
+        task = await self.get_task(task_id=task_id)
+        run = await AgentRunV1Record.get(id=task_id)
+        job = await BackgroundJobRecord.filter(id=run.job_id).first() if run.job_id is not None else None
+        attempts = await JobAttemptRecord.filter(job_id=run.job_id).order_by("attempt_number") if run.job_id else []
+        events = await AgentRunEventV1Record.filter(run_id=run.id).order_by("sequence")
+        approvals = await AgentApprovalV1Record.filter(run_id=run.id).order_by("requested_at")
+        messages = await AgentMessageV1Record.filter(run_id=run.id).order_by("created_at")
+        effects = (
+            await AgentRunExecutionEffectRecord.filter(job_id=run.job_id).order_by("registered_at")
+            if run.job_id
+            else []
+        )
+        timeline = _task_timeline(
+            run=run, job=job, attempts=attempts, events=events, approvals=approvals, effects=effects
+        )
+        role_counts = {"assistant": 0, "user": 0, "tool": 0}
+        for message in messages:
+            if message.role in role_counts:
+                role_counts[message.role] += 1
+        latest_message_at = messages[-1].created_at if messages else None
+        latest_attempt = attempts[-1] if attempts else None
+        diagnostics = PlatformAITaskDiagnosticsOut(
+            error_code=task.error_code,
+            failure_classification=(str(latest_attempt.failure_classification) if latest_attempt else None),
+            retry_decision=(str(latest_attempt.retry_decision) if latest_attempt else None),
+            correlation_id=run.correlation_id,
+            trace_id=job.trace_id if job is not None else None,
+            sanitized_metadata=_sanitized_error_metadata(job.error_metadata if job is not None else None),
+        )
+        return PlatformAITaskDossierOut(
+            task=task,
+            attempts=tuple(_attempt_projection(attempt) for attempt in attempts),
+            timeline=tuple(timeline),
+            messages=PlatformAITaskMessageSummaryOut(
+                total=len(messages),
+                assistant=role_counts["assistant"],
+                user=role_counts["user"],
+                tool=role_counts["tool"],
+                latest_at=latest_message_at,
+            ),
+            usage=PlatformAITaskUsageOut(
+                usage=run.usage if isinstance(run.usage, dict) else None,
+                settlement=run.settlement if isinstance(run.settlement, dict) else None,
+                telemetry_available=isinstance(run.usage, dict) or isinstance(run.settlement, dict),
+            ),
+            diagnostics=diagnostics,
+            links=PlatformAITaskLinksOut(
+                task_path=f"/ai/tasks?task={task_id}",
+                run_path=f"/ai/tasks?task={task_id}&tab=timeline",
+                usage_path=f"/monitoring/ai-usage?correlation={run.correlation_id}",
+            ),
+            raw_content_available=False,
+        )
+
     async def provider_readiness(self) -> PlatformAIProviderReadinessOut:
         if self._provider_reader is None:
             raise ServiceContractError("AI provider readiness requires a provider reader")
@@ -159,6 +254,46 @@ class PlatformAIOperationsService(BaseService):
         items = tuple(self._to_provider_out(provider=provider, now=now) for provider in providers)
         missing = () if any(item.routable for item in items) else ("AI_PROVIDER_ROUTABLE",)
         return PlatformAIProviderReadinessOut(items=items, missing_prerequisite_codes=missing)
+
+    async def runtime_health(self) -> PlatformAIRuntimeHealthOut:
+        measured_at = datetime.now(UTC)
+        current_runs = await AgentRunV1Record.filter(
+            status__in=(
+                AgentRunStatusV1.CREATED,
+                AgentRunStatusV1.QUEUED,
+                AgentRunStatusV1.RUNNING,
+                AgentRunStatusV1.CANCELLATION_REQUESTED,
+                AgentRunStatusV1.INTERRUPTED,
+            )
+        ).count()
+        failed_runs = await AgentRunV1Record.filter(status=AgentRunStatusV1.FAILED).count()
+        waiting_rows = await AgentApprovalV1Record.filter(status=AgentApprovalStatusV1.PENDING).values("run_id")
+        queued_jobs = await BackgroundJobRecord.filter(
+            internal_status__in=(JobInternalStatus.PENDING_DISPATCH, JobInternalStatus.QUEUED)
+        ).count()
+        queue_rows = cast(
+            tuple[datetime, ...],
+            await BackgroundJobRecord.filter(
+                internal_status__in=(JobInternalStatus.PENDING_DISPATCH, JobInternalStatus.QUEUED)
+            ).values_list("created_at", flat=True),
+        )
+        queue_latency_ms = (
+            round(
+                sum(max(0, (measured_at - created_at).total_seconds() * 1000) for created_at in queue_rows)
+                / len(queue_rows)
+            )
+            if queue_rows
+            else None
+        )
+        return PlatformAIRuntimeHealthOut(
+            measured_at=measured_at,
+            current_runs=current_runs,
+            waiting_runs=len({UUID(str(row["run_id"])) for row in waiting_rows}),
+            failed_runs=failed_runs,
+            queued_jobs=queued_jobs,
+            queue_latency_ms=queue_latency_ms,
+            provider_readiness=await self.provider_readiness(),
+        )
 
     async def _jobs_by_run(self, runs: list[AgentRunV1Record]) -> dict[UUID, BackgroundJobRecord]:
         job_ids = [run.job_id for run in runs if run.job_id is not None]
@@ -405,3 +540,162 @@ async def _recovery_evidence_by_job(
     for attempt in attempts:
         latest_attempts.setdefault(attempt.job_id, attempt)
     return latest_effects, latest_attempts
+
+
+def _attempt_projection(attempt: JobAttemptRecord) -> dict[str, object]:
+    return {
+        "id": str(attempt.id),
+        "attemptNumber": attempt.attempt_number,
+        "status": str(attempt.status),
+        "workerId": attempt.worker_id,
+        "handlerVersion": attempt.handler_version,
+        "claimedAt": attempt.claimed_at,
+        "startedAt": attempt.started_at,
+        "completedAt": attempt.completed_at,
+        "errorCode": attempt.error_code,
+        "failureClassification": str(attempt.failure_classification) if attempt.failure_classification else None,
+        "retryDecision": str(attempt.retry_decision) if attempt.retry_decision else None,
+    }
+
+
+def _task_timeline(
+    *,
+    run: AgentRunV1Record,
+    job: BackgroundJobRecord | None,
+    attempts: list[JobAttemptRecord],
+    events: list[AgentRunEventV1Record],
+    approvals: list[AgentApprovalV1Record],
+    effects: list[AgentRunExecutionEffectRecord],
+) -> list[PlatformAITaskTimelineEntryOut]:
+    entries = [
+        PlatformAITaskTimelineEntryOut(
+            occurred_at=run.created_at,
+            source="run",
+            type="run.created",
+            status=str(run.status),
+            sequence=0,
+            summary="AI run created",
+        )
+    ]
+    if job is not None:
+        entries.append(
+            PlatformAITaskTimelineEntryOut(
+                occurred_at=job.created_at,
+                source="job",
+                type="job.created",
+                status=str(job.internal_status),
+                summary=job.task_name,
+            )
+        )
+    entries.extend(
+        PlatformAITaskTimelineEntryOut(
+            occurred_at=attempt.started_at,
+            source="attempt",
+            type="attempt.started",
+            status=str(attempt.status),
+            sequence=attempt.attempt_number,
+            summary=f"Attempt {attempt.attempt_number} started",
+        )
+        for attempt in attempts
+    )
+    entries.extend(
+        PlatformAITaskTimelineEntryOut(
+            occurred_at=event.occurred_at,
+            source="event",
+            type=event.type,
+            sequence=event.sequence,
+            summary=event.type,
+        )
+        for event in events
+    )
+    entries.extend(
+        PlatformAITaskTimelineEntryOut(
+            occurred_at=approval.requested_at,
+            source="approval",
+            type="approval.requested",
+            status=str(approval.status),
+            summary=approval.approval_id,
+        )
+        for approval in approvals
+    )
+    entries.extend(
+        PlatformAITaskTimelineEntryOut(
+            occurred_at=effect.registered_at,
+            source="recovery",
+            type="recovery.effect",
+            status=str(effect.disposition),
+            summary=effect.effect_key,
+        )
+        for effect in effects
+    )
+    entries.sort(key=lambda item: item.occurred_at)
+    return entries
+
+
+def _sanitized_error_metadata(value: object | None) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    allowed = {"provider", "model", "status", "retryAfterSeconds", "failureClass"}
+    return {key: item for key, item in value.items() if key in allowed and isinstance(key, str)} or None
+
+
+async def _latest_attempts_by_job(*, job_ids: tuple[UUID, ...]) -> dict[UUID, JobAttemptRecord]:
+    if not job_ids:
+        return {}
+    rows = await JobAttemptRecord.filter(job_id__in=job_ids).order_by("job_id", "-attempt_number").all()
+    result: dict[UUID, JobAttemptRecord] = {}
+    for row in rows:
+        result.setdefault(row.job_id, row)
+    return result
+
+
+def _matches_metadata_filters(
+    *,
+    run: AgentRunV1Record,
+    job: BackgroundJobRecord | None,
+    attempt: JobAttemptRecord | None,
+    query: PlatformAITaskListQuery,
+) -> bool:
+    metadata = _task_metadata(run=run, job=job, attempt=attempt)
+    if query.provider and metadata.get("provider") != query.provider:
+        return False
+    if query.model and metadata.get("model") != query.model:
+        return False
+    if query.failure_class and metadata.get("failure_class") != query.failure_class:
+        return False
+    return True
+
+
+def _task_metadata(
+    *,
+    run: AgentRunV1Record,
+    job: BackgroundJobRecord | None,
+    attempt: JobAttemptRecord | None,
+) -> dict[str, str]:
+    sources: tuple[object | None, ...] = (
+        run.usage,
+        run.error,
+        job.error_metadata if job is not None else None,
+        attempt.provider_references if attempt is not None else None,
+        attempt.error_metadata if attempt is not None else None,
+    )
+    result: dict[str, str] = {}
+    aliases = {
+        "provider": ("provider", "providerId"),
+        "model": ("model", "modelName", "publicModel"),
+        "failure_class": ("failureClass", "failure_class", "classification"),
+    }
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for target, keys in aliases.items():
+            if target in result:
+                continue
+            for key in keys:
+                value = source.get(key)
+                if isinstance(value, str) and value.strip():
+                    result[target] = value.strip()
+                    break
+    if attempt is not None and attempt.failure_classification is not None:
+        result.setdefault("failure_class", str(attempt.failure_classification))
+    return result

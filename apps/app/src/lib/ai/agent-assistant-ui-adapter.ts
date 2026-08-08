@@ -39,24 +39,38 @@ function projectMessageStatus(
   if (parts.some((part) => part.status === "requires_action")) {
     return { type: "requires-action", reason: "interrupt" };
   }
-  if (parts.some((part) => part.status === "running")) return { type: "running" };
   const failed = parts.find((part) => part.status === "failed");
   if (failed !== undefined) {
-    return { type: "incomplete", reason: "error", error: failed.error as never };
+    const error = readObject(failed.error, "AGENT_MESSAGE_PROJECTION_INVALID");
+    return {
+      type: "incomplete",
+      reason: "error",
+      error: readString(error.message, "AGENT_MESSAGE_PROJECTION_INVALID"),
+    };
   }
   if (parts.some((part) => part.status === "incomplete")) {
     if (projection.terminalType === "run.cancelled") {
       return { type: "incomplete", reason: "cancelled" };
     }
     if (projection.terminalType === "run.failed") {
+      const error = readObject(projection.run?.error, "AGENT_MESSAGE_PROJECTION_INVALID");
       return {
         type: "incomplete",
         reason: "error",
-        ...(projection.run?.error === undefined ? {} : { error: projection.run.error as never }),
+        error: readString(error.message, "AGENT_MESSAGE_PROJECTION_INVALID"),
       };
     }
     return { type: "incomplete", reason: "other" };
   }
+  if (projection.terminalType === "run.failed" && parts.some((part) => part.status === "running")) {
+    const error = readObject(projection.run?.error, "AGENT_MESSAGE_PROJECTION_INVALID");
+    return {
+      type: "incomplete",
+      reason: "error",
+      error: readString(error.message, "AGENT_MESSAGE_PROJECTION_INVALID"),
+    };
+  }
+  if (parts.some((part) => part.status === "running")) return { type: "running" };
   return { type: "complete", reason: "stop" };
 }
 
@@ -136,8 +150,8 @@ function projectToolPart(
     toolName,
     args: part.args as ToolCallMessagePart["args"],
     argsText: part.argsText as string,
-    ...(part.approval === undefined ? {} : { approval: projectApproval(part.approval, options) }),
-    ...(part.interrupt === undefined ? {} : { interrupt: projectInterrupt(part.interrupt) }),
+    ...(part.approval == null ? {} : { approval: projectApproval(part.approval, options) }),
+    ...(part.interrupt == null ? {} : { interrupt: projectInterrupt(part.interrupt) }),
     ...(nestedMessages.length === 0 ? {} : { messages: nestedMessages }),
   };
   if (!options.registeredToolNames.has(toolName)) {
@@ -175,16 +189,20 @@ function projectAssistantPart(
   if (part.type === "text") return { type: "text", text: part.text as string };
   if (part.type === "tool-call") return projectToolPart(projection, part, options);
   if (part.type === "source") {
-    const sourceType = readString(part.sourceType, invalid);
-    const id = readString(part.sourceId, invalid);
-    const title = readString(part.title, invalid);
+    const sourceType =
+      part.sourceType == null
+        ? typeof part.url === "string"
+          ? "url"
+          : "document"
+        : readString(part.sourceType, invalid);
+    const id = typeof part.sourceId === "string" ? part.sourceId : part.partId;
     if (sourceType === "url") {
       return {
         type: "source",
         sourceType,
         id,
         url: readString(part.url, invalid),
-        title,
+        ...(part.title == null ? {} : { title: readString(part.title, invalid) }),
       };
     }
     if (sourceType === "document") {
@@ -192,9 +210,9 @@ function projectAssistantPart(
         type: "source",
         sourceType,
         id,
-        title,
+        title: readString(part.title, invalid),
         mediaType: readString(part.mimeType, invalid),
-        ...(part.name === undefined ? {} : { filename: readString(part.name, invalid) }),
+        ...(part.name == null ? {} : { filename: readString(part.name, invalid) }),
       };
     }
     throw new AgentRuntimeProtocolError(invalid);
@@ -202,17 +220,17 @@ function projectAssistantPart(
   if (part.type === "file") {
     return {
       type: "file",
-      filename: readString(part.name, invalid),
       data: readString(part.url, invalid),
       mimeType: readString(part.mimeType, invalid),
+      ...(part.name == null ? {} : { filename: readString(part.name, invalid) }),
     };
   }
   if (part.type === "image") {
     return {
       type: "image",
       image: readString(part.url, invalid),
-      filename: readString(part.name, invalid),
-      ...(part.alt === undefined ? {} : { alt: readString(part.alt, invalid) }),
+      ...(part.name == null ? {} : { filename: readString(part.name, invalid) }),
+      ...(part.alt == null ? {} : { alt: readString(part.alt, invalid) }),
     } as ThreadAssistantMessagePart;
   }
   if (part.type === "error") {
@@ -240,6 +258,7 @@ function projectMessage(
     createdAt: readDate(message.createdAt),
     metadata: {
       custom: {
+        createdAt: readDate(message.createdAt).getTime(),
         ...(message.agentId === undefined ? {} : { agentId: message.agentId }),
         ...(message.actorUserId === undefined ? {} : { actorUserId: message.actorUserId }),
         placement: message.placement,
@@ -273,11 +292,51 @@ export function projectAgentRunToAssistantMessages(
   projection: AgentRunProjectionV1,
   options: AgentAssistantUiAdapterOptions,
 ): readonly ThreadMessage[] {
-  return projection.topLevelMessageIds.map((messageId) => {
+  const messages = projection.topLevelMessageIds.map((messageId) => {
     const message = projection.messages[messageId];
     if (message === undefined || message.placement.kind !== "thread") {
       throw new AgentRuntimeProtocolError("AGENT_MESSAGE_PROJECTION_INVALID");
     }
     return projectMessage(projection, message, options);
   });
+  if (
+    projection.terminalType !== "run.failed" ||
+    messages.some(
+      (message) =>
+        message.role === "assistant" &&
+        message.status?.type === "incomplete" &&
+        message.status.reason === "error",
+    )
+  ) {
+    return messages;
+  }
+  const error = readObject(projection.run?.error, "AGENT_MESSAGE_PROJECTION_INVALID");
+  const failedAt = readString(
+    projection.run?.failedAt ?? projection.run?.terminalAt ?? projection.run?.updatedAt,
+    "AGENT_MESSAGE_PROJECTION_INVALID",
+  );
+  const errorMessage = readString(error.message, "AGENT_MESSAGE_PROJECTION_INVALID");
+  const agentId = projection.run?.leadAgentId;
+  const failedDate = readDate(failedAt);
+  return [
+    ...messages,
+    {
+      id: `run-error:${projection.runId}`,
+      createdAt: failedDate,
+      role: "assistant",
+      content: [],
+      status: { type: "incomplete", reason: "error", error: errorMessage },
+      metadata: {
+        unstable_state: null,
+        unstable_annotations: [],
+        unstable_data: [],
+        steps: [],
+        custom: {
+          placement: { kind: "thread" },
+          createdAt: failedDate.getTime(),
+          ...(typeof agentId === "string" ? { agentId } : {}),
+        },
+      },
+    },
+  ];
 }

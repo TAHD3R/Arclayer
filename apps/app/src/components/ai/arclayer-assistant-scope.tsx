@@ -23,8 +23,10 @@ export type ArclayerAssistantState =
   | Readonly<{
       status: "ready";
       leadAgent: {
+        agentId?: string;
         name: string;
         description: string;
+        avatarUrl?: string | null;
         supportedExecutionModes: readonly AIWorkspaceAgentExecutionMode[];
       };
     }>;
@@ -85,6 +87,8 @@ export function ArclayerAssistantScope({ children }: ArclayerAssistantScopeProps
 
   const leadAgentState = {
     name: leadAgent.nameI18nKey ? t(`ai:${leadAgent.nameI18nKey}`) : leadAgent.name,
+    agentId: leadAgent.agentId,
+    avatarUrl: leadAgent.avatarUrl,
     description: leadAgent.descriptionI18nKey
       ? t(`ai:${leadAgent.descriptionI18nKey}`)
       : leadAgent.description,

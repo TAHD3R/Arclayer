@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from math import ceil
 from uuid import UUID
 
 from tortoise import connections
+from tortoise.expressions import Q
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.models.ai.ai_audit_log import AIAuditLog
 from src.models.analytics.audit_event import AuditEvent
 from src.models.commerce.billing import SubscriptionStatus, WorkspaceSubscription
 from src.models.feedback.feedback import FeedbackStatus, FeedbackTicket
@@ -22,6 +24,8 @@ from src.modules.analytics.schema import ActivityUserSummaryOut
 from src.modules.observability.schema import (
     AIObservabilitySummaryOut,
     AIUsageGroupOut,
+    AIUsageRecordOrdering,
+    AIUsageRecordOut,
     HTTPObservabilitySummaryOut,
     HTTPRequestGroupOrdering,
     HTTPRequestGroupOut,
@@ -59,6 +63,30 @@ def _period(days: int) -> tuple[datetime, datetime, ObservabilityPeriodOut]:
     return start, end, ObservabilityPeriodOut(start_date=start_date, end_date=today, days=days)
 
 
+def _custom_period(
+    *,
+    start_date: date | None,
+    end_date: date | None,
+    max_days: int,
+) -> tuple[datetime, datetime, ObservabilityPeriodOut] | None:
+    if start_date is None and end_date is None:
+        return None
+    if start_date is None or end_date is None or end_date < start_date:
+        raise BadRequest(
+            message=t("errors", "OBSERVABILITY_INVALID_DATE_RANGE"),
+            error="OBSERVABILITY_INVALID_DATE_RANGE",
+        )
+    days = (end_date - start_date).days + 1
+    if days > max_days:
+        raise BadRequest(
+            message=t("errors", "OBSERVABILITY_RANGE_EXCEEDED", maxDays=max_days),
+            error="OBSERVABILITY_RANGE_EXCEEDED",
+        )
+    start = datetime.combine(start_date, time.min, tzinfo=UTC)
+    end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+    return start, end, ObservabilityPeriodOut(start_date=start_date, end_date=end_date, days=days)
+
+
 def _scope_where(
     *,
     alias: str,
@@ -93,6 +121,23 @@ class ObservabilityService:
                 ),
                 error="OBSERVABILITY_RANGE_EXCEEDED",
             )
+
+    def _resolve_period(
+        self,
+        *,
+        days: int,
+        start_date: date | None,
+        end_date: date | None,
+    ) -> tuple[datetime, datetime, ObservabilityPeriodOut]:
+        custom = _custom_period(
+            start_date=start_date,
+            end_date=end_date,
+            max_days=self._settings.observability.max_query_days,
+        )
+        if custom is not None:
+            return custom
+        self._validate_days(days)
+        return _period(days)
 
     async def resolve_scope(
         self,
@@ -194,6 +239,8 @@ class ObservabilityService:
         self,
         *,
         days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
         params: PageParams,
         route_query: str | None,
         method: str | None,
@@ -202,12 +249,11 @@ class ObservabilityService:
         project_id: UUID | None,
         ordering: HTTPRequestGroupOrdering,
     ) -> PageData[HTTPRequestGroupOut]:
-        self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
             workspace_id=workspace_id,
             project_id=project_id,
         )
-        start, end, _ = _period(days)
+        start, end, _ = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
         where, values = _scope_where(
             alias="m",
             start=start,
@@ -333,6 +379,8 @@ class ObservabilityService:
         self,
         *,
         days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
         params: PageParams,
         query: str | None,
         method: str | None,
@@ -345,12 +393,11 @@ class ObservabilityService:
         has_error: bool | None,
         ordering: HTTPRequestRecordOrdering,
     ) -> PageData[HTTPRequestRecordOut]:
-        self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
             workspace_id=workspace_id,
             project_id=project_id,
         )
-        start, end, _ = _period(days)
+        start, end, _ = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
         where, values = _scope_where(
             alias="r",
             start=start,
@@ -447,6 +494,83 @@ class ObservabilityService:
             prev=min(params.page - 1, pages) if pages and params.page > 1 else None,
         )
 
+    async def list_ai_usage_records(
+        self,
+        *,
+        days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        params: PageParams,
+        query: str | None,
+        provider: str | None,
+        workspace_id: UUID | None,
+        project_id: UUID | None,
+        status: str | None,
+        source: str | None = None,
+        error_code: str | None = None,
+        ordering: AIUsageRecordOrdering,
+    ) -> PageData[AIUsageRecordOut]:
+        workspace_id, project_id = await self.resolve_scope(
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        start, end, _ = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
+        queryset = AIAuditLog.filter(created_at__gte=start, created_at__lt=end)
+        if workspace_id is not None:
+            queryset = queryset.filter(workspace_id=workspace_id)
+        if project_id is not None:
+            queryset = queryset.filter(project_id=project_id)
+        if provider:
+            queryset = queryset.filter(provider=provider)
+        if status:
+            queryset = queryset.filter(status=status)
+        if source:
+            queryset = queryset.filter(source=source)
+        if error_code:
+            queryset = queryset.filter(error_code=error_code)
+        if query:
+            normalized = query.strip()
+            if normalized:
+                queryset = queryset.filter(
+                    Q(provider__icontains=normalized)
+                    | Q(model__icontains=normalized)
+                    | Q(request_type__icontains=normalized)
+                    | Q(error_code__icontains=normalized)
+                )
+        total = await queryset.count()
+        records = await queryset.order_by(ordering.value, "-id").offset(params.offset).limit(params.limit)
+        items = [
+            AIUsageRecordOut(
+                id=record.id,
+                occurred_at=record.created_at,
+                correlation_id=str(record.correlation_id),
+                workspace_id=record.workspace_id,
+                project_id=record.project_id,
+                provider=record.provider,
+                model=record.model,
+                request_type=record.request_type,
+                source=str(record.source),
+                status=str(record.status),
+                prompt_tokens=max(0, int(record.prompt_tokens)),
+                completion_tokens=max(0, int(record.completion_tokens)),
+                total_tokens=max(0, int(record.prompt_tokens + record.completion_tokens)),
+                cost_micros=max(0, int(record.cost_micros)),
+                duration_ms=record.duration_ms,
+                error_code=record.error_code,
+            )
+            for record in records
+        ]
+        pages = ceil(total / params.size) if total else 0
+        return PageData(
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=min(params.page - 1, pages) if pages and params.page > 1 else None,
+        )
+
     async def _ai_summary(
         self,
         *,
@@ -504,18 +628,19 @@ class ObservabilityService:
         self,
         *,
         days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
         params: PageParams,
         query: str | None,
         provider: str | None,
         workspace_id: UUID | None,
         project_id: UUID | None,
     ) -> PageData[AIUsageGroupOut]:
-        self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
             workspace_id=workspace_id,
             project_id=project_id,
         )
-        start, end, _ = _period(days)
+        start, end, _ = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
         where, values = _scope_where(
             alias="a",
             start=start,
@@ -740,16 +865,17 @@ class ObservabilityService:
         self,
         *,
         days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
         system_scope: bool,
         workspace_id: UUID | None,
         project_id: UUID | None,
     ) -> ObservabilityOverviewOut:
-        self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
             workspace_id=workspace_id,
             project_id=project_id,
         )
-        start, end, period = _period(days)
+        start, end, period = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
         resources, http, ai, operations, data_availability = await asyncio.gather(
             self._resources(
                 system_scope=system_scope,
@@ -865,16 +991,17 @@ class ObservabilityService:
         self,
         *,
         days: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
         metric: ObservabilityTrendMetric,
         workspace_id: UUID | None,
         project_id: UUID | None,
     ) -> ObservabilityTrendOut:
-        self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
             workspace_id=workspace_id,
             project_id=project_id,
         )
-        start, end, period = _period(days)
+        start, end, period = self._resolve_period(days=days, start_date=start_date, end_date=end_date)
         rows = await self._trend_rows(
             metric=metric,
             start=start,

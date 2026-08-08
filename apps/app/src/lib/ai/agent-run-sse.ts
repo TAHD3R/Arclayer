@@ -98,11 +98,15 @@ async function* readAgentRunFrames(response: Response): AsyncGenerator<AgentRunE
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let completed = false;
   try {
     while (true) {
       // eslint-disable-next-line no-await-in-loop -- stream chunks are ordered by the wire.
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        completed = true;
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
       const frames = buffer.split("\n\n");
@@ -118,6 +122,7 @@ async function* readAgentRunFrames(response: Response): AsyncGenerator<AgentRunE
       if (event !== null) yield event;
     }
   } finally {
+    if (!completed) await reader.cancel();
     reader.releaseLock();
   }
 }

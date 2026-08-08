@@ -1,4 +1,5 @@
 import type { RemoteThreadListAdapter } from "@assistant-ui/react";
+import { createAssistantStream } from "assistant-stream";
 
 import {
   createAgentThread,
@@ -15,6 +16,11 @@ export interface AgentThreadListAdapterOptions {
   readonly projectId: string | null;
   readonly leadAgentId: string;
   readonly initialTitle: string;
+}
+
+export function createAgentThreadTitle(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  return normalized.length > 160 ? `${normalized.slice(0, 157)}...` : normalized;
 }
 
 function toRemoteThread(thread: AgentThreadV1) {
@@ -85,8 +91,23 @@ export function createAgentThreadListAdapter(
     async delete(remoteId) {
       await deleteAgentThread(options.workspaceId, remoteId);
     },
-    async generateTitle() {
-      throw new AgentRuntimeProtocolError("AGENT_THREAD_TITLE_GENERATION_UNAVAILABLE");
+    async generateTitle(remoteId, messages) {
+      const firstUserText = messages
+        .find((message) => message.role === "user")
+        ?.content.filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!firstUserText) {
+        throw new AgentRuntimeProtocolError("AGENT_THREAD_TITLE_GENERATION_UNAVAILABLE");
+      }
+      const title = createAgentThreadTitle(firstUserText);
+      await updateAgentThread(options.workspaceId, remoteId, { title });
+      return createAssistantStream((controller) => {
+        controller.appendText(title);
+        controller.close();
+      });
     },
   };
 }

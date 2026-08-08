@@ -91,7 +91,7 @@ describe("Commerce credits lookup", () => {
       }),
     );
     expect(await screen.findByText("Credit adjustment applied")).toBeVisible();
-    expect(screen.getByText(/balance from 100 to 110/)).toBeVisible();
+    expect(screen.getByText(/balance changed from 100 to 110/)).toBeVisible();
     await waitFor(() => expect(getWorkspaceCommerceOverview).toHaveBeenCalledTimes(2));
   });
 

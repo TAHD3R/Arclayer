@@ -77,6 +77,9 @@ class PlatformPermissionCode(StrEnum):
     JOBS_READ = "platform:jobs:read"
     JOBS_MANAGE = "platform:jobs:manage"
 
+    SYSTEM_SETTINGS_READ = "platform:system-settings:read"
+    SYSTEM_SETTINGS_MANAGE = "platform:system-settings:manage"
+
     ACCESS_SIGN_IN_SETTINGS_READ = "platform:access-sign-in-settings:read"
     ACCESS_SIGN_IN_SETTINGS_MANAGE = "platform:access-sign-in-settings:manage"
     WORKSPACE_CAPABILITY_ROLLOUT_APPLY = "platform:workspace-capability-rollout:apply"

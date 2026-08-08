@@ -188,6 +188,9 @@ describe("trusted Platform capability projection", () => {
     expect(resolveCapabilityBreadcrumbKey("/attention/signal-1", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/monitoring/requests", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/operations/jobs", projection)).toBeNull();
+    expect(resolveCapabilityBreadcrumbKey("/settings", projection)).toBe(
+      "common:SYSTEM_SETTINGS_TITLE",
+    );
   });
 
   it("rejects a missing trusted peer target instead of returning partial navigation", () => {

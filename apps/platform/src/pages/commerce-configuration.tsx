@@ -1,4 +1,3 @@
-import { Pencil } from "lucide-react";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { BillingProviderMode, DunningPolicyOut } from "@arclayer/platform-openapi";
@@ -8,6 +7,7 @@ import {
   getCommerceProvider,
   getCommerceSimulator,
   putCommerceDunningPolicy,
+  putCommerceProvider,
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { SettingDialog } from "@/components/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
@@ -30,6 +31,7 @@ type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
 export function CommerceConfigurationPage() {
   const { t } = useTranslation("commerce");
   const [editPolicy, setEditPolicy] = useState(false);
+  const [editProvider, setEditProvider] = useState(false);
   const [success, setSuccess] = useState(false);
   const load = useCallback(async () => {
     const provider = await getCommerceProvider();
@@ -41,11 +43,49 @@ export function CommerceConfigurationPage() {
   }, []);
   const { state, retry } = useMonitoringQuery(load, []);
   return (
-    <CommercePage description={t("CONFIGURATION_DESCRIPTION")} title={t("CONFIGURATION_TITLE")}>
+    <CommercePage
+      description={t("CONFIGURATION_DESCRIPTION")}
+      primaryAction={
+        <Button
+          aria-label={t("EDIT_PROVIDER_CONFIGURATION")}
+          disabled={state.status !== "ready"}
+          onClick={() => setEditProvider(true)}
+        >
+          {t("EDIT_PROVIDER_CONFIGURATION")}
+        </Button>
+      }
+      secondaryActions={
+        <div className="flex flex-wrap gap-2">
+          <Button
+            aria-label={t("EDIT")}
+            disabled={state.status !== "ready"}
+            onClick={() => setEditPolicy(true)}
+            variant="outline"
+          >
+            {t("EDIT_PAYMENT_RECOVERY")}
+          </Button>
+          <Button disabled={state.status === "loading"} onClick={retry} variant="outline">
+            {t("REFRESH")}
+          </Button>
+        </div>
+      }
+      title={t("CONFIGURATION_TITLE")}
+    >
       <CommerceQueryState isEmpty={() => false} retry={retry} state={state}>
         {({ dunning, provider, simulator }) => (
           <div className="grid gap-5 lg:grid-cols-2">
-            <Card>
+            <Card
+              className="cursor-pointer transition-colors hover:bg-muted/40"
+              onClick={() => setEditProvider(true)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setEditProvider(true);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <CardHeader>
                 <CardTitle>{provider.provider}</CardTitle>
                 <CardDescription>{t("PROVIDER_READINESS_DESCRIPTION")}</CardDescription>
@@ -76,9 +116,6 @@ export function CommerceConfigurationPage() {
                     {provider.missingPrerequisites.join(", ") || t("NONE")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {t("CONFIGURATION_WRITE_UNAVAILABLE")}
-                </p>
               </CardContent>
             </Card>
             {simulator ? (
@@ -105,17 +142,24 @@ export function CommerceConfigurationPage() {
                 </CardContent>
               </Card>
             ) : null}
-            <Card>
+            <Card
+              className="cursor-pointer transition-colors hover:bg-muted/40"
+              onClick={() => setEditPolicy(true)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setEditPolicy(true);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{t("PAYMENT_RECOVERY_TITLE")}</CardTitle>
                     <CardDescription>{t("PAYMENT_RECOVERY_DESCRIPTION")}</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setEditPolicy(true)}>
-                    <Pencil aria-hidden="true" />
-                    {t("EDIT")}
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -142,10 +186,135 @@ export function CommerceConfigurationPage() {
                 policy={dunning}
               />
             ) : null}
+            {editProvider ? (
+              <ProviderConfigurationDialog
+                onCompleted={retry}
+                onOpenChange={setEditProvider}
+                open
+                provider={provider}
+              />
+            ) : null}
           </div>
         )}
       </CommerceQueryState>
     </CommercePage>
+  );
+}
+
+function ProviderConfigurationDialog({
+  onCompleted,
+  onOpenChange,
+  open,
+  provider,
+}: Readonly<{
+  onCompleted: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  provider: Readonly<{
+    provider: string;
+    revision?: number;
+  }>;
+}>) {
+  const { t } = useTranslation("commerce");
+  const [selectedProvider, setSelectedProvider] = useState(provider.provider);
+  const [mode, setMode] = useState<BillingProviderMode>("test");
+  const [secret, setSecret] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setPending(true);
+    setError(null);
+    try {
+      await putCommerceProvider({
+        expectedRevision: provider.revision ?? 0,
+        idempotencyKey: crypto.randomUUID(),
+        mode,
+        provider: selectedProvider,
+        secret: secret.trim() || null,
+        webhookSecret: webhookSecret.trim() || null,
+      });
+      onCompleted();
+      onOpenChange(false);
+    } catch {
+      setError(t("PROVIDER_CONFIGURATION_ERROR"));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingDialog
+      description={t("PROVIDER_CONFIGURATION_DESCRIPTION")}
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => onOpenChange(false)} variant="outline">
+            {t("CANCEL")}
+          </Button>
+          <Button disabled={pending} form="commerce-provider-configuration" type="submit">
+            {pending ? t("SAVING") : t("SAVE")}
+          </Button>
+        </>
+      }
+      onOpenChange={(nextOpen) => !pending && onOpenChange(nextOpen)}
+      open={open}
+      title={t("EDIT_PROVIDER_CONFIGURATION")}
+    >
+      <form id="commerce-provider-configuration" onSubmit={submit}>
+        <SettingDialogFields>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <SettingDialogField title={t("PROVIDER")}>
+            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+              <SelectTrigger aria-label={t("PROVIDER")}>
+                <SelectValue placeholder={t("PROVIDER_PLACEHOLDER")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="disabled">{t("PROVIDER_DISABLED")}</SelectItem>
+                <SelectItem value="stripe">Stripe</SelectItem>
+                <SelectItem value="simulated">{t("PROVIDER_SIMULATED")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+          <SettingDialogField title={t("PROVIDER_MODE")}>
+            <Select value={mode} onValueChange={(value) => setMode(value as BillingProviderMode)}>
+              <SelectTrigger aria-label={t("PROVIDER_MODE")}>
+                <SelectValue placeholder={t("PROVIDER_MODE_PLACEHOLDER")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="test">{t("PROVIDER_MODE_TEST")}</SelectItem>
+                <SelectItem value="live">{t("PROVIDER_MODE_LIVE")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+          <SettingDialogField
+            description={t("PROVIDER_SECRET_DESCRIPTION")}
+            title={<label htmlFor="commerce-provider-secret">{t("PROVIDER_SECRET")}</label>}
+          >
+            <Input
+              id="commerce-provider-secret"
+              onChange={(event) => setSecret(event.target.value)}
+              placeholder={t("PROVIDER_SECRET_PLACEHOLDER")}
+              type="password"
+              value={secret}
+            />
+          </SettingDialogField>
+          <SettingDialogField
+            description={t("WEBHOOK_SECRET_DESCRIPTION")}
+            title={<label htmlFor="commerce-provider-webhook-secret">{t("WEBHOOK_SECRET")}</label>}
+          >
+            <Input
+              id="commerce-provider-webhook-secret"
+              onChange={(event) => setWebhookSecret(event.target.value)}
+              placeholder={t("WEBHOOK_SECRET_PLACEHOLDER")}
+              type="password"
+              value={webhookSecret}
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
+      </form>
+    </SettingDialog>
   );
 }
 
@@ -237,6 +406,7 @@ function DunningPolicyDialog({
           >
             <Textarea
               id="payment-recovery-policy"
+              placeholder={t("PAYMENT_RECOVERY_RULES_PLACEHOLDER")}
               rows={14}
               value={policyText}
               onChange={(event) => setPolicyText(event.target.value)}

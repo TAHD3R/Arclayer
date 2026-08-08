@@ -100,7 +100,7 @@ export function SignalInvestigation({
             {detail.sourceLifecycle === "resolved" ? t("inbox:SOURCE_RESOLVED") : t(stateKey)}
           </Badge>
         </div>
-        <h2 className="text-2xl3 font-semibold" id="signal-impact-heading">
+        <h2 className="text-2xl font-semibold" id="signal-impact-heading">
           {t(detail.copy.titleKey)}
         </h2>
         <p className="text-base text-muted-foreground">{t(detail.copy.explanationKey)}</p>
@@ -127,10 +127,7 @@ export function SignalInvestigation({
       <Separator />
 
       <section aria-labelledby="signal-evidence-heading" className="space-y-4">
-        <h2
-          className="flex items-center gap-2 text-2xl3 font-semibold"
-          id="signal-evidence-heading"
-        >
+        <h2 className="flex items-center gap-2 text-2xl font-semibold" id="signal-evidence-heading">
           <Wrench aria-hidden="true" className="size-5" />
           {t("inbox:EVIDENCE_TITLE")}
         </h2>
@@ -183,7 +180,7 @@ export function SignalInvestigation({
       <Separator />
 
       <section aria-labelledby="signal-history-heading" className="space-y-4">
-        <h2 className="flex items-center gap-2 text-2xl3 font-semibold" id="signal-history-heading">
+        <h2 className="flex items-center gap-2 text-2xl font-semibold" id="signal-history-heading">
           <History aria-hidden="true" className="size-5" />
           {t("inbox:HISTORY_TITLE")}
         </h2>
@@ -199,7 +196,7 @@ export function SignalInvestigation({
       </section>
 
       <section aria-labelledby="signal-notes-heading" className="space-y-4">
-        <h2 className="text-2xl3 font-semibold" id="signal-notes-heading">
+        <h2 className="text-2xl font-semibold" id="signal-notes-heading">
           {t("NOTES_TITLE")}
         </h2>
         {detail.notes.length ? (

@@ -530,7 +530,7 @@ function RolePreview({ preview }: Readonly<{ preview: PlatformCustomRolePreviewO
         {rows.map(([key, count]) => (
           <div className="rounded-lg border p-3" key={key}>
             <p className="text-sm text-muted-foreground">{t(key)}</p>
-            <p className="mt-1 text-2xl-3 font-semibold">{count}</p>
+            <p className="mt-1 text-2xl font-semibold">{count}</p>
           </div>
         ))}
       </div>

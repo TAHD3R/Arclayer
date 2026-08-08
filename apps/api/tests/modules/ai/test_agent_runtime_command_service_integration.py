@@ -9,6 +9,8 @@ from src.common.utils.public_ids import encode_uuid
 from src.core.exceptions import Conflict
 from src.models.agents.runtime_v1 import (
     AgentApprovalV1Record,
+    AgentMessagePartV1Record,
+    AgentMessageV1Record,
     AgentRunEventV1Record,
     AgentRunStatusV1,
     AgentRunV1Record,
@@ -247,6 +249,16 @@ async def test_human_result_service_records_result_without_fabricating_resume_ev
     assert persisted.expected_sequence == 4
     assert persisted.consumed_at is None
     assert not await AgentRunEventV1Record.filter(run_id=run_id, type="run.resumed").exists()
+    messages = await AgentMessageV1Record.filter(
+        run_id=run_id,
+        role="user",
+        actor_user_id=thread.owner_user_id,
+    )
+    assert len(messages) == 1
+    parts = await AgentMessagePartV1Record.filter(message_id=messages[0].id).order_by("part_index")
+    assert [(part.type, part.status, part.text) for part in parts] == [
+        ("text", "complete", '{"audience":"design teams"}')
+    ]
 
 
 async def test_resume_service_consumes_exact_response_and_requeues_waiting_job(prepared_db) -> None:

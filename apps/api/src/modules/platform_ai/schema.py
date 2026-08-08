@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
@@ -27,6 +28,16 @@ class PlatformAITaskListQuery(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     status: AgentRunStatusV1 | None = Field(default=None)
+    workspace_id: PublicUUID | None = Field(default=None)
+    project_id: PublicUUID | None = Field(default=None)
+    agent_id: str | None = Field(default=None, min_length=1, max_length=160)
+    agent_version_id: UUID | None = Field(default=None)
+    provider: str | None = Field(default=None, min_length=1, max_length=96)
+    model: str | None = Field(default=None, min_length=1, max_length=255)
+    failure_class: str | None = Field(default=None, min_length=1, max_length=64)
+    correlation: str | None = Field(default=None, min_length=1, max_length=192)
+    waiting_reason: str | None = Field(default=None, min_length=1, max_length=64)
+    age_days: int | None = Field(default=None, ge=1, le=3650)
 
 
 class PlatformAITaskActionAvailabilityOut(BaseSchema):
@@ -63,6 +74,55 @@ class PlatformAITaskOut(BaseSchema):
     last_sequence: int
     evidence_updated_at: datetime
     actions: tuple[PlatformAITaskActionAvailabilityOut, ...]
+
+
+class PlatformAITaskTimelineEntryOut(BaseSchema):
+    occurred_at: datetime
+    source: Literal["run", "job", "attempt", "event", "approval", "recovery"]
+    type: str
+    status: str | None = None
+    sequence: int | None = None
+    summary: str
+
+
+class PlatformAITaskMessageSummaryOut(BaseSchema):
+    total: int
+    assistant: int
+    user: int
+    tool: int
+    latest_at: datetime | None = None
+
+
+class PlatformAITaskUsageOut(BaseSchema):
+    usage: dict[str, object] | None = None
+    settlement: dict[str, object] | None = None
+    telemetry_available: bool
+
+
+class PlatformAITaskDiagnosticsOut(BaseSchema):
+    error_code: str | None = None
+    failure_classification: str | None = None
+    retry_decision: str | None = None
+    correlation_id: str
+    trace_id: str | None = None
+    sanitized_metadata: dict[str, object] | None = None
+
+
+class PlatformAITaskLinksOut(BaseSchema):
+    task_path: str
+    run_path: str
+    usage_path: str
+
+
+class PlatformAITaskDossierOut(BaseSchema):
+    task: PlatformAITaskOut
+    attempts: tuple[dict[str, object], ...]
+    timeline: tuple[PlatformAITaskTimelineEntryOut, ...]
+    messages: PlatformAITaskMessageSummaryOut
+    usage: PlatformAITaskUsageOut
+    diagnostics: PlatformAITaskDiagnosticsOut
+    links: PlatformAITaskLinksOut
+    raw_content_available: bool
 
 
 class PlatformAIProviderActionAvailabilityOut(BaseSchema):
@@ -103,6 +163,16 @@ class PlatformAIProviderOut(BaseSchema):
 class PlatformAIProviderReadinessOut(BaseSchema):
     items: tuple[PlatformAIProviderOut, ...]
     missing_prerequisite_codes: tuple[str, ...]
+
+
+class PlatformAIRuntimeHealthOut(BaseSchema):
+    measured_at: datetime
+    current_runs: int
+    waiting_runs: int
+    failed_runs: int
+    queued_jobs: int
+    queue_latency_ms: int | None
+    provider_readiness: PlatformAIProviderReadinessOut
 
 
 PlatformAITaskPage = PageData[PlatformAITaskOut]

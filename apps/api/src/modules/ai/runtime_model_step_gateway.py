@@ -557,8 +557,11 @@ def _outcome(payload: JsonObject, *, request: AgentRunExecutionRequest) -> Agent
     raw_arguments = function.get("arguments")
     if not isinstance(raw_arguments, str):
         raise ValueError("Agent model Tool arguments must be canonical JSON text")
-    tool_call_id = call.get("id")
-    resolved_tool_call_id = tool_call_id if isinstance(tool_call_id, str) and tool_call_id else uuid4().hex
+    # Provider tool-call identifiers are scoped to a model response and may be
+    # reused when a provider reconstructs a response during resume/retry. The
+    # runtime exposes a durable, globally unique identifier to the rest of the
+    # system instead of persisting that provider-scoped value directly.
+    resolved_tool_call_id = uuid4().hex
     if provider_name == _HUMAN_TOOL_PROVIDER_NAME and HUMAN_REQUEST_INPUT_TOOL in request.tool_grants:
         arguments = HumanRequestInputV1.model_validate(json.loads(raw_arguments))
         return AgentRunExecutionInterrupted(

@@ -14,6 +14,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedAttentionRouteImport } from './routes/_authenticated/attention'
 import { Route as AuthenticatedWorkspacesIndexRouteImport } from './routes/_authenticated/workspaces/index'
@@ -74,6 +75,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/attention': typeof AuthenticatedAttentionRouteWithChildren
   '/projects': typeof AuthenticatedProjectsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/access/roles': typeof AuthenticatedAccessRolesRoute
   '/access/sign-in': typeof AuthenticatedAccessSignInRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/attention': typeof AuthenticatedAttentionRouteWithChildren
   '/projects': typeof AuthenticatedProjectsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/': typeof AuthenticatedIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/_authenticated/attention': typeof AuthenticatedAttentionRouteWithChildren
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/access/roles': typeof AuthenticatedAccessRolesRoute
@@ -432,6 +441,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/attention'
     | '/projects'
+    | '/settings'
     | '/users'
     | '/access/roles'
     | '/access/sign-in'
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/attention'
     | '/projects'
+    | '/settings'
     | '/users'
     | '/'
     | '/access/roles'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/_authenticated/attention'
     | '/_authenticated/projects'
+    | '/_authenticated/settings'
     | '/_authenticated/users'
     | '/_authenticated/'
     | '/_authenticated/access/roles'
@@ -598,6 +610,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects': {
@@ -894,6 +913,7 @@ const AuthenticatedAccessTeamRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAttentionRoute: typeof AuthenticatedAttentionRouteWithChildren
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccessRolesRoute: typeof AuthenticatedAccessRolesRoute
@@ -934,6 +954,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAttentionRoute: AuthenticatedAttentionRouteWithChildren,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccessRolesRoute: AuthenticatedAccessRolesRoute,

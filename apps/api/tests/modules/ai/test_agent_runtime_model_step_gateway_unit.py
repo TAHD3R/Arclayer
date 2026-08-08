@@ -237,6 +237,10 @@ async def test_model_step_turns_function_call_into_human_interrupt_and_consumes_
     interrupted = await gateway.execute(request=request)
 
     assert isinstance(interrupted, AgentRunExecutionInterrupted)
+    repeated = await ModelToolAgentRunExecutionGateway(chat_service=_ChatGateway()).execute(request=request)
+    assert isinstance(repeated, AgentRunExecutionInterrupted)
+    assert interrupted.tool_call_id != "tool-call-audience-1"
+    assert repeated.tool_call_id != interrupted.tool_call_id
     assert interrupted.tool_name == "human.request_input"
     assert interrupted.args["responseType"] == "single_select"
     completed = await gateway.resume(

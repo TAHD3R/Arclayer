@@ -15,7 +15,9 @@ from src.modules.ai.runtime_platform_recovery_schema import (
 )
 from src.modules.platform_ai.schema import (
     PlatformAIProviderReadinessOut,
+    PlatformAIRuntimeHealthOut,
     PlatformAITaskActionRequest,
+    PlatformAITaskDossierOut,
     PlatformAITaskListQuery,
     PlatformAITaskOut,
 )
@@ -50,6 +52,34 @@ async def list_platform_ai_tasks(
     service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
 ) -> ResponseModel[PageData[PlatformAITaskOut]]:
     return ApiResponse.success(data=await service.list_tasks(params=params, query=query))
+
+
+@router.get(
+    "/tasks/{task_id}",
+    response_model=ResponseModel[PlatformAITaskOut],
+    response_model_exclude_none=True,
+    summary="Get durable AI task evidence",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_TASKS_READ)],
+)
+async def get_platform_ai_task(
+    task_id: UUID,
+    service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
+) -> ResponseModel[PlatformAITaskOut]:
+    return ApiResponse.success(data=await service.get_task(task_id=task_id))
+
+
+@router.get(
+    "/tasks/{task_id}/dossier",
+    response_model=ResponseModel[PlatformAITaskDossierOut],
+    response_model_exclude_none=True,
+    summary="Get a complete sanitized AI task dossier",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_TASKS_READ)],
+)
+async def get_platform_ai_task_dossier(
+    task_id: UUID,
+    service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
+) -> ResponseModel[PlatformAITaskDossierOut]:
+    return ApiResponse.success(data=await service.get_task_dossier(task_id=task_id))
 
 
 @router.post(
@@ -123,6 +153,19 @@ async def get_platform_ai_provider_readiness(
     service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
 ) -> ResponseModel[PlatformAIProviderReadinessOut]:
     return ApiResponse.success(data=await service.provider_readiness())
+
+
+@router.get(
+    "/runtime-health",
+    response_model=ResponseModel[PlatformAIRuntimeHealthOut],
+    response_model_exclude_none=True,
+    summary="Get current AI runtime health",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_REQUESTS_READ)],
+)
+async def get_platform_ai_runtime_health(
+    service: Annotated[PlatformAIOperationsService, Depends(get_platform_ai_service)],
+) -> ResponseModel[PlatformAIRuntimeHealthOut]:
+    return ApiResponse.success(data=await service.runtime_health())
 
 
 def _recovery_command(

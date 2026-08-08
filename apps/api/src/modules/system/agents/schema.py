@@ -199,6 +199,16 @@ class SystemAgentVersionListOut(BaseSchema):
     items: tuple[SystemAgentVersionOut, ...] = Field(default_factory=tuple)
 
 
+class SystemAgentCatalogOptionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    label: str
+    description: str
+    risk: Literal["low", "medium", "high"]
+    available: bool = True
+
+
 class SystemAgentCatalogCapabilitiesOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
@@ -209,3 +219,7 @@ class SystemAgentCatalogCapabilitiesOut(BaseSchema):
     agent_runtime_protocol: Literal[1]
     hard_delete_supported: Literal[False]
     constraints: JsonObject = Field(default_factory=dict)
+    execution_mode_catalog: tuple[SystemAgentCatalogOptionOut, ...] = Field(default_factory=tuple)
+    tool_grant_catalog: tuple[SystemAgentCatalogOptionOut, ...] = Field(default_factory=tuple)
+    approval_profile_catalog: tuple[SystemAgentCatalogOptionOut, ...] = Field(default_factory=tuple)
+    model_policy_catalog: tuple[SystemAgentCatalogOptionOut, ...] = Field(default_factory=tuple)

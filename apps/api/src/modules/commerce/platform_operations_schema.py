@@ -23,6 +23,7 @@ from src.modules.commerce.billing_payment_reconciliation_service import Provider
 
 class ProviderReadinessOut(BaseSchema):
     provider: str
+    revision: int = Field(default=0, ge=0)
     configured: bool
     webhook_ready: bool
     connector_registered: bool
@@ -100,6 +101,9 @@ class ProviderEventQuery(BaseSchema):
     page_size: Annotated[int, Field(ge=1, le=100)] = 50
     provider: str | None = None
     status: ConnectorEventInboxStatus | None = None
+    search: str | None = Field(default=None, max_length=200)
+    sort_by: Literal["created_at", "status", "processing_attempts"] = "created_at"
+    sort_direction: Literal["asc", "desc"] = "desc"
 
 
 class ProviderEventReconcileRequest(BaseSchema):

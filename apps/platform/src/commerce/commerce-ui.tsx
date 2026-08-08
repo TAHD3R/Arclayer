@@ -16,10 +16,23 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function CommercePage(
-  props: Readonly<{ title: string; description: string; children: ReactNode }>,
+  props: Readonly<{
+    title: string;
+    description: string;
+    primaryAction?: ReactNode;
+    secondaryActions?: ReactNode;
+    extra?: ReactNode;
+    children: ReactNode;
+  }>,
 ) {
   return (
-    <PlatformPage description={props.description} title={props.title}>
+    <PlatformPage
+      description={props.description}
+      extra={props.extra}
+      primaryAction={props.primaryAction}
+      secondaryActions={props.secondaryActions}
+      title={props.title}
+    >
       {props.children}
     </PlatformPage>
   );

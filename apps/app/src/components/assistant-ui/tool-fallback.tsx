@@ -14,6 +14,9 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@arclayer/ui/collapsible";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { useTranslation } from "react-i18next";
+import { ApprovalCard } from "@/components/assistant-ui/elements/approval-card";
+import { ToolCall } from "@/components/assistant-ui/elements/tool-call";
 
 const ANIMATION_DURATION = 200;
 
@@ -314,12 +317,17 @@ function ToolFallbackApproval({
   interrupt,
   approval,
   respondToApproval,
+  toolName,
+  argsText,
   ...props
 }: React.ComponentProps<"div"> &
   Partial<Pick<ToolCallMessagePartProps, "addResult" | "resume" | "respondToApproval">> & {
     interrupt?: ToolCallMessagePart["interrupt"];
     approval?: ToolCallMessagePart["approval"];
+    toolName: string;
+    argsText?: string;
   }) {
+  const { t } = useTranslation(["ai"]);
   const [submitted, setSubmitted] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -454,25 +462,29 @@ function ToolFallbackApproval({
     );
   }
 
+  const approvalState =
+    approval?.approved === true
+      ? "done"
+      : approval?.approved === false || approval?.resolution !== undefined
+        ? "denied"
+        : "request";
+
   return (
-    <div
-      data-slot="tool-fallback-approval"
-      className={cn("aui-tool-fallback-approval flex items-center gap-2 pt-1", className)}
+    <ApprovalCard
+      state={approvalState}
+      command={argsText ?? toolName}
+      title={t("ai:AI_CHAT_APPROVAL_TITLE")}
+      subtitle={toolName}
+      onAllowOnce={() => respond(true)}
+      onDeny={() => respond(false)}
+      allowOnceLabel={t("ai:AI_CHAT_APPROVAL_ALLOW_ONCE")}
+      denyLabel={t("ai:AI_CHAT_APPROVAL_DENY")}
+      runningLabel={t("ai:AI_CHAT_APPROVAL_RUNNING")}
+      deniedLabel={t("ai:AI_CHAT_APPROVAL_DENIED")}
+      doneLabel={t("ai:AI_CHAT_APPROVAL_DONE")}
+      className={className}
       {...props}
-    >
-      <Button size="sm" className={pressable} onClick={() => respond(true)} disabled={submitted}>
-        Allow
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        className={pressable}
-        onClick={() => respond(false)}
-        disabled={submitted}
-      >
-        Deny
-      </Button>
-    </div>
+    />
   );
 }
 
@@ -487,6 +499,7 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   approval,
   respondToApproval,
 }) => {
+  const { t } = useTranslation(["ai"]);
   const isCancelled = status?.type === "incomplete" && status.reason === "cancelled";
   const isRequiresAction = status?.type === "requires-action";
 
@@ -495,6 +508,25 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   if (isRequiresAction !== prevRequiresAction) {
     setPrevRequiresAction(isRequiresAction);
     if (isRequiresAction) setOpen(true);
+  }
+
+  if (!isRequiresAction && interrupt == null) {
+    return (
+      <ToolCall
+        label={t("ai:AI_CHAT_TOOL_USED", { tool: toolName })}
+        activeLabel={t("ai:AI_CHAT_TOOL_USING", { tool: toolName })}
+        query={toolName}
+        request={argsText ?? ""}
+        result={
+          result === undefined ? "" : typeof result === "string" ? result : JSON.stringify(result)
+        }
+        running={status?.type === "running"}
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <ToolFallbackError status={status} className="px-3.5 pb-3" />
+      </ToolCall>
+    );
   }
 
   return (
@@ -510,6 +542,8 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
             interrupt={interrupt}
             approval={approval}
             respondToApproval={respondToApproval}
+            toolName={toolName}
+            argsText={argsText}
           />
         )}
         {!isCancelled && <ToolFallbackResult result={result} />}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -50,8 +51,21 @@ class PlatformSkillGitHubImportRequest(SkillGitHubImportCreateRequest):
     """Synchronously import one bounded public GitHub Skill snapshot."""
 
 
+class PlatformSkillCatalogOptionOut(BaseSchema):
+    id: str = Field(min_length=1, max_length=192)
+    label: str = Field(min_length=1, max_length=128)
+    description: str = Field(min_length=1, max_length=1000)
+    risk: Literal["low", "medium", "high"]
+    available: bool = True
+
+
 class PlatformSkillCapabilitiesOut(BaseSchema):
-    supported_tool_ids: tuple[str, ...]
+    supported_tools: tuple[PlatformSkillCatalogOptionOut, ...]
+    permissions: tuple[PlatformSkillCatalogOptionOut, ...]
+    egress_destinations: tuple[PlatformSkillCatalogOptionOut, ...]
+    data_classes: tuple[PlatformSkillCatalogOptionOut, ...]
+    capability_tags: tuple[PlatformSkillCatalogOptionOut, ...]
+    reference_mime_types: tuple[PlatformSkillCatalogOptionOut, ...]
 
 
 class PlatformSkillValidationOut(BaseSchema):

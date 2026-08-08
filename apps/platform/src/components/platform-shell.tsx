@@ -126,9 +126,11 @@ export function PlatformShell() {
   return (
     <SidebarProvider defaultOpen>
       <PlatformSidebar pathname={pathname} state={state} />
-      <SidebarInset className="min-h-svh w-auto min-w-0 flex-1 overflow-hidden">
+      <SidebarInset className="h-svh min-h-0 w-auto min-w-0 flex-1 overflow-hidden">
         <PlatformHeader pathname={pathname} state={state} />
-        <PlatformContent pathname={pathname} state={state} />
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
+          <PlatformContent pathname={pathname} state={state} />
+        </main>
       </SidebarInset>
       <Toaster />
     </SidebarProvider>

@@ -86,7 +86,7 @@ export function PlatformSetupPage({ setupState }: { setupState: PlatformSetupSta
         ) : (
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl3">{t("setup:CREATE_OWNER_TITLE")}</CardTitle>
+              <CardTitle className="text-2xl">{t("setup:CREATE_OWNER_TITLE")}</CardTitle>
               <CardDescription>{t("setup:CREATE_OWNER_DESCRIPTION")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -174,7 +174,7 @@ function SetupComplete({ owner, signIn }: { owner: string; signIn: () => void })
         <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <ShieldCheck aria-hidden="true" />
         </div>
-        <CardTitle className="text-2xl3">{t("COMPLETE_TITLE")}</CardTitle>
+        <CardTitle className="text-2xl">{t("COMPLETE_TITLE")}</CardTitle>
         <CardDescription>{t("COMPLETE_DESCRIPTION", { owner })}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -200,7 +200,7 @@ function RepairRequired({ reason, retry }: { reason: string | null; retry: () =>
         <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
           <CircleAlert aria-hidden="true" />
         </div>
-        <CardTitle className="text-2xl3">{t("REPAIR_TITLE")}</CardTitle>
+        <CardTitle className="text-2xl">{t("REPAIR_TITLE")}</CardTitle>
         <CardDescription>{t("REPAIR_DESCRIPTION")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

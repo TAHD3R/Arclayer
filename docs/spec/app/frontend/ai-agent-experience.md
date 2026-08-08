@@ -132,6 +132,8 @@ The server owns metadata versions. Rename, archive, restore, delete, and optiona
 - Load normalized `AIMessage` and ordered `AIMessagePart` rows from the backend and map them into `ThreadMessage`/part projections.
 - Persist a user message and create its Run atomically/idempotently through the canonical Run creation command. Do not independently append a local message, PATCH a snapshot, and then start execution.
 - Preserve server message IDs, parent/branch relationships, part IDs, status, timestamps, Agent/run provenance, source/file references, and Tool call IDs.
+- A human-input Tool question and the accepted user answer are ordinary persisted assistant/user messages in the transcript. The Tool renderer may show waiting or answered status, but it is never their only presentation.
+- The adapter must not manufacture a sent human answer with a browser-only ID or keep a local answer array as recovery authority. It reconciles the server-returned message identity before continuing the Run.
 - Incremental events update the runtime projection by stable IDs and sequence. They never replace the whole backend history.
 - Duplicate/replayed events are ignored by persisted event identity/sequence, not by comparing text.
 - Missing sequence, invalid transition, unknown part type, or schema mismatch produces an explicit adapter error and recovery fetch. It is not silently coerced to text.
@@ -415,6 +417,8 @@ When status is `requires-action`, render:
 - checkpoint and correlation context without exposing credentials.
 
 The renderer submits through `POST /workspaces/{workspaceId}/ai/tool-calls/{toolCallId}/responses` with an idempotency key. Run resume uses the canonical Run resume endpoint and includes checkpoint ID plus expected durable sequence.
+
+For human-input Tools, the composer submits the answer through the same canonical Tool-response boundary. The acknowledged response identifies the persisted user message; the adapter renders that backend message and then resumes the Run. Refresh, reconnect, thread switching, and snapshot replacement preserve the preceding assistant question and the user answer without text-based deduplication or local synthetic replacements.
 
 After a decision:
 

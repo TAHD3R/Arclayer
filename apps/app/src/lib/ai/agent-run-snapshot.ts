@@ -124,10 +124,7 @@ function overlayHumanInterrupt(
   if (interrupt?.reason !== "human_tool_input") return messages;
   const state = { ...current, messages };
   const { messageId, part } = findToolPart(state, interrupt.toolCallId);
-  if (
-    (part.status !== "running" && part.status !== "requires_action") ||
-    part.approval !== undefined
-  ) {
+  if ((part.status !== "running" && part.status !== "requires_action") || part.approval != null) {
     throw new AgentRuntimeProtocolError("AGENT_SNAPSHOT_INVALID");
   }
   return updatePart(state, messageId, part.partId, (currentPart) => ({
@@ -180,11 +177,12 @@ function readSnapshotChangeSets(snapshot: AgentRunSnapshotV1): AgentRunProjectio
 export function replaceAgentRunProjectionFromExpiredCursor(
   current: AgentRunProjectionV1,
   response: { readonly error: string; readonly snapshot: AgentRunSnapshotV1 },
+  options: Readonly<{ preserveThreadMessages?: boolean }> = {},
 ): AgentRunProjectionV1 {
   if (response.error !== "EVENT_CURSOR_EXPIRED") {
     throw new AgentRuntimeProtocolError("AGENT_CURSOR_RECOVERY_INVALID");
   }
-  return replaceAgentRunProjectionFromSnapshot(current, response.snapshot);
+  return replaceAgentRunProjectionFromSnapshot(current, response.snapshot, options);
 }
 
 export function replaceAgentThreadMessages(
@@ -215,6 +213,7 @@ export function replaceAgentThreadMessages(
 export function replaceAgentRunProjectionFromSnapshot(
   current: AgentRunProjectionV1,
   snapshot: AgentRunSnapshotV1,
+  options: Readonly<{ preserveThreadMessages?: boolean }> = {},
 ): AgentRunProjectionV1 {
   if (
     snapshot.snapshotVersion !== 1 ||
@@ -234,7 +233,10 @@ export function replaceAgentRunProjectionFromSnapshot(
   if (new Set(messageEntries.map(([messageId]) => messageId)).size !== messageEntries.length) {
     throw new AgentRuntimeProtocolError("AGENT_SNAPSHOT_INVALID");
   }
-  const baseMessages = Object.fromEntries(messageEntries);
+  const snapshotMessages = Object.fromEntries(messageEntries);
+  const baseMessages = options.preserveThreadMessages
+    ? { ...current.messages, ...snapshotMessages }
+    : snapshotMessages;
   const runState = readSnapshotRunState(snapshot, current);
   const interrupt = readSnapshotInterrupt(snapshot, runState.runStatus);
   const messages = overlayHumanInterrupt(current, baseMessages, interrupt);
@@ -269,7 +271,13 @@ export function replaceAgentRunProjectionFromSnapshot(
     run:
       snapshot.run === undefined
         ? current.run
-        : { ...snapshot.run, ...(interrupt === null ? {} : interrupt) },
+        : {
+            ...snapshot.run,
+            ...(snapshot.error === undefined || snapshot.error === null
+              ? {}
+              : { error: snapshot.error }),
+            ...(interrupt === null ? {} : interrupt),
+          },
     delegations: Object.fromEntries(delegationEntries),
     usage: readSnapshotUsage(snapshot.usage),
     changeSets: readSnapshotChangeSets(snapshot),

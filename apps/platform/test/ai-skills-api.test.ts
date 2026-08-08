@@ -76,8 +76,24 @@ describe("Platform AI Skills API", () => {
     const version = { id: "version-2", versionNumber: 2 };
     vi.mocked(platformListPlatformSkills).mockResolvedValue(result(page, "/skills"));
     vi.mocked(platformGetPlatformSkill).mockResolvedValue(result(skill, "/skills/package-1"));
+    const capabilities = {
+      supportedTools: [
+        {
+          id: "human.request_input",
+          label: "Human input",
+          description: "Pause a run and ask the operator for an answer.",
+          risk: "medium" as const,
+          available: true,
+        },
+      ],
+      permissions: [],
+      egressDestinations: [],
+      dataClasses: [],
+      capabilityTags: [],
+      referenceMimeTypes: [],
+    };
     vi.mocked(platformGetPlatformSkillCapabilities).mockResolvedValue(
-      result({ supportedToolIds: ["human.request_input"] }, "/skills/capabilities"),
+      result(capabilities, "/skills/capabilities"),
     );
     vi.mocked(platformCreatePlatformSkill).mockResolvedValue(result(skill, "/skills"));
     vi.mocked(platformUpdatePlatformSkill).mockResolvedValue(result(skill, "/skills/package-1"));
@@ -107,9 +123,7 @@ describe("Platform AI Skills API", () => {
       path: { package_id: "package-1" },
     });
 
-    await expect(getPlatformSkillCapabilities()).resolves.toEqual({
-      supportedToolIds: ["human.request_input"],
-    });
+    await expect(getPlatformSkillCapabilities()).resolves.toEqual(capabilities);
     expect(platformGetPlatformSkillCapabilities).toHaveBeenCalledWith({
       client: platformApiClient,
     });

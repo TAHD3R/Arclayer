@@ -33,7 +33,7 @@ export function ProductApplicationLink() {
 
 export function LocaleMenu() {
   const { t } = useTranslation("common");
-  const { locale, setLocale } = usePlatformPreferences();
+  const { languages, locale, setLocale } = usePlatformPreferences();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -46,14 +46,24 @@ export function LocaleMenu() {
         <DropdownMenuRadioGroup
           value={locale}
           onValueChange={(value) => {
-            if (value !== "zh-CN" && value !== "en-US") {
+            if (!languages.some((language) => language.locale === value && language.enabled)) {
               throw new Error(`Unsupported Platform locale: ${value}`);
             }
-            setLocale(value);
+            setLocale(value as typeof locale);
           }}
         >
-          <DropdownMenuRadioItem value="zh-CN">{t("LANGUAGE_ZH_CN")}</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="en-US">{t("LANGUAGE_EN_US")}</DropdownMenuRadioItem>
+          {languages
+            .filter((language) => language.enabled)
+            .map((language) => (
+              <DropdownMenuRadioItem key={language.locale} value={language.locale}>
+                <span
+                  className={`fi fi-${language.flag_code} rounded-sm ring-1 ring-border`}
+                  aria-hidden="true"
+                  role="img"
+                />
+                {language.native_name}
+              </DropdownMenuRadioItem>
+            ))}
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>

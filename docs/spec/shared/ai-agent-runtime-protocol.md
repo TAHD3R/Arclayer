@@ -215,8 +215,8 @@ The v1 public discriminated union contains the following event types. Fields lis
 | `tool.failed` | `toolCallId`, `failedAt`, `error: PublicErrorV1` | Tool execution failed explicitly. It does not imply that the whole run is terminal. |
 | `approval.required` | `approval: ApprovalV1`, `messageId`, `partId` | Attaches pending approval metadata to the existing tool-call part. It is not a standalone message part. |
 | `approval.resolved` | resolved `approval: ApprovalV1`, `resolvedAt`, `resolvedByActorId` | Records approved, rejected, cancelled, or expired resolution before graph resume or terminal failure. |
-| `run.interrupted` | `interruptId`, `checkpointId`, `reason`, optional `approvalId`, optional `toolCallId` | The durable graph checkpoint is waiting for approval or human Tool input. |
-| `run.resumed` | `interruptId`, `checkpointId`, `resumedAt`, `resumeKind` | A validated approval decision or human result was accepted and supplied to LangGraph. Raw resume payloads are not public. |
+| `run.interrupted` | `interruptId`, `checkpointId`, `reason`, optional `approvalId`, optional `toolCallId` | The durable graph checkpoint is waiting for approval or human Tool input. For `human_tool_input`, the user-visible assistant question must already exist as a persisted assistant message part before this event commits. |
+| `run.resumed` | `interruptId`, `checkpointId`, `resumedAt`, `resumeKind`, optional `responseMessageId` | A validated approval decision or human result was accepted and supplied to LangGraph. Raw resume payloads are not public. A human result references the persisted user answer message. |
 | `delegation.delegated` | `delegationId`, `parentToolCallId`, `childRunId`, `sourceAgentVersionId`, `targetAgentVersionId`, `delegatedAt`, public `objectiveSummary` | A validated specialist child run was created under a delegation Tool call. |
 | `delegation.completed` | `delegationId`, `childRunId`, `completedAt`, optional `artifactRefs`, public `summary` | The child run settled successfully and its public nested messages/artifacts are complete. |
 | `delegation.failed` | `delegationId`, `childRunId`, `failedAt`, `error: PublicErrorV1` | Delegated work failed; parent policy decides whether the parent can continue. |
@@ -227,6 +227,8 @@ The v1 public discriminated union contains the following event types. Fields lis
 | `run.failed` | `failedAt`, `error: PublicErrorV1`, `incompletePartIds`, `settlement: SettlementV1` | Failed terminal event after cleanup and budget reconciliation/release. |
 
 `approval.required` must be immediately followed by the matching `run.interrupted` event when server approval pauses the graph. Both reference the same run, thread, checkpoint, approval, and Tool call. Human-input Tools use a tool-call `interrupt` projection plus `run.interrupted`; they do not fabricate approval metadata.
+
+For `human_tool_input`, the interruption question is durable conversation content, not only Tool metadata. The server must persist an assistant-authored text part containing the user-visible question before committing `run.interrupted`. On a valid human response, the server must persist one user-authored text message in the same idempotent response/resume workflow before committing `run.resumed`; repeating the same idempotency key returns the existing response and message identity. Snapshots, replay, thread history, and the assistant-ui adapter must retain both messages in order. The Tool call may transition from `requires_action` to `complete` or `failed`, but that status projection must never replace, hide, or delete the question or answer.
 
 For a visible Tool call, `message.part.started` establishes its tool-call part before `tool.started`, `approval.required`, or a human interrupt refers to it. `tool.completed` or `tool.failed` precedes the matching `message.part.completed` when the part reaches a terminal status.
 

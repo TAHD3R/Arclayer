@@ -148,6 +148,8 @@ async def _reserve_lots(
     requested: int,
     conn: BaseDBAsyncClient,
 ) -> None:
+    if requested == 0:
+        return
     remaining = requested
     existing = {
         UUID(str(row.lot_id)): row

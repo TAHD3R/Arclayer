@@ -586,6 +586,8 @@ class WorkspaceActionPlanner:
             default_data_retention_enabled=settings.ai.data_retention_enabled,
             master_key_path=settings.ai.master_key_path,
             allow_platform_key=settings.ai.allow_platform_key,
+            workspace_key_auto_provision_enabled=settings.ai.workspace_key_auto_provision_enabled,
+            settings=settings,
         )
 
     async def plan(

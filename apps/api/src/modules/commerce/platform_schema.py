@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -79,3 +79,6 @@ class PlatformCommerceSubscriptionQuery(BaseSchema):
     plan_code: str | None = None
     status: SubscriptionStatus | None = None
     provider: str | None = None
+    search: str | None = Field(default=None, max_length=200)
+    sort_by: Literal["current_period_end", "status", "plan_code"] = "current_period_end"
+    sort_direction: Literal["asc", "desc"] = "desc"

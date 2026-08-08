@@ -5,6 +5,52 @@ export type ClientOptions = {
 };
 
 /**
+ * AIObservabilitySummaryOut
+ */
+export type AiObservabilitySummaryOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * P50Latencyms
+     */
+    p50LatencyMs: number;
+    /**
+     * P95Latencyms
+     */
+    p95LatencyMs: number;
+    /**
+     * P99Latencyms
+     */
+    p99LatencyMs: number;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Totaltokens
+     */
+    totalTokens: number;
+};
+
+/**
  * AIProviderIcon
  *
  * Theme-aware provider icon shared by Platform and Product APIs.
@@ -68,6 +114,81 @@ export type AiUsageGroupOut = {
      * Totaltokens
      */
     totalTokens: number;
+};
+
+/**
+ * AIUsageRecordOrdering
+ */
+export type AiUsageRecordOrdering = '-created_at' | 'created_at' | '-cost_micros' | '-duration_ms';
+
+/**
+ * AIUsageRecordOut
+ */
+export type AiUsageRecordOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Durationms
+     */
+    durationMs?: number | null;
+    /**
+     * Errorcode
+     */
+    errorCode?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Requesttype
+     */
+    requestType: string;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Totaltokens
+     */
+    totalTokens: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
 };
 
 /**
@@ -421,10 +542,6 @@ export type AiPolicyDraftInput = {
      */
     maxTokensPerRequest?: number;
     /**
-     * Retentiondays
-     */
-    retentionDays?: number;
-    /**
      * Retrylimit
      */
     retryLimit?: number;
@@ -548,10 +665,6 @@ export type AiPolicyRevisionOut = {
      * Publishedat
      */
     publishedAt?: string | null;
-    /**
-     * Retentiondays
-     */
-    retentionDays?: number;
     /**
      * Retrylimit
      */
@@ -2952,6 +3065,40 @@ export type FeedbackUserOut = {
 };
 
 /**
+ * HTTPObservabilitySummaryOut
+ */
+export type HttpObservabilitySummaryOut = {
+    /**
+     * Avglatencyms
+     */
+    avgLatencyMs: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * Maxlatencyms
+     */
+    maxLatencyMs: number;
+    /**
+     * P95Latencyms
+     */
+    p95LatencyMs?: number | null;
+    /**
+     * P99Latencyms
+     */
+    p99LatencyMs?: number | null;
+    /**
+     * Requests
+     */
+    requests: number;
+};
+
+/**
  * HTTPRequestGroupOrdering
  */
 export type HttpRequestGroupOrdering = '-requests' | '-error_rate' | '-p95_latency_ms' | '-p99_latency_ms' | '-avg_latency_ms' | '-last_seen_at';
@@ -5227,6 +5374,67 @@ export type NotificationWorkspaceSettingsTarget = {
 export type ObjectStorageProviderKind = 'local' | 'aws_s3' | 'minio' | 'cloudflare_r2' | 'aliyun_oss' | 'volcengine_tos';
 
 /**
+ * ObservabilityAttributionCoverageOut
+ */
+export type ObservabilityAttributionCoverageOut = {
+    /**
+     * Attributedrecords
+     */
+    attributedRecords: number;
+    /**
+     * Coveragerate
+     */
+    coverageRate: number;
+    /**
+     * Supported
+     */
+    supported: boolean;
+    /**
+     * Totalrecords
+     */
+    totalRecords: number;
+};
+
+/**
+ * ObservabilityDataAvailabilityOut
+ */
+export type ObservabilityDataAvailabilityOut = {
+    aiProjectAttribution: ObservabilityAttributionCoverageOut;
+    auditProjectAttribution: ObservabilityAttributionCoverageOut;
+    httpProjectAttribution: ObservabilityAttributionCoverageOut;
+};
+
+/**
+ * ObservabilityOperationsOut
+ */
+export type ObservabilityOperationsOut = {
+    /**
+     * Activesubscriptions
+     */
+    activeSubscriptions: number;
+    /**
+     * Auditevents
+     */
+    auditEvents: number;
+    /**
+     * Openfeedback
+     */
+    openFeedback: number;
+};
+
+/**
+ * ObservabilityOverviewOut
+ */
+export type ObservabilityOverviewOut = {
+    ai: AiObservabilitySummaryOut;
+    dataAvailability: ObservabilityDataAvailabilityOut;
+    http: HttpObservabilitySummaryOut;
+    operations: ObservabilityOperationsOut;
+    period: ObservabilityPeriodOut;
+    resources: ObservabilityResourcesOut;
+};
+
+/**
  * ObservabilityPeriodOut
  */
 export type ObservabilityPeriodOut = {
@@ -5242,6 +5450,28 @@ export type ObservabilityPeriodOut = {
      * Startdate
      */
     startDate: string;
+};
+
+/**
+ * ObservabilityResourcesOut
+ */
+export type ObservabilityResourcesOut = {
+    /**
+     * Activemembers
+     */
+    activeMembers?: number | null;
+    /**
+     * Activeprojects
+     */
+    activeProjects: number;
+    /**
+     * Activeusers
+     */
+    activeUsers?: number | null;
+    /**
+     * Activeworkspaces
+     */
+    activeWorkspaces?: number | null;
 };
 
 /**
@@ -5705,6 +5935,102 @@ export type PageDataAiUsageGroupOut = {
      * Current page items.
      */
     items?: Array<AiUsageGroupOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[AIUsageRecordOut]
+ */
+export type PageDataAiUsageRecordOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<AiUsageRecordOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[AiPolicyRevisionOut]
+ */
+export type PageDataAiPolicyRevisionOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<AiPolicyRevisionOut>;
     /**
      * Next
      *
@@ -7296,6 +7622,37 @@ export type PlatformAiProviderReadinessOut = {
 };
 
 /**
+ * PlatformAIRuntimeHealthOut
+ */
+export type PlatformAiRuntimeHealthOut = {
+    /**
+     * Currentruns
+     */
+    currentRuns: number;
+    /**
+     * Failedruns
+     */
+    failedRuns: number;
+    /**
+     * Measuredat
+     */
+    measuredAt: string;
+    providerReadiness: PlatformAiProviderReadinessOut;
+    /**
+     * Queuelatencyms
+     */
+    queueLatencyMs: number | null;
+    /**
+     * Queuedjobs
+     */
+    queuedJobs: number;
+    /**
+     * Waitingruns
+     */
+    waitingRuns: number;
+};
+
+/**
  * PlatformAITaskActionAvailabilityOut
  */
 export type PlatformAiTaskActionAvailabilityOut = {
@@ -7333,6 +7690,107 @@ export type PlatformAiTaskActionRequest = {
      * Reason
      */
     reason?: string | null;
+};
+
+/**
+ * PlatformAITaskDiagnosticsOut
+ */
+export type PlatformAiTaskDiagnosticsOut = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Errorcode
+     */
+    errorCode?: string | null;
+    /**
+     * Failureclassification
+     */
+    failureClassification?: string | null;
+    /**
+     * Retrydecision
+     */
+    retryDecision?: string | null;
+    /**
+     * Sanitizedmetadata
+     */
+    sanitizedMetadata?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Traceid
+     */
+    traceId?: string | null;
+};
+
+/**
+ * PlatformAITaskDossierOut
+ */
+export type PlatformAiTaskDossierOut = {
+    /**
+     * Attempts
+     */
+    attempts: Array<{
+        [key: string]: unknown;
+    }>;
+    diagnostics: PlatformAiTaskDiagnosticsOut;
+    links: PlatformAiTaskLinksOut;
+    messages: PlatformAiTaskMessageSummaryOut;
+    /**
+     * Rawcontentavailable
+     */
+    rawContentAvailable: boolean;
+    task: PlatformAiTaskOut;
+    /**
+     * Timeline
+     */
+    timeline: Array<PlatformAiTaskTimelineEntryOut>;
+    usage: PlatformAiTaskUsageOut;
+};
+
+/**
+ * PlatformAITaskLinksOut
+ */
+export type PlatformAiTaskLinksOut = {
+    /**
+     * Runpath
+     */
+    runPath: string;
+    /**
+     * Taskpath
+     */
+    taskPath: string;
+    /**
+     * Usagepath
+     */
+    usagePath: string;
+};
+
+/**
+ * PlatformAITaskMessageSummaryOut
+ */
+export type PlatformAiTaskMessageSummaryOut = {
+    /**
+     * Assistant
+     */
+    assistant: number;
+    /**
+     * Latestat
+     */
+    latestAt?: string | null;
+    /**
+     * Tool
+     */
+    tool: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * User
+     */
+    user: number;
 };
 
 /**
@@ -7410,6 +7868,58 @@ export type PlatformAiTaskOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformAITaskTimelineEntryOut
+ */
+export type PlatformAiTaskTimelineEntryOut = {
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+    /**
+     * Sequence
+     */
+    sequence?: number | null;
+    /**
+     * Source
+     */
+    source: 'run' | 'job' | 'attempt' | 'event' | 'approval' | 'recovery';
+    /**
+     * Status
+     */
+    status?: string | null;
+    /**
+     * Summary
+     */
+    summary: string;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * PlatformAITaskUsageOut
+ */
+export type PlatformAiTaskUsageOut = {
+    /**
+     * Settlement
+     */
+    settlement?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Telemetryavailable
+     */
+    telemetryAvailable: boolean;
+    /**
+     * Usage
+     */
+    usage?: {
+        [key: string]: unknown;
+    } | null;
 };
 
 /**
@@ -8864,6 +9374,132 @@ export type PlatformInvoiceOut = {
 };
 
 /**
+ * PlatformLanguageCatalogDraftOut
+ */
+export type PlatformLanguageCatalogDraftOut = {
+    /**
+     * Bundleready
+     */
+    bundleReady: boolean;
+    /**
+     * Defaultlocale
+     */
+    defaultLocale: string;
+    /**
+     * Draftrevision
+     */
+    draftRevision: number;
+    /**
+     * Enabledlocales
+     */
+    enabledLocales: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * PlatformLanguageCatalogDraftWrite
+ */
+export type PlatformLanguageCatalogDraftWrite = {
+    /**
+     * Defaultlocale
+     */
+    defaultLocale: string;
+    /**
+     * Enabledlocales
+     */
+    enabledLocales: Array<string>;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
+ * PlatformLanguageCatalogEntryOut
+ */
+export type PlatformLanguageCatalogEntryOut = {
+    /**
+     * Bundleready
+     */
+    bundleReady: boolean;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Flagcode
+     */
+    flagCode: string;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Languagename
+     */
+    languageName: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Nativename
+     */
+    nativeName: string;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+};
+
+/**
+ * PlatformLanguageCatalogImpactOut
+ */
+export type PlatformLanguageCatalogImpactOut = {
+    /**
+     * Affectedsurfaces
+     */
+    affectedSurfaces: Array<string>;
+    /**
+     * Draftrevision
+     */
+    draftRevision: number;
+    /**
+     * Readytopublish
+     */
+    readyToPublish: boolean;
+    /**
+     * Requiresproducttodo
+     */
+    requiresProductTodo: boolean;
+};
+
+/**
+ * PlatformLanguageCatalogPublishRequest
+ */
+export type PlatformLanguageCatalogPublishRequest = {
+    /**
+     * Draftrevision
+     */
+    draftRevision: number;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
  * PlatformMfaMethodReadinessOut
  */
 export type PlatformMfaMethodReadinessOut = {
@@ -9216,7 +9852,7 @@ export type PlatformPermissionCatalogItemOut = {
  *
  * Stable exact permission identifiers for Platform API authorization.
  */
-export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-skills:read' | 'platform:ai-skills:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-policy:read' | 'platform:ai-policy:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:workspace-capability-rollout:apply';
+export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-skills:read' | 'platform:ai-skills:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-policy:read' | 'platform:ai-policy:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:system-settings:read' | 'platform:system-settings:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:workspace-capability-rollout:apply';
 
 /**
  * PlatformProvisioningSettingsOut
@@ -9304,6 +9940,50 @@ export type PlatformRefundOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformRegionalSettingsOut
+ */
+export type PlatformRegionalSettingsOut = {
+    /**
+     * Dateformat
+     */
+    dateFormat: string;
+    /**
+     * Numberformat
+     */
+    numberFormat: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
+};
+
+/**
+ * PlatformRegionalSettingsWrite
+ */
+export type PlatformRegionalSettingsWrite = {
+    /**
+     * Dateformat
+     */
+    dateFormat: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Numberformat
+     */
+    numberFormat: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
 };
 
 /**
@@ -10057,13 +10737,103 @@ export type PlatformSignInSettingsOut = {
 };
 
 /**
+ * PlatformSiteMetadataSettingsOut
+ */
+export type PlatformSiteMetadataSettingsOut = {
+    /**
+     * Defaultdescription
+     */
+    defaultDescription: string | null;
+    /**
+     * Defaulttitle
+     */
+    defaultTitle: string | null;
+    /**
+     * Titleformat
+     */
+    titleFormat: string;
+};
+
+/**
+ * PlatformSiteMetadataSettingsWrite
+ */
+export type PlatformSiteMetadataSettingsWrite = {
+    /**
+     * Defaultdescription
+     */
+    defaultDescription?: string | null;
+    /**
+     * Defaulttitle
+     */
+    defaultTitle?: string | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Titleformat
+     */
+    titleFormat: string;
+};
+
+/**
  * PlatformSkillCapabilitiesOut
  */
 export type PlatformSkillCapabilitiesOut = {
     /**
-     * Supportedtoolids
+     * Capabilitytags
      */
-    supportedToolIds: Array<string>;
+    capabilityTags: Array<PlatformSkillCatalogOptionOut>;
+    /**
+     * Dataclasses
+     */
+    dataClasses: Array<PlatformSkillCatalogOptionOut>;
+    /**
+     * Egressdestinations
+     */
+    egressDestinations: Array<PlatformSkillCatalogOptionOut>;
+    /**
+     * Permissions
+     */
+    permissions: Array<PlatformSkillCatalogOptionOut>;
+    /**
+     * Referencemimetypes
+     */
+    referenceMimeTypes: Array<PlatformSkillCatalogOptionOut>;
+    /**
+     * Supportedtools
+     */
+    supportedTools: Array<PlatformSkillCatalogOptionOut>;
+};
+
+/**
+ * PlatformSkillCatalogOptionOut
+ */
+export type PlatformSkillCatalogOptionOut = {
+    /**
+     * Available
+     */
+    available?: boolean;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Risk
+     */
+    risk: 'low' | 'medium' | 'high';
 };
 
 /**
@@ -10653,6 +11423,228 @@ export type PlatformStepUpWebAuthnCompleteRequest = {
  */
 export type PlatformStepUpWebAuthnOptionsOut = {
     options: PlatformWebAuthnAuthenticationOptions;
+};
+
+/**
+ * PlatformSystemDomainSettingsOut
+ */
+export type PlatformSystemDomainSettingsOut = {
+    /**
+     * Consoledomain
+     */
+    consoleDomain: string;
+    /**
+     * Primarydomain
+     */
+    primaryDomain: string;
+    /**
+     * Reservedlabels
+     */
+    reservedLabels: Array<string>;
+};
+
+/**
+ * PlatformSystemDomainSettingsWrite
+ */
+export type PlatformSystemDomainSettingsWrite = {
+    /**
+     * Consolesubdomain
+     */
+    consoleSubdomain: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Primarydomain
+     */
+    primaryDomain: string;
+    /**
+     * Reservedlabels
+     */
+    reservedLabels: Array<string>;
+};
+
+/**
+ * PlatformSystemIdentitySettingsOut
+ */
+export type PlatformSystemIdentitySettingsOut = {
+    /**
+     * Contactemail
+     */
+    contactEmail: string | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Faviconurl
+     */
+    faviconUrl: string | null;
+    /**
+     * Instancename
+     */
+    instanceName: string;
+    /**
+     * Logourl
+     */
+    logoUrl: string | null;
+};
+
+/**
+ * PlatformSystemIdentitySettingsWrite
+ */
+export type PlatformSystemIdentitySettingsWrite = {
+    /**
+     * Contactemail
+     */
+    contactEmail?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Faviconurl
+     */
+    faviconUrl?: string | null;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Instancename
+     */
+    instanceName: string;
+    /**
+     * Logourl
+     */
+    logoUrl?: string | null;
+};
+
+/**
+ * PlatformSystemSettingFieldOut
+ */
+export type PlatformSystemSettingFieldOut = {
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Options
+     */
+    options: Array<PlatformSystemSettingOptionOut>;
+    /**
+     * Secret
+     */
+    secret: boolean;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * PlatformSystemSettingOptionOut
+ */
+export type PlatformSystemSettingOptionOut = {
+    /**
+     * Label
+     */
+    label: string | null;
+    /**
+     * Value
+     */
+    value: unknown;
+};
+
+/**
+ * PlatformSystemSettingSectionOut
+ */
+export type PlatformSystemSettingSectionOut = {
+    /**
+     * Editable
+     */
+    editable: boolean;
+    /**
+     * Fields
+     */
+    fields: Array<PlatformSystemSettingFieldOut>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Secretkeys
+     */
+    secretKeys: Array<string>;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Values
+     */
+    values: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * PlatformSystemSettingsOut
+ */
+export type PlatformSystemSettingsOut = {
+    domains: PlatformSystemDomainSettingsOut;
+    identity: PlatformSystemIdentitySettingsOut;
+    /**
+     * Languages
+     */
+    languages: Array<PlatformLanguageCatalogEntryOut>;
+    regional: PlatformRegionalSettingsOut;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Sections
+     */
+    sections?: Array<PlatformSystemSettingSectionOut>;
+    siteMetadata: PlatformSiteMetadataSettingsOut;
+};
+
+/**
+ * PlatformSystemSettingsSectionWrite
+ */
+export type PlatformSystemSettingsSectionWrite = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Values
+     */
+    values: {
+        [key: string]: JsonValueInput;
+    };
 };
 
 /**
@@ -11795,6 +12787,10 @@ export type ProviderReadinessOut = {
      */
     provider: string;
     /**
+     * Revision
+     */
+    revision?: number;
+    /**
      * Supportedcapabilities
      */
     supportedCapabilities: Array<string>;
@@ -12731,6 +13727,31 @@ export type ResponseModelNotificationCampaignSummaryOut = {
 };
 
 /**
+ * ResponseModel[ObservabilityOverviewOut]
+ */
+export type ResponseModelObservabilityOverviewOut = {
+    data?: ObservabilityOverviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ObservabilityTrendOut]
  */
 export type ResponseModelObservabilityTrendOut = {
@@ -12785,6 +13806,56 @@ export type ResponseModelOperationalSignalDetailOut = {
  */
 export type ResponseModelPageDataAiUsageGroupOut = {
     data?: PageDataAiUsageGroupOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[AIUsageRecordOut]]
+ */
+export type ResponseModelPageDataAiUsageRecordOut = {
+    data?: PageDataAiUsageRecordOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[AiPolicyRevisionOut]]
+ */
+export type ResponseModelPageDataAiPolicyRevisionOut = {
+    data?: PageDataAiPolicyRevisionOut | null;
     /**
      * Error
      */
@@ -13431,6 +14502,56 @@ export type ResponseModelPlatformAiProviderReadinessOut = {
 };
 
 /**
+ * ResponseModel[PlatformAIRuntimeHealthOut]
+ */
+export type ResponseModelPlatformAiRuntimeHealthOut = {
+    data?: PlatformAiRuntimeHealthOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformAITaskDossierOut]
+ */
+export type ResponseModelPlatformAiTaskDossierOut = {
+    data?: PlatformAiTaskDossierOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformAITaskOut]
  */
 export type ResponseModelPlatformAiTaskOut = {
@@ -13931,6 +15052,56 @@ export type ResponseModelPlatformInvoiceListOut = {
 };
 
 /**
+ * ResponseModel[PlatformLanguageCatalogDraftOut]
+ */
+export type ResponseModelPlatformLanguageCatalogDraftOut = {
+    data?: PlatformLanguageCatalogDraftOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformLanguageCatalogImpactOut]
+ */
+export type ResponseModelPlatformLanguageCatalogImpactOut = {
+    data?: PlatformLanguageCatalogImpactOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformMfaReadinessOut]
  */
 export type ResponseModelPlatformMfaReadinessOut = {
@@ -14285,6 +15456,31 @@ export type ResponseModelPlatformStepUpProofIssueResult = {
  */
 export type ResponseModelPlatformStepUpWebAuthnOptionsOut = {
     data?: PlatformStepUpWebAuthnOptionsOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformSystemSettingsOut]
+ */
+export type ResponseModelPlatformSystemSettingsOut = {
+    data?: PlatformSystemSettingsOut | null;
     /**
      * Error
      */
@@ -17286,11 +18482,19 @@ export type SystemAgentCatalogCapabilitiesOut = {
      */
     agentRuntimeProtocol: 1;
     /**
+     * Approvalprofilecatalog
+     */
+    approvalProfileCatalog?: Array<SystemAgentCatalogOptionOut>;
+    /**
      * Constraints
      */
     constraints?: {
         [key: string]: JsonValueOutput;
     };
+    /**
+     * Executionmodecatalog
+     */
+    executionModeCatalog?: Array<SystemAgentCatalogOptionOut>;
     /**
      * Harddeletesupported
      */
@@ -17299,6 +18503,10 @@ export type SystemAgentCatalogCapabilitiesOut = {
      * Knowledgegrantsavailable
      */
     knowledgeGrantsAvailable: boolean;
+    /**
+     * Modelpolicycatalog
+     */
+    modelPolicyCatalog?: Array<SystemAgentCatalogOptionOut>;
     /**
      * Modelroutingpolicies
      */
@@ -17311,6 +18519,36 @@ export type SystemAgentCatalogCapabilitiesOut = {
      * Supportedtoolgrants
      */
     supportedToolGrants: Array<string>;
+    /**
+     * Toolgrantcatalog
+     */
+    toolGrantCatalog?: Array<SystemAgentCatalogOptionOut>;
+};
+
+/**
+ * SystemAgentCatalogOptionOut
+ */
+export type SystemAgentCatalogOptionOut = {
+    /**
+     * Available
+     */
+    available?: boolean;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Risk
+     */
+    risk: 'low' | 'medium' | 'high';
 };
 
 /**
@@ -20424,6 +21662,22 @@ export type PlatformGetPlatformAiProviderReadinessResponses = {
 
 export type PlatformGetPlatformAiProviderReadinessResponse = PlatformGetPlatformAiProviderReadinessResponses[keyof PlatformGetPlatformAiProviderReadinessResponses];
 
+export type PlatformGetPlatformAiRuntimeHealthData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/ai-services/runtime-health';
+};
+
+export type PlatformGetPlatformAiRuntimeHealthResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiRuntimeHealthOut;
+};
+
+export type PlatformGetPlatformAiRuntimeHealthResponse = PlatformGetPlatformAiRuntimeHealthResponses[keyof PlatformGetPlatformAiRuntimeHealthResponses];
+
 export type PlatformListPlatformAiTasksData = {
     body?: never;
     path?: never;
@@ -20432,6 +21686,46 @@ export type PlatformListPlatformAiTasksData = {
          * Status
          */
         status?: AgentRunStatusV1 | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Agentid
+         */
+        agentId?: string | null;
+        /**
+         * Agentversionid
+         */
+        agentVersionId?: string | null;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Model
+         */
+        model?: string | null;
+        /**
+         * Failureclass
+         */
+        failureClass?: string | null;
+        /**
+         * Correlation
+         */
+        correlation?: string | null;
+        /**
+         * Waitingreason
+         */
+        waitingReason?: string | null;
+        /**
+         * Agedays
+         */
+        ageDays?: number | null;
         /**
          * Page
          *
@@ -20466,6 +21760,36 @@ export type PlatformListPlatformAiTasksResponses = {
 
 export type PlatformListPlatformAiTasksResponse = PlatformListPlatformAiTasksResponses[keyof PlatformListPlatformAiTasksResponses];
 
+export type PlatformGetPlatformAiTaskData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai-services/tasks/{task_id}';
+};
+
+export type PlatformGetPlatformAiTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformAiTaskError = PlatformGetPlatformAiTaskErrors[keyof PlatformGetPlatformAiTaskErrors];
+
+export type PlatformGetPlatformAiTaskResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiTaskOut;
+};
+
+export type PlatformGetPlatformAiTaskResponse = PlatformGetPlatformAiTaskResponses[keyof PlatformGetPlatformAiTaskResponses];
+
 export type PlatformCancelPlatformAiTaskData = {
     body: PlatformAiTaskActionRequest;
     path: {
@@ -20495,6 +21819,36 @@ export type PlatformCancelPlatformAiTaskResponses = {
 };
 
 export type PlatformCancelPlatformAiTaskResponse = PlatformCancelPlatformAiTaskResponses[keyof PlatformCancelPlatformAiTaskResponses];
+
+export type PlatformGetPlatformAiTaskDossierData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai-services/tasks/{task_id}/dossier';
+};
+
+export type PlatformGetPlatformAiTaskDossierErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformAiTaskDossierError = PlatformGetPlatformAiTaskDossierErrors[keyof PlatformGetPlatformAiTaskDossierErrors];
+
+export type PlatformGetPlatformAiTaskDossierResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiTaskDossierOut;
+};
+
+export type PlatformGetPlatformAiTaskDossierResponse = PlatformGetPlatformAiTaskDossierResponses[keyof PlatformGetPlatformAiTaskDossierResponses];
 
 export type PlatformReconcilePlatformAiTaskData = {
     body: PlatformAiTaskActionRequest;
@@ -20671,6 +22025,48 @@ export type PlatformPublishAiPolicyResponses = {
 };
 
 export type PlatformPublishAiPolicyResponse = PlatformPublishAiPolicyResponses[keyof PlatformPublishAiPolicyResponses];
+
+export type PlatformListAiPolicyRevisionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'draft' | 'published' | 'retired' | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/ai/policies/revisions';
+};
+
+export type PlatformListAiPolicyRevisionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListAiPolicyRevisionsError = PlatformListAiPolicyRevisionsErrors[keyof PlatformListAiPolicyRevisionsErrors];
+
+export type PlatformListAiPolicyRevisionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAiPolicyRevisionOut;
+};
+
+export type PlatformListAiPolicyRevisionsResponse = PlatformListAiPolicyRevisionsResponses[keyof PlatformListAiPolicyRevisionsResponses];
 
 export type PlatformListSystemAiProvidersData = {
     body?: never;
@@ -21225,6 +22621,18 @@ export type PlatformCommerceListPlatformCommerceInvoicesData = {
          * Status
          */
         status?: CommerceInvoiceStatus | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Sortby
+         */
+        sortBy?: 'issued_at' | 'amount_due_micros' | 'status';
+        /**
+         * Sortdirection
+         */
+        sortDirection?: 'asc' | 'desc';
     };
     url: '/platform-api/v1/commerce/invoices';
 };
@@ -21332,6 +22740,42 @@ export type PlatformCommerceCreateCommercePlanResponses = {
 };
 
 export type PlatformCommerceCreateCommercePlanResponse = PlatformCommerceCreateCommercePlanResponses[keyof PlatformCommerceCreateCommercePlanResponses];
+
+export type PlatformCommerceDeactivateCommercePlanData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/plans/{code}/deactivate';
+};
+
+export type PlatformCommerceDeactivateCommercePlanErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceDeactivateCommercePlanError = PlatformCommerceDeactivateCommercePlanErrors[keyof PlatformCommerceDeactivateCommercePlanErrors];
+
+export type PlatformCommerceDeactivateCommercePlanResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCommercePlanIdentityOut;
+};
+
+export type PlatformCommerceDeactivateCommercePlanResponse = PlatformCommerceDeactivateCommercePlanResponses[keyof PlatformCommerceDeactivateCommercePlanResponses];
 
 export type PlatformCommerceListCommercePlanRevisionsData = {
     body?: never;
@@ -21545,6 +22989,18 @@ export type PlatformCommerceListCommerceProviderEventsData = {
          * Status
          */
         status?: ConnectorEventInboxStatus | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Sortby
+         */
+        sortBy?: 'created_at' | 'status' | 'processing_attempts';
+        /**
+         * Sortdirection
+         */
+        sortDirection?: 'asc' | 'desc';
     };
     url: '/platform-api/v1/commerce/provider/events';
 };
@@ -21613,6 +23069,18 @@ export type PlatformCommerceListPlatformCommerceRefundsData = {
          * Status
          */
         status?: CommerceRefundStatus | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Sortby
+         */
+        sortBy?: 'created_at' | 'amount_micros' | 'status';
+        /**
+         * Sortdirection
+         */
+        sortDirection?: 'asc' | 'desc';
     };
     url: '/platform-api/v1/commerce/refunds';
 };
@@ -21895,6 +23363,18 @@ export type PlatformCommerceListPlatformCommerceSubscriptionsData = {
          * Provider
          */
         provider?: string | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Sortby
+         */
+        sortBy?: 'current_period_end' | 'status' | 'plan_code';
+        /**
+         * Sortdirection
+         */
+        sortDirection?: 'asc' | 'desc';
     };
     url: '/platform-api/v1/commerce/subscriptions';
 };
@@ -21971,6 +23451,18 @@ export type PlatformCommerceListPlatformCommerceTransactionsData = {
          * Kind
          */
         kind?: CommerceTransactionKind | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Sortby
+         */
+        sortBy?: 'occurred_at' | 'amount_micros' | 'status';
+        /**
+         * Sortdirection
+         */
+        sortDirection?: 'asc' | 'desc';
     };
     url: '/platform-api/v1/commerce/transactions';
 };
@@ -25164,6 +26656,14 @@ export type PlatformListPlatformAiUsageGroupsData = {
          */
         days?: number;
         /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
+        /**
          * Q
          */
         q?: string | null;
@@ -25213,6 +26713,131 @@ export type PlatformListPlatformAiUsageGroupsResponses = {
 
 export type PlatformListPlatformAiUsageGroupsResponse = PlatformListPlatformAiUsageGroupsResponses[keyof PlatformListPlatformAiUsageGroupsResponses];
 
+export type PlatformListPlatformAiUsageRecordsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Status
+         */
+        status?: string | null;
+        /**
+         * Source
+         */
+        source?: string | null;
+        /**
+         * Errorcode
+         */
+        errorCode?: string | null;
+        ordering?: AiUsageRecordOrdering;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/observability/ai-usage-records';
+};
+
+export type PlatformListPlatformAiUsageRecordsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformAiUsageRecordsError = PlatformListPlatformAiUsageRecordsErrors[keyof PlatformListPlatformAiUsageRecordsErrors];
+
+export type PlatformListPlatformAiUsageRecordsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAiUsageRecordOut;
+};
+
+export type PlatformListPlatformAiUsageRecordsResponse = PlatformListPlatformAiUsageRecordsResponses[keyof PlatformListPlatformAiUsageRecordsResponses];
+
+export type PlatformGetPlatformObservabilityOverviewData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/platform-api/v1/observability/overview';
+};
+
+export type PlatformGetPlatformObservabilityOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformObservabilityOverviewError = PlatformGetPlatformObservabilityOverviewErrors[keyof PlatformGetPlatformObservabilityOverviewErrors];
+
+export type PlatformGetPlatformObservabilityOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelObservabilityOverviewOut;
+};
+
+export type PlatformGetPlatformObservabilityOverviewResponse = PlatformGetPlatformObservabilityOverviewResponses[keyof PlatformGetPlatformObservabilityOverviewResponses];
+
 export type PlatformListPlatformHttpRequestGroupsData = {
     body?: never;
     path?: never;
@@ -25221,6 +26846,14 @@ export type PlatformListPlatformHttpRequestGroupsData = {
          * Days
          */
         days?: number;
+        /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
         /**
          * Q
          */
@@ -25284,6 +26917,14 @@ export type PlatformListPlatformHttpRequestRecordsData = {
          * Days
          */
         days?: number;
+        /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
         /**
          * Q
          */
@@ -25364,6 +27005,14 @@ export type PlatformGetPlatformObservabilityTrendData = {
          * Days
          */
         days?: number;
+        /**
+         * Startdate
+         */
+        startDate?: string | null;
+        /**
+         * Enddate
+         */
+        endDate?: string | null;
         /**
          * Workspaceid
          */
@@ -25845,6 +27494,232 @@ export type PlatformUpdateSavedViewResponses = {
 };
 
 export type PlatformUpdateSavedViewResponse = PlatformUpdateSavedViewResponses[keyof PlatformUpdateSavedViewResponses];
+
+export type PlatformGetPlatformSystemSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings';
+};
+
+export type PlatformGetPlatformSystemSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformGetPlatformSystemSettingsResponse = PlatformGetPlatformSystemSettingsResponses[keyof PlatformGetPlatformSystemSettingsResponses];
+
+export type PlatformUpdatePlatformDomainsData = {
+    body: PlatformSystemDomainSettingsWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/domains';
+};
+
+export type PlatformUpdatePlatformDomainsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformDomainsError = PlatformUpdatePlatformDomainsErrors[keyof PlatformUpdatePlatformDomainsErrors];
+
+export type PlatformUpdatePlatformDomainsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformUpdatePlatformDomainsResponse = PlatformUpdatePlatformDomainsResponses[keyof PlatformUpdatePlatformDomainsResponses];
+
+export type PlatformUpdatePlatformIdentityData = {
+    body: PlatformSystemIdentitySettingsWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/identity';
+};
+
+export type PlatformUpdatePlatformIdentityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformIdentityError = PlatformUpdatePlatformIdentityErrors[keyof PlatformUpdatePlatformIdentityErrors];
+
+export type PlatformUpdatePlatformIdentityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformUpdatePlatformIdentityResponse = PlatformUpdatePlatformIdentityResponses[keyof PlatformUpdatePlatformIdentityResponses];
+
+export type PlatformCreatePlatformLanguageDraftData = {
+    body: PlatformLanguageCatalogDraftWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/languages/drafts';
+};
+
+export type PlatformCreatePlatformLanguageDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCreatePlatformLanguageDraftError = PlatformCreatePlatformLanguageDraftErrors[keyof PlatformCreatePlatformLanguageDraftErrors];
+
+export type PlatformCreatePlatformLanguageDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformLanguageCatalogDraftOut;
+};
+
+export type PlatformCreatePlatformLanguageDraftResponse = PlatformCreatePlatformLanguageDraftResponses[keyof PlatformCreatePlatformLanguageDraftResponses];
+
+export type PlatformPreviewPlatformLanguageDraftData = {
+    body?: never;
+    path: {
+        /**
+         * Draft Revision
+         */
+        draft_revision: number;
+    };
+    query?: never;
+    url: '/platform-api/v1/settings/languages/drafts/{draft_revision}/impact';
+};
+
+export type PlatformPreviewPlatformLanguageDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPreviewPlatformLanguageDraftError = PlatformPreviewPlatformLanguageDraftErrors[keyof PlatformPreviewPlatformLanguageDraftErrors];
+
+export type PlatformPreviewPlatformLanguageDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformLanguageCatalogImpactOut;
+};
+
+export type PlatformPreviewPlatformLanguageDraftResponse = PlatformPreviewPlatformLanguageDraftResponses[keyof PlatformPreviewPlatformLanguageDraftResponses];
+
+export type PlatformPublishPlatformLanguageDraftData = {
+    body: PlatformLanguageCatalogPublishRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/languages/publish';
+};
+
+export type PlatformPublishPlatformLanguageDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPublishPlatformLanguageDraftError = PlatformPublishPlatformLanguageDraftErrors[keyof PlatformPublishPlatformLanguageDraftErrors];
+
+export type PlatformPublishPlatformLanguageDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformPublishPlatformLanguageDraftResponse = PlatformPublishPlatformLanguageDraftResponses[keyof PlatformPublishPlatformLanguageDraftResponses];
+
+export type PlatformUpdatePlatformRegionalData = {
+    body: PlatformRegionalSettingsWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/regional';
+};
+
+export type PlatformUpdatePlatformRegionalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformRegionalError = PlatformUpdatePlatformRegionalErrors[keyof PlatformUpdatePlatformRegionalErrors];
+
+export type PlatformUpdatePlatformRegionalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformUpdatePlatformRegionalResponse = PlatformUpdatePlatformRegionalResponses[keyof PlatformUpdatePlatformRegionalResponses];
+
+export type PlatformUpdatePlatformSettingsSectionData = {
+    body: PlatformSystemSettingsSectionWrite;
+    path: {
+        /**
+         * Section
+         */
+        section: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/settings/sections/{section}';
+};
+
+export type PlatformUpdatePlatformSettingsSectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformSettingsSectionError = PlatformUpdatePlatformSettingsSectionErrors[keyof PlatformUpdatePlatformSettingsSectionErrors];
+
+export type PlatformUpdatePlatformSettingsSectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformUpdatePlatformSettingsSectionResponse = PlatformUpdatePlatformSettingsSectionResponses[keyof PlatformUpdatePlatformSettingsSectionResponses];
+
+export type PlatformUpdatePlatformSiteMetadataData = {
+    body: PlatformSiteMetadataSettingsWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/settings/site-metadata';
+};
+
+export type PlatformUpdatePlatformSiteMetadataErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdatePlatformSiteMetadataError = PlatformUpdatePlatformSiteMetadataErrors[keyof PlatformUpdatePlatformSiteMetadataErrors];
+
+export type PlatformUpdatePlatformSiteMetadataResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSystemSettingsOut;
+};
+
+export type PlatformUpdatePlatformSiteMetadataResponse = PlatformUpdatePlatformSiteMetadataResponses[keyof PlatformUpdatePlatformSiteMetadataResponses];
 
 export type PlatformBootstrapInstanceData = {
     body: SystemBootstrapRequest;
@@ -26798,6 +28673,41 @@ export type PlatformReplacePlatformSkillResponses = {
 };
 
 export type PlatformReplacePlatformSkillResponse = PlatformReplacePlatformSkillResponses[keyof PlatformReplacePlatformSkillResponses];
+
+export type PlatformRestorePlatformSkillData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query: {
+        /**
+         * Expectedrevision
+         */
+        expectedRevision: number;
+    };
+    url: '/platform-api/v1/skills/{package_id}/restore';
+};
+
+export type PlatformRestorePlatformSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRestorePlatformSkillError = PlatformRestorePlatformSkillErrors[keyof PlatformRestorePlatformSkillErrors];
+
+export type PlatformRestorePlatformSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSkillPackageDetailOut;
+};
+
+export type PlatformRestorePlatformSkillResponse = PlatformRestorePlatformSkillResponses[keyof PlatformRestorePlatformSkillResponses];
 
 export type PlatformCreatePlatformSkillVersionData = {
     body: PlatformSkillVersionCreateRequest;

@@ -28,6 +28,7 @@
     "@magicui": "https://magicui.design/r/{name}",
     "@fonttrio": "https://www.fonttrio.xyz/r/{name}.json",
     "@plate": "https://platejs.org/r/{name}.json",
-    "@kokonutui": "https://kokonutui.com/r/{name}.json"
+    "@kokonutui": "https://kokonutui.com/r/{name}.json",
+    "@assistant-ui": "https://r.assistant-ui.com/{name}.json"
   }
 }

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { DirectoryWorkspaceDetailOut } from "@arclayer/platform-openapi";
 
 import { useCapabilityAccess } from "@/capabilities/capability-access";
+import { WorkspaceCreditsCard } from "@/pages/commerce-credits";
 import {
   EditWorkspaceDialog,
   WorkspaceAccessDialog,
@@ -22,6 +23,7 @@ export function TenantWorkspaceDetail(props: {
   onChanged: () => void;
 }) {
   const { t, i18n } = useTranslation("tenants");
+  const { t: commerceT } = useTranslation("commerce");
   const capability = useCapabilityAccess("tenant-governance");
   const [workspace, setWorkspace] = useState(props.item);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -42,7 +44,7 @@ export function TenantWorkspaceDetail(props: {
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="truncate text-2xl3 font-semibold">{workspace.name}</h2>
+          <h2 className="truncate text-2xl font-semibold">{workspace.name}</h2>
           {workspace.description ? (
             <p className="mt-1 text-base text-muted-foreground">{workspace.description}</p>
           ) : null}
@@ -71,6 +73,24 @@ export function TenantWorkspaceDetail(props: {
         <Detail label={t("LAST_ACTIVITY")} value={formatDate(workspace.lastActivityAt)} />
         <Detail label={t("LAST_UPDATED")} value={formatDate(workspace.updatedAt)} />
       </dl>
+
+      {workspace.commerce.credits ? (
+        <section className="grid gap-3" aria-labelledby="workspace-credits-heading">
+          <div>
+            <h3 className="text-base" id="workspace-credits-heading">
+              {commerceT("CREDIT_BALANCE")}
+            </h3>
+            <p className="text-base text-muted-foreground">
+              {commerceT("CREDITS_BALANCE_DESCRIPTION")}
+            </p>
+          </div>
+          <WorkspaceCreditsCard
+            credits={workspace.commerce.credits}
+            onAdjusted={() => props.onChanged()}
+            workspaceId={workspace.workspaceId}
+          />
+        </section>
+      ) : null}
 
       <Separator />
       <section className="grid gap-3" aria-labelledby="workspace-access-heading">

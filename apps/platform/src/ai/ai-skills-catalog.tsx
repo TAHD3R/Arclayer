@@ -54,6 +54,7 @@ export function PlatformSkillCatalog({
   onEdit,
   onVersion,
   onArchive,
+  onRestore,
 }: Readonly<{
   status: string;
   data?: PageDataPlatformSkillPackageSummaryOut;
@@ -65,6 +66,7 @@ export function PlatformSkillCatalog({
   onEdit: (skillId: string) => void;
   onVersion: (skillId: string) => void;
   onArchive: (skill: PlatformSkillPackageSummaryOut) => void;
+  onRestore: (skill: PlatformSkillPackageSummaryOut) => void;
 }>) {
   const { t } = useTranslation("ai");
   if (status === "loading") {
@@ -154,6 +156,7 @@ export function PlatformSkillCatalog({
                 <SkillActions
                   disabled={pending === `load:${skill.id}`}
                   onArchive={() => onArchive(skill)}
+                  onRestore={() => onRestore(skill)}
                   onEdit={() => onEdit(skill.id)}
                   onVersion={() => onVersion(skill.id)}
                   onView={() => onView(skill.id)}
@@ -175,6 +178,7 @@ function SkillActions({
   onEdit,
   onVersion,
   onArchive,
+  onRestore,
 }: Readonly<{
   skill: PlatformSkillPackageSummaryOut;
   disabled: boolean;
@@ -182,6 +186,7 @@ function SkillActions({
   onEdit: () => void;
   onVersion: () => void;
   onArchive: () => void;
+  onRestore: () => void;
 }>) {
   const { t } = useTranslation("ai");
   const archived = skill.status === "archived";
@@ -207,10 +212,14 @@ function SkillActions({
           {t("SKILL_VERSION_CREATE_ACTION")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive" disabled={archived} onSelect={onArchive}>
-          <Archive aria-hidden="true" />
-          {t("SKILL_ARCHIVE_ACTION")}
-        </DropdownMenuItem>
+        {archived ? (
+          <DropdownMenuItem onSelect={onRestore}>{t("RESTORE")}</DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem className="text-destructive" onSelect={onArchive}>
+            <Archive aria-hidden="true" />
+            {t("SKILL_ARCHIVE_ACTION")}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

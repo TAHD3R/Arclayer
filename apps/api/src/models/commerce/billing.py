@@ -80,6 +80,7 @@ class CommerceCatalogCommandAction(StrEnum):
     CREATE_DRAFT = "create_draft"
     UPDATE_DRAFT = "update_draft"
     PUBLISH_DRAFT = "publish_draft"
+    DEACTIVATE_PLAN = "deactivate_plan"
 
 
 class CommercePlan(BaseModel):

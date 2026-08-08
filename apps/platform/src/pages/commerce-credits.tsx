@@ -47,6 +47,7 @@ export function CommerceCreditsPage() {
             <Input
               aria-label={t("WORKSPACE")}
               onChange={(event) => setWorkspaceId(event.target.value)}
+              placeholder={t("WORKSPACE_ID_PLACEHOLDER")}
               value={workspaceId}
             />
             <Button disabled={!workspaceId.trim()} type="submit">
@@ -83,7 +84,7 @@ function WorkspaceCredits({ workspaceId }: Readonly<{ workspaceId: string }>) {
   );
 }
 
-function WorkspaceCreditsCard({
+export function WorkspaceCreditsCard({
   credits,
   workspaceId,
   onAdjusted,
@@ -211,6 +212,7 @@ function CreditAdjustmentDialog({
               id="credit-delta"
               inputMode="numeric"
               onChange={(event) => setDelta(event.target.value)}
+              placeholder={t("CREDIT_DELTA_PLACEHOLDER")}
               required
               step="1"
               type="number"
@@ -222,6 +224,7 @@ function CreditAdjustmentDialog({
               id="credit-reason"
               maxLength={1000}
               onChange={(event) => setReason(event.target.value)}
+              placeholder={t("CREDIT_REASON_PLACEHOLDER")}
               required
               rows={4}
               value={reason}
@@ -235,6 +238,7 @@ function CreditAdjustmentDialog({
               id="credit-evidence"
               maxLength={255}
               onChange={(event) => setEvidenceReference(event.target.value)}
+              placeholder={t("EVIDENCE_REFERENCE_PLACEHOLDER")}
               required
               value={evidenceReference}
             />

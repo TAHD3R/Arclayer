@@ -20,13 +20,16 @@ import uuid
 from collections.abc import AsyncIterator
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
 from src.llm.provider import BaseLLMProvider
+
+if TYPE_CHECKING:
+    from src.config import Settings
 
 _API_SRC_DIR = Path(__file__).resolve().parent  # apps/api/src/llm
 _REPO_ROOT = _API_SRC_DIR.parents[3]  # repo root
@@ -174,6 +177,8 @@ class LLMRuntime:
         default_data_retention_enabled: bool = False,
         master_key_path: str | None = None,
         allow_platform_key: bool = False,
+        workspace_key_auto_provision_enabled: bool = False,
+        settings: Settings | None = None,
         provider: BaseLLMProvider | None = None,
     ) -> None:
         self._litellm_base_url = litellm_base_url
@@ -182,6 +187,8 @@ class LLMRuntime:
         self._default_data_retention_enabled = default_data_retention_enabled
         self._master_key_path = _resolve_key_path(master_key_path) if master_key_path else None
         self._allow_platform_key = allow_platform_key
+        self._workspace_key_auto_provision_enabled = workspace_key_auto_provision_enabled
+        self._settings = settings
         if provider is not None:
             self._provider = provider
         else:
@@ -227,6 +234,17 @@ class LLMRuntime:
             else None
         )
         effective_max_tokens = max_tokens if max_tokens is not None else self._default_max_tokens
+
+        if self._workspace_key_auto_provision_enabled:
+            from src.config import get_settings
+            from src.llm.workspace_key_provisioning import ensure_workspace_virtual_key
+
+            await ensure_workspace_virtual_key(
+                self._settings or get_settings(),
+                workspace_id=context.workspace_id,
+                user_id=context.user_id,
+                provider=provider_name,
+            )
 
         resolved_key = await resolve_litellm_key(
             workspace_id=context.workspace_id,

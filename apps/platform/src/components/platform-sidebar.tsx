@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -200,6 +200,7 @@ function CapabilityNavigation(props: {
   pathname: string;
 }) {
   const { t } = useTranslation("navigation");
+  const { setOpenMobile } = useSidebar();
   const activeCapabilityId = props.projection.capabilityItems.find((item) =>
     item.destinations.some((destination) => isDestinationActive(props.pathname, destination)),
   )?.capabilityId;
@@ -239,6 +240,29 @@ function CapabilityNavigation(props: {
                 />
               </SidebarMenuItem>
             ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>{t("PLATFORM_SETTINGS_GROUP")}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={props.pathname === "/settings"}
+                tooltip={t("common:SYSTEM_SETTINGS_TITLE")}
+              >
+                <Link
+                  aria-current={props.pathname === "/settings" ? "page" : undefined}
+                  onClick={() => setOpenMobile(false)}
+                  to="/settings"
+                >
+                  <Settings aria-hidden="true" />
+                  <span>{t("common:SYSTEM_SETTINGS_TITLE")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -313,7 +337,7 @@ export function PlatformSidebar(props: { state: ResolvedCapabilityState; pathnam
       <SidebarHeader>
         <PlatformBrand />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="overscroll-contain">
         {props.state.status === "success" ? (
           <CapabilityNavigation pathname={props.pathname} projection={props.state.projection} />
         ) : (

@@ -2,9 +2,7 @@ import { useCallback } from "react";
 import { useAui, useAuiState } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
-import { cn } from "@arclayer/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { Suggestions } from "@/components/assistant-ui/elements/suggestions";
 import { AI_PROMPT_STARTER_CATEGORIES } from "@/components/ai/ai-prompt-starters";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -117,7 +115,6 @@ export function AISuggestions(props: AISuggestionsProps) {
   const { t } = useTranslation(["ai"]);
   const aui = useAui();
   const disabled = useAuiState((s) => s.thread.isDisabled);
-  const running = useAuiState((s) => s.thread.isRunning);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
   const suggestions = selectSuggestions({
     currentProjectId,
@@ -144,45 +141,18 @@ export function AISuggestions(props: AISuggestionsProps) {
 
   return (
     <div className={props.className} data-testid="ai-suggestions">
-      {suggestions.map((suggestion) => {
-        const title = t(`ai:${suggestion.titleKey}`);
-        const prompt = t(`ai:${suggestion.promptKey}`);
-        const description = normalizeTooltipText(t(`ai:${suggestion.descriptionKey}`));
-        return (
-          <div
-            key={suggestion.id}
-            className="fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  aria-label={title}
-                  disabled={disabled}
-                  onClick={() => submitSuggestion(prompt)}
-                  className={cn(
-                    "h-9 max-w-full border border-border/60 bg-background/20 px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted",
-                    props.variant === "home"
-                      ? "h-11 !rounded-md bg-card min-[769px]:h-9"
-                      : "!rounded-full",
-                    running && "text-label-secondary",
-                  )}
-                >
-                  <span className="truncate">{title}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-72 whitespace-normal leading-snug" layout={false}>
-                {description}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        );
-      })}
+      <Suggestions
+        suggestions={suggestions.map((suggestion) => t(`ai:${suggestion.titleKey}`))}
+        selectedSuggestion={null}
+        cycle={0}
+        variant={props.variant === "home" ? "list" : "pills"}
+        onSuggestion={(title) => {
+          const suggestion = suggestions.find(
+            (candidate) => t(`ai:${candidate.titleKey}`) === title,
+          );
+          if (suggestion !== undefined) submitSuggestion(t(`ai:${suggestion.promptKey}`));
+        }}
+      />
     </div>
   );
-}
-
-function normalizeTooltipText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
 }

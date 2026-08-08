@@ -32,7 +32,7 @@ export function PlatformAuthLayout({
             <ShieldCheck aria-hidden="true" className="size-5" />
           </span>
           <div className="space-y-3">
-            <h2 className="text-2xl1 font-semibold tracking-tight">
+            <h2 className="text-2xl font-semibold tracking-tight">
               {t("access:PLATFORM_VERIFICATION_REQUIRED")}
             </h2>
             <p className="text-base leading-7 text-muted-foreground">

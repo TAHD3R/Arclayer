@@ -300,7 +300,7 @@ function ProfileSettings({
 
 function PreferencesSettings() {
   const { t } = useTranslation(["access", "common"]);
-  const { locale, setLocale, setTheme, theme } = usePlatformPreferences();
+  const { languages, locale, setLocale, setTheme, theme } = usePlatformPreferences();
   return (
     <div className="space-y-5">
       <Card>
@@ -309,15 +309,22 @@ function PreferencesSettings() {
           <CardDescription>{t("access:ACCOUNT_LANGUAGE_DESCRIPTION")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {(["zh-CN", "en-US"] as const).map((value) => (
-            <Button
-              key={value}
-              onClick={() => setLocale(value)}
-              variant={locale === value ? "default" : "outline"}
-            >
-              {t(value === "zh-CN" ? "common:LANGUAGE_ZH_CN" : "common:LANGUAGE_EN_US")}
-            </Button>
-          ))}
+          {languages
+            .filter((language) => language.enabled)
+            .map((language) => (
+              <Button
+                key={language.locale}
+                onClick={() => setLocale(language.locale)}
+                variant={locale === language.locale ? "default" : "outline"}
+              >
+                <span
+                  className={`fi fi-${language.flag_code} rounded-sm ring-1 ring-border`}
+                  aria-hidden="true"
+                  role="img"
+                />
+                {language.native_name}
+              </Button>
+            ))}
         </CardContent>
       </Card>
       <Card>

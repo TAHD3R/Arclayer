@@ -63,19 +63,33 @@ function start(name, commandName, args, env) {
     cwd: ROOT,
     env,
     detached: true,
-    stdio: ["ignore", log, log],
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  child.stdout.pipe(log, { end: false });
+  child.stderr.pipe(log, { end: false });
   child.once("error", (error) => log.write(`spawn error: ${error.stack ?? error.message}\n`));
   return { child, log, name };
 }
 
 async function stop(processes) {
   for (const { child } of processes) {
-    if (child.pid && child.exitCode === null) process.kill(-child.pid, "SIGTERM");
+    if (child.pid && child.exitCode === null) {
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch (error) {
+        if (error?.code !== "ESRCH") throw error;
+      }
+    }
   }
   await new Promise((resolve) => setTimeout(resolve, 750));
   for (const { child, log } of processes) {
-    if (child.pid && child.exitCode === null) process.kill(-child.pid, "SIGKILL");
+    if (child.pid && child.exitCode === null) {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch (error) {
+        if (error?.code !== "ESRCH") throw error;
+      }
+    }
     log.end();
   }
 }
@@ -110,10 +124,12 @@ function acceptanceEnvironment() {
     APP_ENV: "test",
     DATABASE__ENABLED: "1",
     VALKEY__ENABLED: "1",
+    VALKEY__PASSWORD: "arclayer_dev",
     TESTING__DATABASE_NAME: DATABASE_NAME,
     TESTING__VALKEY_DB: String(VALKEY_DB),
     TESTING__VALKEY_PREFIX: "browser_acceptance",
     TESTING__VALKEY_DEFAULT_TTL: "60",
+    APPLICATION__DATA_DIR: RUN_ROOT,
     AUTH__JWT_SECRET: productJwtSecret,
     AUTH__JWT_ISSUER: "arclayer-browser-product",
     AUTH__JWT_AUDIENCE: "arclayer-browser-product-api",
@@ -150,10 +166,6 @@ function acceptanceEnvironment() {
 }
 
 async function resetIsolatedState() {
-  const sql = [
-    `DROP DATABASE IF EXISTS \"${DATABASE_NAME}\" WITH (FORCE);`,
-    `CREATE DATABASE \"${DATABASE_NAME}\";`,
-  ].join(" ");
   await command("docker", ["compose", "up", "-d", "postgres", "valkey", "traefik"]);
   await command("docker", [
     "compose",
@@ -162,7 +174,16 @@ async function resetIsolatedState() {
     "postgres",
     "sh",
     "-lc",
-    `psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -d postgres -c '${sql}'`,
+    `PGPASSWORD=\"$POSTGRES_PASSWORD\" psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -d postgres -c 'DROP DATABASE IF EXISTS \"${DATABASE_NAME}\" WITH (FORCE);'`,
+  ]);
+  await command("docker", [
+    "compose",
+    "exec",
+    "-T",
+    "postgres",
+    "sh",
+    "-lc",
+    `PGPASSWORD=\"$POSTGRES_PASSWORD\" psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -d postgres -c 'CREATE DATABASE \"${DATABASE_NAME}\";'`,
   ]);
   await command("docker", [
     "compose",
@@ -170,6 +191,8 @@ async function resetIsolatedState() {
     "-T",
     "valkey",
     "valkey-cli",
+    "-a",
+    "arclayer_dev",
     "-n",
     String(VALKEY_DB),
     "FLUSHDB",

@@ -277,3 +277,33 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
             json=duplicate_grants_payload,
         )
         assert duplicate_grants.status_code == 422, duplicate_grants.text
+
+
+async def test_system_agent_definition_can_restore_only_as_an_explicit_lifecycle_transition(prepared_db) -> None:
+    _ = prepared_db
+    app = _test_app()
+
+    async with asgi_client(app) as client:
+        created = await _create_custom_definition(client, slug="restore-editor")
+        definition_id = created["id"]
+
+        archived = await client.patch(
+            f"/platform-api/v1/agents/{definition_id}",
+            json={"lifecycleState": "archived"},
+        )
+        assert archived.status_code == 200, archived.text
+        assert archived.json()["data"]["lifecycleState"] == "archived"
+
+        mixed_restore = await client.patch(
+            f"/platform-api/v1/agents/{definition_id}",
+            json={"lifecycleState": "active", "displayName": "Restored Editor"},
+        )
+        assert mixed_restore.status_code == 409, mixed_restore.text
+        assert mixed_restore.json()["error"] == "AGENT_DEFINITION_ARCHIVED"
+
+        restored = await client.patch(
+            f"/platform-api/v1/agents/{definition_id}",
+            json={"lifecycleState": "active"},
+        )
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["data"]["lifecycleState"] == "active"

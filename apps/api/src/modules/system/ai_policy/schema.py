@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from src.common.schemas import BaseSchema
+from src.core.http.pagination import PageData
 
 
 class AiPolicyDraftInput(BaseSchema):
@@ -22,7 +23,6 @@ class AiPolicyDraftInput(BaseSchema):
         max_length=16,
     )
     retry_limit: int = Field(default=0, ge=0, le=20)
-    retention_days: int = Field(default=0, ge=0, le=3650)
 
     @model_validator(mode="after")
     def validate_supported_policy(self) -> AiPolicyDraftInput:
@@ -47,6 +47,9 @@ class AiPolicyRevisionOut(AiPolicyDraftInput):
 class AiPolicyOut(BaseSchema):
     draft: AiPolicyRevisionOut | None = None
     published: AiPolicyRevisionOut | None = None
+
+
+AiPolicyRevisionPage = PageData[AiPolicyRevisionOut]
 
 
 class AiPolicyPreviewRequest(BaseSchema):

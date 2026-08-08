@@ -140,6 +140,22 @@ _Avoid_: Unpublished, deleted site, disconnected domain
 The Platform Domain that operates the plan catalog, cross-Workspace subscriptions, provider integration, billing events, and audited commercial corrections.
 _Avoid_: Workspace Plan & Usage, billing dashboard, system settings
 
+**Commerce Configuration Center**:
+The Commerce-owned Platform Console surface that manages Provider and Connector readiness, payment-recovery policy, and persisted Commerce catalog rules while linking to other domains' capability state without owning it.
+_Avoid_: Global Settings, Platform Capability Catalog, Workspace Plan & Usage
+
+**Commerce Catalog Rule**:
+A persisted Commerce constraint or definition that validates Plan terms across currencies, billing cycles, Credits, Entitlements, resource allowances, and Provider price mappings.
+_Avoid_: Plan Revision, Platform Capability, frontend validation rule
+
+**Language Catalog**:
+The deployment-owned registry of supported locales and their display metadata, enabled/default state, ordering, and flag presentation; it does not contain arbitrary translation content.
+_Avoid_: Translation key editor, browser locale preference, Country directory
+
+**System Settings Platform Domain**:
+The authenticated Platform Domain at `/settings` that owns deployment-wide configuration with no other domain authority, including instance identity, domain defaults, Platform language metadata, regional/display defaults, SEO defaults, and explicitly cross-cutting behavior.
+_Avoid_: Setup wizard, Account preferences, Global catch-all settings
+
 **Tenant Governance Platform Domain**:
 The Platform Domain whose primary work queue is Workspaces and whose peer investigative views cover cross-tenant Users, Projects, access restrictions, and authorized lifecycle or legal cases.
 _Avoid_: Tenant Overview, customer dashboard, Workspace Administration
@@ -155,6 +171,22 @@ _Avoid_: User directory, Workspace permissions, Access settings
 **Platform AI Operations Domain**:
 The Platform Domain that operates cross-Workspace AI tasks, model and provider readiness, official Agent availability, safety policy, and runtime recovery.
 _Avoid_: Agent settings, Workspace Customization, AI dashboard
+
+**Platform Agent Definition**:
+A deployment-owned official assistant identity whose runnable behavior is supplied by retained Platform Agent Versions.
+_Avoid_: Workspace Agent, mutable assistant configuration, Agent settings row
+
+**Platform Agent Version**:
+An immutable validated configuration of one Platform Agent Definition that may be published for new tasks or retired while historical attribution remains intact.
+_Avoid_: In-place assistant edit, overwritten prompt, disposable revision
+
+**Skill Declaration**:
+The server-validated statement of the Tools, permissions, data classes, external destinations, references, and capability labels required by one platform Skill version.
+_Avoid_: Arbitrary permission text, implicit Tool access, undocumented data transfer
+
+**Platform AI Policy**:
+The single deployment-wide, revisioned maximum policy that governs AI routing, budgets, Tools, approvals, external data transfer, retention, and runtime availability.
+_Avoid_: Workspace override, assistant-local security policy, saved-but-unenforced setting
 
 **Hosting & Delivery Platform Domain**:
 The Platform Domain that operates cross-Workspace site delivery, domain and certificate readiness, file storage, delivery policy, suspension, and restoration.
@@ -400,6 +432,18 @@ _Avoid_: Incident lifecycle, manual resolution, duplicate domain state
 - Product navigation and page copy translate the **Identity & Access Platform Domain** into plain operator language such as “Access & Security”; canonical engineering terminology, permission codes, provider diagnostics, and raw session state are not used as unexplained primary copy.
 - The **Platform AI Operations Domain** opens its cross-Workspace AI task queue by default and keeps model/provider readiness, official Agent availability, action policy, and runtime recovery in one operator concern.
 - The **Platform AI Operations Domain** may investigate a Workspace task waiting for approval but cannot approve, reject, or apply tenant work on behalf of the authorized Workspace actor.
+- The **Platform AI Operations Domain** may inspect an AI task's execution attempts, diagnostics, cost, and safe recovery options. Recovery creates a new attributable attempt and preserves the original history; it never rewrites user input, fabricates a tool result, or answers a Workspace-owned decision.
+- AI runtime repair preserves the canonical task, message, event, and recovery evidence. A conflicting or orphaned projection may be removed only after its owning execution attempt and references are identified; repair never clears unrelated AI history or disguises an unknown state as success.
+- A human-input interruption is part of the durable conversation: the assistant's question and the user's answer remain ordered, reloadable messages after resume. The tool-call projection may show waiting or completed status, but it is not the sole presentation of either message.
+- A **Platform Agent Definition** is a deployment-owned official assistant that may be offered to eligible Workspaces. Its identity metadata is mutable, while each runnable configuration is an immutable version that is explicitly published or retired. Referenced definitions are archived rather than hard-deleted so historical tasks retain their agent and version attribution.
+- A **Skill Declaration** describes the tools, permissions, data classes, external destinations, and capability labels a platform skill requires. High-risk declaration values come from the server-authoritative capability catalog with localized explanations and risk metadata; a missing catalog entry is a configuration error, not permission to invent an arbitrary value.
+- The **Platform AI Policy** is the deployment-wide, revisioned contract for model/provider routing, budgets, concurrency, retries, tools, approval effects, external data transfer, retention, audit, and runtime availability. Agent versions and Skill Declarations may require capabilities but cannot widen the applied policy; each task records the policy revision it used.
+- AI monitoring exposes complete operational metadata and sanitized diagnostics by default. Raw customer prompts, responses, tool arguments, and external content require an explicit, case-bound, operator-specific, read-only, expiring **Support Access Grant**; no personal preference switch grants blanket access.
+- AI task recovery consists of server-authorized, idempotent actions such as retry, cancel, and projection reconciliation. Each action reports its eligibility and reason, preserves prior attempts and audit evidence, and cannot answer or approve a Workspace-owned interruption.
+- A **Platform Agent Version** moves through draft, validated, published, and retired states. New tasks resolve the published version selected by current policy, while running tasks remain pinned to their recorded version; rollback selects an earlier retained version without deleting history.
+- A platform skill imported from GitHub or ZIP is an isolated draft until integrity, dependency, capability, permission, and policy validation succeeds. Only a published version is selectable by assistants or Workspaces; import, publish, retire, and rollback remain attributable and reversible where safe.
+- Saving a platform AI policy draft is routine session work. Publishing or applying a revision that changes model/provider access, tool or permission scope, external data transfer, approval effects, retention, or runtime availability is a high-risk action requiring an impact preview, explicit reason, current permission, action-bound verification when classified, and audit evidence.
+- AI usage investigation combines current runtime health with retained historical telemetry and task-level drill-down. Historical controls never fabricate expired or missing data, and recovery mutations remain in the Platform AI Operations Domain rather than the monitoring surface.
 - Workspace-authored Knowledge, Skills, Design Systems, Agents, and project work remain in the Product Application; commercial budgets and Credits remain in Commerce, while historical AI trends remain in the **Monitoring & Audit Platform Domain**.
 - Product navigation and page copy translate the **Platform AI Operations Domain** into plain operator language such as “AI services” and “AI tasks”; LangGraph, checkpoint, routing, Provider codes, and runtime enums appear only where technical diagnosis requires them.
 - The **Hosting & Delivery Platform Domain** opens its delivery-issue queue by default and keeps domain, certificate, storage, delivery-policy, suspension, and restoration operations together.

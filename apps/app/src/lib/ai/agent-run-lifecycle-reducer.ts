@@ -20,6 +20,27 @@ function mergeRun(
   return { ...state.run, ...data, status };
 }
 
+function markIncompleteParts(
+  state: AgentRunProjectionV1,
+  partIds: readonly string[],
+): AgentRunProjectionV1["messages"] {
+  const incomplete = new Set(partIds);
+  return Object.fromEntries(
+    Object.entries(state.messages).map(([messageId, message]) => [
+      messageId,
+      {
+        ...message,
+        parts: message.parts.map((part) =>
+          incomplete.has(part.partId) &&
+          (part.status === "running" || part.status === "requires_action")
+            ? { ...part, status: "incomplete" }
+            : part,
+        ),
+      },
+    ]),
+  );
+}
+
 export function applyRunLifecycle(
   state: AgentRunProjectionV1,
   event: AgentRunEventV1,
@@ -67,8 +88,8 @@ export function applyRunLifecycle(
     if (reason !== "approval_required" && reason !== "human_tool_input") {
       throw new AgentRuntimeProtocolError(invalid);
     }
-    if (event.data.approvalId !== undefined) readString(event.data.approvalId, invalid);
-    if (event.data.toolCallId !== undefined) readString(event.data.toolCallId, invalid);
+    if (event.data.approvalId != null) readString(event.data.approvalId, invalid);
+    if (event.data.toolCallId != null) readString(event.data.toolCallId, invalid);
     const required = state.pendingInterruptRequirement;
     if (
       required !== null &&
@@ -82,7 +103,7 @@ export function applyRunLifecycle(
     if (reason === "human_tool_input") {
       const toolCallId = readString(event.data.toolCallId, invalid);
       const { messageId, part } = findToolPart(state, toolCallId);
-      if (part.status !== "running" || part.approval !== undefined) {
+      if (part.status !== "running" || part.approval != null) {
         throw new AgentRuntimeProtocolError(invalid);
       }
       messages = updatePart(state, messageId, part.partId, (current) => ({
@@ -167,11 +188,12 @@ export function applyRunLifecycle(
     ]);
     readString(event.data.failedAt, invalid);
     readPublicError(event.data.error, invalid);
-    readStringArray(event.data.incompletePartIds, invalid);
+    const incompletePartIds = readStringArray(event.data.incompletePartIds, invalid);
     readSettlement(event.data.settlement, invalid);
     return {
       runStatus: "failed",
       run: mergeRun(state, "failed", event.data),
+      messages: markIncompleteParts(state, incompletePartIds),
       terminalType: "run.failed",
     };
   }

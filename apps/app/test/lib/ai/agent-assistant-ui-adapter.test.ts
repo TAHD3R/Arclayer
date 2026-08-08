@@ -5,6 +5,8 @@ import { projectAgentRunToAssistantMessages } from "@/lib/ai/agent-assistant-ui-
 import {
   createAgentRunProjection,
   reduceAgentRunEvents,
+  replaceAgentThreadMessages,
+  replaceAgentRunProjectionFromSnapshot,
   replaceAgentRunProjectionFromExpiredCursor,
 } from "@/lib/ai/agent-run-reducer";
 import {
@@ -13,6 +15,50 @@ import {
 } from "../../contracts/ai-agent-runtime-protocol/v1-proof-fixtures";
 
 describe("Agent Run v1 assistant-ui adapter", () => {
+  it("renders an explicit assistant error when a run fails before creating a message part", () => {
+    const projection = replaceAgentRunProjectionFromSnapshot(
+      createAgentRunProjection({
+        runId: OWNER_SCOPE.runId,
+        threadId: OWNER_SCOPE.threadId,
+      }),
+      {
+        snapshotVersion: 1,
+        runId: OWNER_SCOPE.runId,
+        threadId: OWNER_SCOPE.threadId,
+        terminal: true,
+        lastSequence: 4,
+        lastCursor: "cursor-failed",
+        run: {
+          status: "failed",
+          leadAgentId: "agent-lead",
+          terminalAt: "2026-07-18T12:00:03.000Z",
+        },
+        messages: [],
+        error: {
+          code: "SYSTEM_INTERNAL_ERROR",
+          message: "AI service failed unexpectedly.",
+          retryable: false,
+        },
+      },
+    );
+
+    const [message] = projectAgentRunToAssistantMessages(projection, {
+      registeredToolNames: new Set(),
+      localize: (key) => key,
+    });
+
+    expect(message).toMatchObject({
+      id: `run-error:${OWNER_SCOPE.runId}`,
+      role: "assistant",
+      content: [],
+      status: {
+        type: "incomplete",
+        reason: "error",
+        error: "AI service failed unexpectedly.",
+      },
+    });
+  });
+
   it("keeps delegated Agent messages nested inside their parent Tool call", () => {
     const projection = reduceAgentRunEvents(
       createAgentRunProjection({
@@ -386,6 +432,115 @@ describe("Agent Run v1 assistant-ui adapter", () => {
       },
     });
     expect(toolPart.approval).toBeUndefined();
+  });
+
+  it("accepts nullable approval and interrupt fields from completed Tool snapshots", () => {
+    const projection = replaceAgentRunProjectionFromExpiredCursor(
+      createAgentRunProjection({
+        runId: OWNER_SCOPE.runId,
+        threadId: OWNER_SCOPE.threadId,
+      }),
+      {
+        error: "EVENT_CURSOR_EXPIRED",
+        snapshot: {
+          snapshotVersion: 1,
+          runId: OWNER_SCOPE.runId,
+          threadId: OWNER_SCOPE.threadId,
+          terminal: true,
+          lastSequence: 8,
+          lastCursor: "cursor-8",
+          run: { status: "completed" },
+          messages: [
+            {
+              messageId: "message-human-tool-completed",
+              role: "assistant",
+              agentId: "agent-lead",
+              createdAt: "2026-07-18T12:00:00.000Z",
+              placement: { kind: "thread" },
+              parts: [
+                {
+                  partId: "part-human-tool-completed",
+                  partIndex: 0,
+                  type: "tool-call",
+                  status: "complete",
+                  toolCallId: "tool-call-human",
+                  toolName: "content.choose_variant",
+                  args: { variants: ["a", "b"] },
+                  argsText: '{"variants":["a","b"]}',
+                  approval: null,
+                  interrupt: null,
+                  result: { selected: "a" },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    );
+
+    expect(() =>
+      projectAgentRunToAssistantMessages(projection, {
+        registeredToolNames: new Set(["content.choose_variant"]),
+        localize: (key) => key,
+      }),
+    ).not.toThrow();
+  });
+
+  it("preserves earlier thread messages when a later run snapshot is applied", () => {
+    const base = replaceAgentThreadMessages(
+      createAgentRunProjection({ runId: "run-later", threadId: OWNER_SCOPE.threadId }),
+      [
+        {
+          messageId: "message-hi",
+          role: "user",
+          actorUserId: "user-actor-id",
+          createdAt: "2026-07-18T12:00:00.000Z",
+          placement: { kind: "thread" },
+          parts: [
+            {
+              partId: "part-hi",
+              partIndex: 0,
+              type: "text",
+              status: "complete",
+              text: "Hi",
+            },
+          ],
+        },
+      ],
+    );
+    const projection = replaceAgentRunProjectionFromSnapshot(
+      base,
+      {
+        snapshotVersion: 1,
+        runId: "run-later",
+        threadId: OWNER_SCOPE.threadId,
+        terminal: true,
+        lastSequence: 2,
+        lastCursor: "cursor-later",
+        run: { status: "completed" },
+        messages: [
+          {
+            messageId: "message-later",
+            role: "user",
+            actorUserId: "user-actor-id",
+            createdAt: "2026-07-18T12:01:00.000Z",
+            placement: { kind: "thread" },
+            parts: [
+              {
+                partId: "part-later",
+                partIndex: 0,
+                type: "text",
+                status: "complete",
+                text: "Create a landing page",
+              },
+            ],
+          },
+        ],
+      },
+      { preserveThreadMessages: true },
+    );
+
+    expect(projection.topLevelMessageIds).toEqual(["message-hi", "message-later"]);
   });
 
   it("surfaces an unregistered case-mismatched Tool as an explicit protocol error", () => {

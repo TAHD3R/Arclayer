@@ -36,6 +36,7 @@ CREATE_PLAN_ACTION = "create_plan"
 CREATE_DRAFT_ACTION = "create_draft"
 UPDATE_DRAFT_ACTION = "update_draft"
 PUBLISH_DRAFT_ACTION = "publish_draft"
+DEACTIVATE_PLAN_ACTION = "deactivate_plan"
 
 
 class CommerceCatalogCommandReceipt(Protocol):
@@ -406,10 +407,60 @@ class CommerceCatalogService(BaseService):
             )
             return result
 
-    async def deactivate_plan(self, *, plan_id: UUID, conn: BaseDBAsyncClient | None = None) -> CommercePlan:
+    async def deactivate_plan(
+        self,
+        *,
+        plan_code: str,
+        actor_user_id: UUID,
+        actor_session_id: UUID | None,
+        idempotency_key: str,
+        settings: Settings,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> PlatformCommercePlanIdentityOut:
+        fingerprint = _command_fingerprint(
+            action=DEACTIVATE_PLAN_ACTION,
+            target_plan_code=plan_code,
+            payload={"plan_code": plan_code},
+        )
         async with self.tx(conn=conn) as tx_conn:
-            plan = await self._require_plan(plan_id=plan_id, conn=tx_conn)
-            return await self._repository.set_plan_active(plan=plan, is_active=False, conn=tx_conn)
+            await self._lock_command_scope(
+                target_plan_code=plan_code,
+                action=DEACTIVATE_PLAN_ACTION,
+                actor_user_id=actor_user_id,
+                idempotency_key=idempotency_key,
+                conn=tx_conn,
+            )
+            replay = await self._repository.require_command_replay(
+                target_plan_code=plan_code,
+                action=DEACTIVATE_PLAN_ACTION,
+                idempotency_key_hash=_idempotency_key_hash(
+                    actor_user_id=actor_user_id, idempotency_key=idempotency_key
+                ),
+                request_fingerprint=fingerprint,
+                conn=tx_conn,
+            )
+            if replay is not None:
+                return PlatformCommercePlanIdentityOut.model_validate(replay.result_snapshot)
+            plan = await self._require_plan_by_code(code=plan_code, conn=tx_conn)
+            if not plan.is_active:
+                raise Conflict(error="COMMERCE_CATALOG_PLAN_INACTIVE")
+            updated = await self._repository.set_plan_active(plan=plan, is_active=False, conn=tx_conn)
+            result = PlatformCommercePlanIdentityOut(id=updated.id, code=updated.code)
+            await self._record_command_outcome(
+                settings=settings,
+                action=DEACTIVATE_PLAN_ACTION,
+                plan=updated,
+                revision=None,
+                actor_user_id=actor_user_id,
+                actor_session_id=actor_session_id,
+                idempotency_key=idempotency_key,
+                fingerprint=fingerprint,
+                result=result,
+                event_name="commerce.catalog.plan_deactivated",
+                event_properties={"plan_code": updated.code},
+                conn=tx_conn,
+            )
+            return result
 
     async def _require_plan(self, *, plan_id: UUID, conn: BaseDBAsyncClient) -> CommercePlan:
         plan = await self._repository.lock_plan(plan_id=plan_id, conn=conn)

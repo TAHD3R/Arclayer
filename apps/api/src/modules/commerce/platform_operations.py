@@ -7,6 +7,8 @@ from hashlib import sha256
 from typing import Protocol
 from uuid import UUID
 
+from tortoise.expressions import Q
+
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from src.core.registries import ConnectorRegistry
@@ -59,6 +61,7 @@ from src.modules.commerce.platform_operations_schema import (
     SimulatorReadinessOut,
 )
 from src.modules.commerce.platform_schema import PlatformCommerceSubscriptionOut
+from src.modules.commerce.provider_configuration import BillingProviderConfigurationWriter
 from src.modules.commerce.simulated_checkout_outcome_service import (
     SimulatedCheckoutOutcomeOut,
     SimulatedCheckoutOutcomeWrite,
@@ -73,6 +76,8 @@ class ProviderConfigurationWriter(Protocol):
     async def write(
         self, *, request: ProviderConfigurationWrite, actor_user_id: UUID
     ) -> ProviderConfigurationWriteOut: ...
+
+    async def readiness_config(self) -> dict[str, object] | None: ...
 
 
 class ProviderEventReconciler(Protocol):
@@ -119,34 +124,54 @@ class PlatformCommerceOperationsService(BaseService):
         self._payment_correction_recorder = payment_correction_recorder
 
     async def provider_readiness(self) -> ProviderReadinessOut:
+        revision = 0
+        if self._configuration_writer is not None:
+            persisted = await self._configuration_writer.readiness_config()
+            if persisted is not None:
+                provider = str(persisted.get("provider") or "disabled")
+                revision = _integer(persisted.get("revision"))
+                configured = bool(persisted.get("configured"))
+                webhook_configured = bool(persisted.get("webhook_configured"))
+            else:
+                provider = self.settings.billing.provider
+                configured = self.settings.billing.provider_configured
+                webhook_configured = self.settings.billing.webhook_secret_configured
+        else:
+            provider = self.settings.billing.provider
+            configured = self.settings.billing.provider_configured
+            webhook_configured = self.settings.billing.webhook_secret_configured
         billing = self.settings.billing
-        if billing.provider == "disabled":
+        if provider == "disabled":
             return ProviderReadinessOut(
                 provider="disabled",
+                revision=revision,
                 configured=False,
                 webhook_ready=False,
                 connector_registered=False,
                 supported_capabilities=(),
                 missing_prerequisites=("billing_provider",),
             )
-        registration = self._connectors.resolve(f"billing.{billing.provider}")
+        registration = self._connectors.resolve(f"billing.{provider}")
         missing = []
-        if not billing.provider_configured:
+        if not configured:
             missing.append("provider_secret")
-        if not billing.webhook_secret_configured:
+        if not webhook_configured:
             missing.append("webhook_secret")
         if registration is None:
             missing.append("billing_connector")
         return ProviderReadinessOut(
-            provider=billing.provider,
+            provider=provider,
+            revision=revision,
             configured=not missing,
-            webhook_ready=billing.webhook_enabled and registration is not None,
+            webhook_ready=webhook_configured and configured and registration is not None,
             connector_registered=registration is not None,
             supported_capabilities=() if registration is None else registration.definition.capabilities,
             missing_prerequisites=tuple(missing),
         )
 
     async def simulator_readiness(self) -> SimulatorReadinessOut:
+        if self._configuration_writer is not None:
+            await self._configuration_writer.readiness_config()
         environment = str(getattr(self.settings, "app_env", "unknown"))
         if environment not in {"development", "test"}:
             raise ServiceUnavailable(error="BILLING_SIMULATOR_PRODUCTION_FORBIDDEN")
@@ -230,6 +255,8 @@ class PlatformCommerceOperationsService(BaseService):
         return await self._configuration_writer.write(request=request, actor_user_id=actor_user_id)
 
     async def get_dunning_policy(self) -> DunningPolicyOut | None:
+        if self._configuration_writer is not None:
+            await self._configuration_writer.readiness_config()
         billing = self.settings.billing
         if billing.provider == "disabled":
             return None
@@ -305,11 +332,21 @@ class PlatformCommerceOperationsService(BaseService):
             return _dunning_policy_out(policy)
 
     async def list_provider_events(self, *, query: ProviderEventQuery) -> ProviderEventListOut:
-        events = ConnectorEventInbox.all().order_by("-created_at", "-id")
+        events = ConnectorEventInbox.all()
         if query.provider is not None:
             events = events.filter(provider=query.provider)
         if query.status is not None:
             events = events.filter(status=query.status)
+        if query.search:
+            normalized = query.search.strip()
+            if normalized:
+                events = events.filter(
+                    Q(provider__icontains=normalized)
+                    | Q(provider_event_id__icontains=normalized)
+                    | Q(event_type__icontains=normalized)
+                )
+        prefix = "-" if query.sort_direction == "desc" else ""
+        events = events.order_by(f"{prefix}{query.sort_by}", f"{prefix}id")
         total = await events.count()
         offset = (query.page - 1) * query.page_size
         rows = await events.offset(offset).limit(query.page_size)
@@ -343,6 +380,8 @@ class PlatformCommerceOperationsService(BaseService):
         idempotency_key: str,
         actor_user_id: UUID,
     ) -> BillingTopUpRefundResult:
+        if self._configuration_writer is not None:
+            await self._configuration_writer.readiness_config()
         if self._refund_applicator is None:
             raise ServiceUnavailable(
                 error="BILLING_TOP_UP_REFUND_APPLICATION_PORT_UNAVAILABLE",
@@ -506,6 +545,7 @@ def build_platform_commerce_operations_service(
     return PlatformCommerceOperationsService(
         settings=settings,
         connectors=connectors,
+        configuration_writer=BillingProviderConfigurationWriter(settings),
         event_reconciler=BillingEventReconciliationService(settings),
         refund_applicator=BillingTopUpRefundApplicationService(settings=settings),
         payment_correction_recorder=BillingPaymentReconciliationService(settings=settings),
@@ -570,3 +610,16 @@ def _digest(value: str) -> str:
 
 def _fingerprint(actor_user_id: UUID, payload: object) -> str:
     return _digest(f"{actor_user_id}:{payload!r}")
+
+
+def _integer(value: object, default: int = 0) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default

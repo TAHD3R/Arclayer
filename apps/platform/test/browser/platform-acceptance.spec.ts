@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   PRODUCT_ORIGIN,
   expectNoPageHorizontalOverflow,
+  getBrowserAcceptanceFixture,
   platformUrl,
   productUrl,
   signInToPlatform,
@@ -23,11 +24,12 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
 
   const currentContext = await browser.newContext({ colorScheme: "light", locale: "en-US" });
   const currentPage = await currentContext.newPage();
+  const fixture = await getBrowserAcceptanceFixture();
   await currentPage.goto(platformUrl("/sign-in"));
-  await currentPage.getByLabel("Email or username").fill("browser.acceptance@example.test");
-  await currentPage.getByLabel("Password").fill("not-the-fixture-password");
-  await currentPage.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(currentPage.getByText("Your sign-in details could not be verified")).toBeVisible();
+  await currentPage.getByLabel("Email or username").fill(fixture.platform.identifier);
+  await currentPage.getByLabel("Password").fill("not-the-fixture-password1");
+  await currentPage.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(currentPage.getByRole("alert")).toBeVisible();
 
   await signInToPlatform(currentPage);
   await expect(currentPage.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
@@ -111,4 +113,35 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
   await revokedContext.close();
   await currentContext.close();
   await productContext.close();
+});
+
+test("Platform AI operations pages expose real states and remain usable across viewports", async ({
+  page,
+}) => {
+  await signInToPlatform(page);
+
+  for (const [path, heading] of [
+    ["/ai/tasks", "AI tasks"],
+    ["/ai/assistants", "Built-in assistants"],
+    ["/ai/skills", "Built-in skills"],
+    ["/ai/policies", "Assistant policies"],
+    ["/monitoring/ai-usage", "AI usage"],
+  ] as const) {
+    await page.goto(platformUrl(path));
+    await expect(page).toHaveURL(platformUrl(path));
+    await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    for (const width of [1280, 768, 375, 640, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoPageHorizontalOverflow(page);
+    }
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(platformUrl("/ai/skills"));
+  const search = page.getByPlaceholder("Search built-in skills");
+  await expect(search).toBeVisible();
+  await search.focus();
+  await expect(search).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator(":focus")).toBeVisible();
 });

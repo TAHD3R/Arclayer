@@ -15,6 +15,8 @@ from src.models.agents.runtime_skill_v1 import AgentRunSkillSnapshotV1Record
 from src.models.agents.runtime_v1 import (
     AgentApprovalStatusV1,
     AgentApprovalV1Record,
+    AgentMessagePartV1Record,
+    AgentMessageV1Record,
     AgentRunEventV1Record,
     AgentRunStatusV1,
     AgentRunV1Record,
@@ -500,7 +502,19 @@ async def test_agent_job_handler_projects_provider_failure_without_fake_success(
     refreshed = await AgentRunV1Record.get(id=run.id)
     assert refreshed.status == AgentRunStatusV1.FAILED
     assert refreshed.error["code"] == "PROVIDER_UNAVAILABLE"
-    assert await AgentRunEventV1Record.filter(run_id=run.id, type="run.failed").exists()
+    events = await AgentRunEventV1Record.filter(run_id=run.id).order_by("sequence")
+    assert [event.type for event in events] == [
+        "run.created",
+        "run.queued",
+        "run.started",
+        "message.part.started",
+        "run.failed",
+    ]
+    message = await AgentMessageV1Record.filter(run_id=run.id, role="assistant").first()
+    assert message is not None
+    part = await AgentMessagePartV1Record.filter(message_id=message.id).first()
+    assert part is not None
+    assert part.status == "incomplete"
 
 
 @pytest.mark.asyncio
@@ -527,17 +541,20 @@ async def test_agent_job_handler_projects_human_interrupt_as_durable_continuatio
 
     assert isinstance(result, JobHandledInterruption)
     assert replay == result
+    persisted_tool_call_id = result.continuation_reference["toolCallId"]
+    assert persisted_tool_call_id != "tool-call-audience-1"
     assert result.continuation_reference == {
         "runId": str(run.id),
         "interruptId": "interrupt-audience-1",
         "checkpointId": "checkpoint-audience-1",
         "reason": "human_tool_input",
-        "toolCallId": "tool-call-audience-1",
+        "toolCallId": persisted_tool_call_id,
         "approvalId": None,
     }
     refreshed = await AgentRunV1Record.get(id=run.id)
     assert refreshed.status == AgentRunStatusV1.INTERRUPTED
     assert refreshed.checkpoint_id == "checkpoint-audience-1"
+    assert refreshed.interrupt_tool_call_id == persisted_tool_call_id
     events = await AgentRunEventV1Record.filter(run_id=run.id).order_by("sequence")
     assert [event.type for event in events] == [
         "run.created",

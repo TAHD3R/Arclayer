@@ -1,20 +1,28 @@
 import {
   platformGetActivityDetail,
+  platformGetPlatformObservabilityOverview,
   platformGetPlatformObservabilityTrend,
+  platformGetPlatformAiRuntimeHealth,
   platformListActivity,
   platformListPlatformAiUsageGroups,
+  platformListPlatformAiUsageRecords,
   platformListPlatformHttpRequestGroups,
   platformListPlatformHttpRequestRecords,
   type AuditEventOut,
   type ObservabilityTrendOut,
   type PageDataAiUsageGroupOut,
+  type PageDataAiUsageRecordOut,
   type PageDataAuditEventOut,
   type PageDataHttpRequestGroupOut,
   type PageDataHttpRequestRecordOut,
   type PlatformGetActivityDetailData,
   type PlatformGetPlatformObservabilityTrendData,
+  type PlatformGetPlatformObservabilityOverviewData,
+  type ObservabilityOverviewOut,
+  type PlatformAiRuntimeHealthOut,
   type PlatformListActivityData,
   type PlatformListPlatformAiUsageGroupsData,
+  type PlatformListPlatformAiUsageRecordsData,
   type PlatformListPlatformHttpRequestGroupsData,
   type PlatformListPlatformHttpRequestRecordsData,
 } from "@arclayer/platform-openapi";
@@ -79,6 +87,12 @@ export async function listAiUsageGroups(
   return unwrap(await platformListPlatformAiUsageGroups({ client: platformApiClient, query }));
 }
 
+export async function listAiUsageRecords(
+  query: NonNullable<PlatformListPlatformAiUsageRecordsData["query"]>,
+): Promise<PageDataAiUsageRecordOut> {
+  return unwrap(await platformListPlatformAiUsageRecords({ client: platformApiClient, query }));
+}
+
 export async function listActivity(
   query: NonNullable<PlatformListActivityData["query"]>,
 ): Promise<PageDataAuditEventOut> {
@@ -95,4 +109,16 @@ export async function getActivityTrend(
   query: NonNullable<PlatformGetPlatformObservabilityTrendData["query"]>,
 ): Promise<ObservabilityTrendOut> {
   return unwrap(await platformGetPlatformObservabilityTrend({ client: platformApiClient, query }));
+}
+
+export async function getObservabilityOverview(
+  query: NonNullable<PlatformGetPlatformObservabilityOverviewData["query"]>,
+): Promise<ObservabilityOverviewOut> {
+  return unwrap(
+    await platformGetPlatformObservabilityOverview({ client: platformApiClient, query }),
+  );
+}
+
+export async function getAiRuntimeHealth(): Promise<PlatformAiRuntimeHealthOut> {
+  return unwrap(await platformGetPlatformAiRuntimeHealth({ client: platformApiClient }));
 }

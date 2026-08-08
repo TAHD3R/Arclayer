@@ -21,6 +21,7 @@ import {
   importPlatformSkillZip,
   listPlatformSkills,
   replacePlatformSkill,
+  restorePlatformSkill,
 } from "@/ai/ai-skills-api";
 import {
   PlatformSkillCreateDialog,
@@ -92,8 +93,7 @@ export function AiSkillsPage() {
     loadCapabilities,
     [],
   );
-  const supportedToolIds =
-    capabilityState.status === "ready" ? capabilityState.data.supportedToolIds : [];
+  const capabilities = capabilityState.status === "ready" ? capabilityState.data : null;
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -201,13 +201,26 @@ export function AiSkillsPage() {
     }
   }
 
+  async function restoreSkill(skill: PlatformSkillPackageSummaryOut) {
+    setPending("restore");
+    try {
+      await restorePlatformSkill(skill.id, skill.metadataRevision);
+      toast.success(t("RESTORE"));
+      retry();
+    } catch (error) {
+      toast.error(t("SKILL_ARCHIVE_FAILED"), { description: errorMessage(error) });
+    } finally {
+      setPending(null);
+    }
+  }
+
   return (
     <PlatformPage
       description={t("SKILLS_DESCRIPTION")}
       primaryAction={
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button>
+            <Button disabled={!capabilities}>
               <Plus aria-hidden="true" />
               {t("SKILL_ADD_ACTION")}
             </Button>
@@ -270,8 +283,9 @@ export function AiSkillsPage() {
       <PlatformSkillCatalog
         data={state.status === "ready" ? state.data : undefined}
         language={i18n.language}
-        onCreate={() => setCreateOpen(true)}
+        onCreate={() => capabilities && setCreateOpen(true)}
         onArchive={setArchiveTarget}
+        onRestore={(skill) => void restoreSkill(skill)}
         onEdit={(skillId) => void openSkillDialog(skillId, "edit")}
         onVersion={(skillId) => void openSkillDialog(skillId, "version")}
         onView={(skillId) => void openSkillDialog(skillId, "view")}
@@ -279,34 +293,40 @@ export function AiSkillsPage() {
         retry={retry}
         status={state.status}
       />
-      <PlatformSkillCreateDialog
-        onOpenChange={setCreateOpen}
-        onSubmit={createSkill}
-        open={createOpen}
-        pending={pending === "create"}
-        supportedToolIds={supportedToolIds}
-      />
+      {capabilities ? (
+        <PlatformSkillCreateDialog
+          capabilities={capabilities}
+          onOpenChange={setCreateOpen}
+          onSubmit={createSkill}
+          open={createOpen}
+          pending={pending === "create"}
+        />
+      ) : null}
       <PlatformSkillDetailDialog
         onOpenChange={(open) => !open && setDetailDialog(null)}
         open={detailDialog === "view"}
         skill={selectedSkill}
       />
-      <PlatformSkillMetadataDialog
-        onOpenChange={(open) => !open && setDetailDialog(null)}
-        onSubmit={updateSkill}
-        open={detailDialog === "edit"}
-        pending={pending === "edit"}
-        skill={selectedSkill}
-        supportedToolIds={supportedToolIds}
-      />
-      <PlatformSkillVersionDialog
-        onOpenChange={(open) => !open && setDetailDialog(null)}
-        onSubmit={publishVersion}
-        open={detailDialog === "version"}
-        pending={pending === "version"}
-        skill={selectedSkill}
-        supportedToolIds={supportedToolIds}
-      />
+      {capabilities ? (
+        <>
+          <PlatformSkillMetadataDialog
+            capabilities={capabilities}
+            onOpenChange={(open) => !open && setDetailDialog(null)}
+            onSubmit={updateSkill}
+            open={detailDialog === "edit"}
+            pending={pending === "edit"}
+            skill={selectedSkill}
+          />
+          <PlatformSkillVersionDialog
+            capabilities={capabilities}
+            onOpenChange={(open) => !open && setDetailDialog(null)}
+            onSubmit={publishVersion}
+            open={detailDialog === "version"}
+            pending={pending === "version"}
+            skill={selectedSkill}
+          />
+        </>
+      ) : null}
       <PlatformSkillGitHubImportDialog
         onOpenChange={(open) => !open && setImportDialog(null)}
         onSubmit={importGitHubSkill}

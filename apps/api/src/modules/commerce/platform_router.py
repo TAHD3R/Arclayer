@@ -284,6 +284,30 @@ async def publish_plan_revision(
     )
 
 
+@router.post(
+    "/plans/{code}/deactivate",
+    operation_id="platform_deactivate_commerce_plan",
+    response_model=ResponseModel[PlatformCommercePlanIdentityOut],
+    summary="Deactivate a Plan for future selection",
+    dependencies=[require_platform_permission(PlatformPermissionCode.COMMERCE_CATALOG_MANAGE)],
+)
+async def deactivate_commerce_plan(
+    code: PlanCodePath,
+    idempotency_key: IdempotencyKey,
+    principal: CurrentPlatformSession,
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PlatformCommercePlanIdentityOut]:
+    return ApiResponse.success(
+        data=await build_commerce_catalog_service().deactivate_plan(
+            plan_code=code,
+            actor_user_id=UUID(str(principal.actor_id)),
+            actor_session_id=UUID(str(principal.session_id)),
+            idempotency_key=idempotency_key,
+            settings=settings,
+        )
+    )
+
+
 @router.get(
     "/workspaces/{workspace_id}/overview",
     operation_id="platform_get_workspace_commerce_overview",

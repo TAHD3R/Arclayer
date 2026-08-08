@@ -388,6 +388,13 @@ class AgentRunJobHandler:
         await context.checkpoint()
         state = await self._state(context)
         if isinstance(outcome, AgentRunExecutionInterrupted):
+            if state.resume_input is not None and state.resume_input.response_kind == "human_result":
+                await self._project_resumed_tool_completion(
+                    state=state,
+                    resume_input=state.resume_input,
+                    execution=outcome,
+                )
+                state = await self._state(context)
             return await self._project_interruption(state=state, interruption=outcome)
         if isinstance(outcome, AgentRunExecutionRejected):
             return await self._project_failure(
@@ -484,6 +491,7 @@ class AgentRunJobHandler:
         state: AgentRunJobState,
         interruption: AgentRunExecutionInterrupted,
     ) -> JobHandledInterruption:
+        interruption = await self._normalize_interruption_tool_call_id(interruption)
         occurred_at = _utc_now()
         identity = AgentRunJobEventFactory.new_message_identity()
         factory = AgentRunJobEventFactory(state)
@@ -564,14 +572,24 @@ class AgentRunJobHandler:
             )
         )
 
+    @staticmethod
+    async def _normalize_interruption_tool_call_id(
+        interruption: AgentRunExecutionInterrupted,
+    ) -> AgentRunExecutionInterrupted:
+        tool_call_id = uuid4().hex
+        approval = interruption.approval
+        if approval is not None:
+            approval = approval.model_copy(update={"tool_call_id": tool_call_id})
+        return interruption.model_copy(update={"tool_call_id": tool_call_id, "approval": approval})
+
     async def _project_resumed_tool_completion(
         self,
         *,
         state: AgentRunJobState,
         resume_input: AgentRunJobResumeInput,
-        execution: AgentRunExecutionCompleted,
+        execution: AgentRunExecutionCompleted | AgentRunExecutionInterrupted,
     ) -> None:
-        completion = execution.tool_completion
+        completion = execution.tool_completion if isinstance(execution, AgentRunExecutionCompleted) else None
         if resume_input.response_kind == "human_result":
             tool_id = resume_input.tool_id
             tool_version = resume_input.tool_version
@@ -751,6 +769,22 @@ class AgentRunJobHandler:
             )
         if state.settlement_pending:
             raise self._settlement_pending()
+        if state.status == AgentRunStatusV1.RUNNING and not state.running_part_ids:
+            identity = AgentRunJobEventFactory.new_message_identity()
+            started = await self._runtime_repository.append_event(
+                event=AgentRunJobEventFactory(state).message_started(
+                    sequence=state.last_sequence + 1,
+                    occurred_at=_utc_now(),
+                    identity=identity,
+                )
+            )
+            state = state.model_copy(
+                update={
+                    "last_sequence": started.sequence,
+                    "last_cursor": started.cursor,
+                    "running_part_ids": (str(identity.part_id),),
+                }
+            )
         proof = await self._settlement_repository.get_terminal_proof(run_id=state.run_id)
         failed = await self._runtime_repository.append_event(
             event=AgentRunJobEventFactory(state).run_failed(
@@ -838,6 +872,15 @@ class AgentRunJobHandler:
         skill_context: tuple[AgentSkillContextPackage, ...],
         knowledge_context: tuple[AgentKnowledgeEvidence, ...],
     ) -> list[dict[str, str]]:
+        persisted = await self._runtime_repository.list_messages(thread_id=state.thread_id)
+        conversation = [
+            {"role": message.role, "content": content}
+            for message in persisted
+            if message.role in {"user", "assistant"}
+            if (content := "\n".join(part.text for part in message.parts if part.text)).strip()
+        ]
+        if not any(message["role"] == "user" and message["content"] == state.prompt for message in conversation):
+            conversation.append({"role": "user", "content": state.prompt})
         return [
             {
                 "role": "system",
@@ -847,7 +890,7 @@ class AgentRunJobHandler:
                     knowledge_context=knowledge_context,
                 ),
             },
-            {"role": "user", "content": state.prompt},
+            *conversation,
         ]
 
     async def _system_prompt(

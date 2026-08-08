@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type {
   AgentVersionCreateRequest,
+  SystemAgentCatalogOptionOut,
   SystemAgentDefinitionSummaryOut,
 } from "@arclayer/platform-openapi";
 
@@ -27,11 +28,13 @@ import { Textarea } from "@/components/ui/textarea";
 
 type AssistantEditorProps = Readonly<{
   approvalProfiles: readonly string[];
+  approvalProfileCatalog?: readonly SystemAgentCatalogOptionOut[];
   assistant?: SystemAgentDefinitionSummaryOut;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCompleted: () => void;
   supportedToolGrants: readonly string[];
+  toolGrantCatalog?: readonly SystemAgentCatalogOptionOut[];
 }>;
 
 export function AiAssistantEditorDialog(props: AssistantEditorProps) {
@@ -45,6 +48,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
   const [approvalProfile, setApprovalProfile] = useState(props.approvalProfiles[0] ?? "");
   const [planMode, setPlanMode] = useState(true);
   const [buildMode, setBuildMode] = useState(true);
+  const [toolGrants, setToolGrants] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -57,6 +61,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
     setApprovalProfile(props.approvalProfiles[0] ?? "");
     setPlanMode(true);
     setBuildMode(true);
+    setToolGrants([]);
   }, [props.approvalProfiles, props.assistant, props.open]);
 
   const submit = async (event: FormEvent) => {
@@ -92,7 +97,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
             approvalProfile: { profileId: approvalProfile.trim() },
             instructions: instructions.trim(),
             supportedExecutionModes: modes,
-            toolGrants: [...props.supportedToolGrants],
+            toolGrants,
           },
           role: role.trim(),
           slug: slug.trim(),
@@ -135,6 +140,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
             <Input
               id={`${formId}-name`}
               onChange={(event) => setDisplayName(event.target.value)}
+              placeholder={t("ASSISTANT_NAME_PLACEHOLDER")}
               value={displayName}
             />
           </SettingDialogField>
@@ -147,6 +153,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
                 autoComplete="off"
                 id={`${formId}-slug`}
                 onChange={(event) => setSlug(event.target.value)}
+                placeholder={t("ASSISTANT_SLUG_PLACEHOLDER")}
                 value={slug}
               />
             </SettingDialogField>
@@ -155,6 +162,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
             <Input
               id={`${formId}-role`}
               onChange={(event) => setRole(event.target.value)}
+              placeholder={t("ASSISTANT_ROLE_PLACEHOLDER")}
               value={role}
             />
           </SettingDialogField>
@@ -164,6 +172,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
             <Textarea
               id={`${formId}-description`}
               onChange={(event) => setDescription(event.target.value)}
+              placeholder={t("ASSISTANT_DESCRIPTION_PLACEHOLDER")}
               rows={3}
               value={description}
             />
@@ -175,6 +184,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
             <Input
               id={`${formId}-avatar`}
               onChange={(event) => setAvatarUrl(event.target.value)}
+              placeholder={t("ASSISTANT_AVATAR_PLACEHOLDER")}
               type="url"
               value={avatarUrl}
             />
@@ -182,6 +192,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
           {!props.assistant ? (
             <InitialVersionFields
               approvalProfile={approvalProfile}
+              approvalProfileCatalog={props.approvalProfileCatalog}
               approvalProfiles={props.approvalProfiles}
               buildMode={buildMode}
               instructions={instructions}
@@ -189,7 +200,11 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
               onBuildModeChange={setBuildMode}
               onInstructionsChange={setInstructions}
               onPlanModeChange={setPlanMode}
+              onToolGrantsChange={setToolGrants}
               planMode={planMode}
+              supportedToolGrants={props.supportedToolGrants}
+              toolGrantCatalog={props.toolGrantCatalog}
+              toolGrants={toolGrants}
             />
           ) : null}
         </SettingDialogFields>
@@ -201,6 +216,7 @@ export function AiAssistantEditorDialog(props: AssistantEditorProps) {
 function InitialVersionFields(
   props: Readonly<{
     approvalProfile: string;
+    approvalProfileCatalog?: readonly SystemAgentCatalogOptionOut[];
     approvalProfiles: readonly string[];
     buildMode: boolean;
     instructions: string;
@@ -209,6 +225,10 @@ function InitialVersionFields(
     onBuildModeChange: (value: boolean) => void;
     onInstructionsChange: (value: string) => void;
     onPlanModeChange: (value: boolean) => void;
+    onToolGrantsChange: (value: string[]) => void;
+    supportedToolGrants: readonly string[];
+    toolGrantCatalog?: readonly SystemAgentCatalogOptionOut[];
+    toolGrants: readonly string[];
   }>,
 ) {
   const { t } = useTranslation("ai");
@@ -221,6 +241,7 @@ function InitialVersionFields(
         <Textarea
           id="assistant-instructions"
           onChange={(event) => props.onInstructionsChange(event.target.value)}
+          placeholder={t("ASSISTANT_INSTRUCTIONS_PLACEHOLDER")}
           rows={8}
           value={props.instructions}
         />
@@ -231,12 +252,22 @@ function InitialVersionFields(
       >
         <Select onValueChange={props.onApprovalProfileChange} value={props.approvalProfile}>
           <SelectTrigger id="assistant-approval">
-            <SelectValue />
+            <SelectValue placeholder={t("APPROVAL_PROFILE_PLACEHOLDER")} />
           </SelectTrigger>
           <SelectContent>
             {props.approvalProfiles.map((profile) => (
               <SelectItem key={profile} value={profile}>
-                {profile === "human-input-v1" ? t("APPROVAL_PROFILE_HUMAN_REVIEW") : profile}
+                <span className="flex flex-col">
+                  <span>
+                    {props.approvalProfileCatalog?.find((item) => item.id === profile)?.label ??
+                      profile}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {props.approvalProfileCatalog?.find((item) => item.id === profile)
+                      ?.description ??
+                      (profile === "human-input-v1" ? t("APPROVAL_PROFILE_HUMAN_REVIEW") : profile)}
+                  </span>
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -260,6 +291,38 @@ function InitialVersionFields(
           </label>
         </div>
       </SettingDialogField>
+      <SettingDialogField description={t("TOOL_ACCESS_DESCRIPTION")} title={t("TOOL_ACCESS")}>
+        {props.supportedToolGrants.length ? (
+          <div className="grid gap-2">
+            {props.supportedToolGrants.map((toolGrant) => (
+              <label className="flex items-start gap-3 rounded-md border p-3" key={toolGrant}>
+                <Checkbox
+                  checked={props.toolGrants.includes(toolGrant)}
+                  onCheckedChange={(checked) =>
+                    props.onToolGrantsChange(
+                      checked === true
+                        ? [...props.toolGrants, toolGrant]
+                        : props.toolGrants.filter((item) => item !== toolGrant),
+                    )
+                  }
+                />
+                <span className="min-w-0">
+                  <span className="block break-all font-mono text-sm">
+                    {props.toolGrantCatalog?.find((item) => item.id === toolGrant)?.label ??
+                      toolGrant}
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    {props.toolGrantCatalog?.find((item) => item.id === toolGrant)?.description ??
+                      t("TOOL_GRANT_OPTION_DESCRIPTION")}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("TOOL_ACCESS_NONE")}</p>
+        )}
+      </SettingDialogField>
     </>
   );
 }
@@ -267,11 +330,13 @@ function InitialVersionFields(
 export function AiAssistantVersionDialog(
   props: Readonly<{
     approvalProfiles: readonly string[];
+    approvalProfileCatalog?: readonly SystemAgentCatalogOptionOut[];
     assistant: SystemAgentDefinitionSummaryOut;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onCompleted: () => void;
     supportedToolGrants: readonly string[];
+    toolGrantCatalog?: readonly SystemAgentCatalogOptionOut[];
   }>,
 ) {
   const { t } = useTranslation("ai");
@@ -286,6 +351,7 @@ export function AiAssistantVersionDialog(
   const [buildMode, setBuildMode] = useState(
     latest?.supportedExecutionModes.includes("build") ?? true,
   );
+  const [toolGrants, setToolGrants] = useState<string[]>([...(latest?.toolGrants ?? [])]);
   const [pending, setPending] = useState(false);
 
   const submit = async (event: FormEvent) => {
@@ -311,7 +377,7 @@ export function AiAssistantVersionDialog(
         skillGrantWorkspaceId: latest?.skillGrantWorkspaceId,
         skillInstallationIds: latest?.skillInstallationIds,
         supportedExecutionModes,
-        toolGrants: [...props.supportedToolGrants],
+        toolGrants,
       });
       props.onCompleted();
       props.onOpenChange(false);
@@ -347,6 +413,7 @@ export function AiAssistantVersionDialog(
         <SettingDialogFields>
           <InitialVersionFields
             approvalProfile={approvalProfile}
+            approvalProfileCatalog={props.approvalProfileCatalog}
             approvalProfiles={props.approvalProfiles}
             buildMode={buildMode}
             instructions={instructions}
@@ -354,15 +421,12 @@ export function AiAssistantVersionDialog(
             onBuildModeChange={setBuildMode}
             onInstructionsChange={setInstructions}
             onPlanModeChange={setPlanMode}
+            onToolGrantsChange={setToolGrants}
             planMode={planMode}
+            supportedToolGrants={props.supportedToolGrants}
+            toolGrantCatalog={props.toolGrantCatalog}
+            toolGrants={toolGrants}
           />
-          <SettingDialogField description={t("TOOL_ACCESS_DESCRIPTION")} title={t("TOOL_ACCESS")}>
-            <p className="text-sm text-muted-foreground">
-              {props.supportedToolGrants.length
-                ? props.supportedToolGrants.join(", ")
-                : t("TOOL_ACCESS_NONE")}
-            </p>
-          </SettingDialogField>
         </SettingDialogFields>
       </form>
     </SettingDialog>

@@ -140,47 +140,48 @@ describe("arclayerAgentToolkit", () => {
     vi.mocked(getProjectBuilderGeneration).mockReset();
   });
 
-  it("submits a validated text response through the durable resume callback", async () => {
-    const user = userEvent.setup();
-    const resume = vi.fn();
+  it("renders the human question as normal assistant content", () => {
     render(
       <HumanRequestInputTool
-        {...toolProps(
-          { question: "What should the hero say?", responseType: "text", options: [] },
-          { resume },
-        )}
+        {...toolProps({ question: "What should the hero say?", responseType: "text", options: [] })}
       />,
     );
 
-    await user.type(
-      screen.getByLabelText("ai:AI_CHAT_HUMAN_TOOL_YOUR_ANSWER"),
-      "Build with confidence",
-    );
-    await user.click(screen.getByRole("button", { name: "ai:AI_CHAT_HUMAN_TOOL_SUBMIT" }));
-
-    expect(resume).toHaveBeenCalledWith({ answer: "Build with confidence" });
+    expect(screen.getByText("What should the hero say?")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  it("renders single-select choices and submits the selected value", async () => {
-    const user = userEvent.setup();
-    const resume = vi.fn();
+  it("normalizes escaped line breaks in the Agent question", () => {
     render(
       <HumanRequestInputTool
-        {...toolProps(
-          {
-            question: "Choose a release policy",
-            responseType: "single_select",
-            options: ["Create a draft", "Publish now"],
-          },
-          { resume },
-        )}
+        {...toolProps({
+          question: "Company?\\nIndustry?\\nMain pages?",
+          responseType: "text",
+          options: [],
+        })}
       />,
     );
 
-    await user.click(screen.getByRole("radio", { name: "Publish now" }));
-    await user.click(screen.getByRole("button", { name: "ai:AI_CHAT_HUMAN_TOOL_SUBMIT" }));
+    const question = screen.getByText(
+      (_content, element) =>
+        element?.tagName === "P" && element.textContent?.includes("Company?") === true,
+    );
+    expect(question.textContent).toBe("Company?\nIndustry?\nMain pages?");
+  });
 
-    expect(resume).toHaveBeenCalledWith({ answer: "Publish now" });
+  it("renders a single-select human question without a nested answer form", () => {
+    render(
+      <HumanRequestInputTool
+        {...toolProps({
+          question: "Choose a release policy",
+          responseType: "single_select",
+          options: ["Create a draft", "Publish now"],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Choose a release policy")).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
   it("surfaces malformed backend arguments instead of inventing an input fallback", () => {
@@ -197,10 +198,10 @@ describe("arclayerAgentToolkit", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("ai:AI_CHAT_HUMAN_TOOL_INVALID");
   });
 
-  it("shows an explicit running state while tool arguments are streaming", () => {
+  it("leaves running tool preparation to the thread loading indicator", () => {
     render(<HumanRequestInputTool {...toolProps({}, { status: { type: "running" } })} />);
 
-    expect(screen.getByText("ai:AI_CHAT_HUMAN_TOOL_PREPARING")).toBeInTheDocument();
+    expect(screen.queryByText("ai:AI_CHAT_HUMAN_TOOL_PREPARING")).not.toBeInTheDocument();
   });
 
   it("records a one-time approval for durable Style Guide generation", async () => {

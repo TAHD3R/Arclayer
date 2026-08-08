@@ -32,6 +32,7 @@ from src.modules.system.agents.projection import (
 from src.modules.system.agents.schema import (
     AgentVersionCreateRequest,
     SystemAgentCatalogCapabilitiesOut,
+    SystemAgentCatalogOptionOut,
     SystemAgentDefinitionCreateRequest,
     SystemAgentDefinitionDetailOut,
     SystemAgentDefinitionSummaryOut,
@@ -42,6 +43,43 @@ from src.modules.system.agents.service_base import SystemAgentServiceBase, page_
 
 SUPPORTED_TOOL_GRANTS = SUPPORTED_AGENT_TOOL_GRANTS
 SUPPORTED_APPROVAL_PROFILES = frozenset({"human-input-v1"})
+
+AGENT_EXECUTION_MODE_CATALOG = (
+    SystemAgentCatalogOptionOut(
+        id="plan", label="Plan", description="Produce a reviewable plan without applying project changes.", risk="low"
+    ),
+    SystemAgentCatalogOptionOut(
+        id="build",
+        label="Build",
+        description="Execute approved project changes through the runtime boundary.",
+        risk="high",
+    ),
+)
+AGENT_TOOL_GRANT_CATALOG = tuple(
+    SystemAgentCatalogOptionOut(
+        id=grant,
+        label=grant.replace(".", " · ").replace("_", " ").title(),
+        description="Server-approved runtime capability; availability is enforced by the AI runtime.",
+        risk="high" if grant.endswith(("apply", "write")) else "medium",
+    )
+    for grant in SUPPORTED_TOOL_GRANTS
+)
+AGENT_APPROVAL_PROFILE_CATALOG = (
+    SystemAgentCatalogOptionOut(
+        id="human-input-v1",
+        label="Human input",
+        description="Require an explicit user response for human-input interruptions.",
+        risk="medium",
+    ),
+)
+AGENT_MODEL_POLICY_CATALOG = (
+    SystemAgentCatalogOptionOut(
+        id="workspace_default",
+        label="Workspace default",
+        description="Use the deployment policy's selected model for the active workspace.",
+        risk="low",
+    ),
+)
 
 
 def agent_catalog_capabilities() -> SystemAgentCatalogCapabilitiesOut:
@@ -59,6 +97,10 @@ def agent_catalog_capabilities() -> SystemAgentCatalogCapabilitiesOut:
             "runtimeValidationPortAvailable": True,
             "versionPublicationRequiresRuntimeValidation": True,
         },
+        execution_mode_catalog=AGENT_EXECUTION_MODE_CATALOG,
+        tool_grant_catalog=AGENT_TOOL_GRANT_CATALOG,
+        approval_profile_catalog=AGENT_APPROVAL_PROFILE_CATALOG,
+        model_policy_catalog=AGENT_MODEL_POLICY_CATALOG,
     )
 
 
@@ -142,7 +184,8 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
             )
             self._require_custom_definition(definition)
             if definition.lifecycle_state == AgentLifecycleState.ARCHIVED:
-                self._raise_conflict("AGENT_DEFINITION_ARCHIVED")
+                if payload.model_fields_set != {"lifecycle_state"} or payload.lifecycle_state != "active":
+                    self._raise_conflict("AGENT_DEFINITION_ARCHIVED")
             changed = _apply_definition_update(definition=definition, payload=payload)
             if changed:
                 await self._repository.save_definition(

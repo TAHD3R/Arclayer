@@ -288,6 +288,20 @@ async def test_catalog_replays_an_identical_draft_command_without_a_second_audit
     assert len(repository.audit_events) == 1
 
 
+async def test_catalog_deactivates_plan_with_audited_idempotent_command() -> None:
+    repository = _Repository(terms=_terms())
+    service = CommerceCatalogService(repository=repository)
+    command = _command_context()
+    conn = cast(BaseDBAsyncClient, object())
+
+    deactivated = await service.deactivate_plan(plan_code="premium", conn=conn, **command)
+    replayed = await service.deactivate_plan(plan_code="premium", conn=conn, **command)
+
+    assert deactivated == replayed
+    assert repository.plan.is_active is False
+    assert [event["event_name"] for event in repository.audit_events] == ["commerce.catalog.plan_deactivated"]
+
+
 async def test_catalog_rejects_stale_draft_revision() -> None:
     repository = _Repository(terms=_terms())
     service = CommerceCatalogService(repository=repository)

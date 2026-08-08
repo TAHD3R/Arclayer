@@ -30,10 +30,12 @@ from src.modules.auth.tokens.service import hash_password
 from src.modules.auth.two_factor.totp import generate_totp_code
 from src.modules.platform_identity.mfa import PlatformMfaService
 from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.system.setup.service import InstanceSetupService
 from src.settings.crypto import ensure_master_key
 
 _PRODUCT_PASSWORD = "BrowserPass123!"
-_PRODUCT_EMAIL = "browser.acceptance@example.test"
+_PRODUCT_EMAIL = "browser.acceptance@example.com"
+_PLATFORM_EMAIL = "browser.platform@example.com"
 _OPERATOR_ROLE_CODE = "browser-acceptance-operator"
 
 
@@ -80,7 +82,17 @@ async def _create_product_principal() -> tuple[User, Workspace, ProjectRecord]:
     return user, workspace, project
 
 
-async def _create_platform_operator(*, user: User) -> str:
+async def _create_platform_operator(*, assigned_by_user: User) -> tuple[str, str]:
+    operator_user = await User.create(
+        username="browser-acceptance-platform-operator",
+        email=_PLATFORM_EMAIL,
+        display_name="Browser Acceptance Platform Operator",
+        email_verified_at=datetime.now(UTC),
+    )
+    await UserCredential.create(
+        user_id=operator_user.id,
+        password_hash=hash_password(_PRODUCT_PASSWORD, get_settings().auth),
+    )
     owner = await User.create(
         username="browser-acceptance-instance-owner",
         email="browser.instance.owner@example.test",
@@ -88,6 +100,8 @@ async def _create_platform_operator(*, user: User) -> str:
         email_verified_at=datetime.now(UTC),
     )
     await PlatformInstanceOwnership.create(owner_user_id=owner.id, singleton_key="instance", revision=1)
+    setup_service = InstanceSetupService(get_settings())
+    setup_service.write_install_lock(setup_service.build_install_lock_metadata(initialized_by_user_id=owner.id))
     permissions: list[PlatformPermission] = []
     for permission in PlatformPermissionCode:
         record, _created = await PlatformPermission.get_or_create(
@@ -105,17 +119,17 @@ async def _create_platform_operator(*, user: User) -> str:
         kind=PlatformRoleKind.CUSTOM,
         name="Browser Acceptance Operator",
         description="Real acceptance principal with explicit Platform role permissions.",
-        created_by_user_id=user.id,
+        created_by_user_id=assigned_by_user.id,
     )
     revision = await PlatformRoleRevision.create(
-        role_id=role.id, sequence=1, is_current=True, created_by_user_id=user.id
+        role_id=role.id, sequence=1, is_current=True, created_by_user_id=assigned_by_user.id
     )
     await PlatformRoleRevisionPermission.bulk_create([
         PlatformRoleRevisionPermission(role_revision_id=revision.id, permission_id=permission.id)
         for permission in permissions
     ])
     operator = await PlatformOperator.create(
-        user_id=user.id,
+        user_id=operator_user.id,
         status=PlatformOperatorStatus.MFA_SETUP_REQUIRED,
         revision=1,
     )
@@ -129,20 +143,20 @@ async def _create_platform_operator(*, user: User) -> str:
     ensure_master_key(settings.security.master_key_path)
     service = PlatformMfaService(settings)
     setup = await service.begin_totp_setup(
-        user_id=user.id,
+        user_id=operator_user.id,
         issuer="Arclayer Browser Acceptance",
-        account_label=_PRODUCT_EMAIL,
+        account_label=_PLATFORM_EMAIL,
     )
     # Consume the previous valid counter during fixture enrollment so the UI can use the
     # current counter immediately without triggering the one-time-code replay protection.
     code = generate_totp_code(setup.secret, at=datetime.now(UTC) - timedelta(seconds=30))
     await service.confirm_totp_setup(
-        user_id=user.id,
+        user_id=operator_user.id,
         method_id=setup.method_id,
         code=code,
         operator_id=operator.id,
     )
-    return setup.secret
+    return _PLATFORM_EMAIL, setup.secret
 
 
 async def seed() -> None:
@@ -151,7 +165,7 @@ async def seed() -> None:
     await init_orm(settings)
     try:
         user, workspace, project = await _create_product_principal()
-        totp_secret = await _create_platform_operator(user=user)
+        platform_identifier, totp_secret = await _create_platform_operator(assigned_by_user=user)
         fixture_path.parent.mkdir(parents=True, exist_ok=True)
         fixture_path.write_text(
             json.dumps(
@@ -163,7 +177,7 @@ async def seed() -> None:
                         "projectId": str(project.id),
                     },
                     "platform": {
-                        "identifier": _PRODUCT_EMAIL,
+                        "identifier": platform_identifier,
                         "password": _PRODUCT_PASSWORD,
                         "totpSecret": totp_secret,
                     },

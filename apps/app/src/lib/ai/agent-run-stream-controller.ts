@@ -21,6 +21,7 @@ export interface ConsumeAgentRunStreamOptions {
   readonly runId: string;
   readonly initialProjection: AgentRunProjectionV1;
   readonly signal?: AbortSignal;
+  readonly preserveThreadMessages?: boolean;
   readonly stream?: AgentRunEventStreamFactory;
   readonly onProjection: (projection: AgentRunProjectionV1) => void;
 }
@@ -30,6 +31,7 @@ export async function consumeAgentRunStream({
   runId,
   initialProjection,
   signal,
+  preserveThreadMessages,
   stream = streamAgentRunEvents,
   onProjection,
 }: ConsumeAgentRunStreamOptions): Promise<AgentRunProjectionV1> {
@@ -48,6 +50,7 @@ export async function consumeAgentRunStream({
         if (next === projection) continue;
         projection = next;
         onProjection(projection);
+        if (projection.runStatus === "interrupted") return projection;
       }
       return projection;
     } catch (error) {
@@ -55,10 +58,11 @@ export async function consumeAgentRunStream({
       if (recoveredFromExpiredCursor) {
         throw new AgentRuntimeProtocolError("AGENT_CURSOR_RECOVERY_INVALID");
       }
-      projection = replaceAgentRunProjectionFromExpiredCursor(projection, {
-        error: error.code,
-        snapshot: error.snapshot,
-      });
+      projection = replaceAgentRunProjectionFromExpiredCursor(
+        projection,
+        { error: error.code, snapshot: error.snapshot },
+        { preserveThreadMessages },
+      );
       recoveredFromExpiredCursor = true;
       onProjection(projection);
     }

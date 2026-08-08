@@ -98,6 +98,10 @@ async def test_system_observability_api_executes_empty_postgres_queries(db_schem
             "/platform-api/v1/observability/ai-usage-groups",
             params={"days": 30, "page": 1, "size": 20},
         )
+        ai_usage_records_response = await client.get(
+            "/platform-api/v1/observability/ai-usage-records",
+            params={"days": 30, "page": 1, "size": 20},
+        )
 
     assert trend_response.status_code == 200, trend_response.text
     trend = trend_response.json()["data"]
@@ -115,6 +119,16 @@ async def test_system_observability_api_executes_empty_postgres_queries(db_schem
     }
     assert ai_usage_groups_response.status_code == 200, ai_usage_groups_response.text
     assert ai_usage_groups_response.json()["data"] == {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 20,
+        "pages": 0,
+        "next": None,
+        "prev": None,
+    }
+    assert ai_usage_records_response.status_code == 200, ai_usage_records_response.text
+    assert ai_usage_records_response.json()["data"] == {
         "items": [],
         "total": 0,
         "page": 1,
@@ -298,6 +312,25 @@ async def test_lifespan_persists_real_request_and_project_filters_all_telemetry(
                 )
                 assert trend_response.status_code == 200, trend_response.text
                 assert trend_response.json()["data"]["total"] == 1
+
+            records_response = await client.get(
+                "/platform-api/v1/observability/ai-usage-records",
+                params={
+                    **project_params,
+                    "startDate": now.date().isoformat(),
+                    "endDate": now.date().isoformat(),
+                    "source": "api",
+                    "page": 1,
+                    "size": 20,
+                },
+            )
+            assert records_response.status_code == 200, records_response.text
+            records = records_response.json()["data"]
+            assert records["total"] == 1
+            assert records["items"][0]["projectId"] == encode_uuid(project.id)
+            assert records["items"][0]["status"] == "success"
+            assert records["items"][0]["source"] == "api"
+            assert records["items"][0]["totalTokens"] == 15
 
         await asyncio.sleep(0)
         persisted_requests = sum(int(row.request_count) for row in await HTTPRequestMetricHourly.all())

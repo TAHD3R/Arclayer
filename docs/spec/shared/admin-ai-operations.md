@@ -22,6 +22,54 @@ AI Services opens **AI tasks** by default and contains these peer operational su
 
 The domain has no metric-card Overview. A condition appears in AI tasks or Needs attention only when it identifies affected work, operational consequence, and a real resolution path.
 
+### 3.1 AI tasks
+
+The task queue defaults to unresolved and recently active work. It supports server-filtered status, Workspace, Project, assistant/version, Provider/model, failure class, waiting reason, and time filters. Each row opens a task dossier containing:
+
+- the durable Run, Job, execution-attempt, interruption, settlement, and recovery timeline;
+- sanitized input/output summaries, actual changes or artifacts, usage, cost, policy revision, Agent/Skill versions, correlation identifiers, and the exact last durable progress;
+- structured failure code, safe explanation, retryability, affected side effects, and the authority that owns the next action;
+- server-authorized `retry`, `cancel`, and `reconcile` actions with eligibility, unavailable reason, idempotency, confirmation, receipt, and Audit evidence.
+
+Retry creates a new attributable attempt without rewriting the failed attempt. Cancellation is available only at a declared safe boundary. Reconciliation repairs durable event/projection/settlement consistency without rerunning the model or modifying customer content. An approval- or human-input-waiting task links to the owning Product Application context but exposes no Platform answer or approval action.
+
+### 3.2 Built-in assistants
+
+The assistant catalog manages deployment-owned official Agent definitions only. It provides create, read, metadata update, archive/restore where eligible, version history, validation, publication, retirement, rollback, assignment impact, and usage/failure evidence.
+
+- Definition identity metadata may be updated with optimistic revision checks.
+- Runnable configuration is an immutable version in `draft | validated | published | retired` lifecycle.
+- Publishing validates model/provider readiness, Tool and Skill dependencies, Platform AI Policy compatibility, supported execution modes, and approval profile.
+- New tasks use the published version selected by current policy; running and historical tasks retain their recorded version.
+- Referenced definitions or versions are never hard-deleted. A never-published, unreferenced draft may be deleted through an exact eligible action.
+- Every text input has an instructional placeholder. Catalog-backed values use Select controls whose items include a plain-language description and availability or risk context.
+
+### 3.3 Built-in skills
+
+The Skill catalog supports manual creation, GitHub/ZIP import, detail, metadata update, immutable versions, validation evidence, publication, retirement, rollback, and adoption impact. Imported packages enter an isolated draft and are not selectable until validation and publication succeed.
+
+The server capability catalog supplies stable, localized entries for capability labels, Tool requirements, permission actions, external destinations, data classes, and supported reference MIME types. Each entry includes display name, description, risk, availability, and relevant compatibility constraints. High-risk declarations never fall back to arbitrary text when the catalog is unavailable. Free text remains only for human explanations, intended use, transfer purpose, reference path/content, and similar authored content, with placeholders on every input.
+
+### 3.4 Actions & policies
+
+There is one deployment-wide Platform AI Policy. It covers model/provider routing, allowed/default models, per-task token and cost ceilings, concurrency and timeout boundaries, retry/recovery policy, Tool allowlist, approval effect classes, external data transfer, retention, Audit level, and runtime availability. A field is exposed only when an owning runtime boundary enforces it.
+
+Policy editing uses Draft -> Preview -> Publish -> Apply:
+
+- saving a Draft is routine Platform Session work;
+- Preview returns catalog validation, unsupported controls, affected assistants/skills/Workspaces/tasks, and a revision-bound hash;
+- high-risk Publish/Apply requires exact permission, explicit reason, current preview, action-bound verification when classified, and Audit evidence;
+- new accepted work records the effective policy revision; running work retains attribution while every later model, Tool, egress, retry, resume, or worker effect re-evaluates current authority as required by this contract;
+- missing or unsupported controls block publication explicitly and never save as ineffective configuration.
+
+All choices come from server catalogs and use described Select items. Numeric and textual inputs include domain examples or expected-unit placeholders.
+
+### 3.5 Monitoring deep link
+
+Historical AI analysis remains in Monitoring & Audit at `/monitoring/ai-usage`. That surface combines current runtime-health summaries, historical trends, and task-level drill-down for Workspace, Project, assistant/version, Skill/version, Provider/model, policy revision, status, usage, cost, latency, retry, cancellation, and sanitized failure evidence. It is read-only and deep-links to AI tasks for recovery.
+
+Raw prompts, responses, Tool arguments/results, Knowledge, and external content remain unavailable unless the actor has the exact support-read permission and a current case-bound, named-operator, scoped, read-only, expiring Support Access Grant. Monitoring never treats a personal preference as blanket content authorization.
+
 ## 4. Authority boundaries
 
 - A Platform Operator may investigate an approval-waiting task but cannot approve, reject, edit, or apply Workspace work on behalf of its authorized actor.

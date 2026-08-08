@@ -32,7 +32,6 @@ def make_revision(
         tool_allowlist=["project.read"],
         approval_required_effect_classes=["write"],
         retry_limit=2,
-        retention_days=0,
         content_hash="a" * 64,
         published_at=datetime.now(UTC) if status is GlobalAiPolicyRevisionStatus.PUBLISHED else None,
         applied_at=applied_at,
@@ -45,14 +44,13 @@ def test_draft_rejects_default_model_substitution() -> None:
 
 
 @pytest.mark.asyncio
-async def test_preview_marks_unsupported_retention_control() -> None:
+async def test_preview_has_no_unsupported_controls_for_enforced_fields() -> None:
     service = SystemAiPolicyService(Settings())
     draft = make_revision(status=GlobalAiPolicyRevisionStatus.DRAFT)
-    draft.retention_days = 30
     with patch.object(service, "_get_draft", new=AsyncMock(return_value=draft)):
         preview = await service.preview(draft.id)
-    assert preview.is_applicable is False
-    assert preview.unsupported_controls == ("retention_days",)
+    assert preview.is_applicable is True
+    assert preview.unsupported_controls == ()
 
 
 @pytest.mark.asyncio

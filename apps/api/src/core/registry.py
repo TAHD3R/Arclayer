@@ -35,6 +35,7 @@ from src.core.runtime_init import (
     init_analytics_connector_runtime,
     init_domain_runtime,
 )
+from src.modules.commerce.provider_configuration import apply_persisted_billing_provider_configuration
 from src.platform.cache.valkey import close_valkey, init_valkey
 
 logger = get_logger(__name__)
@@ -165,6 +166,7 @@ def _build_lifespan(settings: Settings, composition: ApiComposition):
 
             await init_orm(settings)
             await verify_db_ready(settings)
+            await apply_persisted_billing_provider_configuration(settings)
             if settings.database.enabled:
                 from src.modules.system.mail.template_defaults import ensure_default_email_templates
 

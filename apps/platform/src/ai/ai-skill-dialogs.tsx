@@ -4,6 +4,7 @@ import type {
   PlatformSkillPackageCreateRequest,
   PlatformSkillPackageDetailOut,
   PlatformSkillPackageReplaceRequest,
+  PlatformSkillCapabilitiesOut,
   PlatformSkillVersionCreateRequest,
 } from "@arclayer/platform-openapi";
 
@@ -27,7 +28,7 @@ type FieldErrors = Partial<Record<keyof PlatformSkillCreateFormValues, string>>;
 type CommonDialogProps = Readonly<{
   open: boolean;
   pending: boolean;
-  supportedToolIds: readonly string[];
+  capabilities: PlatformSkillCapabilitiesOut;
   onOpenChange: (open: boolean) => void;
 }>;
 
@@ -38,7 +39,7 @@ function fieldError(error: unknown, message: string): FieldErrors {
 export function PlatformSkillCreateDialog({
   open,
   pending,
-  supportedToolIds,
+  capabilities,
   onOpenChange,
   onSubmit,
 }: CommonDialogProps &
@@ -79,7 +80,7 @@ export function PlatformSkillCreateDialog({
           description={t("SKILL_VERSION_SECTION_DESCRIPTION")}
           errors={errors}
           onChange={(versionValues) => setValues((current) => ({ ...current, ...versionValues }))}
-          supportedToolIds={supportedToolIds}
+          capabilities={capabilities}
           title={t("SKILL_VERSION_SECTION_TITLE")}
           values={values}
         />
@@ -92,7 +93,7 @@ export function PlatformSkillMetadataDialog({
   skill,
   open,
   pending,
-  supportedToolIds,
+  capabilities,
   onOpenChange,
   onSubmit,
 }: CommonDialogProps &
@@ -141,7 +142,7 @@ export function PlatformSkillMetadataDialog({
           description={t("SKILL_EDIT_CONTENT_DESCRIPTION")}
           errors={errors}
           onChange={(versionValues) => setValues((current) => ({ ...current, ...versionValues }))}
-          supportedToolIds={supportedToolIds}
+          capabilities={capabilities}
           title={t("SKILL_EDIT_CONTENT_TITLE")}
           values={values}
         />
@@ -154,7 +155,7 @@ export function PlatformSkillVersionDialog({
   skill,
   open,
   pending,
-  supportedToolIds,
+  capabilities,
   onOpenChange,
   onSubmit,
 }: CommonDialogProps &
@@ -199,7 +200,7 @@ export function PlatformSkillVersionDialog({
         <PlatformSkillVersionFields
           errors={errors}
           onChange={setValues}
-          supportedToolIds={supportedToolIds}
+          capabilities={capabilities}
           values={values}
         />
       </form>
@@ -288,7 +289,7 @@ function VersionSection({
   description: string;
   values: PlatformSkillVersionFormValues;
   errors: FieldErrors;
-  supportedToolIds: readonly string[];
+  capabilities: PlatformSkillCapabilitiesOut;
   onChange: (values: PlatformSkillVersionFormValues) => void;
 }>) {
   return (

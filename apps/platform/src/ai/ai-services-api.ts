@@ -5,11 +5,14 @@ import {
   platformCreateSystemAiProvider,
   platformDeleteSystemAiProvider,
   platformGetPlatformAiProviderReadiness,
+  platformGetPlatformAiTask,
+  platformGetPlatformAiTaskDossier,
   platformListPlatformAiTasks,
   platformListSystemAiProviders,
   platformGetAiPolicy,
   platformPreviewAiPolicy,
   platformPublishAiPolicy,
+  platformListAiPolicyRevisions,
   platformSaveAiPolicyDraft,
   platformPreviewSystemAiProviderAvailability,
   platformReconcilePlatformAiTask,
@@ -18,6 +21,7 @@ import {
   platformUpdateSystemAiProvider,
   type PlatformAiProviderReadinessOut,
   type PlatformAiTaskOut,
+  type PlatformAiTaskDossierOut,
   type PageDataPlatformAiTaskOut,
   type PlatformAiTaskActionRequest,
   type AiPolicyApplyOut,
@@ -28,6 +32,7 @@ import {
   type AiPolicyPreviewRequest,
   type AiPolicyPublishRequest,
   type AiPolicyRevisionOut,
+  type PageDataAiPolicyRevisionOut,
   type SystemAiProviderCreateRequest,
   type SystemAiProviderAvailabilityPreviewOut,
   type SystemAiProviderListOut,
@@ -94,6 +99,20 @@ export function listAiTasks(
   query?: NonNullable<PlatformListPlatformAiTasksData["query"]>,
 ): Promise<PageDataPlatformAiTaskOut> {
   return platformListPlatformAiTasks({ client: platformApiClient, query }).then(unwrap);
+}
+
+export function getAiTask(taskId: string): Promise<PlatformAiTaskOut> {
+  return platformGetPlatformAiTask({
+    client: platformApiClient,
+    path: { task_id: taskId },
+  }).then(unwrap);
+}
+
+export function getAiTaskDossier(taskId: string): Promise<PlatformAiTaskDossierOut> {
+  return platformGetPlatformAiTaskDossier({
+    client: platformApiClient,
+    path: { task_id: taskId },
+  }).then(unwrap);
 }
 
 export function getAiProviderReadiness(): Promise<PlatformAiProviderReadinessOut> {
@@ -173,6 +192,12 @@ export function executeAiTaskAction(
 
 export function getAiPolicy(): Promise<AiPolicyOut> {
   return platformGetAiPolicy({ client: platformApiClient }).then(unwrap);
+}
+
+export function listAiPolicyRevisions(
+  query?: NonNullable<Parameters<typeof platformListAiPolicyRevisions>[0]>["query"],
+): Promise<PageDataAiPolicyRevisionOut> {
+  return platformListAiPolicyRevisions({ client: platformApiClient, query }).then(unwrap);
 }
 
 export function saveAiPolicyDraft(body: AiPolicyDraftInput): Promise<AiPolicyRevisionOut> {

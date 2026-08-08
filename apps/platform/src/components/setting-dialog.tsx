@@ -42,6 +42,9 @@ export function SettingDialog({
           "flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl",
           contentClassName,
         )}
+        onInteractOutside={(event) => {
+          if (isSelectInteraction(event)) event.preventDefault();
+        }}
         onOpenAutoFocus={
           preventInitialFocus
             ? (event) => {
@@ -49,6 +52,9 @@ export function SettingDialog({
               }
             : undefined
         }
+        onPointerDownOutside={(event) => {
+          if (isSelectInteraction(event)) event.preventDefault();
+        }}
       >
         <DialogHeader className="min-w-0 space-y-2 border-b px-6 py-5 text-left">
           <DialogTitle className={cn("text-lg font-semibold", titleClassName)}>{title}</DialogTitle>
@@ -71,5 +77,12 @@ export function SettingDialog({
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function isSelectInteraction(event: Event): boolean {
+  const target = event.target;
+  return (
+    target instanceof Element && Boolean(target.closest('[role="combobox"], [role="listbox"]'))
   );
 }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from typing import Literal, cast
+from uuid import uuid4
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
@@ -10,6 +12,8 @@ from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.runtime_v1 import (
     AgentApprovalStatusV1,
     AgentApprovalV1Record,
+    AgentMessagePartV1Record,
+    AgentMessageV1Record,
     AgentRunStatusV1,
     AgentRunV1Record,
     AgentToolResponseKindV1,
@@ -56,6 +60,7 @@ class AgentToolResponseRepository(TortoiseORMRepository[AgentToolResponseV1Recor
             )
             if active:
                 raise AgentRuntimePersistenceError("AGENT_TOOL_RESULT_ALREADY_RECORDED")
+            await self._create_human_result_message(run=run, command=command, conn=conn)
             record = await self.create_for_command(
                 run=run,
                 command=command,
@@ -64,6 +69,48 @@ class AgentToolResponseRepository(TortoiseORMRepository[AgentToolResponseV1Recor
                 conn=conn,
             )
             return self.to_persisted(record)
+
+    async def _create_human_result_message(
+        self,
+        *,
+        run: AgentRunV1Record,
+        command: HumanToolResultResponseCommandV1,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        message_id = uuid4()
+        await self.create_record(
+            AgentMessageV1Record,
+            conn=conn,
+            id=message_id,
+            thread_id=run.thread_id,
+            run_id=run.id,
+            role="user",
+            status="complete",
+            agent_id=None,
+            actor_user_id=command.actor_user_id,
+            placement_kind="thread",
+            created_at=command.responded_at,
+        )
+        await self.create_record(
+            AgentMessagePartV1Record,
+            conn=conn,
+            message_id=message_id,
+            part_index=0,
+            type="text",
+            status="complete",
+            text=self._human_result_text(command.result),
+            payload={},
+        )
+
+    @staticmethod
+    def _human_result_text(result: object) -> str:
+        if isinstance(result, str):
+            return result
+        if isinstance(result, dict):
+            answer = cast(dict[str, object], result).get("answer")
+            if isinstance(answer, str):
+                return answer
+        return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
     async def get_idempotent(
         self,

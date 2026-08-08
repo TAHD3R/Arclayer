@@ -15,28 +15,15 @@ test("Product Application keeps real sign-in recovery, hard-cut customization ro
 }) => {
   await page.goto(productUrl("/login/"));
 
-  await page.getByLabel("Color mode").click();
-  await page.getByRole("option", { name: "Dark mode", exact: true }).click();
-  await expect.poll(() => page.locator("html").getAttribute("data-theme")).toBe("dark");
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.getByLabel("Color mode").click();
-  await page.getByRole("option", { name: "Follow system", exact: true }).click();
-  await expect.poll(() => page.locator("html").getAttribute("data-theme")).toBe("dark");
-  await page.emulateMedia({ colorScheme: "light" });
-  await expect.poll(() => page.locator("html").getAttribute("data-theme")).toBe("light");
-
-  await page.getByLabel("Interface language").click();
-  await page.getByRole("option", { name: "简体中文", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "嗨，欢迎回来！", exact: true })).toBeVisible();
-  await page.getByLabel("界面语言").click();
-  await page.getByRole("option", { name: "English", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Hi, Welcome back!", exact: true })).toBeVisible();
-
   const fixture = await getBrowserAcceptanceFixture();
-  await page.getByLabel("Email").fill(fixture.product.email);
-  await page.getByLabel("Password").fill("not-the-fixture-password");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByText("Invalid email or password", { exact: true })).toBeVisible();
+  await page.getByLabel("Email address", { exact: true }).fill(fixture.product.email);
+  await page.getByLabel("Password", { exact: true }).fill("not-the-fixture-password1");
+  await page.getByRole("button", { name: "Login", exact: true }).click();
+  await expect(
+    page.getByText("Email address or password is incorrect. Check it and try again.", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await signInToProduct(page);
 
   for (const [path, heading] of [
@@ -59,8 +46,8 @@ test("Product Application keeps real sign-in recovery, hard-cut customization ro
   await expect(
     page.getByRole("heading", { name: "Sign in to the Platform Console", exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("Email or username")).toBeEmpty();
-  await expect(page.getByLabel("Password")).toBeEmpty();
+  await expect(page.getByLabel("Email or username", { exact: true })).toBeEmpty();
+  await expect(page.getByLabel("Password", { exact: true })).toBeEmpty();
 
   await page.goto(productUrl("/customization/knowledge"));
   await expect(page.getByRole("heading", { name: "Knowledge", exact: true })).toBeVisible();

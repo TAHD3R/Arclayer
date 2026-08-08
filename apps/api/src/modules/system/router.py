@@ -17,6 +17,7 @@ from src.modules.platform_identity.management_router import router as platform_i
 from src.modules.platform_identity.router import router as platform_auth_router
 from src.modules.platform_saved_views.router import router as platform_saved_views_router
 from src.modules.platform_site_delivery.router import router as platform_site_delivery_router
+from src.modules.platform_system_settings.router import router as platform_system_settings_router
 from src.modules.support_access.platform_router import router as support_access_platform_router
 from src.modules.system.admin.notifications.system_router import router as system_notifications_router
 from src.modules.system.agents.router import assignments_router as system_agent_assignments_router
@@ -108,6 +109,7 @@ platform_router.include_router(system_plugin_operations_router, prefix="/extensi
 platform_router.include_router(system_activity_router, prefix="/activity")
 platform_router.include_router(platform_ai_operations_router, prefix="/ai-services")
 platform_router.include_router(platform_site_delivery_router, prefix="/site-delivery")
+platform_router.include_router(platform_system_settings_router, prefix="/settings")
 platform_router.include_router(system_feedback_router, prefix="/communications/feedback")
 platform_router.include_router(system_observability_router, prefix="/observability")
 platform_router.include_router(operational_signals_router)

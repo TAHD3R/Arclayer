@@ -1,20 +1,10 @@
 "use client";
 
 import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { AssistantDataPart } from "@/components/assistant-ui/assistant-data-part";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningRoot,
-  ReasoningText,
-  ReasoningTrigger,
-} from "@/components/assistant-ui/reasoning";
+import { Reasoning, ReasoningText } from "@/components/assistant-ui/reasoning";
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
-import {
-  ToolGroupContent,
-  ToolGroupRoot,
-  ToolGroupTrigger,
-} from "@/components/assistant-ui/tool-group";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import {
@@ -29,6 +19,15 @@ import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotat
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
+import { ThinkingIndicator } from "@/components/assistant-ui/elements/thinking-indicator";
+import { ErrorState } from "@/components/assistant-ui/elements/error-state";
+import { InlineCitation } from "@/components/assistant-ui/elements/inline-citation";
+import { ghostButton, mono } from "@/components/assistant-ui/elements/surfaces";
+import { Sources } from "@/components/assistant-ui/elements/sources";
+import { StreamingText } from "@/components/assistant-ui/elements/streaming-text";
+import { WebSearch } from "@/components/assistant-ui/elements/web-search";
+import { ReasoningPanel } from "@/components/assistant-ui/elements/reasoning-panel";
+import { ToolTimeline } from "@/components/assistant-ui/elements/tool-timeline";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -40,7 +39,9 @@ import {
   ErrorPrimitive,
   groupPartByType,
   MessagePrimitive,
+  MessagePartPrimitive,
   ThreadPrimitive,
+  type ThreadAssistantMessagePart,
   type ToolCallMessagePartComponent,
   useAuiState,
 } from "@assistant-ui/react";
@@ -53,6 +54,8 @@ import {
   GlobeIcon,
   PencilIcon,
   RefreshCwIcon,
+  WrenchIcon,
+  FileIcon,
 } from "lucide-react";
 import {
   createContext,
@@ -93,6 +96,8 @@ export type ThreadProps = {
         name: string;
         description: string;
         supportedExecutionModes: readonly ("plan" | "build")[];
+        agentId?: string;
+        avatarUrl?: string | null;
       }>
     | undefined;
   welcomeName?: string | undefined;
@@ -169,6 +174,9 @@ const ThreadRoot: FC<{
             isSidebar ? "min-h-full pt-2" : "px-4 pt-4",
           )}
         >
+          <AuiIf condition={(s) => s.thread.isLoading && s.thread.messages.length === 0}>
+            <ThreadLoadingState />
+          </AuiIf>
           <AuiIf condition={isNewChatView}>
             <Welcome />
           </AuiIf>
@@ -279,10 +287,34 @@ const ThreadSuggestions: FC = () => {
   return <AISuggestions className="flex w-full flex-wrap items-center justify-center gap-2 px-4" />;
 };
 
+const ThreadLoadingState: FC = () => {
+  const { t } = useTranslation(["ai"]);
+  return (
+    <div
+      className="flex min-h-24 items-center justify-center py-8"
+      role="status"
+      aria-live="polite"
+    >
+      <ThinkingIndicator label={t("ai:AI_CHAT_THREAD_PREPARING")} />
+    </div>
+  );
+};
+
 const Composer: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
   const variant = useContext(ThreadVariantContext);
   const isSidebar = variant === "sidebar";
+  const DictationTranscript = ComposerPrimitive.DictationTranscript;
+  const awaitingHumanInput = useAuiState((state) => {
+    const message = state.thread.messages.at(-1);
+    return (
+      message?.role === "assistant" &&
+      message.status?.type === "requires-action" &&
+      message.content.some(
+        (part) => part.type === "tool-call" && part.toolName === "human.request_input",
+      )
+    );
+  });
 
   return (
     <ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -313,8 +345,17 @@ const Composer: FC = () => {
                   isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
                 )}
                 autoFocus
-                aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+                aria-label={
+                  awaitingHumanInput
+                    ? t("ai:AI_CHAT_HUMAN_TOOL_YOUR_ANSWER")
+                    : t("ai:AI_CHAT_INPUT_PLACEHOLDER")
+                }
               />
+              {DictationTranscript ? (
+                <AuiIf condition={(s) => s.composer.dictation != null}>
+                  <DictationTranscript className="pointer-events-none absolute inset-x-2 bottom-1 line-clamp-1 text-xs text-label-secondary" />
+                </AuiIf>
+              ) : null}
               <AIComposerRotatingPlaceholder className="top-1 px-0" multiline={isSidebar} />
             </div>
             <AIComposerTriggers />
@@ -341,29 +382,57 @@ const MessageError: FC = () => {
 
   return (
     <MessagePrimitive.Error>
-      <ErrorPrimitive.Root className="aui-message-error-root border-destructive bg-destructive/10 text-destructive dark:bg-destructive/5 mt-2 overflow-hidden rounded-xl border text-sm dark:text-red-200">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left font-semibold"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-        >
-          <ErrorPrimitive.Message className="aui-message-error-message line-clamp-1 min-w-0 flex-1" />
-          <span className="shrink-0 text-caption font-medium opacity-80">
+      <ErrorPrimitive.Root className="aui-message-error-root mt-2 overflow-hidden">
+        <ErrorState
+          title={summary || t("ai:AI_CHAT_ERROR_GENERIC")}
+          detail={
+            hasDistinctDetails
+              ? t("ai:AI_CHAT_ERROR_DETAILS_AVAILABLE")
+              : t("ai:AI_CHAT_ERROR_NO_DETAILS")
+          }
+          retrying={false}
+          retryLabel={t("ai:AI_CHAT_ACTION_REFRESH")}
+          retryAction={
+            <ActionBarPrimitive.Reload asChild>
+              <button
+                type="button"
+                className="ms-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-400"
+              >
+                <RefreshCwIcon className="size-3" />
+                {t("ai:AI_CHAT_ACTION_REFRESH")}
+              </button>
+            </ActionBarPrimitive.Reload>
+          }
+        />
+        {hasDistinctDetails ? (
+          <button
+            type="button"
+            className="mt-1 px-4 text-xs text-red-600/70 underline-offset-2 hover:underline dark:text-red-400/70"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
             {expanded ? t("ai:AI_CHAT_ERROR_COLLAPSE") : t("ai:AI_CHAT_ERROR_EXPAND")}
-          </span>
-        </button>
-        <div className={cn("border-t border-destructive/25 px-3 py-2", !expanded && "hidden")}>
-          <pre className="aui-message-error-detail max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-footnote leading-relaxed">
-            {hasDistinctDetails ? details : t("ai:AI_CHAT_ERROR_NO_DETAILS")}
+          </button>
+        ) : null}
+        {hasDistinctDetails && expanded ? (
+          <pre className="aui-message-error-detail mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-red-500/[0.04] p-3 font-mono text-footnote leading-relaxed text-red-700/80 dark:text-red-300/80">
+            {details}
           </pre>
-        </div>
+        ) : null}
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
   );
 };
 
 const AssistantMessage: FC = () => {
+  const { t } = useTranslation(["ai"]);
+  const isRunning = useAuiState((s) => s.message.status?.type === "running");
+  const isRunningToolOnly = useAuiState(
+    (s) =>
+      s.message.status?.type === "running" &&
+      s.message.parts.some((part) => part.type === "tool-call") &&
+      !s.message.parts.some((part) => part.type === "text" || part.type === "reasoning"),
+  );
   const {
     ToolFallback: ToolFallbackComponent = ToolFallback,
     ToolGroup,
@@ -403,46 +472,30 @@ const AssistantMessage: FC = () => {
                 if (ToolGroup) {
                   return <ToolGroup group={part}>{children}</ToolGroup>;
                 }
-                return (
-                  <ToolGroupRoot variant="ghost">
-                    <ToolGroupTrigger
-                      count={part.indices.length}
-                      active={part.status.type === "running"}
-                    />
-                    <ToolGroupContent>{children}</ToolGroupContent>
-                  </ToolGroupRoot>
-                );
+                return <AssistantToolTimeline group={part}>{children}</AssistantToolTimeline>;
               case "group-reasoning": {
                 if (ReasoningGroup) {
                   return <ReasoningGroup group={part}>{children}</ReasoningGroup>;
                 }
-                const running = part.status.type === "running";
-                return (
-                  <ReasoningRoot streaming={running}>
-                    <ReasoningTrigger active={running} />
-                    <ReasoningContent aria-busy={running}>
-                      <ReasoningText>{children}</ReasoningText>
-                    </ReasoningContent>
-                  </ReasoningRoot>
-                );
+                return <AssistantReasoningPanel group={part}>{children}</AssistantReasoningPanel>;
               }
               case "text":
-                return <MarkdownText />;
+                return <AssistantStreamingText />;
               case "reasoning":
                 return <Reasoning {...part} />;
               case "tool-call":
                 return part.toolUI ?? <ToolFallbackComponent {...part} />;
               case "data":
-                return part.dataRendererUI;
+                return <AssistantDataPart part={part} />;
+              case "source":
+                return <AssistantSourcePart part={part} />;
+              case "file":
+                return <AssistantFilePart part={part} />;
+              case "image":
+                return <MessagePartPrimitive.Image />;
               case "indicator":
-                return (
-                  <span
-                    data-slot="aui_assistant-message-indicator"
-                    className="animate-pulse font-sans"
-                    aria-label="Assistant is working"
-                  >
-                    {"●"}
-                  </span>
+                return isRunningToolOnly ? null : (
+                  <ThinkingIndicator label={t("ai:AI_CHAT_PREPARING_CONTENT")} />
                 );
               default:
                 return null;
@@ -452,19 +505,23 @@ const AssistantMessage: FC = () => {
         <MessageError />
       </div>
 
-      <div
-        data-slot="aui_assistant-message-footer"
-        className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
-      >
-        <BranchPicker />
-        <AssistantActionBar />
-      </div>
+      {!isRunning ? (
+        <div
+          data-slot="aui_assistant-message-footer"
+          className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
+        >
+          <BranchPicker />
+          <AssistantActionBar />
+        </div>
+      ) : null}
     </MessagePrimitive.Root>
   );
 };
 
 const AssistantMessageHeader: FC = () => {
   const { t, i18n } = useTranslation(["ai", "common"]);
+  const messageStatus = useAuiState((s) => s.message.status?.type);
+  const welcomeAgent = useContext(ThreadWelcomeAgentContext);
   const rawCreatedAt = useAuiState((s) => s.message.metadata.custom?.createdAt);
   const createdAt = typeof rawCreatedAt === "number" ? new Date(rawCreatedAt) : null;
   const formattedTime = createdAt
@@ -475,13 +532,25 @@ const AssistantMessageHeader: FC = () => {
     : "";
   const createdAtIso = createdAt?.toISOString();
 
+  if (messageStatus === "running") return null;
+
   return (
     <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-footnote">
       <div className="flex min-w-0 items-center gap-2 text-label-primary">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/50 text-[11px] font-semibold">
-          A
+        {welcomeAgent?.avatarUrl ? (
+          <img
+            src={welcomeAgent.avatarUrl}
+            alt=""
+            className="size-7 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/50 text-[11px] font-semibold">
+            {(welcomeAgent?.name ?? "A").slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <span className="truncate font-semibold">
+          {welcomeAgent?.name ?? t("ai:AI_CHAT_ASSISTANT_NAME")}
         </span>
-        <span className="truncate font-semibold">{t("ai:AI_CHAT_ASSISTANT_NAME")}</span>
       </div>
       {formattedTime && createdAtIso ? (
         <time
@@ -494,6 +563,140 @@ const AssistantMessageHeader: FC = () => {
     </div>
   );
 };
+
+const AssistantStreamingText: FC = () => {
+  const streaming = useAuiState((s) => s.message.status?.type === "running");
+  return (
+    <StreamingText streaming={streaming}>
+      <MarkdownText />
+    </StreamingText>
+  );
+};
+
+const AssistantReasoningPanel: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
+  group,
+  children,
+}) => {
+  const { t } = useTranslation(["ai"]);
+  const [open, setOpen] = useState(false);
+  const streaming = group.status.type === "running";
+  return (
+    <ReasoningPanel
+      steps={[]}
+      visibleSteps={0}
+      streaming={streaming}
+      open={open}
+      onOpenChange={setOpen}
+      restingLabel={t("ai:AI_CHAT_REASONING_TITLE")}
+    >
+      <div className="px-1 py-2" aria-busy={streaming}>
+        <ReasoningText>{children}</ReasoningText>
+      </div>
+    </ReasoningPanel>
+  );
+};
+
+const AssistantToolTimeline: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
+  group,
+  children,
+}) => {
+  const { t } = useTranslation(["ai"]);
+  const [open, setOpen] = useState(false);
+  const isHumanInput = useAuiState((s) =>
+    group.indices.some((index) => {
+      const part = s.message.parts[index];
+      return part?.type === "tool-call" && part.toolName === "human.request_input";
+    }),
+  );
+  const streaming = group.status.type === "running";
+  if (streaming) return null;
+  if (isHumanInput) {
+    return <div className="pt-1">{children}</div>;
+  }
+  if (group.status.type === "requires-action") {
+    return <div className="pt-1">{children}</div>;
+  }
+  return (
+    <ToolTimeline
+      steps={group.indices.map((index) => ({
+        verb: t("ai:AI_CHAT_TOOL_STEP", { index: index + 1 }),
+        chip: String(index + 1),
+        icon: WrenchIcon,
+      }))}
+      visibleSteps={group.indices.length}
+      streaming={streaming}
+      open={open}
+      onOpenChange={setOpen}
+      restingLabel={t("ai:AI_CHAT_TOOL_CALLS_TITLE", { count: group.indices.length })}
+      activeLabel={t("ai:AI_CHAT_TOOL_CALLS_ACTIVE", { count: group.indices.length })}
+      stats={[]}
+    >
+      {children}
+    </ToolTimeline>
+  );
+};
+
+type SourcePart = Extract<ThreadAssistantMessagePart, { type: "source" }>;
+
+const sourceDomain = (part: SourcePart) => {
+  if (part.sourceType !== "url") {
+    return ("filename" in part ? part.filename : undefined) ?? part.mediaType ?? "document";
+  }
+  try {
+    return new URL(part.url).hostname;
+  } catch {
+    return part.url;
+  }
+};
+
+const AssistantSourcePart: FC<{ part: SourcePart }> = ({ part }) => {
+  const { t } = useTranslation(["ai"]);
+  const [open, setOpen] = useState(false);
+  const [openCitation, setOpenCitation] = useState<number | null>(null);
+  const filename = "filename" in part ? part.filename : undefined;
+  const title = part.title ?? part.url ?? filename ?? t("ai:AI_CHAT_SOURCE_DEFAULT_TITLE");
+  const source = {
+    domain: sourceDomain(part),
+    title,
+    ...(part.sourceType === "url" ? { url: part.url } : {}),
+  };
+  return (
+    <div className="flex flex-col gap-2 py-1">
+      {part.sourceType === "url" ? (
+        <WebSearch
+          query={title}
+          results={[{ title, domain: source.domain }]}
+          visibleResults={1}
+          searching={false}
+          cycle={0}
+        />
+      ) : null}
+      <Sources sources={[source]} open={open} onOpenChange={setOpen} />
+      <InlineCitation
+        sources={[{ domain: source.domain, title: source.title, snippet: source.title }]}
+        openIndex={openCitation}
+        onOpenIndexChange={setOpenCitation}
+      >
+        {source.title}
+      </InlineCitation>
+    </div>
+  );
+};
+
+const AssistantFilePart: FC<{
+  part: Extract<ThreadAssistantMessagePart, { type: "file" }>;
+}> = ({ part }) => (
+  <a
+    href={part.data}
+    target="_blank"
+    rel="noreferrer"
+    className={cn(ghostButton, "inline-flex w-fit items-center gap-2 rounded-xl px-3 py-2 text-xs")}
+  >
+    <FileIcon className="size-3.5" />
+    <span className="max-w-56 truncate">{part.filename}</span>
+    <span className={cn(mono, "text-foreground/40")}>{part.mimeType}</span>
+  </a>
+);
 
 const AssistantActionBar: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
@@ -535,7 +738,7 @@ const UserMessage: FC = () => {
       <UserMessageAttachments />
 
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
-        <div className="aui-user-message-content peer rounded-xl bg-muted px-4 py-2 text-callout text-label-primary wrap-break-word empty:hidden">
+        <div className="aui-user-message-content peer px-0 py-1 text-callout text-label-primary wrap-break-word empty:hidden">
           {webSearchEnabled ? (
             <span className="mb-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-caption font-semibold text-label-primary shadow-sm">
               <GlobeIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
@@ -608,7 +811,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
       className={cn(
-        "aui-branch-picker-root text-label-secondary -ms-2 me-2 inline-flex items-center text-xs",
+        "aui-branch-picker-root text-label-secondary -ms-2 me-2 inline-flex items-center gap-1 text-xs",
         className,
       )}
       {...rest}
@@ -618,7 +821,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
           <ChevronLeftIcon />
         </TooltipIconButton>
       </BranchPickerPrimitive.Previous>
-      <span className="aui-branch-picker-state font-medium">
+      <span className={cn("aui-branch-picker-state font-medium", mono)}>
         <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
       </span>
       <BranchPickerPrimitive.Next asChild>

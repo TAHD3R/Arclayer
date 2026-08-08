@@ -28,6 +28,16 @@ from src.models.skills.skill_package import SkillPackageRecord
 from src.models.skills.skill_version import SkillVersionRecord
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.system.agents.definition_service import SUPPORTED_TOOL_GRANTS
+from src.modules.system.skills.catalog import (
+    CAPABILITY_TAGS,
+    DATA_CLASSES,
+    EGRESS_DESTINATIONS,
+    PERMISSIONS,
+    REFERENCE_MIME_TYPES,
+)
+from src.modules.system.skills.catalog import (
+    ids as catalog_ids,
+)
 from src.modules.system.skills.projection import (
     project_platform_skill_summary,
     project_platform_skill_version,
@@ -56,7 +66,7 @@ from src.modules.workspaces.skills.github_source import (
     normalize_github_repository_url,
     normalize_github_subpath,
 )
-from src.modules.workspaces.skills.manifest import normalize_skill_slug
+from src.modules.workspaces.skills.manifest import SkillManifestV1, normalize_skill_slug
 from src.modules.workspaces.skills.official_catalog_repository import OfficialSkillCatalogRepository
 from src.modules.workspaces.skills.official_catalog_source import (
     OFFICIAL_SKILL_PUBLISHER_ID,
@@ -71,6 +81,7 @@ ActivityWriter = Callable[..., Awaitable[object]]
 SKILL_PACKAGE_CREATED = "platform.skill.package.created"
 SKILL_PACKAGE_UPDATED = "platform.skill.package.updated"
 SKILL_PACKAGE_ARCHIVED = "platform.skill.package.archived"
+SKILL_PACKAGE_RESTORED = "platform.skill.package.restored"
 SKILL_VERSION_PUBLISHED = "platform.skill.version.published"
 
 
@@ -477,6 +488,43 @@ class PlatformSkillCatalogService(BaseService):
                 )
         return await self.get_package(package_id=package_id)
 
+    async def restore_package(
+        self,
+        *,
+        package_id: UUID,
+        expected_revision: int,
+        actor_user_id: UUID,
+    ) -> PlatformSkillPackageDetailOut:
+        async with self.tx() as conn:
+            package = await self._require_package_for_update(package_id=package_id, conn=conn)
+            _require_revision(package=package, expected=expected_revision)
+            if str(package.status) == SkillPackageStatus.ARCHIVED.value:
+                package.status = SkillPackageStatus.ACTIVE
+                package.archived_at = None
+                package.archived_by_user_id = None
+                package.updated_by_user_id = actor_user_id
+                package.metadata_revision += 1
+                await self._repository.save_package(
+                    package=package,
+                    update_fields=(
+                        "status",
+                        "archived_at",
+                        "archived_by_user_id",
+                        "updated_by_user_id",
+                        "metadata_revision",
+                    ),
+                    conn=conn,
+                )
+                await self._write_activity(
+                    event_name=SKILL_PACKAGE_RESTORED,
+                    actor_user_id=actor_user_id,
+                    entity_type="official_skill_package",
+                    entity_id=package.id,
+                    properties={"latestValidVersionId": str(package.latest_valid_version_id)},
+                    conn=conn,
+                )
+        return await self.get_package(package_id=package_id)
+
     async def _persist_version(
         self,
         *,
@@ -496,6 +544,7 @@ class PlatformSkillCatalogService(BaseService):
                 t("errors", "SKILL_REQUIRED_TOOL_UNAVAILABLE"),
                 error="SKILL_REQUIRED_TOOL_UNAVAILABLE",
             )
+        _validate_catalog_declarations(manifest)
         version = await self._repository.create_version(
             values={
                 "package_id": package.id,
@@ -670,6 +719,35 @@ def _build_official_version(
         )
     except (TypeError, ValueError) as exc:
         raise BadRequest(t("errors", "SKILL_RESOURCE_INVALID"), error="SKILL_RESOURCE_INVALID") from exc
+
+
+def _validate_catalog_declarations(manifest: SkillManifestV1) -> None:
+    declarations = (
+        (
+            {item.action for item in manifest.permissions},
+            catalog_ids(PERMISSIONS),
+            "SKILL_PERMISSION_UNREGISTERED",
+        ),
+        (
+            {item.destination for item in manifest.data_egress},
+            catalog_ids(EGRESS_DESTINATIONS),
+            "SKILL_EGRESS_DESTINATION_UNREGISTERED",
+        ),
+        (
+            {data_class for item in manifest.data_egress for data_class in item.data_classes},
+            catalog_ids(DATA_CLASSES),
+            "SKILL_DATA_CLASS_UNREGISTERED",
+        ),
+        (set(manifest.capability_tags), catalog_ids(CAPABILITY_TAGS), "SKILL_CAPABILITY_TAG_UNREGISTERED"),
+        (
+            {resource.mime_type for resource in manifest.resources if resource.role == "reference"},
+            catalog_ids(REFERENCE_MIME_TYPES),
+            "SKILL_REFERENCE_MIME_TYPE_UNREGISTERED",
+        ),
+    )
+    for requested, registered, error in declarations:
+        if requested - registered:
+            raise BadRequest(t("errors", error), error=error)
 
 
 def _platform_payload_from_snapshot(

@@ -8,7 +8,7 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type {
@@ -28,9 +28,11 @@ import {
   applyAiPolicy,
   deleteAiProvider,
   executeAiTaskAction,
+  getAiTaskDossier,
   getAiPolicy,
   getAiProviderReadiness,
   listAiProviders,
+  listAiPolicyRevisions,
   listAiTasks,
   PlatformAiServicesApiError,
   previewAiProviderAvailability,
@@ -62,6 +64,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Empty,
@@ -82,6 +85,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -92,6 +109,7 @@ import {
 
 type QueryState<T> = { status: string; data?: T };
 type TaskAction = "retry" | "cancel" | "reconcile";
+type TaskStatusFilter = "" | "failed" | "interrupted" | "running" | "queued";
 type TaskActionReason = Readonly<{ copyKey: string }>;
 type ProviderLifecycleContinuation = "none" | "archive" | "delete";
 type ProviderAvailabilityFlow = Readonly<{
@@ -207,9 +225,35 @@ function taskActionErrorCode(error: unknown): string {
 
 export function AiTasksPage() {
   const { t, i18n } = useTranslation(["ai", "errors"]);
-  const load = useCallback(() => listAiTasks({ page: 1, size: 50 }), []);
-  const { state, retry } = useMonitoringQuery(load, []);
+  const [filters, setFilters] = useState<{
+    status: TaskStatusFilter;
+    provider: string;
+    model: string;
+    failureClass: string;
+    correlation: string;
+  }>({
+    status: "",
+    provider: "",
+    model: "",
+    failureClass: "",
+    correlation: "",
+  });
+  const load = useCallback(
+    () =>
+      listAiTasks({
+        page: 1,
+        size: 50,
+        status: filters.status || undefined,
+        provider: filters.provider || undefined,
+        model: filters.model || undefined,
+        failureClass: filters.failureClass || undefined,
+        correlation: filters.correlation || undefined,
+      }),
+    [filters],
+  );
+  const { state, retry } = useMonitoringQuery(load, [filters]);
   const [pending, setPending] = useState<string | null>(null);
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const idempotencyKeys = useRef<Map<string, string>>(new Map());
   const execute = async (task: PlatformAiTaskOut, action: TaskAction) => {
     const operationKey = `${task.id}:${action}`;
@@ -242,6 +286,71 @@ export function AiTasksPage() {
   };
   return (
     <AiPage description={t("TASKS_DESCRIPTION")} title={t("TASKS_TITLE")}>
+      <Card>
+        <CardContent className="grid gap-3 pt-6 md:grid-cols-2 xl:grid-cols-5">
+          <Select
+            onValueChange={(value) =>
+              setFilters((current) => ({
+                ...current,
+                status: (value === "all" ? "" : value) as TaskStatusFilter,
+              }))
+            }
+            value={filters.status || "all"}
+          >
+            <SelectTrigger aria-label={t("STATUS")}>
+              <SelectValue placeholder={t("TASK_STATUS_FILTER_PLACEHOLDER")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("TASK_STATUS_ALL")}</SelectItem>
+              {[
+                ["failed", "TASK_STATUS_FAILED_DESCRIPTION"],
+                ["interrupted", "TASK_STATUS_INTERRUPTED_DESCRIPTION"],
+                ["running", "TASK_STATUS_RUNNING_DESCRIPTION"],
+                ["queued", "TASK_STATUS_QUEUED_DESCRIPTION"],
+              ].map(([value, descriptionKey]) => (
+                <SelectItem key={value} value={value}>
+                  <span className="flex flex-col">
+                    <span>{t(`STATUS_${value.toUpperCase()}`)}</span>
+                    <span className="text-xs text-muted-foreground">{t(descriptionKey)}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            aria-label={t("PROVIDER")}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, provider: event.target.value }))
+            }
+            placeholder={t("TASK_PROVIDER_PLACEHOLDER")}
+            value={filters.provider}
+          />
+          <Input
+            aria-label={t("MODEL")}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, model: event.target.value }))
+            }
+            placeholder={t("TASK_MODEL_PLACEHOLDER")}
+            value={filters.model}
+          />
+          <Input
+            aria-label={t("FAILURE_CLASS")}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, failureClass: event.target.value }))
+            }
+            placeholder={t("TASK_FAILURE_CLASS_PLACEHOLDER")}
+            value={filters.failureClass}
+          />
+          <Input
+            aria-label={t("CORRELATION")}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, correlation: event.target.value }))
+            }
+            placeholder={t("TASK_CORRELATION_PLACEHOLDER")}
+            value={filters.correlation}
+          />
+        </CardContent>
+      </Card>
       <AiState
         empty={(data: PageDataPlatformAiTaskOut) => !data.items?.length}
         retry={retry}
@@ -261,13 +370,16 @@ export function AiTasksPage() {
                     <TableHead>{t("STATUS")}</TableHead>
                     <TableHead>{t("MODE")}</TableHead>
                     <TableHead>{t("LAST_PROGRESS")}</TableHead>
+                    <TableHead>{t("ERROR_CODE")}</TableHead>
                     <TableHead>{t("ACTIONS")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.items?.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-mono text-xs">{task.workspaceId}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {t("WORKSPACE_REFERENCE", { value: task.workspaceId.slice(0, 8) })}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={task.outcome === "failed" ? "destructive" : "outline"}>
                           {t(`OUTCOME_${task.outcome.toUpperCase()}`)}
@@ -280,8 +392,18 @@ export function AiTasksPage() {
                           {t("EVIDENCE_SEQUENCE", { sequence: task.lastSequence })}
                         </p>
                       </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {task.errorCode ? t("ERROR_RECORDED") : t("NO_ERROR_CODE")}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => setDetailTaskId(task.id)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            {t("VIEW_DETAILS")}
+                          </Button>
                           {(["retry", "cancel", "reconcile"] as const).map((action) => {
                             const availability = actionAvailability(task, action);
                             const reason = taskActionReason(availability);
@@ -323,7 +445,108 @@ export function AiTasksPage() {
           </Card>
         )}
       </AiState>
+      {detailTaskId ? (
+        <AiTaskDetailSheet taskId={detailTaskId} onClose={() => setDetailTaskId(null)} />
+      ) : null}
     </AiPage>
+  );
+}
+
+function AiTaskDetailSheet(props: Readonly<{ taskId: string; onClose: () => void }>) {
+  const { t } = useTranslation("ai");
+  const load = useCallback(() => getAiTaskDossier(props.taskId), [props.taskId]);
+  const { state, retry } = useMonitoringQuery(load, [props.taskId]);
+  const dossier = state.status === "ready" ? state.data : undefined;
+  const task = dossier?.task;
+  return (
+    <Sheet onOpenChange={(open) => !open && props.onClose()} open>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{t("TASK_DETAILS_TITLE")}</SheetTitle>
+          <SheetDescription>{t("TASK_DETAILS_DESCRIPTION")}</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-4 px-6 pb-8">
+          {state.status === "loading" ? <Skeleton className="h-52 w-full" /> : null}
+          {state.status === "error" ? (
+            <Empty className="border bg-card">
+              <EmptyHeader>
+                <EmptyTitle>{t("TASK_DETAILS_ERROR_TITLE")}</EmptyTitle>
+                <EmptyDescription>{t("TASK_DETAILS_ERROR_DESCRIPTION")}</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button onClick={retry} variant="outline">
+                  {t("RETRY")}
+                </Button>
+              </EmptyContent>
+            </Empty>
+          ) : null}
+          {task ? (
+            <Card>
+              <CardContent className="space-y-3 pt-6 text-sm">
+                <p>
+                  <span className="font-medium">{t("STATUS")}:</span>{" "}
+                  {t(`STATUS_${task.status.toUpperCase()}`)}
+                </p>
+                <p>
+                  <span className="font-medium">{t("OUTCOME")}:</span>{" "}
+                  {t(`OUTCOME_${task.outcome.toUpperCase()}`)}
+                </p>
+                <p>
+                  <span className="font-medium">{t("PROGRESS")}:</span> {task.progressCompleted}
+                  {task.progressTotal === null ? "" : ` / ${task.progressTotal}`}
+                </p>
+                <p>
+                  <span className="font-medium">{t("ERROR_CODE")}:</span>{" "}
+                  {task.errorCode ?? t("NO_ERROR_CODE")}
+                </p>
+                <p>
+                  <span className="font-medium">{t("INTERRUPT_REASON")}:</span>{" "}
+                  {task.interruptReason ?? t("NO_INTERRUPT_REASON")}
+                </p>
+                <p>
+                  <span className="font-medium">{t("EVIDENCE_SEQUENCE_LABEL")}:</span>{" "}
+                  {task.lastSequence}
+                </p>
+                <p className="break-all font-mono text-xs text-muted-foreground">{task.id}</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <p>
+                    {t("MESSAGES")}: {dossier?.messages.total ?? 0}
+                  </p>
+                  <p>
+                    {t("ATTEMPTS")}: {dossier?.attempts.length ?? 0}
+                  </p>
+                  <p>
+                    {t("TELEMETRY")}:{" "}
+                    {dossier?.usage.telemetryAvailable ? t("AVAILABLE") : t("NOT_AVAILABLE")}
+                  </p>
+                </div>
+                {dossier?.diagnostics.failureClassification ? (
+                  <p>
+                    <span className="font-medium">{t("FAILURE_CLASS")}:</span>{" "}
+                    {dossier.diagnostics.failureClassification}
+                  </p>
+                ) : null}
+                {dossier?.timeline.length ? (
+                  <div className="space-y-2 border-t pt-3">
+                    <p className="font-medium">{t("TIMELINE")}</p>
+                    <ol className="space-y-2 text-xs text-muted-foreground">
+                      {dossier.timeline.map((entry, index) => (
+                        <li className="flex gap-2" key={`${entry.occurredAt}-${index}`}>
+                          <time className="shrink-0 font-mono">
+                            {new Date(entry.occurredAt).toLocaleTimeString()}
+                          </time>
+                          <span>{entry.summary}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -944,9 +1167,19 @@ export function AiAssistantsPage() {
                                 {t("OFFICIAL_ASSISTANT_MANAGED")}
                               </span>
                             ) : assistant.lifecycleState === "archived" ? (
-                              <span className="text-xs text-muted-foreground">
-                                {t("ARCHIVED_ASSISTANT_READ_ONLY")}
-                              </span>
+                              <>
+                                <span className="text-xs text-muted-foreground">
+                                  {t("ARCHIVED_ASSISTANT_READ_ONLY")}
+                                </span>
+                                <Button
+                                  disabled={pending === `assistant:${assistant.id}`}
+                                  onClick={() => void changeLifecycle(assistant, "active")}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {t("RESTORE")}
+                                </Button>
+                              </>
                             ) : (
                               <>
                                 <Button
@@ -1034,6 +1267,7 @@ export function AiAssistantsPage() {
               {editor ? (
                 <AiAssistantEditorDialog
                   approvalProfiles={approvalProfiles}
+                  approvalProfileCatalog={data.capabilities.approvalProfileCatalog ?? []}
                   assistant={editor === "create" ? undefined : editor}
                   onCompleted={() => {
                     toast.success(
@@ -1044,11 +1278,13 @@ export function AiAssistantsPage() {
                   onOpenChange={(open) => !open && setEditor(null)}
                   open
                   supportedToolGrants={data.capabilities.supportedToolGrants}
+                  toolGrantCatalog={data.capabilities.toolGrantCatalog ?? []}
                 />
               ) : null}
               {versionEditor ? (
                 <AiAssistantVersionDialog
                   approvalProfiles={approvalProfiles}
+                  approvalProfileCatalog={data.capabilities.approvalProfileCatalog ?? []}
                   assistant={versionEditor}
                   onCompleted={() => {
                     toast.success(t("ASSISTANT_VERSION_CREATED"));
@@ -1057,6 +1293,7 @@ export function AiAssistantsPage() {
                   onOpenChange={(open) => !open && setVersionEditor(null)}
                   open
                   supportedToolGrants={data.capabilities.supportedToolGrants}
+                  toolGrantCatalog={data.capabilities.toolGrantCatalog ?? []}
                 />
               ) : null}
             </>
@@ -1083,35 +1320,96 @@ function assistantCapabilityFlag(
 
 export function AiPoliciesPage() {
   const { t } = useTranslation("ai");
-  const load = useCallback(() => getAiPolicy(), []);
+  const load = useCallback(
+    async () => ({
+      capabilities: await getAiAssistantCapabilities(),
+      policy: await getAiPolicy(),
+      revisions: await listAiPolicyRevisions({ page: 1, size: 20 }),
+      providers: await listAiProviders(),
+    }),
+    [],
+  );
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
-  const [models, setModels] = useState("");
+  const [models, setModels] = useState<string[]>([]);
   const [defaultModel, setDefaultModel] = useState("");
   const [maxTokens, setMaxTokens] = useState("0");
   const [maxCost, setMaxCost] = useState("0");
+  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState("0");
   const [egress, setEgress] = useState(false);
+  const [toolAllowlist, setToolAllowlist] = useState<string[]>([]);
+  const [approvalClasses, setApprovalClasses] = useState<string[]>([]);
+  const [retryLimit, setRetryLimit] = useState("0");
   const [reason, setReason] = useState("");
-  const policy = state.status === "ready" ? state.data : undefined;
+  const data = state.status === "ready" ? state.data : undefined;
+  const policy = data?.policy;
   const draft = policy?.draft;
   const published = policy?.published;
+  const revisions = data?.revisions.items ?? [];
+  const source = draft ?? published;
+
+  useEffect(() => {
+    if (!source) return;
+    setModels([...(source.allowedModels ?? [])]);
+    setDefaultModel(source.defaultModel ?? "");
+    setMaxTokens(String(source.maxTokensPerRequest));
+    setMaxCost(String(source.maxCostMicrosPerRequest));
+    setMaxConcurrentRuns(String(source.maxConcurrentRuns));
+    setEgress(source.externalDataEgressAllowed ?? false);
+    setToolAllowlist([...(source.toolAllowlist ?? [])]);
+    setApprovalClasses([...(source.approvalRequiredEffectClasses ?? [])]);
+    setRetryLimit(String(source.retryLimit));
+  }, [source?.id]);
+
+  const modelOptions = data
+    ? Array.from(
+        new Map(
+          (data.providers.providers ?? []).flatMap((provider) =>
+            (provider.modelMappings ?? []).map(
+              (mapping) =>
+                [
+                  mapping.publicModel,
+                  {
+                    id: mapping.publicModel,
+                    label: mapping.publicModel,
+                    description: `${provider.label} · ${mapping.providerModel}`,
+                  },
+                ] as const,
+            ),
+          ),
+        ).values(),
+      )
+    : [];
+  const toolOptions = data
+    ? data.capabilities.supportedToolGrants.map((id) => ({
+        id,
+        label: id,
+        description: t("POLICY_TOOL_OPTION_DESCRIPTION"),
+      }))
+    : [];
+  const approvalOptions = ["read", "write", "external_egress", "destructive"].map((id) => ({
+    id,
+    label: t(`POLICY_EFFECT_${id.toUpperCase()}`),
+    description: t(`POLICY_EFFECT_${id.toUpperCase()}_DESCRIPTION`),
+  }));
   const saveDraft = async () => {
     setPending("save");
     try {
       await saveAiPolicyDraft({
-        allowedModels: models
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        allowedModels: models,
         defaultModel: defaultModel.trim() || null,
         maxTokensPerRequest: Number(maxTokens),
         maxCostMicrosPerRequest: Number(maxCost),
-        maxConcurrentRuns: 0,
+        maxConcurrentRuns: Number(maxConcurrentRuns),
         externalDataEgressAllowed: egress,
-        toolAllowlist: [],
-        approvalRequiredEffectClasses: [],
-        retryLimit: 0,
-        retentionDays: 0,
+        toolAllowlist,
+        approvalRequiredEffectClasses: approvalClasses as (
+          | "read"
+          | "write"
+          | "external_egress"
+          | "destructive"
+        )[],
+        retryLimit: Number(retryLimit),
       });
       toast.success(t("POLICY_DRAFT_SAVED"));
       retry();
@@ -1175,20 +1473,36 @@ export function AiPoliciesPage() {
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="ai-policy-models">{t("POLICY_ALLOWED_MODELS")}</Label>
-                  <Input
-                    id="ai-policy-models"
-                    onChange={(event) => setModels(event.target.value)}
-                    value={models}
+                  <Label>{t("POLICY_ALLOWED_MODELS")}</Label>
+                  <PolicyMultiSelect
+                    label={t("POLICY_ALLOWED_MODELS")}
+                    onChange={setModels}
+                    options={modelOptions}
+                    placeholder={t("POLICY_ALLOWED_MODELS_PLACEHOLDER")}
+                    selected={models}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ai-policy-default-model">{t("POLICY_DEFAULT_MODEL")}</Label>
-                  <Input
-                    id="ai-policy-default-model"
-                    onChange={(event) => setDefaultModel(event.target.value)}
-                    value={defaultModel}
-                  />
+                  <Select onValueChange={setDefaultModel} value={defaultModel}>
+                    <SelectTrigger id="ai-policy-default-model">
+                      <SelectValue placeholder={t("POLICY_DEFAULT_MODEL_PLACEHOLDER")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modelOptions
+                        .filter((option) => models.includes(option.id))
+                        .map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            <div>
+                              <div>{option.label}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {option.description}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ai-policy-max-tokens">{t("POLICY_MAX_TOKENS")}</Label>
@@ -1196,6 +1510,7 @@ export function AiPoliciesPage() {
                     id="ai-policy-max-tokens"
                     min={0}
                     onChange={(event) => setMaxTokens(event.target.value)}
+                    placeholder={t("POLICY_MAX_TOKENS_PLACEHOLDER")}
                     type="number"
                     value={maxTokens}
                   />
@@ -1206,23 +1521,70 @@ export function AiPoliciesPage() {
                     id="ai-policy-max-cost"
                     min={0}
                     onChange={(event) => setMaxCost(event.target.value)}
+                    placeholder={t("POLICY_MAX_COST_PLACEHOLDER")}
                     type="number"
                     value={maxCost}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ai-policy-max-concurrent">{t("POLICY_MAX_CONCURRENT")}</Label>
+                  <Input
+                    id="ai-policy-max-concurrent"
+                    min={0}
+                    onChange={(event) => setMaxConcurrentRuns(event.target.value)}
+                    placeholder={t("POLICY_MAX_CONCURRENT_PLACEHOLDER")}
+                    type="number"
+                    value={maxConcurrentRuns}
+                  />
+                </div>
                 <label className="flex items-center gap-2 text-sm md:col-span-2">
-                  <input
+                  <Checkbox
                     checked={egress}
-                    onChange={(event) => setEgress(event.target.checked)}
-                    type="checkbox"
+                    onCheckedChange={(checked) => setEgress(checked === true)}
                   />
                   {t("POLICY_EXTERNAL_EGRESS")}
                 </label>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>{t("POLICY_TOOL_ALLOWLIST")}</Label>
+                  <PolicyMultiSelect
+                    label={t("POLICY_TOOL_ALLOWLIST")}
+                    onChange={setToolAllowlist}
+                    options={toolOptions}
+                    placeholder={t("POLICY_TOOL_ALLOWLIST_PLACEHOLDER")}
+                    selected={toolAllowlist}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>{t("POLICY_APPROVAL_CLASSES")}</Label>
+                  <PolicyMultiSelect
+                    label={t("POLICY_APPROVAL_CLASSES")}
+                    onChange={setApprovalClasses}
+                    options={approvalOptions}
+                    placeholder={t("POLICY_APPROVAL_CLASSES_PLACEHOLDER")}
+                    selected={approvalClasses}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("POLICY_RETRY_LIMIT")}</Label>
+                  <Select onValueChange={setRetryLimit} value={retryLimit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("POLICY_RETRY_LIMIT_PLACEHOLDER")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 21 }, (_, value) => (
+                        <SelectItem key={value} value={String(value)}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="ai-policy-reason">{t("POLICY_REASON")}</Label>
                   <Input
                     id="ai-policy-reason"
                     onChange={(event) => setReason(event.target.value)}
+                    placeholder={t("POLICY_REASON_PLACEHOLDER")}
                     value={reason}
                   />
                 </div>
@@ -1262,11 +1624,106 @@ export function AiPoliciesPage() {
                     applied: published?.appliedAt ? t("YES") : t("NO"),
                   })}
                 </p>
+                <p>
+                  {t("POLICY_MODEL_COUNT", {
+                    count: draft?.allowedModels?.length ?? published?.allowedModels?.length ?? 0,
+                  })}
+                </p>
+                <p>
+                  {t("POLICY_TOOL_COUNT", {
+                    count: draft?.toolAllowlist?.length ?? published?.toolAllowlist?.length ?? 0,
+                  })}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("POLICY_HISTORY_TITLE")}</CardTitle>
+                <CardDescription>{t("POLICY_HISTORY_DESCRIPTION")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {revisions.length ? (
+                  <ol className="space-y-3">
+                    {revisions.map((revision) => (
+                      <li
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                        key={revision.id}
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {t("POLICY_REVISION_LABEL", { sequence: revision.sequence })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t(`POLICY_STATUS_${revision.status.toUpperCase()}`)} ·{" "}
+                            {revision.contentHash.slice(0, 12)}
+                          </p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {revision.appliedAt ? t("POLICY_APPLIED") : t("POLICY_NOT_APPLIED")}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("POLICY_HISTORY_EMPTY")}</p>
+                )}
               </CardContent>
             </Card>
           </div>
         )}
       </AiState>
     </AiPage>
+  );
+}
+
+type PolicyOption = Readonly<{ id: string; label: string; description: string }>;
+
+function PolicyMultiSelect(
+  props: Readonly<{
+    label: string;
+    options: readonly PolicyOption[];
+    placeholder: string;
+    selected: readonly string[];
+    onChange: (value: string[]) => void;
+  }>,
+) {
+  const available = props.options.filter((option) => !props.selected.includes(option.id));
+  return (
+    <div className="space-y-2">
+      <Select
+        key={props.selected.join("|")}
+        onValueChange={(value) => props.onChange([...props.selected, value])}
+      >
+        <SelectTrigger aria-label={props.label}>
+          <SelectValue placeholder={props.placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {available.map((option) => (
+            <SelectItem key={option.id} value={option.id}>
+              <div>
+                <div>{option.label}</div>
+                <div className="text-xs text-muted-foreground">{option.description}</div>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {props.selected.length ? (
+        <div className="flex flex-wrap gap-2">
+          {props.selected.map((value) => (
+            <Button
+              key={value}
+              onClick={() => props.onChange(props.selected.filter((item) => item !== value))}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {value}
+              <Trash2 aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

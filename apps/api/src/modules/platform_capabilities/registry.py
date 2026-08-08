@@ -76,11 +76,6 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
             PlatformCapabilityNavigationRegistration(
-                route_target=PlatformCapabilityRouteTarget.COMMERCE_CREDITS,
-                required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
-                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
-            ),
-            PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.COMMERCE_CONFIGURATION,
                 required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,

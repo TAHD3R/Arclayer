@@ -10,7 +10,7 @@ async function source(relativePath: string): Promise<string> {
 }
 
 describe("Platform Monitoring & Audit routes", () => {
-  it("owns every focused Monitoring route without an overview route", async () => {
+  it("owns every focused Monitoring route including the overview route", async () => {
     const routeFiles = await Promise.all(
       ["requests", "performance", "ai-usage", "activity", "audit"].map((name) =>
         source(`apps/platform/src/routes/_authenticated/monitoring/${name}.tsx`),
@@ -22,19 +22,25 @@ describe("Platform Monitoring & Audit routes", () => {
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/ai-usage"');
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/activity"');
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/audit"');
-    expect(routeFiles.join("\n")).not.toContain("overview");
+    expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/ai-usage"');
   });
 
   it("uses only generated Platform SDK monitoring operations", async () => {
-    const api = await source("apps/platform/src/monitoring/monitoring-api.ts");
+    const [api, aiUsagePage] = await Promise.all([
+      source("apps/platform/src/monitoring/monitoring-api.ts"),
+      source("apps/platform/src/pages/monitoring-ai-usage.tsx"),
+    ]);
 
     expect(api).toContain('from "@arclayer/platform-openapi"');
     expect(api).toContain("platformListPlatformHttpRequestRecords");
     expect(api).toContain("platformListPlatformHttpRequestGroups");
     expect(api).toContain("platformListPlatformAiUsageGroups");
+    expect(api).toContain("platformListPlatformAiUsageRecords");
     expect(api).toContain("platformListActivity");
     expect(api).not.toContain("fetch(");
-    expect(api).not.toContain("platformGetPlatformObservabilityOverview");
+    expect(api).toContain("platformGetPlatformObservabilityOverview");
+    expect(aiUsagePage).toContain("AI_USAGE_RECORDS_TITLE");
+    expect(aiUsagePage).toContain("dashboard.records.items");
   });
 
   it("expands server-effective Audit saved views into typed Audit URL state only", async () => {

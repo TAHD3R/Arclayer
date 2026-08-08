@@ -28,23 +28,50 @@ export function PlatformPage({
         className,
       )}
     >
-      <header className="space-y-4 border-b pb-5">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-2xl1 font-semibold tracking-tight text-foreground">{title}</h1>
-            {primaryAction || secondaryActions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                {secondaryActions}
-                {primaryAction}
-              </div>
-            ) : null}
-          </div>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
-        {extra ? <div>{extra}</div> : null}
-      </header>
+      <PageHeader
+        description={description}
+        extra={extra}
+        primaryAction={primaryAction}
+        secondaryActions={secondaryActions}
+        title={title}
+      />
       {children}
     </div>
+  );
+}
+
+/** Canonical Platform page header. Keep page actions here so every route has the same rhythm. */
+export function PageHeader({
+  title,
+  description,
+  primaryAction,
+  secondaryActions,
+  extra,
+}: Readonly<{
+  title: string;
+  description?: string;
+  primaryAction?: ReactNode;
+  secondaryActions?: ReactNode;
+  extra?: ReactNode;
+}>) {
+  return (
+    <header className="space-y-4 border-b pb-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+          {description ? (
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        {primaryAction || secondaryActions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {secondaryActions}
+            {primaryAction}
+          </div>
+        ) : null}
+      </div>
+      {extra ? <div>{extra}</div> : null}
+    </header>
   );
 }
 
@@ -82,7 +109,7 @@ export function PlatformSection({
       {title || description || actions ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 space-y-1">
-            {title ? <h2 className="text-2xl3 font-semibold tracking-tight">{title}</h2> : null}
+            {title ? <h2 className="text-2xl font-semibold tracking-tight">{title}</h2> : null}
             {description ? (
               <p className="max-w-3xl text-sm text-muted-foreground">{description}</p>
             ) : null}

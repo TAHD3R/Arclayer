@@ -159,6 +159,7 @@ describe("Agent Run v1 production reducer", () => {
           toolName: "content.choose_variant",
           args: { variants: ["a", "b"] },
           argsText: '{"variants":["a","b"]}',
+          approval: null,
         },
       }),
     ]);
@@ -168,6 +169,7 @@ describe("Agent Run v1 production reducer", () => {
         interruptId: "interrupt-human",
         checkpointId: "checkpoint-human",
         reason: "human_tool_input",
+        approvalId: null,
         toolCallId: "tool-call-human",
       }),
     );
@@ -258,8 +260,24 @@ describe("Agent Run v1 production reducer", () => {
         attemptNumber: 1,
         agentVersionId: "agent-version-lead",
       }),
-      runtimeEvent(3, "run.failed", {
-        failedAt: "2026-07-18T12:00:02.000Z",
+      runtimeEvent(3, "message.part.started", {
+        message: {
+          messageId: "message-failed",
+          role: "assistant",
+          agentId: "agent-lead",
+          createdAt: "2026-07-18T12:00:02.000Z",
+          placement: { kind: "thread" },
+        },
+        part: {
+          partId: "part-streaming",
+          partIndex: 0,
+          type: "text",
+          status: "running",
+          text: "",
+        },
+      }),
+      runtimeEvent(4, "run.failed", {
+        failedAt: "2026-07-18T12:00:03.000Z",
         error: {
           code: "provider_unavailable",
           message: "The model provider is temporarily unavailable.",
@@ -281,6 +299,7 @@ describe("Agent Run v1 production reducer", () => {
       status: "failed",
       error: { code: "provider_unavailable", retryable: true },
     });
+    expect(failed.messages["message-failed"]?.parts[0]?.status).toBe("incomplete");
   });
 
   it("projects Tool execution onto an existing tool-call part until its canonical completion", () => {

@@ -22,6 +22,7 @@ import {
   platformCommercePutCommerceProvider,
   platformCommerceReconcileCommerceProviderEvent,
   platformCommerceRecordCommercePaymentCorrection,
+  platformCommerceRequestTopUpRefund,
   platformCommerceScheduleSubscriptionRevisionTransition,
   platformCommerceSubmitSimulatedCheckoutOutcome,
   platformCommerceSubmitSimulatedTopUpOutcome,
@@ -45,6 +46,7 @@ import {
   type ProviderEventReconcileRequest,
   type PaymentCorrectionWrite,
   type PaymentCorrectionOut,
+  type TopUpRefundRequest,
   type SimulatedCheckoutOutcomeWrite,
   type PlatformCommercePlanCatalogOut,
   type PlatformCommerceSubscriptionListOut,
@@ -59,6 +61,31 @@ import { platformApiClient } from "@/api/client";
 
 type ApiEnvelope<T> = Readonly<{ data?: T | null; error?: string | null }>;
 type SdkResult<T> = Readonly<{ data?: ApiEnvelope<T>; error?: unknown; response?: Response }>;
+const PLATFORM_BEARER_SECURITY = [{ scheme: "bearer", type: "http" }] as const;
+
+type CommerceSubscriptionsQuery = NonNullable<
+  PlatformCommerceListPlatformCommerceSubscriptionsData["query"]
+> & {
+  search?: string | null;
+  sortBy?: "current_period_end" | "status" | "plan_code";
+  sortDirection?: "asc" | "desc";
+};
+type CommerceTransactionsQuery = NonNullable<
+  PlatformCommerceListPlatformCommerceTransactionsData["query"]
+> & { search?: string | null };
+type CommerceInvoicesQuery = NonNullable<
+  PlatformCommerceListPlatformCommerceInvoicesData["query"]
+> & { search?: string | null };
+type CommerceRefundsQuery = NonNullable<
+  PlatformCommerceListPlatformCommerceRefundsData["query"]
+> & { search?: string | null };
+type CommerceProviderEventsQuery = NonNullable<
+  PlatformCommerceListCommerceProviderEventsData["query"]
+> & {
+  search?: string | null;
+  sortBy?: "created_at" | "status" | "processing_attempts";
+  sortDirection?: "asc" | "desc";
+};
 
 export class PlatformCommerceApiError extends Error {
   readonly status?: number;
@@ -100,45 +127,45 @@ export async function listCommercePlans(
 }
 
 export async function listCommerceSubscriptions(
-  query?: NonNullable<PlatformCommerceListPlatformCommerceSubscriptionsData["query"]>,
+  query?: CommerceSubscriptionsQuery,
 ): Promise<PlatformCommerceSubscriptionListOut> {
   return unwrap(
     await platformCommerceListPlatformCommerceSubscriptions({
       client: platformApiClient,
-      query,
+      query: query as NonNullable<PlatformCommerceListPlatformCommerceSubscriptionsData["query"]>,
     }),
   );
 }
 
 export async function listCommerceTransactions(
-  query?: NonNullable<PlatformCommerceListPlatformCommerceTransactionsData["query"]>,
+  query?: CommerceTransactionsQuery,
 ): Promise<PlatformTransactionListOut> {
   return unwrap(
     await platformCommerceListPlatformCommerceTransactions({
       client: platformApiClient,
-      query,
+      query: query as NonNullable<PlatformCommerceListPlatformCommerceTransactionsData["query"]>,
     }),
   );
 }
 
 export async function listCommerceInvoices(
-  query?: NonNullable<PlatformCommerceListPlatformCommerceInvoicesData["query"]>,
+  query?: CommerceInvoicesQuery,
 ): Promise<PlatformInvoiceListOut> {
   return unwrap(
     await platformCommerceListPlatformCommerceInvoices({
       client: platformApiClient,
-      query,
+      query: query as NonNullable<PlatformCommerceListPlatformCommerceInvoicesData["query"]>,
     }),
   );
 }
 
 export async function listCommerceRefunds(
-  query?: NonNullable<PlatformCommerceListPlatformCommerceRefundsData["query"]>,
+  query?: CommerceRefundsQuery,
 ): Promise<PlatformRefundListOut> {
   return unwrap(
     await platformCommerceListPlatformCommerceRefunds({
       client: platformApiClient,
-      query,
+      query: query as NonNullable<PlatformCommerceListPlatformCommerceRefundsData["query"]>,
     }),
   );
 }
@@ -151,6 +178,23 @@ export async function createCommercePlan(body: PlanIdentityCreate, idempotencyKe
       headers: { "Idempotency-Key": idempotencyKey },
     }),
   );
+}
+
+export async function deactivateCommercePlan(planCode: string, idempotencyKey: string) {
+  const result = await platformApiClient.post<{
+    200: ApiEnvelope<Readonly<{ id: string; code: string }>>;
+  }>({
+    security: PLATFORM_BEARER_SECURITY,
+    url: `/platform-api/v1/commerce/plans/${encodeURIComponent(planCode)}/deactivate`,
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+  });
+  if (result.error !== undefined || !result.data?.data || result.data.error) {
+    throw new PlatformCommerceApiError(
+      errorCode(result.data?.error) ?? "COMMERCE_PLAN_DEACTIVATE_FAILED",
+      result.response?.status,
+    );
+  }
+  return result.data.data;
 }
 
 export async function listCommercePlanRevisions(code: string, includeInactive = true) {
@@ -273,11 +317,12 @@ export async function putCommerceDunningPolicy(body: DunningPolicyWrite) {
   );
 }
 
-export async function listCommerceProviderEvents(
-  query?: NonNullable<PlatformCommerceListCommerceProviderEventsData["query"]>,
-) {
+export async function listCommerceProviderEvents(query?: CommerceProviderEventsQuery) {
   return unwrap(
-    await platformCommerceListCommerceProviderEvents({ client: platformApiClient, query }),
+    await platformCommerceListCommerceProviderEvents({
+      client: platformApiClient,
+      query: query as NonNullable<PlatformCommerceListCommerceProviderEventsData["query"]>,
+    }),
   );
 }
 
@@ -301,6 +346,21 @@ export async function recordCommercePaymentCorrection(
     await platformCommerceRecordCommercePaymentCorrection({
       body,
       client: platformApiClient,
+    }),
+  );
+}
+
+export async function requestCommerceTopUpRefund(
+  transactionId: string,
+  body: TopUpRefundRequest,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommerceRequestTopUpRefund({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { transaction_id: transactionId },
     }),
   );
 }

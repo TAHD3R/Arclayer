@@ -9,6 +9,7 @@ from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.ai.global_policy import GlobalAiPolicyRevision, GlobalAiPolicyRevisionStatus
@@ -42,6 +43,28 @@ class SystemAiPolicyService(BaseService):
         )
         return AiPolicyOut(
             draft=self._to_out(draft) if draft else None, published=self._to_out(published) if published else None
+        )
+
+    async def list_revisions(
+        self,
+        *,
+        params: PageParams,
+        status: GlobalAiPolicyRevisionStatus | None = None,
+    ) -> PageData[AiPolicyRevisionOut]:
+        query = GlobalAiPolicyRevision.all().order_by("-sequence")
+        if status is not None:
+            query = query.filter(status=status)
+        total = await query.count()
+        records = await query.offset((params.page - 1) * params.size).limit(params.size)
+        pages = (total + params.size - 1) // params.size if total else 0
+        return PageData(
+            items=tuple(self._to_out(record) for record in records),
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=params.page - 1 if params.page > 1 else None,
         )
 
     async def create_or_replace_draft(self, payload: AiPolicyDraftInput, *, actor_user_id: UUID) -> AiPolicyRevisionOut:
@@ -151,13 +174,11 @@ class SystemAiPolicyService(BaseService):
 
     @staticmethod
     def _unsupported_controls(record: GlobalAiPolicyRevision) -> list[str]:
-        unsupported = ["retention_days"] if record.retention_days else []
-        unsupported.extend(
+        return [
             f"approval_required_effect_classes:{effect_class}"
             for effect_class in record.approval_required_effect_classes
             if effect_class != "write"
-        )
-        return unsupported
+        ]
 
     @staticmethod
     async def _validate_catalog(payload: AiPolicyDraftInput) -> None:

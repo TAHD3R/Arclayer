@@ -880,6 +880,10 @@ class AISettings(BaseSettings):
         default=False,
         description="Allow fallback to platform shared virtual key when no workspace/user key exists",
     )
+    workspace_key_auto_provision_enabled: bool = Field(
+        default=False,
+        description="Create a workspace-owned LiteLLM virtual key on first AI use",
+    )
 
     # Provider API keys (optional — can also be set via LiteLLM config)
     openai_api_key: str | None = Field(default=None)

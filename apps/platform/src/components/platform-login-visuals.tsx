@@ -67,21 +67,35 @@ export function PlatformLoginLogo() {
 
 export function PlatformLoginPreferences() {
   const { t } = useTranslation("common");
-  const { locale, setLocale, setTheme, theme } = usePlatformPreferences();
+  const { languages, locale, setLocale, setTheme, theme } = usePlatformPreferences();
   const resolvedTheme = useResolvedPlatformTheme(theme);
   const ThemeIcon = resolvedTheme === "dark" ? Moon : Sun;
+  const enabledLanguages = languages.filter((language) => language.enabled);
+  const nextLanguage =
+    enabledLanguages[
+      (enabledLanguages.findIndex((language) => language.locale === locale) + 1) %
+        enabledLanguages.length
+    ];
 
   return (
     <div className="flex items-center justify-center gap-1 text-muted-foreground">
       <Button
         aria-label={t("CHANGE_LANGUAGE")}
-        onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
+        disabled={enabledLanguages.length < 2}
+        onClick={() => {
+          if (nextLanguage) setLocale(nextLanguage.locale);
+        }}
         size="sm"
         type="button"
         variant="ghost"
       >
         <Languages aria-hidden="true" />
-        {t(locale === "zh-CN" ? "LANGUAGE_ZH_CN" : "LANGUAGE_EN_US")}
+        <span
+          className={`fi fi-${enabledLanguages.find((language) => language.locale === locale)?.flag_code ?? ""} rounded-sm ring-1 ring-border`}
+          aria-hidden="true"
+          role="img"
+        />
+        {enabledLanguages.find((language) => language.locale === locale)?.native_name ?? locale}
       </Button>
       <Separator className="data-[orientation=vertical]:h-4" orientation="vertical" />
       <Button

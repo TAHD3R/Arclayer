@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -21,6 +21,9 @@ class PlatformTransactionQuery(BaseSchema):
     provider: str | None = None
     status: CommerceTransactionStatus | None = None
     kind: CommerceTransactionKind | None = None
+    search: str | None = Field(default=None, max_length=200)
+    sort_by: Literal["occurred_at", "amount_micros", "status"] = "occurred_at"
+    sort_direction: Literal["asc", "desc"] = "desc"
 
 
 class PlatformTransactionOut(BaseSchema):
@@ -49,6 +52,9 @@ class PlatformInvoiceQuery(BaseSchema):
     page_size: Annotated[int, Field(ge=1, le=100)] = 50
     provider: str | None = None
     status: CommerceInvoiceStatus | None = None
+    search: str | None = Field(default=None, max_length=200)
+    sort_by: Literal["issued_at", "amount_due_micros", "status"] = "issued_at"
+    sort_direction: Literal["asc", "desc"] = "desc"
 
 
 class PlatformInvoiceOut(BaseSchema):
@@ -78,6 +84,9 @@ class PlatformRefundQuery(BaseSchema):
     page: Annotated[int, Field(ge=1, le=10_000)] = 1
     page_size: Annotated[int, Field(ge=1, le=100)] = 50
     status: CommerceRefundStatus | None = None
+    search: str | None = Field(default=None, max_length=200)
+    sort_by: Literal["created_at", "amount_micros", "status"] = "created_at"
+    sort_direction: Literal["asc", "desc"] = "desc"
 
 
 class PlatformRefundOut(BaseSchema):

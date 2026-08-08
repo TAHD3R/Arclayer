@@ -114,3 +114,57 @@ async def test_complete_replace_advances_revision_when_only_content_changes(monk
         "updated_by_user_id",
         "metadata_revision",
     )
+
+
+@pytest.mark.asyncio
+async def test_restore_archived_package_reopens_catalog_entry(monkeypatch) -> None:
+    package = SimpleNamespace(
+        id=uuid4(),
+        metadata_revision=5,
+        status=SkillPackageStatus.ARCHIVED,
+        archived_at=object(),
+        archived_by_user_id=uuid4(),
+        updated_by_user_id=None,
+        latest_valid_version_id=uuid4(),
+    )
+    repository = SimpleNamespace(
+        get_platform_package=AsyncMock(return_value=package),
+        save_package=AsyncMock(),
+    )
+    service = PlatformSkillCatalogService(
+        cast(Settings, SimpleNamespace()),
+        repository=cast(OfficialSkillCatalogRepository, repository),
+        github_fetcher=cast(PublicGitHubSkillFetcher, SimpleNamespace()),
+        activity_writer=AsyncMock(),
+    )
+    connection = SimpleNamespace()
+
+    @asynccontextmanager
+    async def transaction():
+        yield connection
+
+    detail = SimpleNamespace(id=package.id)
+    monkeypatch.setattr(service, "tx", transaction)
+    monkeypatch.setattr(service, "_write_activity", AsyncMock())
+    monkeypatch.setattr(service, "get_package", AsyncMock(return_value=detail))
+
+    actor_user_id = uuid4()
+    result = await service.restore_package(
+        package_id=package.id,
+        expected_revision=5,
+        actor_user_id=actor_user_id,
+    )
+
+    assert result is detail
+    assert package.status is SkillPackageStatus.ACTIVE
+    assert package.archived_at is None
+    assert package.archived_by_user_id is None
+    assert package.updated_by_user_id == actor_user_id
+    assert package.metadata_revision == 6
+    assert repository.save_package.await_args.kwargs["update_fields"] == (
+        "status",
+        "archived_at",
+        "archived_by_user_id",
+        "updated_by_user_id",
+        "metadata_revision",
+    )

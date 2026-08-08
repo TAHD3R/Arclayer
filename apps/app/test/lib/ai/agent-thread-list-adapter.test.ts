@@ -99,8 +99,20 @@ describe("Agent backend RemoteThreadListAdapter", () => {
       archived: false,
     });
     expect(apiMock.deleteAgentThread).toHaveBeenCalledWith("workspace-1", "thread-1");
-    await expect(adapter.generateTitle("thread-1", [])).rejects.toMatchObject({
-      code: "AGENT_THREAD_TITLE_GENERATION_UNAVAILABLE",
+    await adapter.generateTitle("thread-1", [
+      {
+        id: "message-1",
+        createdAt: new Date("2026-07-19T12:00:00.000Z"),
+        role: "user",
+        content: [{ type: "text", text: "Build the homepage" }],
+        attachments: [],
+        metadata: {
+          custom: {},
+        },
+      },
+    ]);
+    expect(apiMock.updateAgentThread).toHaveBeenLastCalledWith("workspace-1", "thread-1", {
+      title: "Build the homepage",
     });
   });
 });

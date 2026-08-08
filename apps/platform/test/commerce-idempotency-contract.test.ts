@@ -35,6 +35,8 @@ describe("Commerce mutation idempotency contract", () => {
       "if (publishAttempt.current === attempt) publishAttempt.current = null;",
     );
     expect(plans).toContain("if (createAttempt.current === attempt) createAttempt.current = null;");
-    expect(plans).not.toContain("updatePlanRevision(");
+    expect(plans).toContain("const fingerprint = JSON.stringify([props.draft, parsed]);");
+    expect(plans).toContain("await updatePlanRevision(");
+    expect(plans).toContain("attempt.key,");
   });
 });

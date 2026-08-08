@@ -132,6 +132,7 @@ export function resolveCapabilityBreadcrumbKey(
   projection: CapabilityNavigationProjection,
 ): string | null {
   if (pathname === "/") return OVERVIEW_DESTINATION.labelKey;
+  if (pathname === "/settings") return "common:SYSTEM_SETTINGS_TITLE";
   if (
     (pathname === NEEDS_ATTENTION_DESTINATION.path ||
       pathname.startsWith(`${NEEDS_ATTENTION_DESTINATION.path}/`)) &&

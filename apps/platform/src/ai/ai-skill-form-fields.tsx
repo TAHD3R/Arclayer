@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import type { PlatformSkillCapabilitiesOut } from "@arclayer/platform-openapi";
 
 import type {
   PlatformSkillCreateFormValues,
@@ -63,12 +64,12 @@ export function PlatformSkillVersionFields({
   values,
   errors,
   onChange,
-  supportedToolIds,
+  capabilities,
 }: Readonly<{
   values: PlatformSkillVersionFormValues;
   errors: FieldErrors;
   onChange: (values: PlatformSkillVersionFormValues) => void;
-  supportedToolIds: readonly string[];
+  capabilities: PlatformSkillCapabilitiesOut;
 }>) {
   const { t } = useTranslation("ai");
   return (
@@ -97,22 +98,10 @@ export function PlatformSkillVersionFields({
           value={values.instructions}
         />
       </SettingDialogField>
-      <SettingDialogField
-        description={t("SKILL_FIELD_CAPABILITY_TAGS_DESCRIPTION")}
-        error={errors.capabilityTags}
-        title={t("SKILL_FIELD_CAPABILITY_TAGS")}
-      >
-        <Input
-          autoComplete="off"
-          onChange={(event) => onChange({ ...values, capabilityTags: event.target.value })}
-          placeholder={t("SKILL_FIELD_CAPABILITY_TAGS_PLACEHOLDER")}
-          value={values.capabilityTags}
-        />
-      </SettingDialogField>
       <PlatformSkillDeclarationFields
         errors={errors}
         onChange={onChange}
-        supportedToolIds={supportedToolIds}
+        capabilities={capabilities}
         values={values}
       />
     </SettingDialogFields>

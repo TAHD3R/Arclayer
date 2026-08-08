@@ -1,5 +1,5 @@
 {
-  "$schema": "https://v2-10-4.turborepo.dev/schema.json",
+  "$schema": "https://v2-10-8.turborepo.dev/schema.json",
   "globalDependencies": [
     "package.json",
     "pnpm-lock.yaml"
@@ -63,6 +63,11 @@
       "persistent": true,
       "interruptible": true
     },
+    "jobs:worker:agent-io": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true
+    },
     "jobs:scheduler": {
       "cache": false,
       "persistent": true,
@@ -72,6 +77,12 @@
       "cache": false,
       "persistent": true,
       "interruptible": true,
+      "with": [
+        "jobs:dispatcher",
+        "jobs:worker:agent-io",
+        "jobs:worker:asset-cpu",
+        "jobs:scheduler"
+      ],
       "passThroughEnv": [
         "APPLICATION_ENV",
         "DATABASE_URL",
@@ -175,6 +186,21 @@
         "VALKEY__DB",
         "AUTH__JWT_SECRET",
         "PLUGIN__AUTO_MIGRATE"
+      ]
+    },
+    "@arclayer/api#jobs:worker:agent-io": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE",
+        "AI__ALLOW_PLATFORM_KEY"
       ]
     },
     "@arclayer/api#jobs:scheduler": {

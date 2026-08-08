@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { i18n, type PlatformLocale } from "@/lib/i18n";
+import {
+  getPlatformLanguageCatalog,
+  i18n,
+  resolveInitialLocale,
+  subscribePlatformLanguageCatalog,
+  type PlatformLanguageCatalogEntry,
+  type PlatformLocale,
+} from "@/lib/i18n";
 
 export type ThemePreference = "light" | "dark" | "system";
 type ResolvedTheme = Exclude<ThemePreference, "system">;
@@ -8,6 +15,7 @@ type ResolvedTheme = Exclude<ThemePreference, "system">;
 type PreferencesContextValue = {
   locale: PlatformLocale;
   setLocale: (locale: PlatformLocale) => void;
+  languages: readonly PlatformLanguageCatalogEntry[];
   theme: ThemePreference;
   setTheme: (theme: ThemePreference) => void;
 };
@@ -29,15 +37,31 @@ function readInitialTheme(): ThemePreference {
 }
 
 function readInitialLocale(): PlatformLocale {
-  const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-  if (stored === "zh-CN" || stored === "en-US") return stored;
-  if (stored !== null) throw new Error("Invalid stored Platform locale preference");
-  return window.navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
+  return resolveInitialLocale();
 }
 
 export function PlatformPreferencesProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemePreference>(readInitialTheme);
   const [locale, setLocaleState] = useState<PlatformLocale>(readInitialLocale);
+  const [languages, setLanguages] = useState<readonly PlatformLanguageCatalogEntry[]>(
+    getPlatformLanguageCatalog,
+  );
+
+  useEffect(
+    () =>
+      subscribePlatformLanguageCatalog((nextLanguages) => {
+        setLanguages(nextLanguages);
+        setLocaleState((currentLocale) => {
+          if (
+            nextLanguages.some((language) => language.locale === currentLocale && language.enabled)
+          ) {
+            return currentLocale;
+          }
+          return nextLanguages.find((language) => language.is_default)?.locale ?? currentLocale;
+        });
+      }),
+    [],
+  );
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -53,7 +77,11 @@ export function PlatformPreferencesProvider({ children }: { children: ReactNode 
   const value = useMemo<PreferencesContextValue>(
     () => ({
       locale,
+      languages,
       setLocale: (nextLocale) => {
+        if (!languages.some((language) => language.locale === nextLocale && language.enabled)) {
+          throw new Error(`Unsupported enabled Platform locale: ${nextLocale}`);
+        }
         window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
         document.documentElement.lang = nextLocale;
         setLocaleState(nextLocale);
@@ -66,7 +94,7 @@ export function PlatformPreferencesProvider({ children }: { children: ReactNode 
         setThemeState(nextTheme);
       },
     }),
-    [locale, theme],
+    [languages, locale, theme],
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

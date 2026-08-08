@@ -11,6 +11,7 @@ const apiMocks = vi.hoisted(() => ({
   createAgentRun: vi.fn(),
   getAgentRunSnapshot: vi.fn(),
   getAgentThread: vi.fn(),
+  updateAgentThread: vi.fn(),
   respondToAgentToolCall: vi.fn(),
   resumeAgentRun: vi.fn(),
   consumeAgentRunStream: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("@/lib/ai/agent-run-api", () => ({
 vi.mock("@/lib/ai/agent-thread-api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/ai/agent-thread-api")>()),
   getAgentThread: apiMocks.getAgentThread,
+  updateAgentThread: apiMocks.updateAgentThread,
 }));
 vi.mock("@/lib/ai/agent-run-stream-controller", () => ({
   consumeAgentRunStream: apiMocks.consumeAgentRunStream,
@@ -52,6 +54,7 @@ vi.mock("@/lib/ai/agent-run-stream-controller", () => ({
 
 import { ArclayerAssistantProvider } from "@/components/ai/arclayer-assistant-provider";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
+import type { AgentToolResponseV1 } from "@/lib/ai/agent-run-api";
 
 const runSnapshot = {
   snapshotVersion: 1,
@@ -83,7 +86,9 @@ describe("ArclayerAssistantProvider", () => {
       threadId: "thread-1",
       activeRunId: null,
       messages: [],
+      title: "New collaboration",
     });
+    apiMocks.updateAgentThread.mockResolvedValue(undefined);
     apiMocks.createAgentRun.mockResolvedValue({ runId: "run-1" });
     apiMocks.initializeThread.mockResolvedValue({
       remoteId: "thread-created",
@@ -98,7 +103,12 @@ describe("ArclayerAssistantProvider", () => {
       responseKind: "human_result",
       expectedSequence: 5,
     });
-    apiMocks.resumeAgentRun.mockResolvedValue({});
+    apiMocks.resumeAgentRun.mockResolvedValue({
+      runId: "run-1",
+      status: "running",
+      lastSequence: 6,
+      lastCursor: "cursor-6",
+    });
     apiMocks.consumeAgentRunStream.mockImplementation(
       async ({ initialProjection }) => initialProjection,
     );
@@ -313,12 +323,15 @@ describe("ArclayerAssistantProvider", () => {
     });
 
     expect(apiMocks.initializeThread).toHaveBeenCalledTimes(1);
-    expect(apiMocks.reloadThreads).toHaveBeenCalledTimes(1);
+    expect(apiMocks.reloadThreads).toHaveBeenCalledTimes(2);
     expect(apiMocks.createAgentRun).toHaveBeenCalledWith(
       expect.objectContaining({ threadId: "thread-created", message: "First prompt" }),
       expect.any(Object),
     );
     expect(apiMocks.getAgentThread).not.toHaveBeenCalled();
+    expect(apiMocks.updateAgentThread).toHaveBeenCalledWith("workspace-1", "thread-created", {
+      title: "First prompt",
+    });
   });
 
   it("serializes queued prompts until the active Run reaches a terminal state", async () => {
@@ -505,14 +518,32 @@ describe("ArclayerAssistantProvider", () => {
     const onAddToolResult = runtimeCapture.external?.onAddToolResult as
       | ((options: Record<string, unknown>) => Promise<void>)
       | undefined;
+    let resolveResponse: ((response: AgentToolResponseV1) => void) | undefined;
+    apiMocks.respondToAgentToolCall.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveResponse = resolve;
+        }),
+    );
+    const responseRequest = {
+      messageId: "message-tool",
+      toolName: "human.request_input",
+      toolCallId: "tool-call-human",
+      result: { variant: "a" },
+      isError: false,
+    };
+    const firstResponse = onAddToolResult?.(responseRequest);
+    const secondResponse = onAddToolResult?.(responseRequest);
+    await waitFor(() => expect(apiMocks.respondToAgentToolCall).toHaveBeenCalledTimes(1));
+    resolveResponse?.({
+      responseId: "response-1",
+      toolCallId: "tool-call-human",
+      checkpointId: "checkpoint-human",
+      responseKind: "human_result",
+      expectedSequence: 5,
+    });
     await act(async () => {
-      await onAddToolResult?.({
-        messageId: "message-tool",
-        toolName: "human.request_input",
-        toolCallId: "tool-call-human",
-        result: { variant: "a" },
-        isError: false,
-      });
+      await Promise.all([firstResponse, secondResponse]);
     });
 
     expect(apiMocks.respondToAgentToolCall).toHaveBeenCalledWith(
@@ -521,6 +552,7 @@ describe("ArclayerAssistantProvider", () => {
       expect.objectContaining({
         kind: "human_result",
         checkpointId: "checkpoint-human",
+        idempotencyKey: "human:tool-call-human:checkpoint-human",
         result: { variant: "a" },
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -535,5 +567,168 @@ describe("ArclayerAssistantProvider", () => {
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(apiMocks.getAgentRunSnapshot).toHaveBeenCalledTimes(2);
+    expect(apiMocks.consumeAgentRunStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: "run-1",
+        initialProjection: expect.objectContaining({
+          runStatus: "running",
+          lastCursor: "cursor-6",
+        }),
+      }),
+    );
+  });
+
+  it("routes Composer text to the interrupted human Tool and keeps the answer in the transcript", async () => {
+    const toolMessage = {
+      messageId: "message-tool",
+      role: "assistant",
+      agentId: COORDINATOR_AGENT_ID,
+      createdAt: "2026-07-19T12:00:00.000Z",
+      placement: { kind: "thread" },
+      parts: [
+        {
+          partId: "part-tool",
+          partIndex: 0,
+          type: "tool-call",
+          status: "requires_action",
+          toolCallId: "tool-call-human",
+          toolName: "human.request_input",
+          args: { question: "What is your brand?", responseType: "text", options: [] },
+          argsText: "{}",
+          approval: null,
+          interrupt: {
+            type: "human",
+            payload: {
+              interruptId: "interrupt-human",
+              checkpointId: "checkpoint-human",
+              toolCallId: "tool-call-human",
+            },
+          },
+        },
+      ],
+    };
+    const answerMessage = {
+      messageId: "message-answer",
+      role: "user",
+      agentId: null,
+      actorUserId: "user-actor-id",
+      createdAt: "2026-07-19T12:01:00.000Z",
+      placement: { kind: "thread" },
+      parts: [
+        {
+          partId: "part-answer",
+          partIndex: 0,
+          type: "text",
+          status: "complete",
+          text: "Orbit Computers",
+        },
+      ],
+    };
+    apiMocks.getAgentThread
+      .mockResolvedValueOnce({
+        threadId: "thread-1",
+        activeRunId: "run-1",
+        messages: [toolMessage],
+      })
+      .mockResolvedValueOnce({
+        threadId: "thread-1",
+        activeRunId: "run-1",
+        messages: [toolMessage, answerMessage],
+      });
+    apiMocks.getAgentRunSnapshot.mockResolvedValue({
+      ...runSnapshot,
+      run: {
+        status: "interrupted",
+        reason: "human_tool_input",
+        checkpointId: "checkpoint-human",
+        toolCallId: "tool-call-human",
+        interrupt: {
+          interruptId: "interrupt-human",
+          checkpointId: "checkpoint-human",
+          reason: "human_tool_input",
+          approvalId: null,
+          toolCallId: "tool-call-human",
+        },
+      },
+      messages: [toolMessage],
+      lastSequence: 5,
+      lastCursor: "cursor-5",
+    });
+    apiMocks.getAgentRunSnapshot.mockResolvedValueOnce({
+      ...runSnapshot,
+      run: {
+        status: "interrupted",
+        reason: "human_tool_input",
+        checkpointId: "checkpoint-human",
+        toolCallId: "tool-call-human",
+        interrupt: {
+          interruptId: "interrupt-human",
+          checkpointId: "checkpoint-human",
+          reason: "human_tool_input",
+          approvalId: null,
+          toolCallId: "tool-call-human",
+        },
+      },
+      messages: [toolMessage],
+      lastSequence: 5,
+      lastCursor: "cursor-5",
+    });
+    apiMocks.getAgentRunSnapshot.mockResolvedValueOnce({
+      ...runSnapshot,
+      run: { status: "running", interrupt: null },
+      messages: [toolMessage],
+      lastSequence: 6,
+      lastCursor: "cursor-6",
+    });
+
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId="project-1"
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    await waitFor(() => {
+      expect(runtimeCapture.external?.onNew).toBeTypeOf("function");
+    });
+    const onNew = runtimeCapture.external?.onNew;
+    if (typeof onNew !== "function") throw new Error("onNew runtime callback is unavailable");
+    await act(async () => {
+      await onNew({
+        role: "user",
+        content: [{ type: "text", text: "Orbit Computers" }],
+        runConfig: { custom: {} },
+      });
+    });
+
+    expect(apiMocks.createAgentRun).not.toHaveBeenCalled();
+    expect(apiMocks.respondToAgentToolCall).toHaveBeenCalledWith(
+      "workspace-1",
+      "tool-call-human",
+      expect.objectContaining({
+        kind: "human_result",
+        result: { answer: "Orbit Computers" },
+      }),
+      expect.any(Object),
+    );
+    expect(apiMocks.getAgentThread).toHaveBeenCalledTimes(2);
+    const messages = runtimeCapture.external?.messages as readonly { id: string }[];
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "message-answer",
+          role: "user",
+          content: [{ type: "text", text: "Orbit Computers" }],
+        }),
+      ]),
+    );
+    expect(messages.some((message) => message.id.startsWith("human-result:"))).toBe(false);
   });
 });

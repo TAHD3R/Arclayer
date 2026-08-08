@@ -14,6 +14,14 @@ from src.modules.analytics.audit import write_required_activity_event
 from src.modules.platform_identity.http import require_platform_permission
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.skills.catalog import (
+    CAPABILITY_TAGS,
+    DATA_CLASSES,
+    EGRESS_DESTINATIONS,
+    PERMISSIONS,
+    REFERENCE_MIME_TYPES,
+    SUPPORTED_TOOLS,
+)
 from src.modules.system.skills.schema import (
     PlatformSkillCapabilitiesOut,
     PlatformSkillGitHubImportRequest,
@@ -97,10 +105,15 @@ async def create_platform_skill(
     dependencies=[require_platform_permission(PlatformPermissionCode.AI_SKILLS_READ)],
 )
 async def get_platform_skill_capabilities() -> ResponseModel[PlatformSkillCapabilitiesOut]:
-    from src.modules.system.agents.definition_service import SUPPORTED_TOOL_GRANTS
-
     return ApiResponse.success(
-        data=PlatformSkillCapabilitiesOut(supported_tool_ids=tuple(sorted(SUPPORTED_TOOL_GRANTS)))
+        data=PlatformSkillCapabilitiesOut(
+            supported_tools=SUPPORTED_TOOLS,
+            permissions=PERMISSIONS,
+            egress_destinations=EGRESS_DESTINATIONS,
+            data_classes=DATA_CLASSES,
+            capability_tags=CAPABILITY_TAGS,
+            reference_mime_types=REFERENCE_MIME_TYPES,
+        )
     )
 
 
@@ -169,6 +182,26 @@ async def get_platform_skill(
     service: PlatformSkillCatalogService = Depends(get_platform_skill_catalog_service),
 ) -> ResponseModel[PlatformSkillPackageDetailOut]:
     return ApiResponse.success(data=await service.get_package(package_id=package_id))
+
+
+@router.post(
+    "/{package_id}/restore",
+    response_model=ResponseModel[PlatformSkillPackageDetailOut],
+    summary="Restore an archived official Skill package",
+)
+async def restore_platform_skill(
+    package_id: PublicUUID,
+    expected_revision: Annotated[int, Query(alias="expectedRevision", ge=1)],
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_SKILLS_MANAGE),
+    service: PlatformSkillCatalogService = Depends(get_platform_skill_catalog_service),
+) -> ResponseModel[PlatformSkillPackageDetailOut]:
+    return ApiResponse.success(
+        data=await service.restore_package(
+            package_id=package_id,
+            expected_revision=expected_revision,
+            actor_user_id=principal.actor_id,
+        )
+    )
 
 
 @router.patch(

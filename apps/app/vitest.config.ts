@@ -44,6 +44,7 @@ export default defineConfig({
         inline: [/^@platejs\/math/, /^katex/],
       },
     },
-    include: ["test/**/*.test.{ts,tsx}", "test/**/*.spec.{ts,tsx}"],
+    include: ["test/**/*.test.{ts,tsx}"],
+    exclude: ["test/browser/**"],
   },
 });

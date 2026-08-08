@@ -8,6 +8,7 @@ import {
   platformImportPlatformSkillZip,
   platformListPlatformSkills,
   platformReplacePlatformSkill,
+  platformRestorePlatformSkill,
   platformUpdatePlatformSkill,
   type PageDataPlatformSkillPackageSummaryOut,
   type PlatformSkillCapabilitiesOut,
@@ -142,6 +143,17 @@ export function archivePlatformSkill(
   expectedRevision: number,
 ): Promise<PlatformSkillPackageDetailOut> {
   return platformArchivePlatformSkill({
+    client: platformApiClient,
+    path: { package_id: packageId },
+    query: { expectedRevision },
+  }).then(unwrap);
+}
+
+export function restorePlatformSkill(
+  packageId: string,
+  expectedRevision: number,
+): Promise<PlatformSkillPackageDetailOut> {
+  return platformRestorePlatformSkill({
     client: platformApiClient,
     path: { package_id: packageId },
     query: { expectedRevision },

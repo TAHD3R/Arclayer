@@ -19,6 +19,16 @@ const PLACEHOLDER_KEYS = [
 export function AIComposerRotatingPlaceholder(props: { className?: string; multiline?: boolean }) {
   const { t } = useTranslation("ai");
   const composerText = useAuiState((state) => state.composer.text);
+  const awaitingHumanInput = useAuiState((state) => {
+    const message = state.thread?.messages.at(-1);
+    return (
+      message?.role === "assistant" &&
+      message.status?.type === "requires-action" &&
+      message.content.some(
+        (part) => part.type === "tool-call" && part.toolName === "human.request_input",
+      )
+    );
+  });
   const reducedMotion = usePrefersReducedMotion();
   const placeholders = useMemo(() => PLACEHOLDER_KEYS.map((key) => t(key)), [t]);
   const [position, setPosition] = useState(0);
@@ -33,14 +43,17 @@ export function AIComposerRotatingPlaceholder(props: { className?: string; multi
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || !pageVisible || placeholders.length < 2) return undefined;
+    if (awaitingHumanInput || reducedMotion || !pageVisible || placeholders.length < 2)
+      return undefined;
     const intervalId = window.setInterval(() => {
       setPosition((current) => (current + 1) % placeholders.length);
     }, PLACEHOLDER_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
-  }, [pageVisible, placeholders.length, reducedMotion]);
+  }, [awaitingHumanInput, pageVisible, placeholders.length, reducedMotion]);
 
-  const activePlaceholder = placeholders[position % placeholders.length] ?? "";
+  const activePlaceholder = awaitingHumanInput
+    ? t("AI_CHAT_HUMAN_TOOL_ANSWER_PLACEHOLDER")
+    : (placeholders[position % placeholders.length] ?? "");
 
   return (
     <span
@@ -53,10 +66,12 @@ export function AIComposerRotatingPlaceholder(props: { className?: string; multi
       )}
     >
       <span
-        key={`${position}:${activePlaceholder}`}
+        key={awaitingHumanInput ? "human-answer" : `${position}:${activePlaceholder}`}
         data-placeholder-index={position}
         className={cn(
-          "fade-in slide-in-from-bottom-1 block animate-in duration-300 motion-reduce:animate-none",
+          awaitingHumanInput
+            ? "block"
+            : "fade-in slide-in-from-bottom-1 block animate-in duration-300 motion-reduce:animate-none",
           props.multiline ? "line-clamp-2 whitespace-normal" : "truncate",
         )}
       >

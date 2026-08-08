@@ -1,5 +1,5 @@
 import { AlertTriangle, RefreshCw, SearchX } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PlatformMonitoringApiError } from "@/monitoring/monitoring-api";
@@ -24,11 +24,13 @@ type AsyncState<T> =
 export function useMonitoringQuery<T>(load: () => Promise<T>, dependencies: readonly unknown[]) {
   const [state, setState] = useState<AsyncState<T>>({ status: "loading" });
   const [retryVersion, setRetryVersion] = useState(0);
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    void load().then(
+    void loadRef.current().then(
       (data) => {
         if (!cancelled) setState({ status: "ready", data });
       },
@@ -39,7 +41,7 @@ export function useMonitoringQuery<T>(load: () => Promise<T>, dependencies: read
     return () => {
       cancelled = true;
     };
-  }, [...dependencies, load, retryVersion]);
+  }, [...dependencies, retryVersion]);
 
   return { state, retry: () => setRetryVersion((current) => current + 1) };
 }

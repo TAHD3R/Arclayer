@@ -1,5 +1,9 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type {
+  PlatformSkillCatalogOptionOut,
+  PlatformSkillCapabilitiesOut,
+} from "@arclayer/platform-openapi";
 
 import type { PlatformSkillVersionFormValues } from "@/ai/ai-skill-form-model";
 import { SettingDialogField } from "@/components/setting-dialog-field";
@@ -16,24 +20,20 @@ import { Textarea } from "@/components/ui/textarea";
 
 type DeclarationField = "requiredTools" | "permissions" | "dataEgress" | "references";
 type DeclarationErrors = Partial<Record<DeclarationField, string>>;
+type CatalogOption = PlatformSkillCatalogOptionOut;
 type Props = Readonly<{
   values: PlatformSkillVersionFormValues;
   errors: DeclarationErrors;
-  supportedToolIds: readonly string[];
+  capabilities: PlatformSkillCapabilitiesOut;
   onChange: (values: PlatformSkillVersionFormValues) => void;
 }>;
 
-export function PlatformSkillDeclarationFields({
-  values,
-  errors,
-  supportedToolIds,
-  onChange,
-}: Props) {
+export function PlatformSkillDeclarationFields({ values, errors, capabilities, onChange }: Props) {
   const { t } = useTranslation("ai");
   return (
     <>
       <DeclarationCollection
-        addDisabled={supportedToolIds.length === 0}
+        addDisabled={capabilities.supportedTools.length === 0}
         addLabel={t("SKILL_FIELD_REQUIRED_TOOLS_ADD")}
         description={t("SKILL_FIELD_REQUIRED_TOOLS_DESCRIPTION")}
         error={errors.requiredTools}
@@ -42,13 +42,17 @@ export function PlatformSkillDeclarationFields({
             ...values,
             requiredTools: [
               ...values.requiredTools,
-              { toolId: supportedToolIds[0] ?? "", versionRange: ">=1", intendedUse: "" },
+              {
+                toolId: capabilities.supportedTools[0]?.id ?? "",
+                versionRange: ">=1",
+                intendedUse: "",
+              },
             ],
           })
         }
         title={t("SKILL_FIELD_REQUIRED_TOOLS")}
       >
-        {supportedToolIds.length === 0 ? (
+        {capabilities.supportedTools.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("SKILL_FIELD_REQUIRED_TOOLS_EMPTY")}</p>
         ) : null}
         {values.requiredTools.map((tool, index) => (
@@ -67,9 +71,12 @@ export function PlatformSkillDeclarationFields({
                   <SelectValue placeholder={t("SKILL_FIELD_TOOL_ID_PLACEHOLDER")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {supportedToolIds.map((toolId) => (
-                    <SelectItem key={toolId} value={toolId}>
-                      {toolId}
+                  {capabilities.supportedTools.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <div>
+                        <div>{option.label}</div>
+                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -126,17 +133,15 @@ export function PlatformSkillDeclarationFields({
         {values.permissions.map((permission, index) => (
           <div className="grid gap-3 rounded-lg border p-3" key={`${permission.action}-${index}`}>
             <div className="flex gap-3">
-              <Input
-                aria-label={t("SKILL_FIELD_PERMISSION_ACTION")}
-                onChange={(event) =>
+              <CatalogSelect
+                ariaLabel={t("SKILL_FIELD_PERMISSION_ACTION")}
+                onValueChange={(action) =>
                   onChange({
                     ...values,
-                    permissions: replaceAt(values.permissions, index, {
-                      ...permission,
-                      action: event.target.value,
-                    }),
+                    permissions: replaceAt(values.permissions, index, { ...permission, action }),
                   })
                 }
+                options={capabilities.permissions}
                 placeholder={t("SKILL_FIELD_PERMISSION_ACTION_PLACEHOLDER")}
                 value={permission.action}
               />
@@ -181,17 +186,15 @@ export function PlatformSkillDeclarationFields({
         {values.dataEgress.map((egress, index) => (
           <div className="grid gap-3 rounded-lg border p-3" key={`${egress.destination}-${index}`}>
             <div className="flex gap-3">
-              <Input
-                aria-label={t("SKILL_FIELD_EGRESS_DESTINATION")}
-                onChange={(event) =>
+              <CatalogSelect
+                ariaLabel={t("SKILL_FIELD_EGRESS_DESTINATION")}
+                onValueChange={(destination) =>
                   onChange({
                     ...values,
-                    dataEgress: replaceAt(values.dataEgress, index, {
-                      ...egress,
-                      destination: event.target.value,
-                    }),
+                    dataEgress: replaceAt(values.dataEgress, index, { ...egress, destination }),
                   })
                 }
+                options={capabilities.egressDestinations}
                 placeholder={t("SKILL_FIELD_EGRESS_DESTINATION_PLACEHOLDER")}
                 value={egress.destination}
               />
@@ -202,19 +205,17 @@ export function PlatformSkillDeclarationFields({
                 }
               />
             </div>
-            <Input
-              aria-label={t("SKILL_FIELD_DATA_CLASSES")}
-              onChange={(event) =>
+            <CatalogMultiSelect
+              ariaLabel={t("SKILL_FIELD_DATA_CLASSES")}
+              onChange={(dataClasses) =>
                 onChange({
                   ...values,
-                  dataEgress: replaceAt(values.dataEgress, index, {
-                    ...egress,
-                    dataClasses: event.target.value.split(","),
-                  }),
+                  dataEgress: replaceAt(values.dataEgress, index, { ...egress, dataClasses }),
                 })
               }
+              options={capabilities.dataClasses}
               placeholder={t("SKILL_FIELD_DATA_CLASSES_PLACEHOLDER")}
-              value={egress.dataClasses.join(",")}
+              selected={egress.dataClasses}
             />
             <Textarea
               aria-label={t("SKILL_FIELD_PURPOSE")}
@@ -234,6 +235,22 @@ export function PlatformSkillDeclarationFields({
           </div>
         ))}
       </DeclarationCollection>
+
+      <SettingDialogField
+        description={t("SKILL_FIELD_CAPABILITY_TAGS_DESCRIPTION")}
+        title={t("SKILL_FIELD_CAPABILITY_TAGS")}
+      >
+        <CatalogMultiSelect
+          ariaLabel={t("SKILL_FIELD_CAPABILITY_TAGS")}
+          onChange={(tags) => onChange({ ...values, capabilityTags: tags.join(", ") })}
+          options={capabilities.capabilityTags}
+          placeholder={t("SKILL_FIELD_CAPABILITY_TAGS_PLACEHOLDER")}
+          selected={values.capabilityTags
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)}
+        />
+      </SettingDialogField>
 
       <DeclarationCollection
         addLabel={t("SKILL_FIELD_REFERENCES_ADD")}
@@ -280,9 +297,14 @@ export function PlatformSkillDeclarationFields({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="text/markdown">Markdown</SelectItem>
-                  <SelectItem value="text/plain">Plain text</SelectItem>
-                  <SelectItem value="application/json">JSON</SelectItem>
+                  {capabilities.referenceMimeTypes.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <div>
+                        <div>{option.label}</div>
+                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <RemoveButton
@@ -356,6 +378,84 @@ function RemoveButton({ label, onClick }: Readonly<{ label: string; onClick: () 
     <Button aria-label={label} onClick={onClick} size="icon" type="button" variant="ghost">
       <Trash2 aria-hidden="true" />
     </Button>
+  );
+}
+
+function CatalogSelect(
+  props: Readonly<{
+    ariaLabel: string;
+    options: readonly CatalogOption[];
+    placeholder: string;
+    value: string;
+    onValueChange: (value: string) => void;
+  }>,
+) {
+  return (
+    <Select onValueChange={props.onValueChange} value={props.value}>
+      <SelectTrigger aria-label={props.ariaLabel}>
+        <SelectValue placeholder={props.placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {props.options.map((option) => (
+          <SelectItem key={option.id} value={option.id}>
+            <div>
+              <div>{option.label}</div>
+              <div className="text-xs text-muted-foreground">{option.description}</div>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function CatalogMultiSelect(
+  props: Readonly<{
+    ariaLabel: string;
+    options: readonly CatalogOption[];
+    placeholder: string;
+    selected: readonly string[];
+    onChange: (values: string[]) => void;
+  }>,
+) {
+  const available = props.options.filter((option) => !props.selected.includes(option.id));
+  return (
+    <div className="space-y-2">
+      <Select
+        key={props.selected.join("|")}
+        onValueChange={(value) => props.onChange([...props.selected, value])}
+      >
+        <SelectTrigger aria-label={props.ariaLabel}>
+          <SelectValue placeholder={props.placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {available.map((option) => (
+            <SelectItem key={option.id} value={option.id}>
+              <div>
+                <div>{option.label}</div>
+                <div className="text-xs text-muted-foreground">{option.description}</div>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {props.selected.length ? (
+        <div className="flex flex-wrap gap-2">
+          {props.selected.map((value) => (
+            <Button
+              key={value}
+              onClick={() => props.onChange(props.selected.filter((item) => item !== value))}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {value}
+              <Trash2 aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

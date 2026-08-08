@@ -155,3 +155,29 @@ class AIUsageGroupOut(BaseSchema):
     cost_micros: int = Field(ge=0)
     avg_latency_ms: float = Field(ge=0)
     last_seen_at: datetime
+
+
+class AIUsageRecordOrdering(StrEnum):
+    OCCURRED_DESC = "-created_at"
+    OCCURRED_ASC = "created_at"
+    COST_DESC = "-cost_micros"
+    DURATION_DESC = "-duration_ms"
+
+
+class AIUsageRecordOut(BaseSchema):
+    id: PublicUUID
+    occurred_at: datetime
+    correlation_id: str
+    workspace_id: PublicUUID | None = None
+    project_id: PublicUUID | None = None
+    provider: str
+    model: str
+    request_type: str
+    source: str
+    status: str
+    prompt_tokens: int = Field(ge=0)
+    completion_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+    cost_micros: int = Field(ge=0)
+    duration_ms: int | None = Field(default=None, ge=0)
+    error_code: str | None = None

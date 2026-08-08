@@ -36,7 +36,7 @@ export function TenantUserDossier(props: { item: DirectoryUserDetailOut; onChang
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="truncate text-2xl3 font-semibold">{label}</h2>
+          <h2 className="truncate text-2xl font-semibold">{label}</h2>
           <p className="mt-1 truncate text-base text-muted-foreground">{user.username}</p>
         </div>
         <UserState status={user.status} />

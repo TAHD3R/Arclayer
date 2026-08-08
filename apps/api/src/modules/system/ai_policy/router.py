@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.models.ai.global_policy import GlobalAiPolicyRevisionStatus
 from src.modules.platform_identity.http import require_platform_permission
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
@@ -33,6 +37,24 @@ def get_ai_policy_service(settings: Settings = Depends(get_settings)) -> SystemA
 )
 async def get_ai_policy(service: SystemAiPolicyService = Depends(get_ai_policy_service)) -> ResponseModel[AiPolicyOut]:
     return ApiResponse.success(data=await service.get_policy())
+
+
+@router.get(
+    "/policies/revisions",
+    response_model=ResponseModel[PageData[AiPolicyRevisionOut]],
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_POLICY_READ)],
+)
+async def list_ai_policy_revisions(
+    params: Annotated[PageParams, Depends(get_page_params)],
+    status: Annotated[Literal["draft", "published", "retired"] | None, Query()] = None,
+    service: SystemAiPolicyService = Depends(get_ai_policy_service),
+) -> ResponseModel[PageData[AiPolicyRevisionOut]]:
+    return ApiResponse.success(
+        data=await service.list_revisions(
+            params=params,
+            status=GlobalAiPolicyRevisionStatus(status) if status else None,
+        )
+    )
 
 
 @router.put(

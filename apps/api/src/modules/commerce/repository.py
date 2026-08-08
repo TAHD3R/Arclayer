@@ -280,7 +280,26 @@ class CommerceRepository(TortoiseORMRepository[WorkspaceSubscription]):
             subscriptions = subscriptions.filter(status=query.status)
         if query.provider is not None:
             subscriptions = subscriptions.filter(billing_provider=query.provider)
-        subscriptions = subscriptions.order_by("current_period_end", "workspace_id")
+        if query.search:
+            normalized = query.search.strip()
+            if normalized:
+                search_filter = Q(plan_revision__plan__code__icontains=normalized) | Q(
+                    billing_provider__icontains=normalized
+                )
+                try:
+                    search_id = UUID(normalized)
+                except ValueError:
+                    search_id = None
+                if search_id is not None:
+                    search_filter = search_filter | Q(id=search_id) | Q(workspace_id=search_id)
+                subscriptions = subscriptions.filter(search_filter)
+        ordering = {
+            "current_period_end": "current_period_end",
+            "status": "status",
+            "plan_code": "plan_revision__plan__code",
+        }[query.sort_by]
+        prefix = "-" if query.sort_direction == "desc" else ""
+        subscriptions = subscriptions.order_by(f"{prefix}{ordering}", f"{prefix}workspace_id")
         total = await subscriptions.count()
         offset = (query.page - 1) * query.page_size
         return await subscriptions.offset(offset).limit(query.page_size), total

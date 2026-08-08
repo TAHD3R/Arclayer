@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
@@ -13,10 +14,11 @@ from src.models.agents.runtime_recovery_v1 import (
     AgentRunRecoveryAction,
     AgentRunRecoveryStatus,
 )
-from src.models.agents.runtime_v1 import AgentExecutionModeV1, AgentRunStatusV1
+from src.models.agents.runtime_v1 import AgentExecutionModeV1, AgentMessagePartV1Record, AgentRunStatusV1
 from src.modules.ai.runtime_execution_gateway import (
     AgentRunChatUsage,
     AgentRunExecutionCompleted,
+    AgentRunExecutionInterrupted,
     AgentRunExecutionOutcome,
     AgentRunExecutionRequest,
     AgentRunResumeExecutionRequest,
@@ -212,3 +214,31 @@ def test_committed_effect_receipt_contains_no_raw_request_or_workspace_prompt() 
     assert "hidden workspace prompt" not in serialized
     assert "messages" not in serialized
     assert effect.outcome is not None
+
+
+@pytest.mark.asyncio
+async def test_interruption_rebinds_provider_ids_without_a_database_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_filter(**_: object) -> None:
+        raise AssertionError("Tool-call identity allocation must not depend on a pre-insert lookup")
+
+    monkeypatch.setattr(AgentMessagePartV1Record, "filter", unexpected_filter)
+    interruption = AgentRunExecutionInterrupted(
+        interrupt_id="interrupt-1",
+        checkpoint_id="checkpoint-1",
+        reason="human_tool_input",
+        tool_call_id="provider-call-reused",
+        tool_id="human.request_input",
+        tool_version="1",
+        tool_name="human.request_input",
+        args={"question": "Which audience?", "responseType": "text", "options": []},
+    )
+
+    normalized = await asyncio.gather(
+        *(AgentRunJobHandler._normalize_interruption_tool_call_id(interruption) for _ in range(32))
+    )
+
+    tool_call_ids = {item.tool_call_id for item in normalized}
+    assert interruption.tool_call_id not in tool_call_ids
+    assert len(tool_call_ids) == len(normalized)
