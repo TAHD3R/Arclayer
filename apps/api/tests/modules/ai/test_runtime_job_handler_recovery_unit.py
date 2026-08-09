@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
@@ -16,6 +16,11 @@ from src.models.agents.runtime_recovery_v1 import (
 )
 from src.models.agents.runtime_v1 import AgentExecutionModeV1, AgentMessagePartV1Record, AgentRunStatusV1
 from src.models.ai.ai_budget_reservation import ReservationStatus
+from src.modules.ai.runtime_approval_protocol_schema import (
+    ApprovalOptionV1,
+    ApprovalRiskV1,
+    ApprovalV1,
+)
 from src.modules.ai.runtime_event_repository import AppendableAgentRunEventV1
 from src.modules.ai.runtime_execution_gateway import (
     AgentRunChatUsage,
@@ -267,6 +272,7 @@ def _context(*, attempt_id=None) -> JobExecutionContext[AgentRunJobTarget, Agent
 
 def _human_resume_input() -> AgentRunJobResumeInput:
     return AgentRunJobResumeInput(
+        interrupt_id="interrupt-human-1",
         checkpoint_id="checkpoint-human-1",
         response_kind="human_result",
         resume={"result": {"answer": "A sustainable home-goods store."}},
@@ -280,6 +286,132 @@ def _human_resume_input() -> AgentRunJobResumeInput:
         args_text='{"options":[],"question":"What type of website?","responseType":"text"}',
         approval=None,
     )
+
+
+def _approval_resume_input_without_part_identity() -> AgentRunJobResumeInput:
+    requested_at = datetime.now(UTC)
+    approval = ApprovalV1(
+        approval_id="approval-bootstrap-1",
+        approval_version=1,
+        tool_call_id="normalized-tool-call-bootstrap-1",
+        checkpoint_id="checkpoint-bootstrap-1",
+        status="approved",
+        requested_at=requested_at,
+        expires_at=requested_at + timedelta(seconds=1),
+        policy_version="project-bootstrap-v1",
+        risk=ApprovalRiskV1(
+            side_effect_class="draft_write",
+            summary_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY",
+            summary_params={"name": "Harbor Coffee"},
+        ),
+        options=(
+            ApprovalOptionV1(
+                id="allow_once",
+                kind="allow-once",
+                label_key="ai:AI_AGENT_APPROVAL_ALLOW_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_ALLOW_ONCE_DESC",
+                grants=("project.bootstrap",),
+                confirm=False,
+            ),
+        ),
+    )
+    return AgentRunJobResumeInput(
+        interrupt_id="interrupt-bootstrap-1",
+        checkpoint_id="checkpoint-bootstrap-1",
+        response_kind="approval",
+        resume={"approved": True, "optionId": None, "reason": None},
+        message_id=uuid4(),
+        part_id=uuid4(),
+        tool_call_id="normalized-tool-call-bootstrap-1",
+        tool_id=None,
+        tool_version=None,
+        tool_name="project.bootstrap",
+        args={"name": "Harbor Coffee", "description": "A three-page coffee website."},
+        args_text='{"description":"A three-page coffee website.","name":"Harbor Coffee"}',
+        approval=approval.model_dump(mode="json", by_alias=True),
+    )
+
+
+def _interrupted_effect() -> AgentRunExecutionEffectSnapshot:
+    requested_at = datetime.now(UTC)
+    approval = ApprovalV1(
+        approval_id="approval-bootstrap-1",
+        approval_version=1,
+        tool_call_id="provider-tool-call-bootstrap-1",
+        checkpoint_id="checkpoint-bootstrap-1",
+        status="pending",
+        requested_at=requested_at,
+        expires_at=requested_at + timedelta(seconds=1),
+        policy_version="project-bootstrap-v1",
+        risk=ApprovalRiskV1(
+            side_effect_class="draft_write",
+            summary_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY",
+            summary_params={"name": "Harbor Coffee"},
+        ),
+        options=(
+            ApprovalOptionV1(
+                id="allow_once",
+                kind="allow-once",
+                label_key="ai:AI_AGENT_APPROVAL_ALLOW_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_ALLOW_ONCE_DESC",
+                grants=("project.bootstrap",),
+                confirm=False,
+            ),
+        ),
+    )
+    interrupted = AgentRunExecutionInterrupted(
+        interrupt_id="interrupt-bootstrap-1",
+        checkpoint_id="checkpoint-bootstrap-1",
+        reason="approval_required",
+        tool_call_id="provider-tool-call-bootstrap-1",
+        tool_id="project.bootstrap",
+        tool_version="1",
+        tool_name="project.bootstrap",
+        args={"name": "Harbor Coffee", "description": "A three-page coffee website."},
+        approval=approval,
+    )
+    now = datetime.now(UTC)
+    outcome = interrupted.model_dump(mode="json", by_alias=True)
+    return AgentRunExecutionEffectSnapshot(
+        id=uuid4(),
+        run_id=uuid4(),
+        job_id=uuid4(),
+        owner_attempt_id=uuid4(),
+        effect_key="agent-provider-execute",
+        request_hash="b" * 64,
+        disposition=AgentRunExecutionEffectDisposition.COMMITTED,
+        outcome=outcome,
+        outcome_hash=hash_json(outcome),
+        error_code=None,
+        registered_at=now,
+        settled_at=now,
+    )
+
+
+def test_resume_interruption_uses_persisted_resume_input_identity_after_run_head_is_cleared() -> None:
+    from src.modules.ai.runtime_job_handler import _resume_interrupted_from_state
+
+    state = _state(resume_input=_human_resume_input())
+
+    interrupted = _resume_interrupted_from_state(state)
+
+    assert interrupted.interrupt_id == "interrupt-human-1"
+    assert interrupted.checkpoint_id == "checkpoint-human-1"
+
+
+def test_resume_interruption_recovers_approval_tool_identity_from_committed_effect() -> None:
+    from src.modules.ai.runtime_job_handler import _resume_interrupted_from_state
+
+    state = _state(
+        effect=_interrupted_effect(),
+        resume_input=_approval_resume_input_without_part_identity(),
+    )
+
+    interrupted = _resume_interrupted_from_state(state)
+
+    assert interrupted.tool_id == "project.bootstrap"
+    assert interrupted.tool_version == "1"
+    assert interrupted.tool_call_id == "normalized-tool-call-bootstrap-1"
 
 
 @pytest.mark.asyncio

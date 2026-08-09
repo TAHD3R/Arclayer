@@ -171,7 +171,7 @@ class AgentThreadRepository(TortoiseORMRepository[AgentThreadV1Record]):
         workspace_id: UUID,
         owner_user_id: UUID,
         thread_id: UUID,
-    ) -> tuple[AgentThreadV1Record, UUID | None, tuple[AgentMessageSnapshotV1, ...]]:
+    ) -> tuple[AgentThreadV1Record, UUID | None, UUID | None, tuple[AgentMessageSnapshotV1, ...]]:
         record = await self.get_owned(
             workspace_id=workspace_id,
             owner_user_id=owner_user_id,
@@ -186,8 +186,25 @@ class AgentThreadRepository(TortoiseORMRepository[AgentThreadV1Record]):
             .order_by("-created_at", "-id")
             .first()
         )
+        latest_plan_run = await (
+            AgentRunV1Record
+            .filter(
+                thread_id=record.id,
+                owner_user_id=owner_user_id,
+                project_id=None,
+                execution_mode="plan",
+                status=AgentRunStatusV1.COMPLETED,
+            )
+            .order_by("-created_at", "-id")
+            .first()
+        )
         messages = await self._messages(thread_id=record.id)
-        return record, active_run.id if active_run is not None else None, messages
+        return (
+            record,
+            active_run.id if active_run is not None else None,
+            latest_plan_run.id if latest_plan_run is not None else None,
+            messages,
+        )
 
     async def update_owned(
         self,

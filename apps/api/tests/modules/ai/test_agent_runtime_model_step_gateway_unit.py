@@ -13,6 +13,7 @@ from src.modules.ai.agent_tool_grants import (
     BUILDER_STYLE_GUIDE_GENERATE_TOOL,
     BUILDER_WIREFRAME_GENERATE_TOOL,
     HUMAN_REQUEST_INPUT_TOOL,
+    PROJECT_BOOTSTRAP_TOOL,
 )
 from src.modules.ai.runtime_execution_gateway import (
     AgentRunExecutionCompleted,
@@ -21,6 +22,10 @@ from src.modules.ai.runtime_execution_gateway import (
     AgentRunResumeExecutionRequest,
 )
 from src.modules.ai.runtime_model_step_gateway import ModelToolAgentRunExecutionGateway
+from src.modules.ai.runtime_project_bootstrap_tool import (
+    AgentProjectBootstrapToolExecutionRequest,
+    ProjectBootstrapResultV1,
+)
 from src.modules.ai.runtime_style_guide_tool import (
     AgentStyleGuideToolExecutionRequest,
     AgentStyleGuideToolResultV1,
@@ -146,6 +151,70 @@ class _ToolPolicyAuthorizer:
         _ = tool_id
 
 
+class _ProjectBootstrapChatGateway:
+    def __init__(self) -> None:
+        self.calls: list[tuple[list[dict[str, str]], dict[str, object] | None]] = []
+
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        context: LLMRequestContext,
+        model: str | None = None,
+        provider_params: dict[str, object] | None = None,
+    ) -> JsonObject:
+        _ = context, model
+        self.calls.append((messages, provider_params))
+        if len(self.calls) == 1:
+            return {
+                "id": "completion-bootstrap-tool-1",
+                "model": "gpt-4o-mini",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "tool-call-project-bootstrap-1",
+                        "function": {
+                            "name": "project_bootstrap",
+                            "arguments": '{"name":"Acme Studio","description":"A portfolio site."}',
+                        },
+                    }
+                ],
+                "usage": {"prompt_tokens": 8, "completion_tokens": 4},
+                "finish_reason": "tool_calls",
+            }
+        return {
+            "id": "completion-bootstrap-final-1",
+            "model": "gpt-4o-mini",
+            "content": "The editable project is ready.",
+            "tool_calls": [],
+            "usage": {"prompt_tokens": 12, "completion_tokens": 7},
+            "finish_reason": "stop",
+        }
+
+
+class _ProjectBootstrapExecutor:
+    def __init__(self) -> None:
+        self.requests: list[AgentProjectBootstrapToolExecutionRequest] = []
+
+    async def execute(
+        self,
+        *,
+        request: AgentProjectBootstrapToolExecutionRequest,
+    ) -> ProjectBootstrapResultV1:
+        self.requests.append(request)
+        project_id = uuid4()
+        return ProjectBootstrapResultV1(
+            project_id=project_id,
+            thread_id=uuid4(),
+            run_id=request.agent_run_id,
+            site_id=uuid4(),
+            environment_id=uuid4(),
+            site_revision_id=uuid4(),
+            editor_path=f"/projects/{project_id}/editor?stage=sitemap",
+            capabilities=("sitemap", "preview"),
+        )
+
+
 class _WireframeChatGateway:
     def __init__(self) -> None:
         self.calls: list[tuple[list[dict[str, str]], dict[str, object] | None]] = []
@@ -213,6 +282,68 @@ class _WireframeExecutor:
 
 
 _WIRE_PAGE_ID = uuid4()
+
+
+@pytest.mark.asyncio
+async def test_project_bootstrap_requires_approval_and_forces_the_real_tool() -> None:
+    chat = _ProjectBootstrapChatGateway()
+    executor = _ProjectBootstrapExecutor()
+    gateway = ModelToolAgentRunExecutionGateway(
+        chat_service=chat,
+        project_bootstrap_executor=executor,
+        tool_policy_authorizer=_ToolPolicyAuthorizer(),
+    )
+    request = AgentRunExecutionRequest(
+        messages=({"role": "user", "content": "确认计划"},),
+        context=LLMRequestContext(
+            workspace_id=uuid4(),
+            capability_key="ai.agents",
+            project_id=None,
+            agent_run_id=uuid4(),
+            user_id=uuid4(),
+            source="agent",
+        ),
+        execution_mode="build",
+        tool_grants=(HUMAN_REQUEST_INPUT_TOOL, PROJECT_BOOTSTRAP_TOOL),
+        model="gpt-4o-mini",
+    )
+
+    interrupted = await gateway.execute(request=request)
+
+    assert isinstance(interrupted, AgentRunExecutionInterrupted)
+    assert interrupted.tool_name == PROJECT_BOOTSTRAP_TOOL
+    assert interrupted.approval is not None
+    assert interrupted.approval.policy_version == "project-bootstrap-v1"
+    provider_params = chat.calls[0][1]
+    assert provider_params is not None
+    assert [
+        tool["function"]["name"]
+        for tool in provider_params["tools"]
+        if isinstance(tool, dict)
+        and isinstance(tool.get("function"), dict)
+        and isinstance(tool["function"].get("name"), str)
+    ] == ["project_bootstrap"]
+    assert provider_params["tool_choice"] == "required"
+
+    completed = await gateway.resume(
+        request=AgentRunResumeExecutionRequest(
+            **request.model_dump(),
+            checkpoint_id="checkpoint-bootstrap-1",
+            response_kind="approval",
+            resume={"approved": True, "optionId": "allow_once", "reason": None},
+            interrupted=interrupted,
+        )
+    )
+
+    assert isinstance(completed, AgentRunExecutionCompleted)
+    assert len(executor.requests) == 1
+    assert completed.tool_completion is not None
+    result = completed.tool_completion.result
+    assert isinstance(result, dict)
+    assert result["status"] == "draft"
+    editor_path = result["editorPath"]
+    assert isinstance(editor_path, str)
+    assert editor_path.endswith("/editor?stage=sitemap")
 
 
 @pytest.mark.asyncio

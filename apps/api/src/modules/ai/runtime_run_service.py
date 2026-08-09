@@ -162,6 +162,23 @@ class AgentRunService(BaseService):
                         conn=conn,
                     )
                 else:
+                    if payload.execution_mode == "build" and payload.project_id is None:
+                        confirmed_plan = await (
+                            AgentRunV1Record
+                            .filter(
+                                id=payload.confirmed_plan_run_id,
+                                workspace_id=workspace_id,
+                                thread_id=thread_id,
+                                owner_user_id=owner_user_id,
+                                project_id=None,
+                                execution_mode="plan",
+                                status=AgentRunStatusV1.COMPLETED,
+                            )
+                            .using_db(conn)
+                            .first()
+                        )
+                        if confirmed_plan is None:
+                            raise AgentRuntimePersistenceError("AGENT_BUILD_PLAN_CONFIRMATION_INVALID")
                     try:
                         require_concurrency_slot(
                             await self._runtime_policy_resolver(),
@@ -643,7 +660,11 @@ class AgentRunService(BaseService):
     ) -> NoReturn:
         if error.code in {"AGENT_RUN_NOT_FOUND", "AGENT_THREAD_NOT_FOUND"}:
             raise NotFound(error=error.code, message=t("errors", error.code)) from error
-        if error.code in {"AGENT_RUN_IDEMPOTENCY_CONFLICT", "POLICY_CONCURRENCY_LIMIT_EXCEEDED"}:
+        if error.code in {
+            "AGENT_RUN_IDEMPOTENCY_CONFLICT",
+            "AGENT_BUILD_PLAN_CONFIRMATION_INVALID",
+            "POLICY_CONCURRENCY_LIMIT_EXCEEDED",
+        }:
             raise Conflict(error=error.code, message=t("errors", error.code)) from error
         if isinstance(
             error,

@@ -606,6 +606,15 @@ def _chat_provider_params(
         )
         params["tool_choice"] = "auto"
         params["thinking"] = {"type": "disabled"}
+        params.pop("reasoning_effort", None)
+    elif detect_provider(model) == "deepseek" and params.get("tool_choice") == "required":
+        logger.info(
+            "Using DeepSeek-compatible non-thinking automatic Tool selection",
+            model=model,
+        )
+        params["tool_choice"] = "auto"
+        params["thinking"] = {"type": "disabled"}
+        params.pop("reasoning_effort", None)
     return params
 
 

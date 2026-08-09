@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { DesignGenerateTool } from "@/components/ai/design-generate-tool";
 import { StyleGuideGenerateTool } from "@/components/ai/style-guide-generate-tool";
 import { WireframeGenerateTool } from "@/components/ai/wireframe-generate-tool";
+import { Button } from "@arclayer/ui/button";
 
 type HumanRequestInputArgs = {
   readonly question: string;
@@ -33,7 +34,7 @@ function readHumanRequestInput(args: Record<string, unknown>): HumanRequestInput
 }
 
 function HumanRequestInputTool(props: ToolCallMessagePartProps) {
-  const { t } = useTranslation(["ai"]);
+  const { t } = useTranslation(["ai", "errors"]);
   const request = readHumanRequestInput(props.args);
 
   if (props.status.type === "running") {
@@ -69,10 +70,55 @@ function HumanRequestInputTool(props: ToolCallMessagePartProps) {
   );
 }
 
+function ProjectBootstrapTool(props: ToolCallMessagePartProps) {
+  const { t } = useTranslation(["ai"]);
+  const name = typeof props.args.name === "string" ? props.args.name : "";
+  if (props.status.type === "running") return null;
+  if (props.approval && props.approval.resolution === undefined) {
+    return (
+      <section className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
+        <p className="text-caption font-medium text-label-secondary">
+          {t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY", { name })}
+        </p>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              props.respondToApproval({
+                approved: false,
+                reason: t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_REJECT_ONCE_DESC"),
+              })
+            }
+          >
+            {t("ai:AI_AGENT_APPROVAL_REJECT_ONCE")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => props.respondToApproval({ approved: true })}
+          >
+            {t("ai:AI_AGENT_APPROVAL_ALLOW_ONCE")}
+          </Button>
+        </div>
+      </section>
+    );
+  }
+  if (props.status.type === "incomplete") {
+    return <p className="py-1 text-footnote text-destructive">{t("errors:AGENT_RUN_FAILED")}</p>;
+  }
+  return <p className="py-1 text-callout text-label-secondary">{name}</p>;
+}
+
 export const arclayerAgentToolkit = defineToolkit({
   "human.request_input": {
     type: "backend",
     render: HumanRequestInputTool,
+  },
+  "project.bootstrap": {
+    type: "backend",
+    render: ProjectBootstrapTool,
   },
   "builder.style_guide.generate": {
     type: "backend",

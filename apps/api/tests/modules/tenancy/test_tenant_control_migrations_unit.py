@@ -115,8 +115,18 @@ def test_knowledge_guidance_tables_contract() -> None:
         assert f"{{schema}}.{table_name}" in sql
 
 
-def test_knowledge_guidance_layer_backfill_is_the_latest_contract() -> None:
+def test_knowledge_guidance_layer_backfill_contract() -> None:
     migration = TENANT_CONTROL_MIGRATIONS[-1]
+    sql = "\n".join(migration.sql)
+
+    assert migration.version == 32
+    assert migration.name == "design_system_published_version_pointer"
+    assert "ALTER TABLE {schema}.design_systems" in sql
+    assert "ADD COLUMN IF NOT EXISTS latest_published_version_id UUID NULL" in sql
+
+
+def test_knowledge_guidance_layer_backfill_remains_in_the_migration_history() -> None:
+    migration = next(item for item in TENANT_CONTROL_MIGRATIONS if item.version == 31)
     sql = "\n".join(migration.sql)
 
     assert migration.version == 31

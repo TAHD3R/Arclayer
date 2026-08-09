@@ -16,6 +16,7 @@ from src.modules.ai.agent_tool_grants import (
     BUILDER_WIREFRAME_APPLY_TOOL,
     BUILDER_WIREFRAME_GENERATE_TOOL,
     HUMAN_REQUEST_INPUT_TOOL,
+    PROJECT_BOOTSTRAP_TOOL,
     WORKSPACE_SKILL_CREATE_TOOL,
 )
 
@@ -45,6 +46,7 @@ _OFFICIAL_AGENT_VERSION_IDS = {
     ("arclayer-coordinator", 5): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e9f01"),
     ("arclayer-coordinator", 6): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4eaf01"),
     ("arclayer-coordinator", 7): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4ebf01"),
+    ("arclayer-coordinator", 8): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4ecf01"),
     ("visual-designer", 3): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e7f03"),
 }
 _OFFICIAL_AGENT_VERSION_KEYS_BY_ID = {version_id: key for key, version_id in _OFFICIAL_AGENT_VERSION_IDS.items()}
@@ -120,6 +122,7 @@ OFFICIAL_AGENT_SPECS: tuple[OfficialAgentSpec, ...] = (
         ),
         tool_grants=(
             HUMAN_REQUEST_INPUT_TOOL,
+            PROJECT_BOOTSTRAP_TOOL,
             BUILDER_SITEMAP_GENERATE_TOOL,
             BUILDER_SITEMAP_PREVIEW_TOOL,
             BUILDER_SITEMAP_APPLY_TOOL,
@@ -134,7 +137,7 @@ OFFICIAL_AGENT_SPECS: tuple[OfficialAgentSpec, ...] = (
         sort_order=0,
         is_default=True,
         is_pinned=True,
-        version_number=7,
+        version_number=8,
     ),
     OfficialAgentSpec(
         slug="site-architect",

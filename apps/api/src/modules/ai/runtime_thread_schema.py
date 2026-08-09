@@ -51,6 +51,7 @@ class AgentThreadOutV1(BaseSchema):
 
 class AgentThreadDetailV1(AgentThreadOutV1):
     active_run_id: PublicUUID | None
+    latest_completed_plan_run_id: PublicUUID | None
     messages: tuple[AgentMessageSnapshotV1, ...]
 
 

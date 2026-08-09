@@ -305,6 +305,9 @@ async def test_agent_worker_interrupts_and_resumes_same_langgraph_checkpoint(
                 assert completed_job.internal_status == JobInternalStatus.SUCCEEDED
                 assert second_attempt.status == JobAttemptStatus.SUCCEEDED
             assert len(resume_requests) == 1
+            assert resume_requests[0].interrupted is not None
+            assert resume_requests[0].interrupted.interrupt_id == interrupted_run.interrupt_id
+            assert resume_requests[0].interrupted.checkpoint_id == interrupted_run.checkpoint_id
             assert resume_requests[0].checkpoint_id == interrupted_run.checkpoint_id
             expected_resume = (
                 {

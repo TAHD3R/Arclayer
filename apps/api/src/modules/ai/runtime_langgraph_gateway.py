@@ -24,6 +24,7 @@ _OUTCOME_ADAPTER = TypeAdapter(AgentRunExecutionOutcome)
 class _AgentRunGraphState(TypedDict, total=False):
     request: JsonObject
     outcome: JsonObject
+    resumeInterrupted: JsonObject
 
 
 class LangGraphAgentRunExecutionGateway:
@@ -62,9 +63,12 @@ class LangGraphAgentRunExecutionGateway:
                 by_alias=True,
                 exclude={"checkpoint_id", "response_kind", "resume", "interrupted"},
             )
+            update: _AgentRunGraphState = {"request": request_state}
+            if request.interrupted is not None:
+                update["resumeInterrupted"] = request.interrupted.model_dump(mode="json", by_alias=True)
             result = await graph.ainvoke(
                 Command(
-                    update={"request": request_state},
+                    update=update,
                     resume=resume,
                 ),
                 config=_config(thread_id),
@@ -99,6 +103,13 @@ class LangGraphAgentRunExecutionGateway:
             raise RuntimeError("LangGraph await_human requires an interrupted Agent outcome")
         raw_response = interrupt(outcome.model_dump(mode="json", by_alias=True))
         response = _resume_envelope(raw_response)
+        persisted_interrupted = state.get("resumeInterrupted")
+        if persisted_interrupted is not None:
+            interrupted = _OUTCOME_ADAPTER.validate_python(persisted_interrupted)
+            if not isinstance(interrupted, AgentRunExecutionInterrupted):
+                raise RuntimeError("LangGraph persisted interruption is invalid")
+        else:
+            interrupted = outcome
         request = AgentRunExecutionRequest.model_validate(state["request"])
         resumed = await self._step_gateway.resume(
             request=AgentRunResumeExecutionRequest(
@@ -106,7 +117,7 @@ class LangGraphAgentRunExecutionGateway:
                 checkpoint_id=response["checkpointId"],
                 response_kind=response["responseKind"],
                 resume=response["resume"],
-                interrupted=outcome,
+                interrupted=interrupted,
             )
         )
         return {"outcome": cast(JsonObject, resumed.model_dump(mode="json", by_alias=True))}

@@ -3460,7 +3460,7 @@ describe("ProjectEditorPage", () => {
     expect(previewProjectBuilderChangeSetMock).not.toHaveBeenCalled();
   });
 
-  it("shows an explicit initialization boundary instead of fabricating an empty revision", async () => {
+  it("keeps initialization recovery in the canonical Editor instead of opening the legacy builder", async () => {
     const user = userEvent.setup();
     getProjectBuilderMock.mockResolvedValue({
       ...readyBuilder,
@@ -3475,8 +3475,9 @@ describe("ProjectEditorPage", () => {
       await screen.findByRole("heading", { name: "CREATION_EDITOR_INITIALIZE_TITLE" }),
     ).toBeVisible();
     expect(getProjectBuilderRevisionMock).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_OPEN_MANAGEMENT" }));
-    expect(navigateMock).toHaveBeenCalledWith({
+    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_RETRY" }));
+    await waitFor(() => expect(getProjectBuilderMock).toHaveBeenCalledTimes(2));
+    expect(navigateMock).not.toHaveBeenCalledWith({
       to: "/projects/project-1/content/site-builder",
     });
   });

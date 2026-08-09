@@ -9,6 +9,7 @@ import {
   useExternalStoreRuntime,
   useRemoteThreadListRuntime,
 } from "@assistant-ui/react";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/lib/http";
@@ -108,6 +109,12 @@ function readSelectedSkillInstallationIds(message: AppendMessage): readonly stri
     throw new AgentRuntimeProtocolError("AGENT_SKILL_SELECTION_INVALID");
   }
   return values as string[];
+}
+
+function isPlanConfirmationMessage(value: string): boolean {
+  return /^(确认(?:计划)?|开始(?:构建|创建)|confirm(?:\s+plan)?|build\s+it)[。.!！]?$/i.test(
+    value.trim(),
+  );
 }
 
 function isRunActive(projection: AgentRunProjectionV1): boolean {
@@ -278,8 +285,25 @@ function partStatusRank(status: unknown): number {
   return 0;
 }
 
+function readBootstrapProjectId(projection: AgentRunProjectionV1): string | null {
+  if (projection.terminalType !== "run.completed") return null;
+  const run = projection.run;
+  if (run?.executionMode !== "build" && run?.execution_mode !== "build") return null;
+  for (const message of Object.values(projection.messages).reverse()) {
+    for (const part of [...message.parts].reverse()) {
+      if (part.type !== "tool-call" || part.toolName !== "project.bootstrap") continue;
+      const result = part.result;
+      if (result === null || typeof result !== "object" || Array.isArray(result)) continue;
+      const projectId = (result as Record<string, unknown>).projectId;
+      if (typeof projectId === "string" && projectId.length > 0) return projectId;
+    }
+  }
+  return null;
+}
+
 function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const aui = useAui();
+  const navigate = useNavigate();
   const remoteThreadId = useAuiState((state) => state.threadListItem.remoteId);
   const [projection, setProjection] = useState<AgentRunProjectionV1>(() =>
     createAgentRunProjection({ runId: "thread-history", threadId: "new" }),
@@ -295,6 +319,8 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const hydratedThreadIdRef = useRef<string | null>(null);
   const threadTitleRef = useRef<string | null>(null);
   const titleUpdateInFlightRef = useRef<string | null>(null);
+  const latestCompletedPlanRunIdRef = useRef<string | null>(null);
+  const navigatedBootstrapRunIdRef = useRef<string | null>(null);
 
   const publishProjection = useCallback((next: AgentRunProjectionV1) => {
     projectionRef.current = next;
@@ -338,6 +364,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         signal: controller.signal,
       });
       threadTitleRef.current = thread.title;
+      latestCompletedPlanRunIdRef.current = thread.latestCompletedPlanRunId ?? null;
       const currentMessages =
         projectionRef.current.threadId === remoteThreadId
           ? Object.values(projectionRef.current.messages).map(
@@ -351,15 +378,21 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         }),
         mergeThreadMessageRecords(currentMessages, thread.messages),
       );
+      let hydratedRun: Readonly<Record<string, unknown>> | null = null;
       if (thread.activeRunId !== null) {
         const snapshot = await getAgentRunSnapshot(options.workspaceId, thread.activeRunId, {
           signal: controller.signal,
         });
+        hydratedRun = snapshot.run ?? null;
         next = replaceAgentRunProjectionFromSnapshot(next, snapshot, {
           preserveThreadMessages: true,
         });
       }
       publishProjection(next);
+      const hydratedMode = hydratedRun?.executionMode ?? hydratedRun?.execution_mode;
+      if (hydratedMode === "plan" && hydratedRun?.status === "completed") {
+        latestCompletedPlanRunIdRef.current = thread.activeRunId;
+      }
       setIsLoading(false);
       if (thread.activeRunId !== null && isRunActive(next)) {
         await continueRun(thread.activeRunId, next, controller);
@@ -371,6 +404,17 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
     });
     return () => controller.abort();
   }, [continueRun, options.workspaceId, publishProjection, remoteThreadId]);
+
+  useEffect(() => {
+    const projectId = readBootstrapProjectId(projection);
+    if (projectId === null || navigatedBootstrapRunIdRef.current === projection.runId) return;
+    navigatedBootstrapRunIdRef.current = projection.runId;
+    void navigate({
+      to: "/projects/$projectId/editor",
+      params: { projectId },
+      search: { stage: "sitemap" },
+    });
+  }, [navigate, projection]);
 
   const resumeRecordedResponse = async (
     response: AgentToolResponseV1,
@@ -439,6 +483,12 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         ),
       );
       await resumeRecordedResponse(response, controller);
+      const resumedProjection = projectionRef.current;
+      const resumedExecutionMode =
+        resumedProjection.run?.executionMode ?? resumedProjection.run?.execution_mode;
+      if (resumedExecutionMode === "plan" && resumedProjection.runStatus === "completed") {
+        latestCompletedPlanRunIdRef.current = resumedProjection.runId;
+      }
     } finally {
       if (humanResponseInFlightRef.current === toolCallId) {
         humanResponseInFlightRef.current = null;
@@ -489,6 +539,14 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         }
         const mentionedAgentIds = readMentionedAgentIds(message);
         const selectedSkillInstallationIds = readSelectedSkillInstallationIds(message);
+        const isBuildConfirmation =
+          options.projectId === null &&
+          options.executionMode === "plan" &&
+          latestCompletedPlanRunIdRef.current !== null &&
+          isPlanConfirmationMessage(composerText);
+        const executionMode: AgentExecutionModeV1 = isBuildConfirmation
+          ? "build"
+          : options.executionMode;
         const controller = new AbortController();
         streamControllerRef.current?.abort();
         streamControllerRef.current = controller;
@@ -500,7 +558,8 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
             leadAgentId: options.leadAgentId,
             mentionedAgentIds,
             selectedSkillInstallationIds,
-            executionMode: options.executionMode,
+            executionMode,
+            confirmedPlanRunId: isBuildConfirmation ? latestCompletedPlanRunIdRef.current : null,
             siteRevisionId: null,
             message: composerText,
             idempotencyKey: commandKey(),
@@ -524,6 +583,9 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         publishProjection(initial);
         try {
           await continueRun(created.runId, initial, controller);
+          if (executionMode === "plan" && projectionRef.current.runStatus === "completed") {
+            latestCompletedPlanRunIdRef.current = created.runId;
+          }
         } finally {
           if (
             threadTitleRef.current === options.initialTitle &&

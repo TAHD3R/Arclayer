@@ -15,6 +15,7 @@ from src.modules.ai.agent_tool_grants import (
     BUILDER_STYLE_GUIDE_GENERATE_TOOL,
     BUILDER_WIREFRAME_GENERATE_TOOL,
     HUMAN_REQUEST_INPUT_TOOL,
+    PROJECT_BOOTSTRAP_TOOL,
     WORKSPACE_SKILL_CREATE_TOOL,
 )
 from src.modules.ai.runtime_approval_protocol_schema import (
@@ -39,6 +40,11 @@ from src.modules.ai.runtime_execution_gateway import (
     AgentRunToolCompletion,
 )
 from src.modules.ai.runtime_policy_authorizer import AgentToolPolicyAuthorizer
+from src.modules.ai.runtime_project_bootstrap_tool import (
+    AgentProjectBootstrapToolExecutionRequest,
+    AgentProjectBootstrapToolExecutor,
+    ProjectBootstrapArgsV1,
+)
 from src.modules.ai.runtime_skill_creator_tool import (
     AgentSkillCreatorToolExecutionRequest,
     AgentSkillCreatorToolExecutor,
@@ -57,6 +63,7 @@ from src.modules.ai.runtime_wireframe_tool import (
 )
 
 _HUMAN_TOOL_PROVIDER_NAME = "human_request_input"
+_PROJECT_BOOTSTRAP_TOOL_PROVIDER_NAME = "project_bootstrap"
 _STYLE_GUIDE_TOOL_PROVIDER_NAME = "builder_style_guide_generate"
 _WIREFRAME_TOOL_PROVIDER_NAME = "builder_wireframe_generate"
 _DESIGN_TOOL_PROVIDER_NAME = "builder_design_generate"
@@ -82,6 +89,7 @@ class ModelToolAgentRunExecutionGateway:
         wireframe_executor: AgentWireframeToolExecutor | None = None,
         design_executor: AgentDesignToolExecutor | None = None,
         skill_creator_executor: AgentSkillCreatorToolExecutor | None = None,
+        project_bootstrap_executor: AgentProjectBootstrapToolExecutor | None = None,
         tool_policy_authorizer: AgentToolPolicyAuthorizer | None = None,
     ) -> None:
         self._chat_service = chat_service
@@ -89,6 +97,7 @@ class ModelToolAgentRunExecutionGateway:
         self._wireframe_executor = wireframe_executor
         self._design_executor = design_executor
         self._skill_creator_executor = skill_creator_executor
+        self._project_bootstrap_executor = project_bootstrap_executor
         self._tool_policy_authorizer = tool_policy_authorizer
 
     async def execute(self, *, request: AgentRunExecutionRequest) -> AgentRunExecutionOutcome:
@@ -119,7 +128,67 @@ class ModelToolAgentRunExecutionGateway:
             return await self._resume_design(request=request, interrupted=interrupted)
         if interrupted.tool_name == WORKSPACE_SKILL_CREATE_TOOL and request.response_kind == "approval":
             return await self._resume_skill_creator(request=request, interrupted=interrupted)
+        if interrupted.tool_name == PROJECT_BOOTSTRAP_TOOL and request.response_kind == "approval":
+            return await self._resume_project_bootstrap(request=request, interrupted=interrupted)
         raise ValueError("Model Tool gateway received an unsupported resume checkpoint")
+
+    async def _resume_project_bootstrap(
+        self,
+        *,
+        request: AgentRunResumeExecutionRequest,
+        interrupted: AgentRunExecutionInterrupted,
+    ) -> AgentRunExecutionOutcome:
+        approved = request.resume.get("approved")
+        if not isinstance(approved, bool):
+            raise ValueError("Project Bootstrap Tool approval response is invalid")
+        args = ProjectBootstrapArgsV1.model_validate(interrupted.args)
+        if approved:
+            await self._authorize_tool(PROJECT_BOOTSTRAP_TOOL)
+            if self._project_bootstrap_executor is None:
+                raise ValueError("Project Bootstrap Tool executor is unavailable")
+            context = request.context
+            if context.workspace_id is None or context.user_id is None or context.agent_run_id is None:
+                raise ValueError("Project Bootstrap Tool execution context is unavailable")
+            result = await self._project_bootstrap_executor.execute(
+                request=AgentProjectBootstrapToolExecutionRequest(
+                    workspace_id=context.workspace_id,
+                    actor_user_id=context.user_id,
+                    agent_run_id=context.agent_run_id,
+                    tool_call_id=interrupted.tool_call_id,
+                    args=args,
+                )
+            )
+            tool_result = cast(JsonObject, result.model_dump(mode="json", by_alias=True))
+        else:
+            tool_result = {
+                "approved": False,
+                "code": "AGENT_APPROVAL_REJECTED",
+                "reason": request.resume.get("reason"),
+            }
+        outcome = await self._run_model(
+            request=request,
+            resolved_tool_context={
+                "kind": "approval",
+                "toolName": PROJECT_BOOTSTRAP_TOOL,
+                "approved": approved,
+                "result": tool_result,
+            },
+            expose_tools=False,
+        )
+        if not isinstance(outcome, AgentRunExecutionCompleted):
+            raise ValueError("Project Bootstrap Tool continuation must complete the approved Tool step")
+        return outcome.model_copy(
+            update={
+                "tool_completion": AgentRunToolCompletion(
+                    tool_call_id=interrupted.tool_call_id,
+                    tool_id=interrupted.tool_id,
+                    tool_version=interrupted.tool_version,
+                    tool_name=interrupted.tool_name,
+                    args=interrupted.args,
+                    result=tool_result,
+                )
+            }
+        )
 
     async def _authorize_tool(self, tool_id: str) -> None:
         if self._tool_policy_authorizer is None:
@@ -466,6 +535,13 @@ def _messages(
             "requested work. Ask one product-ready question. Do not call it for greetings, optional preferences, "
             "or information that can be inferred safely."
         )
+    if include_tool_instructions and _project_bootstrap_available(request):
+        instructions.append(
+            "For a confirmed first-site Build Run without a project, call project_bootstrap exactly once before "
+            "describing any implementation as complete. Supply the product name and a concise description. This "
+            "Tool creates the real builder-managed Project, Preview Environment, Design System assignment, draft "
+            "content baseline, and editable Sitemap revision; it never publishes."
+        )
     if include_tool_instructions and _style_guide_available(request):
         instructions.append(
             "Use builder_style_guide_generate only when the user asks to create reviewable Style Guide directions. "
@@ -527,7 +603,7 @@ def _messages(
                 "do not repeat that same Tool call or question."
             ),
         })
-    return messages
+    return cast(list[dict[str, object]], messages)
 
 
 def _plain_human_resume_messages(
@@ -636,6 +712,21 @@ def _provider_tool_name(tool_name: str) -> str:
 
 
 def _provider_params(request: AgentRunExecutionRequest) -> dict[str, object] | None:
+    if _project_bootstrap_available(request):
+        return {
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": _PROJECT_BOOTSTRAP_TOOL_PROVIDER_NAME,
+                        "description": "Create the confirmed first-site Project and initialize its editable Builder baseline.",
+                        "parameters": ProjectBootstrapArgsV1.model_json_schema(by_alias=True),
+                    },
+                }
+            ],
+            "tool_choice": "required",
+        }
+
     tools: list[dict[str, object]] = []
     if HUMAN_REQUEST_INPUT_TOOL in request.tool_grants:
         tools.append({
@@ -691,7 +782,9 @@ def _provider_params(request: AgentRunExecutionRequest) -> dict[str, object] | N
                 "parameters": DesignGenerateArgsV1.model_json_schema(by_alias=True),
             },
         })
-    return {"tools": tools, "tool_choice": "auto"} if tools else None
+    if not tools:
+        return None
+    return {"tools": tools, "tool_choice": "auto"}
 
 
 def _outcome(payload: JsonObject, *, request: AgentRunExecutionRequest) -> AgentRunExecutionOutcome:
@@ -730,6 +823,15 @@ def _outcome(payload: JsonObject, *, request: AgentRunExecutionRequest) -> Agent
             request=request,
             tool_call_id=resolved_tool_call_id,
             arguments=WorkspaceSkillCreateArgsV1.model_validate(json.loads(raw_arguments)),
+        )
+    if provider_name == _PROJECT_BOOTSTRAP_TOOL_PROVIDER_NAME and _project_bootstrap_available(request):
+        agent_run_id = request.context.agent_run_id
+        if agent_run_id is None:
+            raise ValueError("Agent model returned an unsupported Tool call")
+        return _project_bootstrap_interruption(
+            request=request,
+            tool_call_id=resolved_tool_call_id,
+            arguments=ProjectBootstrapArgsV1.model_validate(json.loads(raw_arguments)),
         )
     if provider_name == _STYLE_GUIDE_TOOL_PROVIDER_NAME and _style_guide_available(request):
         arguments = StyleGuideGenerateArgsV1.model_validate(json.loads(raw_arguments))
@@ -877,6 +979,64 @@ def _skill_creator_interruption(
     )
 
 
+def _project_bootstrap_interruption(
+    *,
+    request: AgentRunExecutionRequest,
+    tool_call_id: str,
+    arguments: ProjectBootstrapArgsV1,
+) -> AgentRunExecutionInterrupted:
+    now = datetime.now(UTC)
+    agent_run_id = request.context.agent_run_id
+    if agent_run_id is None:
+        raise ValueError("Project Bootstrap Tool requires an Agent Run identity")
+    approval_id = hashlib.sha256(f"{agent_run_id}:{tool_call_id}:project-bootstrap-approval-v1".encode()).hexdigest()
+    approval = ApprovalV1(
+        approval_id=approval_id,
+        approval_version=1,
+        tool_call_id=tool_call_id,
+        checkpoint_id="pending-langgraph-checkpoint",
+        status="pending",
+        requested_at=now,
+        expires_at=now + timedelta(hours=1),
+        policy_version="project-bootstrap-v1",
+        risk=ApprovalRiskV1(
+            side_effect_class="draft_write",
+            summary_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY",
+            summary_params={"name": arguments.name},
+            preview_ref=None,
+        ),
+        options=(
+            ApprovalOptionV1(
+                id="allow_once",
+                kind="allow-once",
+                label_key="ai:AI_AGENT_APPROVAL_ALLOW_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_ALLOW_ONCE_DESC",
+                grants=(PROJECT_BOOTSTRAP_TOOL,),
+                confirm=False,
+            ),
+            ApprovalOptionV1(
+                id="reject_once",
+                kind="reject-once",
+                label_key="ai:AI_AGENT_APPROVAL_REJECT_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_REJECT_ONCE_DESC",
+                grants=(),
+                confirm=False,
+            ),
+        ),
+    )
+    return AgentRunExecutionInterrupted(
+        interrupt_id="pending-langgraph-interrupt",
+        checkpoint_id="pending-langgraph-checkpoint",
+        reason="approval_required",
+        tool_call_id=tool_call_id,
+        tool_id=PROJECT_BOOTSTRAP_TOOL,
+        tool_version="1",
+        tool_name=PROJECT_BOOTSTRAP_TOOL,
+        args=cast(JsonObject, arguments.model_dump(mode="json", by_alias=True)),
+        approval=approval,
+    )
+
+
 def _style_guide_available(request: AgentRunExecutionRequest) -> bool:
     return bool(
         request.execution_mode == "build"
@@ -891,6 +1051,17 @@ def _skill_creator_available(request: AgentRunExecutionRequest) -> bool:
     return bool(
         request.execution_mode == "build"
         and WORKSPACE_SKILL_CREATE_TOOL in request.tool_grants
+        and request.context.workspace_id is not None
+        and request.context.user_id is not None
+        and request.context.agent_run_id is not None
+    )
+
+
+def _project_bootstrap_available(request: AgentRunExecutionRequest) -> bool:
+    return bool(
+        request.execution_mode == "build"
+        and PROJECT_BOOTSTRAP_TOOL in request.tool_grants
+        and request.context.project_id is None
         and request.context.workspace_id is not None
         and request.context.user_id is not None
         and request.context.agent_run_id is not None

@@ -456,6 +456,7 @@ class TestMockLLMIntegration:
                 [{"role": "user", "content": "Submit one typed candidate."}],
                 context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
                 model="deepseek-v4-pro",
+                reasoning_effort="medium",
                 provider_params=forced_tool_params,
             )
 
@@ -465,6 +466,48 @@ class TestMockLLMIntegration:
             "thinking": {"type": "disabled"},
         }
         assert mock_runtime.chat.await_args.kwargs["max_tokens"] == 8192
+
+    async def test_deepseek_required_tool_choice_uses_non_thinking_auto_mode(self) -> None:
+        settings = get_settings()
+        mock_runtime = AsyncMock(spec=LLMRuntime)
+        mock_runtime.chat.return_value = ChatResult(
+            completion_id="required-tool-cid",
+            model="deepseek-v4-pro",
+            content="",
+            tool_calls=[],
+            prompt_tokens=1,
+            completion_tokens=1,
+            cost_micros=0,
+            finish_reason="tool_calls",
+        )
+        service = AIChatService(settings, runtime=mock_runtime)
+        required_tool_params = {
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "project_bootstrap",
+                        "parameters": {"type": "object", "additionalProperties": False},
+                    },
+                }
+            ],
+            "tool_choice": "required",
+        }
+
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            await service.chat(
+                [{"role": "user", "content": "确认计划"}],
+                context=LLMRequestContext(workspace_id=uuid4(), capability_key="ai.agents"),
+                model="deepseek-v4-pro",
+                reasoning_effort="high",
+                provider_params=required_tool_params,
+            )
+
+        assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
+            **required_tool_params,
+            "tool_choice": "auto",
+            "thinking": {"type": "disabled"},
+        }
 
     async def test_streaming_flow(self, monkeypatch) -> None:
         """Verify AIChatService.chat_stream() yields SSE events."""

@@ -14,6 +14,7 @@ class AgentRunCreateRequestV1(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
     project_id: PublicUUID | None = None
+    confirmed_plan_run_id: PublicUUID | None = None
     site_revision_id: PublicUUID | None = None
     lead_agent_id: PublicUUID
     mentioned_agent_ids: tuple[PublicUUID, ...] = ()
@@ -46,6 +47,10 @@ class AgentRunCreateRequestV1(BaseSchema):
     def require_project_for_site_revision(self) -> AgentRunCreateRequestV1:
         if self.site_revision_id is not None and self.project_id is None:
             raise ValueError("siteRevisionId requires projectId")
+        if self.execution_mode == "plan" and self.confirmed_plan_run_id is not None:
+            raise ValueError("confirmedPlanRunId is only valid for build runs")
+        if self.execution_mode == "build" and self.project_id is None and self.confirmed_plan_run_id is None:
+            raise ValueError("build runs without a project require confirmedPlanRunId")
         return self
 
 

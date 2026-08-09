@@ -897,4 +897,14 @@ ON CONFLICT (workspace_id, scope_kind, scope_id) DO NOTHING
             """.strip(),
         ),
     ),
+    TenantMigration.create(
+        version=32,
+        name="design_system_published_version_pointer",
+        sql=(
+            """
+ALTER TABLE {schema}.design_systems
+    ADD COLUMN IF NOT EXISTS latest_published_version_id UUID NULL
+            """.strip(),
+        ),
+    ),
 )

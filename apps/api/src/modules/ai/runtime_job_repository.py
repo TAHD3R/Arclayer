@@ -38,7 +38,7 @@ from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_builder_context_schema import AgentRunBuilderContextV1
 from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSystemContextV1
 from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextV1
-from src.modules.ai.runtime_approval_protocol_schema import RunResumedEventV1
+from src.modules.ai.runtime_approval_protocol_schema import RunInterruptedEventV1, RunResumedEventV1
 from src.modules.ai.runtime_job_schema import AgentRunJobInput, AgentRunJobTarget
 from src.modules.ai.runtime_recovery_schema import (
     AgentRunExecutionEffectSnapshot,
@@ -55,6 +55,7 @@ from src.modules.jobs.hashing import hash_json
 class AgentRunJobResumeInput(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
+    interrupt_id: str
     checkpoint_id: str
     response_kind: Literal["approval", "human_result"]
     resume: JsonObject
@@ -172,20 +173,17 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         input_reference: AgentRunJobInput,
         conn: BaseDBAsyncClient | None = None,
     ) -> AgentRunJobState:
-        run = await (
-            AgentRunV1Record
-            .filter(
-                id=input_reference.run_id,
-                job_id=job_id,
-                workspace_id=target.workspace_id,
-                project_id=input_reference.project_id,
-                thread_id=input_reference.thread_id,
-                owner_user_id=actor_user_id,
-                thread__deleted_at=None,
-            )
-            .using_db(conn)
-            .first()
+        query = AgentRunV1Record.filter(
+            id=input_reference.run_id,
+            job_id=job_id,
+            workspace_id=target.workspace_id,
+            thread_id=input_reference.thread_id,
+            owner_user_id=actor_user_id,
+            thread__deleted_at=None,
         )
+        if input_reference.project_id is not None:
+            query = query.filter(project_id=input_reference.project_id)
+        run = await query.using_db(conn).first()
         if run is None or run.last_cursor is None:
             raise AgentRuntimePersistenceError("AGENT_RUN_JOB_SCOPE_INVALID")
         if run.lead_agent_version_id is None or run.lead_agent_assignment_id is None:
@@ -291,7 +289,10 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         if (
             context.context_hash != record.context_hash
             or context.workspace_id != run.workspace_id
-            or context.project_id != run.project_id
+            or (
+                context.project_id != run.project_id
+                and not (run.site_revision_id is None and context.project_id is None)
+            )
             or context.workspace_revision_id != record.workspace_revision_id
             or context.project_revision_id != record.project_revision_id
             or record.source_snapshot_count != source_count
@@ -309,6 +310,8 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         if run.project_id is None:
             if record is not None:
                 raise AgentRuntimePersistenceError("AGENT_DESIGN_SYSTEM_SNAPSHOT_INVALID")
+            return None
+        if record is None and run.site_revision_id is None:
             return None
         if record is None or record.project_id != run.project_id:
             raise AgentRuntimePersistenceError("AGENT_DESIGN_SYSTEM_SNAPSHOT_MISSING")
@@ -370,6 +373,21 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         if record is None:
             return None
         resumed = RunResumedEventV1.model_validate(record.payload)
+        interrupted_record = await (
+            AgentRunEventV1Record
+            .filter(run_id=run.id, type="run.interrupted", sequence__lt=record.sequence)
+            .using_db(conn)
+            .order_by("-sequence")
+            .first()
+        )
+        if interrupted_record is None:
+            raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_INTERRUPTION_MISSING")
+        interrupted = RunInterruptedEventV1.model_validate(interrupted_record.payload)
+        if (
+            interrupted.data.interrupt_id != resumed.data.interrupt_id
+            or interrupted.data.checkpoint_id != resumed.data.checkpoint_id
+        ):
+            raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_INTERRUPTION_MISSING")
         responses = await (
             AgentToolResponseV1Record
             .filter(
@@ -409,6 +427,7 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
         ):
             raise AgentRuntimePersistenceError("AGENT_TOOL_IDENTITY_MISMATCH")
         return AgentRunJobResumeInput(
+            interrupt_id=interrupted.data.interrupt_id,
             checkpoint_id=resumed.data.checkpoint_id,
             response_kind=resumed.data.resume_kind,
             resume=cast(JsonObject, resume),

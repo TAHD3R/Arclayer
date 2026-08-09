@@ -13,6 +13,7 @@ export interface StartAgentRunEnvelopeV1 {
   readonly executionMode: AgentExecutionModeV1;
   readonly workspaceId: string;
   readonly projectId: string | null;
+  readonly confirmedPlanRunId?: string | null;
   readonly siteRevisionId: string | null;
   readonly message: string;
   readonly idempotencyKey: string;

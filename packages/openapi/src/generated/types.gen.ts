@@ -1868,6 +1868,10 @@ export type AgentRunCreateRequest = {
  */
 export type AgentRunCreateRequestV1 = {
     /**
+     * Confirmedplanrunid
+     */
+    confirmedPlanRunId?: string | null;
+    /**
      * Executionmode
      */
     executionMode: 'plan' | 'build';
@@ -2380,6 +2384,10 @@ export type AgentThreadDetailV1 = {
      * Createdat
      */
     createdAt: string;
+    /**
+     * Latestcompletedplanrunid
+     */
+    latestCompletedPlanRunId: string | null;
     /**
      * Leadagentassignmentid
      */

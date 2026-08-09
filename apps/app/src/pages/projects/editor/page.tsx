@@ -53,6 +53,7 @@ export function ProjectEditorPage({
     currentRevision?.pages.find((page) => page.itemId === editor.selectedPageId) ?? null;
   const syncWireframeTargetsToUrl = useCallback(
     (targets: readonly BuilderGenerationTargetV1[]) => {
+      if (stage !== "wireframe") return;
       void navigate({
         search: {
           stage: "wireframe",
@@ -62,7 +63,7 @@ export function ProjectEditorPage({
         replace: true,
       });
     },
-    [editor.selectedPageId, navigate],
+    [editor.selectedPageId, navigate, stage],
   );
   const wireframeGeneration = useProjectWireframeGeneration({
     projectId,
@@ -96,8 +97,9 @@ export function ProjectEditorPage({
     enabled: stage === "design",
   });
   const backToProject = () => void navigate({ to: `/projects/${projectId}` as never });
-  const openBuilderManagement = () =>
-    void navigate({ to: `/projects/${projectId}/content/site-builder` as never });
+  const retryBuilderBootstrap = () => {
+    void editor.builderQuery.refetch();
+  };
 
   if (
     editor.builderQuery.isPending ||
@@ -126,8 +128,8 @@ export function ProjectEditorPage({
       <EditorBoundary
         title={t("CREATION_EDITOR_MIGRATION_TITLE")}
         description={t("CREATION_EDITOR_MIGRATION_DESC")}
-        actionLabel={t("CREATION_EDITOR_OPEN_MANAGEMENT")}
-        onAction={openBuilderManagement}
+        actionLabel={t("CREATION_EDITOR_RETRY")}
+        onAction={retryBuilderBootstrap}
         onBack={backToProject}
       />
     );
@@ -137,8 +139,8 @@ export function ProjectEditorPage({
       <EditorBoundary
         title={t("CREATION_EDITOR_INITIALIZE_TITLE")}
         description={t("CREATION_EDITOR_INITIALIZE_DESC")}
-        actionLabel={t("CREATION_EDITOR_OPEN_MANAGEMENT")}
-        onAction={openBuilderManagement}
+        actionLabel={t("CREATION_EDITOR_RETRY")}
+        onAction={retryBuilderBootstrap}
         onBack={backToProject}
       />
     );

@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Protocol, cast
+from typing import Literal, Protocol, cast
 from uuid import UUID, uuid4
 
+import structlog
 from pydantic import TypeAdapter
 
 from src.common.types.json_types import JsonObject
@@ -34,6 +35,7 @@ from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSyst
 from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextV1
 from src.modules.ai.agent_skill_grant_schema import AgentSkillContextPackage
 from src.modules.ai.agent_skill_grant_service import AgentSkillGrantError, AgentSkillGrantResolver
+from src.modules.ai.runtime_approval_protocol_schema import ApprovalV1
 from src.modules.ai.runtime_event_repository import AppendableAgentRunEventV1
 from src.modules.ai.runtime_execution_effect_service import AgentRunExecutionEffectService
 from src.modules.ai.runtime_execution_gateway import (
@@ -92,9 +94,48 @@ from src.modules.system.ai_providers.configuration import resolve_default_system
 from src.settings.runtime import get_core_settings_value_cached
 
 _RUN_PROGRESS_TOTAL = 3
+logger = structlog.get_logger("arclayer.ai.runtime_job_handler")
 AgentSkillGrantResolverFactory = Callable[[], AgentSkillGrantResolver]
 AgentKnowledgeContextResolverFactory = Callable[[], AgentKnowledgeContextResolver]
 _OUTCOME_ADAPTER = TypeAdapter(AgentRunExecutionOutcome)
+
+
+def _resume_interrupted_from_state(state: AgentRunJobState) -> AgentRunExecutionInterrupted:
+    resume_input = state.resume_input
+    if resume_input is None:
+        raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_INTERRUPTION_MISSING")
+    tool_id = resume_input.tool_id
+    tool_version = resume_input.tool_version
+    if tool_id is None or tool_version is None:
+        effect = state.execution_effect
+        if effect is None or effect.outcome is None:
+            raise AgentRuntimePersistenceError("AGENT_TOOL_IDENTITY_MISMATCH")
+        interrupted = _OUTCOME_ADAPTER.validate_python(effect.outcome)
+        if (
+            not isinstance(interrupted, AgentRunExecutionInterrupted)
+            or interrupted.interrupt_id != resume_input.interrupt_id
+            or interrupted.checkpoint_id != resume_input.checkpoint_id
+            or interrupted.tool_name != resume_input.tool_name
+            or interrupted.args != resume_input.args
+        ):
+            raise AgentRuntimePersistenceError("AGENT_TOOL_IDENTITY_MISMATCH")
+        tool_id = interrupted.tool_id
+        tool_version = interrupted.tool_version
+    reason: Literal["approval_required", "human_tool_input"] = (
+        "approval_required" if resume_input.response_kind == "approval" else "human_tool_input"
+    )
+    approval = ApprovalV1.model_validate(resume_input.approval) if resume_input.approval is not None else None
+    return AgentRunExecutionInterrupted(
+        interrupt_id=resume_input.interrupt_id,
+        checkpoint_id=resume_input.checkpoint_id,
+        reason=reason,
+        tool_call_id=resume_input.tool_call_id,
+        tool_id=tool_id,
+        tool_version=tool_version,
+        tool_name=resume_input.tool_name,
+        args=resume_input.args,
+        approval=approval,
+    )
 
 
 class AgentRunExecutionEffectPort(Protocol):
@@ -323,6 +364,7 @@ class AgentRunJobHandler:
                 checkpoint_id=state.resume_input.checkpoint_id,
                 response_kind=state.resume_input.response_kind,
                 resume=state.resume_input.resume,
+                interrupted=_resume_interrupted_from_state(state),
             )
         effect = await self._execution_effects.register(
             lease=context.lease,
@@ -353,7 +395,14 @@ class AgentRunJobHandler:
                     message=error.message,
                     retryable=False,
                 )
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as error:
+                logger.exception(
+                    "Agent provider response failed runtime validation",
+                    run_id=str(state.run_id),
+                    model=execution_request.model,
+                    error_type=type(error).__name__,
+                    error_message=str(error),
+                )
                 await self._execution_effects.mark_unknown(
                     lease=context.lease,
                     effect_id=effect.id,
@@ -926,7 +975,8 @@ class AgentRunJobHandler:
     ) -> str:
         mode_prompt = (
             "You are Arclayer's planning Agent. Produce an actionable website plan with explicit assumptions, "
-            "dependencies, risks, approval points, and verification criteria. Do not claim that changes were applied."
+            "dependencies, risks, approval points, and verification criteria. Do not claim that changes were applied. "
+            "End a complete first-site plan by clearly asking the user to reply '确认计划' before any Build Run."
             if state.execution_mode == "plan"
             else "You are Arclayer's build Agent. Produce concrete implementation output for the requested website "
             "work, identify any required approvals, and state verifiable completion evidence."

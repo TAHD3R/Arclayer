@@ -17,6 +17,7 @@ from src.models.content.content_version import ContentVersionRecord
 from src.models.design_systems.design_system_version import DesignSystemVersionRecord
 from src.modules.analytics.audit import write_required_activity_event
 from src.modules.projects.builder.authority import require_builder_authority
+from src.modules.projects.builder.baseline_content import ensure_builder_baseline_content
 from src.modules.projects.builder.command import builder_request_fingerprint, require_builder_idempotency_key
 from src.modules.projects.builder.design_contract_context import resolve_builder_design_contract
 from src.modules.projects.builder.design_system_context import resolve_exact_builder_design_system
@@ -318,6 +319,39 @@ class SiteBuilderService(BaseService):
         })
         if runtime_id is None:
             _raise_conflict("PROJECT_RUNTIME_IDENTITY_REQUIRED")
+        if payload.provenance_source == "agent":
+            await self._ensure_agent_design_system_assignment(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                payload=payload,
+            )
+            project = await self._repository.get_project(project_id=project_id, workspace_id=workspace_id)
+            site = await self._repository.get_site(
+                project_id=project_id,
+                runtime_id=runtime_id,
+                site_id=UUID(str(payload.site_id)),
+            )
+            environment = await self._repository.get_environment(
+                project_id=project_id,
+                environment_id=UUID(str(payload.environment_id)),
+            )
+            if project is None:
+                _raise_not_found("PROJECT_NOT_FOUND")
+            if site is None:
+                _raise_not_found("BUILDER_SITE_NOT_FOUND")
+            if environment is None:
+                _raise_not_found("BUILDER_ENVIRONMENT_NOT_FOUND")
+            await ensure_builder_baseline_content(
+                settings=self.settings,
+                tenant_context=self._repository.tenant_context,
+                workspace_id=workspace_id,
+                project_id=project_id,
+                site_id=site.id,
+                environment_id=environment.id,
+                actor_user_id=actor_user_id,
+                project_name=str(project.name),
+            )
         async with self.tx() as conn:
             project = await self._repository.lock_project(
                 project_id=project_id,
@@ -400,6 +434,55 @@ class SiteBuilderService(BaseService):
                 conn=conn,
             )
             return result
+
+    async def _ensure_agent_design_system_assignment(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        actor_user_id: UUID,
+        payload: BuilderInitializationRequest,
+    ) -> None:
+        async with self.tx() as conn:
+            await self._design_system_repository.lock_project(
+                project_id=project_id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if (
+                await self._design_system_repository.get_assignment(
+                    project_id=project_id,
+                    conn=conn,
+                    for_update=True,
+                )
+                is not None
+            ):
+                return
+            default = await self._design_system_repository.get_workspace_default(
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if default is None:
+                _raise_conflict("PROJECT_DESIGN_SYSTEM_ASSIGNMENT_REQUIRED")
+            if (
+                payload.expected_design_system_assignment_revision != 1
+                or default.design_system_version_id != UUID(str(payload.expected_design_system_version_id))
+                or default.manifest_checksum != payload.expected_design_system_manifest_checksum
+            ):
+                _raise_conflict("DESIGN_SYSTEM_REVISION_CONFLICT")
+            await self._design_system_repository.create_assignment(
+                values={
+                    "workspace_id": workspace_id,
+                    "project_id": project_id,
+                    "design_system_id": default.design_system_id,
+                    "design_system_version_id": default.design_system_version_id,
+                    "manifest_checksum": default.manifest_checksum,
+                    "validation_finding_hash": default.validation_finding_hash,
+                    "metadata_revision": 1,
+                    "assigned_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
 
 
 def _raise_not_found(code: str) -> NoReturn:

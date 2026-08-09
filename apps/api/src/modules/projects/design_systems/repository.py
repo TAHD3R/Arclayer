@@ -11,6 +11,7 @@ from src.models.design_systems.design_system import (
     DesignSystemRecord,
     ProjectDesignSystemAssignmentRecord,
     ProjectDesignSystemCommandRecord,
+    WorkspaceDesignSystemDefaultRecord,
 )
 from src.models.design_systems.design_system_version import (
     DesignSystemValidationResultRecord,
@@ -345,6 +346,17 @@ class ProjectDesignSystemsRepository(TenantScopedRepository):
             if for_update:
                 queryset = queryset.select_for_update()
             return await queryset.first()
+
+    async def get_workspace_default(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> WorkspaceDesignSystemDefaultRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            return await (
+                WorkspaceDesignSystemDefaultRecord.filter(workspace_id=workspace_id).using_db(tenant_conn).first()
+            )
 
     async def create_assignment(
         self, *, values: dict[str, object], conn: BaseDBAsyncClient

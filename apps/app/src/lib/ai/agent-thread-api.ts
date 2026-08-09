@@ -27,6 +27,7 @@ export interface AgentThreadV1 {
 
 export interface AgentThreadDetailV1 extends AgentThreadV1 {
   readonly activeRunId: string | null;
+  readonly latestCompletedPlanRunId: string | null;
   readonly messages: AgentRunSnapshotV1["messages"];
 }
 

@@ -75,6 +75,7 @@ async def test_langgraph_gateway_checkpoints_interrupt_and_resumes_without_reexe
     assert isinstance(interrupted, AgentRunExecutionInterrupted)
     assert interrupted.interrupt_id != "placeholder-interrupt"
     assert interrupted.checkpoint_id != "placeholder-checkpoint"
+    persisted_interrupted = interrupted.model_copy(update={"tool_call_id": "persisted-tool-call-audience-1"})
     completed = await gateway.resume(
         request=AgentRunResumeExecutionRequest(
             **request.model_copy(
@@ -89,6 +90,7 @@ async def test_langgraph_gateway_checkpoints_interrupt_and_resumes_without_reexe
             checkpoint_id=interrupted.checkpoint_id,
             response_kind="human_result",
             resume={"result": {"audience": "design teams"}},
+            interrupted=persisted_interrupted,
         )
     )
 
@@ -98,4 +100,6 @@ async def test_langgraph_gateway_checkpoints_interrupt_and_resumes_without_reexe
     assert len(step.resume_requests) == 1
     assert step.resume_requests[0].checkpoint_id == interrupted.checkpoint_id
     assert step.resume_requests[0].resume == {"result": {"audience": "design teams"}}
+    assert step.resume_requests[0].interrupted is not None
+    assert step.resume_requests[0].interrupted.tool_call_id == "persisted-tool-call-audience-1"
     assert step.resume_requests[0].messages[-1] == {"role": "user", "content": "design teams"}

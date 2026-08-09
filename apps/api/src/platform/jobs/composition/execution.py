@@ -27,6 +27,7 @@ from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContext
 from src.modules.ai.runtime_langgraph_gateway import LangGraphAgentRunExecutionGateway
 from src.modules.ai.runtime_model_step_gateway import ModelToolAgentRunExecutionGateway
 from src.modules.ai.runtime_policy_authorizer import GlobalAgentToolPolicyAuthorizer
+from src.modules.ai.runtime_project_bootstrap_tool import ProjectBootstrapToolExecutor
 from src.modules.ai.runtime_skill_creator_tool import WorkspaceSkillAuthoringAgentToolExecutor
 from src.modules.ai.runtime_style_guide_tool import DesignSystemConceptAgentToolExecutor
 from src.modules.ai.runtime_wireframe_tool import BuilderWireframeAgentToolExecutor
@@ -107,6 +108,7 @@ from src.modules.projects.builder.generation_provider import (
 from src.modules.projects.builder.generation_repository import BuilderGenerationRepository
 from src.modules.projects.builder.generation_service import BuilderGenerationService
 from src.modules.projects.builder.repository import SiteBuilderRepository
+from src.modules.projects.builder.service import SiteBuilderService
 from src.modules.projects.design_systems.concept_handler import DesignSystemConceptGenerationJobHandler
 from src.modules.projects.design_systems.concept_job_contract import (
     DESIGN_SYSTEM_CONCEPT_GENERATION_JOB_TYPE,
@@ -118,6 +120,7 @@ from src.modules.projects.design_systems.concept_service import DesignSystemConc
 from src.modules.projects.design_systems.repository import ProjectDesignSystemsRepository
 from src.modules.projects.design_systems.version_service import ProjectDesignSystemVersionService
 from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.service import build_project_service
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
 from src.modules.sites.delivery.hosting import SitesHostingDeliveryAdapter
 from src.modules.system.admin.notifications.campaign_job_contract import (
@@ -144,6 +147,8 @@ from src.modules.workspaces.design_systems.publication_contract import (
 from src.modules.workspaces.design_systems.publication_handler import DesignSystemPublicationJobHandler
 from src.modules.workspaces.design_systems.publication_repository import DesignSystemPublicationRepository
 from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
+from src.modules.workspaces.design_systems.service import WorkspaceDesignSystemsService
+from src.modules.workspaces.design_systems.starter import WorkspaceStarterDesignSystemOrchestrator
 from src.modules.workspaces.knowledge.indexing_contract import (
     KNOWLEDGE_SOURCE_INDEX_JOB_TYPE,
     KNOWLEDGE_SOURCE_INDEX_JOB_TYPE_VERSION,
@@ -545,6 +550,19 @@ def _build_agent_run_handler(
             step_gateway=ModelToolAgentRunExecutionGateway(
                 chat_service=AIChatService(settings),
                 tool_policy_authorizer=GlobalAgentToolPolicyAuthorizer(),
+                project_bootstrap_executor=ProjectBootstrapToolExecutor(
+                    project_service_factory=lambda: build_project_service(settings),
+                    builder_service_factory=lambda tenant_context: SiteBuilderService(
+                        repository=SiteBuilderRepository(tenant_context),
+                        design_system_repository=ProjectDesignSystemsRepository(tenant_context),
+                        component_catalog_resolver=get_official_component_catalog_registry(),
+                        settings=settings,
+                    ),
+                    tenant_context_factory=require_current_tenant_context,
+                    workspace_design_system_default_ensurer=_build_workspace_starter_design_system_orchestrator(
+                        settings=settings,
+                    ),
+                ),
                 style_guide_executor=DesignSystemConceptAgentToolExecutor(
                     service_factory=lambda: _build_design_system_concept_generation_service(settings=settings),
                     organization_id_factory=lambda: require_current_tenant_context().identity.organization_id,
@@ -570,6 +588,31 @@ def _build_agent_run_handler(
             ),
             checkpointer_factory=durable_checkpointer,
         ),
+    )
+
+
+def _build_workspace_starter_design_system_orchestrator(
+    *,
+    settings: Settings,
+) -> WorkspaceStarterDesignSystemOrchestrator:
+    return WorkspaceStarterDesignSystemOrchestrator(
+        service_factory=lambda: _build_workspace_design_system_service(settings=settings),
+    )
+
+
+def _build_workspace_design_system_service(*, settings: Settings) -> WorkspaceDesignSystemsService:
+    tenant_context = require_current_tenant_context()
+    component_catalog_resolver = get_official_component_catalog_registry()
+    return WorkspaceDesignSystemsService(
+        repository=WorkspaceDesignSystemsRepository(tenant_context),
+        component_catalog_resolver=component_catalog_resolver,
+        representative_preview_renderer=SiteBuilderService(
+            repository=SiteBuilderRepository(tenant_context),
+            design_system_repository=ProjectDesignSystemsRepository(tenant_context),
+            component_catalog_resolver=component_catalog_resolver,
+            settings=settings,
+        ),
+        settings=settings,
     )
 
 

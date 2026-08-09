@@ -36,6 +36,19 @@ from src.modules.ai.runtime_tool_response_schema import (
 _TOOL_RESPONSE_COMMAND_ADAPTER = TypeAdapter(ToolResponseCommandV1)
 
 
+def _resume_response_tool_id(
+    part_payload: object,
+    response_kind: Literal["approval", "human_result"],
+) -> str:
+    if not isinstance(part_payload, dict):
+        raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_CHECKPOINT_MISMATCH")
+    tool_identity_key = "toolName" if response_kind == "approval" else "toolId"
+    response_tool_id = part_payload.get(tool_identity_key)
+    if not isinstance(response_tool_id, str) or not response_tool_id:
+        raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_CHECKPOINT_MISMATCH")
+    return response_tool_id
+
+
 class AgentToolCallCommandScope(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
@@ -201,10 +214,8 @@ class AgentRuntimeCommandRepository(TortoiseORMRepository[AgentRunV1Record]):
             .select_for_update()
             .first()
         )
-        part_payload = part.payload if part is not None and isinstance(part.payload, dict) else None
-        response_tool_id = part_payload.get("toolId") if part_payload is not None else None
-        if not isinstance(response_tool_id, str) or not response_tool_id:
-            raise AgentRuntimePersistenceError("AGENT_RUN_RESUME_CHECKPOINT_MISMATCH")
+        response_kind = cast(Literal["approval", "human_result"], str(response.kind))
+        response_tool_id = _resume_response_tool_id(part.payload if part is not None else None, response_kind)
         return AgentRunResumeState(
             workspace_id=run.workspace_id,
             thread_id=run.thread_id,
@@ -220,7 +231,7 @@ class AgentRuntimeCommandRepository(TortoiseORMRepository[AgentRunV1Record]):
             interrupt_approval_id=run.interrupt_approval_id,
             interrupt_tool_call_id=run.interrupt_tool_call_id,
             response_id=response.response_id,
-            response_kind=cast(Literal["approval", "human_result"], str(response.kind)),
+            response_kind=response_kind,
             response_checkpoint_id=response.checkpoint_id,
             response_tool_call_id=response.tool_call_id,
             response_tool_id=response_tool_id,

@@ -49,6 +49,7 @@ class _WorkspaceDefaultRepository:
         self.version = SimpleNamespace(id=version_id, manifest_checksum=_CHECKSUM)
         self.state = state
         self.mutation_calls: list[str] = []
+        self.default: SimpleNamespace | None = None
 
     async def lock_workspace_systems(self, **_kwargs: object) -> None:
         return None
@@ -73,13 +74,21 @@ class _WorkspaceDefaultRepository:
     async def get_version_state(self, **_kwargs: object) -> SimpleNamespace:
         return self.state
 
-    async def create_default(self, **_kwargs: object) -> None:
+    async def get_default(self, **_kwargs: object) -> SimpleNamespace | None:
+        return self.default
+
+    async def create_default(self, **kwargs: object) -> SimpleNamespace:
         self.mutation_calls.append("create_default")
-        raise AssertionError("a candidate version must not create a default")
+        values = cast(dict[str, object], kwargs["values"])
+        self.default = SimpleNamespace(**values, updated_at=datetime.now(UTC))
+        return self.default
 
     async def save_default(self, **_kwargs: object) -> None:
         self.mutation_calls.append("save_default")
         raise AssertionError("a candidate version must not update a default")
+
+    async def create_default_command(self, **_kwargs: object) -> None:
+        return None
 
 
 class _ProjectRepository:
@@ -165,6 +174,9 @@ class _WorkspaceService(WorkspaceDesignSystemsService):
     async def tx(self, *, conn: BaseDBAsyncClient | None = None) -> AsyncIterator[BaseDBAsyncClient]:
         yield conn if conn is not None else cast(BaseDBAsyncClient, object())
 
+    async def _write_activity(self, **_kwargs: object) -> None:
+        return None
+
 
 class _ProjectService(ProjectDesignSystemsService):
     @asynccontextmanager
@@ -188,7 +200,7 @@ def _state(status: DesignSystemVersionStatus) -> SimpleNamespace:
 
 
 @pytest.mark.asyncio
-async def test_default_requires_a_published_version_before_any_default_write() -> None:
+async def test_default_accepts_a_foundation_valid_version_for_authoring() -> None:
     workspace_id, system_id, version_id = uuid4(), uuid4(), uuid4()
     repository = _WorkspaceDefaultRepository(
         system_id=system_id, version_id=version_id, state=_state(DesignSystemVersionStatus.VALID)
@@ -206,17 +218,16 @@ async def test_default_requires_a_published_version_before_any_default_write() -
         expected_revision=0,
     )
 
-    with pytest.raises(Conflict) as exc_info:
-        await service.set_default(
-            workspace_id=workspace_id,
-            organization_id=uuid4(),
-            actor_user_id=uuid4(),
-            idempotency_key="candidate-default",
-            payload=payload,
-        )
+    result = await service.set_default(
+        workspace_id=workspace_id,
+        organization_id=uuid4(),
+        actor_user_id=uuid4(),
+        idempotency_key="candidate-default",
+        payload=payload,
+    )
 
-    assert exc_info.value.error == "DESIGN_SYSTEM_RELEASE_REQUIRED"
-    assert repository.mutation_calls == []
+    assert result.version_id == version_id
+    assert repository.mutation_calls == ["create_default"]
     _require_assignable_state(cast(DesignSystemVersionStateRecord, _state(DesignSystemVersionStatus.PUBLISHED)))
     with pytest.raises(Conflict) as superseded:
         _require_assignable_state(cast(DesignSystemVersionStateRecord, _state(DesignSystemVersionStatus.SUPERSEDED)))

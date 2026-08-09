@@ -14,7 +14,7 @@ from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.entity_manager.manager import EntityManager
-from src.core.exceptions import APIError, BadRequest, Forbidden, NotFound
+from src.core.exceptions import APIError, BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
@@ -689,6 +689,12 @@ async def _execute_workspace_ai_action_impl(
 
     tool_call = tool_calls[0]
     action = tool_call.tool_name
+
+    if action == "create_project":
+        raise Conflict(
+            "Workspace project creation must be started by a confirmed durable Build Run",
+            error="AI_WORKSPACE_ACTION_LEGACY_RUNTIME_DISABLED",
+        )
 
     if action == "refine_plan":
         args = _validate_tool_arguments(WorkspaceRefinePlanArgs, tool_call.arguments)

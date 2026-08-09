@@ -1,6 +1,7 @@
 from typing import Final
 
 HUMAN_REQUEST_INPUT_TOOL: Final = "human.request_input"
+PROJECT_BOOTSTRAP_TOOL: Final = "project.bootstrap"
 BUILDER_SITEMAP_GENERATE_TOOL: Final = "builder.sitemap.generate"
 BUILDER_SITEMAP_PREVIEW_TOOL: Final = "builder.sitemap.preview"
 BUILDER_SITEMAP_APPLY_TOOL: Final = "builder.sitemap.apply"
@@ -13,6 +14,7 @@ WORKSPACE_SKILL_CREATE_TOOL: Final = "workspace.skill.create"
 
 SUPPORTED_AGENT_TOOL_GRANTS: Final = (
     HUMAN_REQUEST_INPUT_TOOL,
+    PROJECT_BOOTSTRAP_TOOL,
     BUILDER_SITEMAP_GENERATE_TOOL,
     BUILDER_SITEMAP_PREVIEW_TOOL,
     BUILDER_SITEMAP_APPLY_TOOL,

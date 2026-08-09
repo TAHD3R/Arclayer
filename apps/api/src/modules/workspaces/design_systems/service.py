@@ -946,7 +946,8 @@ def _require_assignable_state(state: DesignSystemVersionStateRecord) -> None:
             t("errors", "DESIGN_SYSTEM_VERSION_SUPERSEDED"),
             error="DESIGN_SYSTEM_VERSION_SUPERSEDED",
         )
-    if str(state.status) == DesignSystemVersionStatus.VALID.value:
-        _raise_release_required()
-    if str(state.status) != DesignSystemVersionStatus.PUBLISHED.value:
+    if str(state.status) not in {
+        DesignSystemVersionStatus.VALID.value,
+        DesignSystemVersionStatus.PUBLISHED.value,
+    }:
         _raise_validation_required()

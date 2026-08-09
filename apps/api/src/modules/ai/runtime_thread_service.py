@@ -111,7 +111,12 @@ class AgentThreadService(BaseService):
         thread_id: UUID,
     ) -> AgentThreadDetailV1:
         try:
-            record, active_run_id, messages = await self._repository.get_owned_with_messages(
+            (
+                record,
+                active_run_id,
+                latest_completed_plan_run_id,
+                messages,
+            ) = await self._repository.get_owned_with_messages(
                 workspace_id=workspace_id,
                 owner_user_id=owner_user_id,
                 thread_id=thread_id,
@@ -121,6 +126,7 @@ class AgentThreadService(BaseService):
         return AgentThreadDetailV1(
             **self._to_out(record).model_dump(),
             active_run_id=active_run_id,
+            latest_completed_plan_run_id=latest_completed_plan_run_id,
             messages=messages,
         )
 
