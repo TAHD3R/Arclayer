@@ -13,6 +13,7 @@ const { redirectMock, resolvePostAuthRouteMock, routeState, setCurrentContextMoc
     routeState: {
       pathname: "/projects",
       isPagePending: false,
+      matches: [] as Array<{ status: string; error?: unknown }>,
     },
     setCurrentContextMock: vi.fn(),
   }),
@@ -22,11 +23,24 @@ vi.mock("@tanstack/react-router", () => ({
   createRootRoute: (config: unknown) => config,
   Outlet: () => <div data-testid="route-outlet" />,
   redirect: redirectMock,
-  useRouterState: () => routeState,
+  useRouterState: (options?: { select?: (state: unknown) => unknown }) => {
+    const state = {
+      location: { pathname: routeState.pathname, searchStr: "" },
+      isLoading: routeState.isPagePending,
+      matches: routeState.matches,
+    };
+    return options?.select ? options.select(state) : state;
+  },
 }));
 
 vi.mock("@/components/builtin/route-document-title-manager", () => ({
   RouteDocumentTitleManager: () => null,
+}));
+vi.mock("@/components/builtin/router-fallbacks", () => ({
+  RouterDefaultError: (props: { variant?: string }) => (
+    <div data-testid="router-error" data-variant={props.variant} />
+  ),
+  RouterDefaultNotFound: () => null,
 }));
 vi.mock("@/components/layout/scene-loading-overlay", () => ({
   SceneLoadingOverlay: (props: { visible: boolean }) => (
@@ -42,6 +56,7 @@ vi.mock("@/components/builtin/access-restriction-boundary", () => ({
 vi.mock("@/lib/routing/scene-registry", () => ({
   resolveSceneKey: (pathname: string) => {
     if (pathname.startsWith("/login")) return "auth";
+    if (pathname.includes("/editor")) return "creation";
     if (pathname.startsWith("/projects/")) return "admin";
     return "global";
   },
@@ -82,6 +97,7 @@ describe("welcome onboarding route guard", () => {
   beforeEach(() => {
     routeState.pathname = "/projects";
     routeState.isPagePending = false;
+    routeState.matches = [];
     redirectMock.mockClear();
     resolvePostAuthRouteMock.mockReset();
     resolvePostAuthRouteMock.mockResolvedValue({
@@ -101,6 +117,17 @@ describe("welcome onboarding route guard", () => {
     expect(screen.getByTestId("route-outlet")).toBeInTheDocument();
     expect(screen.queryByTestId("scene-layout-global")).not.toBeInTheDocument();
     expect(screen.queryByTestId("root-scene-shell")).not.toBeInTheDocument();
+  });
+
+  it("renders route errors outside the active scene layout", () => {
+    routeState.pathname = "/projects/project_1/editor";
+    routeState.matches = [{ status: "error", error: new Error("render failed") }];
+
+    render(<RootLayout />);
+
+    expect(screen.getByTestId("router-error")).toHaveAttribute("data-variant", "fullscreen");
+    expect(screen.queryByTestId("root-scene-shell")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("scene-layout-creation")).not.toBeInTheDocument();
   });
 
   it("uses the current scene layout immediately when the pathname changes", () => {

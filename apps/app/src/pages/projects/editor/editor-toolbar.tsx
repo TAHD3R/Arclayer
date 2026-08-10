@@ -1,21 +1,14 @@
 import { cn } from "@arclayer/lib/utils";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
-import type { SiteRevisionLifecycleStatus } from "@arclayer/openapi";
-import { ArrowLeft, Eye, Redo2, Send, Undo2 } from "lucide-react";
+import { Redo2, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { WorkspaceCreditsControl } from "@/components/commerce/workspace-credits-control";
+import { EditorLogoMenu } from "@/layouts/creation-layout-menu";
+import { ProjectInlineNameEditor } from "@/pages/usercenter/projects/components/project-inline-name-editor";
 
 export type EditorStage = "sitemap" | "wireframe" | "styleGuide" | "design";
-export type EditorSyncState =
-  | "saved"
-  | "queued"
-  | "saving"
-  | "previewing"
-  | "review"
-  | "applying"
-  | "conflict"
-  | "error";
 
 const STAGES: ReadonlyArray<{
   id: EditorStage;
@@ -24,17 +17,15 @@ const STAGES: ReadonlyArray<{
 }> = [
   { id: "sitemap", translationKey: "SITEMAP", available: true },
   { id: "wireframe", translationKey: "WIREFRAME", available: true },
-  { id: "styleGuide", translationKey: "STYLE_GUIDE", available: true },
   { id: "design", translationKey: "DESIGN", available: true },
+  { id: "styleGuide", translationKey: "STYLE_GUIDE", available: true },
 ];
 
 interface EditorToolbarProps {
   projectName: string;
-  revisionNumber: number;
-  status: SiteRevisionLifecycleStatus;
   stage: EditorStage;
   onStageChange: (stage: EditorStage) => void;
-  onBack: () => void;
+  onProjectNameChange?: (name: string) => void;
   onPreview: () => void;
   previewDisabledReason?: string;
   designDisabledReason?: string;
@@ -42,17 +33,13 @@ interface EditorToolbarProps {
   redoDisabledReason?: string;
   onUndo?: () => void;
   onRedo?: () => void;
-  syncState: EditorSyncState;
-  syncStateLabel: string;
 }
 
 export function EditorToolbar({
   projectName,
-  revisionNumber,
-  status,
   stage,
   onStageChange,
-  onBack,
+  onProjectNameChange,
   onPreview,
   previewDisabledReason,
   designDisabledReason,
@@ -60,56 +47,64 @@ export function EditorToolbar({
   redoDisabledReason,
   onUndo,
   onRedo,
-  syncState,
-  syncStateLabel,
 }: EditorToolbarProps) {
   const { t } = useTranslation("account");
+  const [renaming, setRenaming] = useState(false);
+  const [projectNameDraft, setProjectNameDraft] = useState(projectName);
+
+  useEffect(() => {
+    if (!renaming) setProjectNameDraft(projectName);
+  }, [projectName, renaming]);
+
+  const commitProjectName = () => {
+    setRenaming(false);
+    const nextName = projectNameDraft.trim();
+    if (nextName && nextName !== projectName) onProjectNameChange?.(nextName);
+  };
+
   return (
     <TooltipProvider>
-      <header className="relative z-40 grid min-h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 border-b border-border bg-background px-3 py-2 lg:flex lg:h-14 lg:py-0">
+      <header className="relative z-40 grid min-h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 bg-transparent px-3 py-2 lg:flex lg:h-14 lg:py-0 lg:px-4">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden lg:flex-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-11 lg:size-9"
-            onClick={onBack}
-            aria-label={t("CREATION_EDITOR_BACK")}
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div className="min-w-0 border-l border-border pl-3">
-            <div className="flex items-center gap-2">
-              <span className="block max-w-[min(12rem,32vw)] truncate text-body font-semibold text-label-primary sm:max-w-48">
+          <EditorLogoMenu />
+          <div className="min-w-0">
+            {onProjectNameChange && renaming ? (
+              <ProjectInlineNameEditor
+                editing
+                value={projectName}
+                draftValue={projectNameDraft}
+                ariaLabel={t("CREATION_EDITOR_PROJECT_RENAME")}
+                maxLength={128}
+                containerClassName="w-[min(20rem,34vw)] sm:w-72"
+                inputClassName="h-9 py-1 text-body font-semibold"
+                counterClassName="hidden"
+                onDraftChange={setProjectNameDraft}
+                onCommit={commitProjectName}
+                onCancel={() => {
+                  setProjectNameDraft(projectName);
+                  setRenaming(false);
+                }}
+              />
+            ) : onProjectNameChange ? (
+              <button
+                type="button"
+                onClick={() => setRenaming(true)}
+                className="max-w-[min(20rem,34vw)] truncate rounded-md px-2 py-1 text-left text-body font-semibold text-label-primary transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-72"
+                aria-label={t("CREATION_EDITOR_PROJECT_RENAME")}
+              >
+                {projectName}
+              </button>
+            ) : (
+              <span className="block max-w-[min(20rem,34vw)] truncate px-2 py-1 text-body font-semibold text-label-primary sm:max-w-72">
                 {projectName}
               </span>
-              <Badge variant="outline" className="font-mono font-normal">
-                v{revisionNumber}
-              </Badge>
-              <Badge
-                variant="outline"
-                role="status"
-                aria-live="polite"
-                className={cn(
-                  "hidden font-normal sm:inline-flex",
-                  syncState === "conflict" && "border-warning/60 text-warning",
-                  syncState === "error" && "border-destructive/60 text-destructive",
-                  syncState === "applying" && "border-primary/60 text-primary",
-                  (syncState === "saving" || syncState === "queued") &&
-                    "border-primary/60 text-primary",
-                )}
-              >
-                {syncStateLabel}
-              </Badge>
-            </div>
-            <span className="sr-only">
-              {t(`CREATION_EDITOR_REVISION_STATUS_${status.toUpperCase()}`)}
-            </span>
+            )}
           </div>
         </div>
 
         <nav
           aria-label={t("CREATION_EDITOR_STAGE_NAV")}
-          className="order-3 col-span-2 mt-2 flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-muted/65 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:absolute lg:left-1/2 lg:order-none lg:col-auto lg:mt-0 lg:w-auto lg:-translate-x-1/2 lg:overflow-visible"
+          className="order-3 col-span-2 mt-2 flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-muted/75 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:absolute lg:left-1/2 lg:order-none lg:col-auto lg:mt-0 lg:w-auto lg:-translate-x-1/2 lg:overflow-visible"
         >
           {STAGES.map((item) => {
             const active = item.id === stage;
@@ -131,10 +126,10 @@ export function EditorToolbar({
                     disabled={!available}
                     onClick={() => onStageChange(item.id)}
                     className={cn(
-                      "min-h-11 shrink-0 rounded-md px-3 text-footnote font-medium transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 motion-reduce:transition-none lg:min-h-8",
+                      "min-h-11 shrink-0 rounded-md px-3 text-footnote font-medium transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border/70 motion-reduce:transition-none lg:min-h-8",
                       active
-                        ? "bg-background text-label-primary shadow-sm"
-                        : "text-label-secondary hover:text-label-primary disabled:cursor-not-allowed disabled:opacity-55",
+                        ? "bg-background font-bold text-label-primary shadow-sm ring-1 ring-border/70"
+                        : "text-label-secondary hover:bg-muted/70 hover:text-label-primary disabled:cursor-not-allowed disabled:opacity-55",
                     )}
                   >
                     {label}
@@ -146,7 +141,12 @@ export function EditorToolbar({
           })}
         </nav>
 
-        <div className="flex min-w-0 items-center justify-end gap-1 lg:flex-1">
+        <div
+          data-creation-editor-actions
+          className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto lg:flex-1"
+        >
+          <WorkspaceCreditsControl compactOnMobile className="shrink-0" />
+          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
           {onUndo && !undoDisabledReason ? (
             <Button
               variant="ghost"
@@ -186,7 +186,6 @@ export function EditorToolbar({
             label={t("CREATION_EDITOR_PREVIEW")}
           />
           <UnavailableAction
-            icon={Send}
             label={t("CREATION_EDITOR_PUBLISH")}
             reason={t("CREATION_EDITOR_PUBLISH_PENDING")}
             text
@@ -215,8 +214,7 @@ function PreviewAction({
       aria-label={label}
       onClick={onPreview}
     >
-      <Eye className="size-4" />
-      <span className="hidden sm:inline">{label}</span>
+      <span>{label}</span>
     </Button>
   );
   if (!disabledReason) return button;
@@ -237,7 +235,7 @@ function UnavailableAction({
   text,
   primary,
 }: {
-  icon: typeof Undo2;
+  icon?: typeof Undo2;
   label: string;
   reason: string;
   text?: boolean;
@@ -253,7 +251,7 @@ function UnavailableAction({
             disabled
             aria-label={label}
           >
-            <Icon className="size-4" />
+            {Icon ? <Icon className="size-4" /> : null}
             {text ? <span className="hidden sm:inline">{label}</span> : null}
           </Button>
         </span>

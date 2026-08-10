@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { WorkspaceDesignSystemsPage } from "@/pages/workspaces/settings/workspace/design-systems/page";
 import { WorkspaceKnowledgePage } from "@/pages/workspaces/settings/workspace/knowledge/page";
+import { WorkspaceKnowledgeHeaderActions } from "@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-authoring";
+import type { WorkspaceGuidanceController } from "@/pages/workspaces/settings/workspace/knowledge/use-workspace-guidance-controller";
 import {
   WorkspaceSkillsPage,
   type WorkspaceSkillCreateAction,
@@ -41,6 +43,8 @@ export function CustomizationPage(props: {
   const copy = SECTION_COPY[props.section];
   const [requestedAction, setRequestedAction] = useState<WorkspaceSkillCreateAction>();
   const [focusRequestId, setFocusRequestId] = useState(0);
+  const [knowledgeController, setKnowledgeController] =
+    useState<WorkspaceGuidanceController | null>(null);
 
   useEffect(() => {
     if (!props.requestedAction) return;
@@ -48,15 +52,28 @@ export function CustomizationPage(props: {
     setFocusRequestId((current) => current + 1);
   }, [props.requestedAction]);
 
+  useEffect(() => {
+    if (props.section !== "knowledge" || !workspaceId) setKnowledgeController(null);
+  }, [props.section, workspaceId]);
+
+  const pageAction =
+    props.section === "knowledge" && workspaceId && knowledgeController ? (
+      <WorkspaceKnowledgeHeaderActions controller={knowledgeController} />
+    ) : null;
+
   return (
     <DefaultPage
       title={t(copy.titleKey)}
       description={t(copy.descriptionKey)}
       showFavoriteToggle={false}
+      action={pageAction}
     >
       {workspaceId ? (
         props.section === "knowledge" ? (
-          <WorkspaceKnowledgePage workspaceId={workspaceId} />
+          <WorkspaceKnowledgePage
+            workspaceId={workspaceId}
+            onControllerChange={setKnowledgeController}
+          />
         ) : props.section === "skills" ? (
           <WorkspaceSkillsPage
             workspaceId={workspaceId}

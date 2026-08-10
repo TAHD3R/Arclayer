@@ -43,13 +43,15 @@ function DrawerContent({
   className,
   children,
   showCloseButton = true,
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   showCloseButton?: boolean;
+  overlayClassName?: string;
 }) {
   return (
     <DrawerPortal data-slot="drawer-portal">
-      <DrawerOverlay />
+      <DrawerOverlay className={overlayClassName} />
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(
@@ -111,11 +113,15 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function DrawerTitle({ className, ...props }: React.ComponentProps<typeof DrawerPrimitive.Title>) {
+function DrawerTitle({
+  className,
+  unstyled = false,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Title> & { unstyled?: boolean }) {
   return (
     <DrawerPrimitive.Title
       data-slot="drawer-title"
-      className={cn("text-label-primary font-heading font-medium", className)}
+      className={cn(!unstyled && "text-label-primary font-heading font-medium", className)}
       {...props}
     />
   );

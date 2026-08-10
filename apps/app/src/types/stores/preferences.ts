@@ -34,6 +34,10 @@ export interface PreferencesState {
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  sidebarDefaultOpen: boolean;
+  setSidebarDefaultOpen: (open: boolean) => void;
+  sidebarExpandPromptShown: boolean;
+  setSidebarExpandPromptShown: (shown: boolean) => void;
   sidebarWidthPx: number;
   setSidebarWidthPx: (widthPx: number) => void;
   aiDrawerWidthPx: number;

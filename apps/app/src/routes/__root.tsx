@@ -43,14 +43,15 @@ function normalizeEditorRedirectPath(redirectTo: string): string {
 }
 
 export function RootLayout() {
-  const { pathname, searchStr, isPagePending } = useRouterState({
-    select: (s) => ({
-      pathname: s.location.pathname,
-      searchStr: s.location.searchStr,
-      isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
-    }),
-    structuralSharing: true,
-  });
+  const routerState = useRouterState();
+  const { pathname, searchStr } = routerState.location;
+  const isPagePending =
+    routerState.isLoading || routerState.matches.some((match) => match.status === "pending");
+  const errorMatch = routerState.matches.find(
+    (match) => (match as { status?: string }).status === "error",
+  ) as { error?: Error } | undefined;
+  const routeError = errorMatch?.error;
+  const hasRouteError = Boolean(errorMatch);
   const isWelcome = isWelcomePath(pathname);
   const sceneKey = resolveSceneKey(pathname, searchStr);
   const lastResolvedSceneRef = useRef(sceneKey);
@@ -64,6 +65,17 @@ export function RootLayout() {
     if (isPagePending) return;
     lastResolvedSceneRef.current = sceneKey;
   }, [isPagePending, sceneKey]);
+
+  if (hasRouteError) {
+    return (
+      <SettingsScreenProvider>
+        <RouteDocumentTitleManager />
+        <AccessRestrictionBoundary pathname={pathname}>
+          <RouterDefaultError error={routeError!} variant="fullscreen" />
+        </AccessRestrictionBoundary>
+      </SettingsScreenProvider>
+    );
+  }
 
   if (isWelcome) {
     return (
@@ -94,7 +106,7 @@ function RootRouteError(props: ErrorComponentProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <AccessRestrictionBoundary pathname={pathname}>
-      <RouterDefaultError {...props} />
+      <RouterDefaultError error={props.error} variant="fullscreen" />
     </AccessRestrictionBoundary>
   );
 }

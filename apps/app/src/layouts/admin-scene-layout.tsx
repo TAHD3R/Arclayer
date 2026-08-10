@@ -1,5 +1,5 @@
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
 } from "@/components/common/global-notification-surfaces";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import { SidebarDefaultPreferenceDialog } from "@/components/layout/sidebar-default-preference-dialog";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
 import type { SidebarBrowseProject } from "@/components/layout/project-browse-menu";
 import { useNotificationActions } from "@/hooks/use-notification-actions";
@@ -84,14 +85,19 @@ export function AdminSceneLayout({
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const storedSidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
+  const sidebarDefaultOpen = usePreferencesStore((s) => s.sidebarDefaultOpen);
+  const sidebarExpandPromptShown = usePreferencesStore((s) => s.sidebarExpandPromptShown);
   const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
   const aiDrawerWidthPx = usePreferencesStore((s) => s.aiDrawerWidthPx);
   const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
+  const setSidebarDefaultOpen = usePreferencesStore((s) => s.setSidebarDefaultOpen);
+  const setSidebarExpandPromptShown = usePreferencesStore((s) => s.setSidebarExpandPromptShown);
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const setAiDrawerWidthPx = usePreferencesStore((s) => s.setAiDrawerWidthPx);
   const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
   const sidebarOpen =
     sidebarCollapsible === "none" ? true : aiDrawerOpen ? false : storedSidebarOpen;
+  const [sidebarDefaultDialogOpen, setSidebarDefaultDialogOpen] = useState(false);
   const sceneContainerRef = useRef<HTMLDivElement | null>(null);
   const hasHydratedNotificationPreviewRef = useRef(false);
   const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
@@ -111,6 +117,22 @@ export function AdminSceneLayout({
     (widthPx: number) =>
       Math.min(Math.max(Math.round(widthPx), AI_DRAWER_MIN_WIDTH_PX), getMaxAiDrawerWidth()),
     [getMaxAiDrawerWidth],
+  );
+  const handleSidebarOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setSidebarOpen(nextOpen);
+      if (nextOpen && !storedSidebarOpen && !sidebarDefaultOpen && !sidebarExpandPromptShown) {
+        setSidebarExpandPromptShown(true);
+        setSidebarDefaultDialogOpen(true);
+      }
+    },
+    [
+      setSidebarExpandPromptShown,
+      setSidebarOpen,
+      sidebarDefaultOpen,
+      sidebarExpandPromptShown,
+      storedSidebarOpen,
+    ],
   );
   const effectiveAiDrawerWidthPx = useMemo(
     () => clampAiDrawerWidth(aiDrawerWidthPx),
@@ -311,7 +333,7 @@ export function AdminSceneLayout({
         <SidebarProvider
           defaultOpen={sidebarOpen}
           open={sidebarOpen}
-          onOpenChange={sidebarCollapsible === "none" ? () => undefined : setSidebarOpen}
+          onOpenChange={sidebarCollapsible === "none" ? () => undefined : handleSidebarOpenChange}
           defaultWidthPx={sidebarWidthPx}
           widthPx={sidebarWidthPx}
           onWidthChange={setSidebarWidthPx}
@@ -405,6 +427,11 @@ export function AdminSceneLayout({
             </div>
             <AIDrawerOverlay widthPx={effectiveAiDrawerWidthPx} assistantState={assistantState} />
           </div>
+          <SidebarDefaultPreferenceDialog
+            open={sidebarDefaultDialogOpen}
+            onOpenChange={setSidebarDefaultDialogOpen}
+            onConfirm={() => setSidebarDefaultOpen(true)}
+          />
         </SidebarProvider>
       )}
     </ArclayerAssistantScope>

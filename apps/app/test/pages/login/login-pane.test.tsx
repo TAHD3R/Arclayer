@@ -109,6 +109,7 @@ describe("LoginPane email form", () => {
       "h-14!",
       "w-full",
       "rounded-full!",
+      "hover:bg-primary!",
     );
     expect(
       screen.queryByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }),

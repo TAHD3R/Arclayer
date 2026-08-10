@@ -1,28 +1,55 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 
-import { useWorkspaceGuidanceController } from "./use-workspace-guidance-controller";
-import { WorkspaceGuidanceImpactDialog } from "./workspace-guidance-impact-dialog";
 import {
-  GuidanceEditor,
-  GuidanceHistory,
-  WorkspaceKnowledgeEditor,
-} from "./workspace-guidance-authoring";
+  useWorkspaceGuidanceController,
+  type WorkspaceGuidanceController,
+} from "./use-workspace-guidance-controller";
+import { WorkspaceGuidanceImpactDialog } from "./workspace-guidance-impact-dialog";
+import { GuidanceEditor, WorkspaceKnowledgeEditor } from "./workspace-guidance-authoring";
+import { GuidanceHistory } from "./workspace-guidance-history";
 import { EffectivePreview, GuidanceReferences } from "./workspace-guidance-context";
 
-export function WorkspaceGuidanceView({ workspaceId }: { workspaceId: string }) {
-  return <GuidanceLayerView workspaceId={workspaceId} />;
+export function WorkspaceGuidanceView(props: {
+  workspaceId: string;
+  onControllerChange?: (controller: WorkspaceGuidanceController | null) => void;
+}) {
+  return <GuidanceLayerView {...props} />;
 }
 
 export function ProjectGuidanceView(props: { workspaceId: string; projectId: string }) {
   return <GuidanceLayerView {...props} />;
 }
 
-function GuidanceLayerView(props: { workspaceId: string; projectId?: string }) {
+function GuidanceLayerView(props: {
+  workspaceId: string;
+  projectId?: string;
+  onControllerChange?: (controller: WorkspaceGuidanceController | null) => void;
+}) {
   const { t } = useTranslation("knowledge");
   const controller = useWorkspaceGuidanceController(props);
   const isProject = Boolean(props.projectId);
+
+  useEffect(() => {
+    props.onControllerChange?.(controller);
+  }, [
+    controller.draft,
+    controller.hasUnsavedChanges,
+    controller.layer,
+    controller.projectMode,
+    controller.publishMutation.isPending,
+    controller.saveDraftMutation.isPending,
+    controller.saveAndPublishMutation.isPending,
+    controller.history.length,
+    controller.historyQuery.isLoading,
+    props.onControllerChange,
+  ]);
+
+  useEffect(() => {
+    return () => props.onControllerChange?.(null);
+  }, [props.onControllerChange]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 pb-8">
@@ -49,12 +76,12 @@ function GuidanceLayerView(props: { workspaceId: string; projectId?: string }) {
         ) : null}
       </ContentGuard>
 
-      {isProject ? (
+      {controller.pendingPreview ? (
         <WorkspaceGuidanceImpactDialog
           pendingPreview={controller.pendingPreview}
           pending={controller.applyPreviewMutation.isPending}
           error={controller.applyPreviewMutation.error}
-          scope="project"
+          scope={isProject ? "project" : "workspace"}
           onOpenChange={(open) => {
             if (!open) controller.setPendingPreview(null);
           }}

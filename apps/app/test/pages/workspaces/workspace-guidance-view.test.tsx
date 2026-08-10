@@ -1,12 +1,14 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ProjectGuidanceView,
   WorkspaceGuidanceView,
 } from "@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-view";
+import { WorkspaceKnowledgeHeaderActions } from "@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-authoring";
+import type { WorkspaceGuidanceController } from "@/pages/workspaces/settings/workspace/knowledge/use-workspace-guidance-controller";
 import { makeQueryClient } from "@/lib/query/query-client";
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +38,24 @@ vi.mock("react-i18next", () => ({
       values?.revision ? `${key}:${values.revision}` : key,
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
+}));
+
+vi.mock("@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-plate-editor", () => ({
+  WorkspaceGuidancePlateEditor: (props: {
+    ariaLabel: string;
+    disabled?: boolean;
+    onChange: (value: string) => void;
+    placeholder: string;
+    value: string;
+  }) => (
+    <textarea
+      aria-label={props.ariaLabel}
+      disabled={props.disabled}
+      placeholder={props.placeholder}
+      value={props.value}
+      onChange={(event) => props.onChange(event.target.value)}
+    />
+  ),
 }));
 
 vi.mock("@/api/workspace-guidance", () => ({
@@ -105,6 +125,13 @@ const savedDraftRevision = {
   publishedByUserId: null,
 };
 
+const supersededRevision = {
+  ...publishedRevision,
+  id: "revision-previous",
+  revisionNumber: 2,
+  status: "superseded" as const,
+};
+
 const savedLayer = {
   ...layer,
   metadataRevision: 4,
@@ -118,6 +145,7 @@ const projectLayer = {
   scope: "project" as const,
   projectId: "project-1",
   projectMode: "supplement" as const,
+  currentPublished: { ...publishedRevision, id: "project-revision-current" },
 };
 
 const restorePreview = {
@@ -141,8 +169,20 @@ function renderView() {
   const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceGuidanceView workspaceId="workspace-1" />
+      <WorkspaceViewHarness />
     </QueryClientProvider>,
+  );
+}
+
+function WorkspaceViewHarness() {
+  const [controller, setController] = useState<WorkspaceGuidanceController | null>(null);
+  return (
+    <>
+      <header data-slot="page-header-actions">
+        {controller ? <WorkspaceKnowledgeHeaderActions controller={controller} /> : null}
+      </header>
+      <WorkspaceGuidanceView workspaceId="workspace-1" onControllerChange={setController} />
+    </>
   );
 }
 
@@ -193,17 +233,26 @@ describe("WorkspaceGuidanceView", () => {
     expect(await screen.findByRole("heading", { name: "EDITOR_TITLE" })).toBeInTheDocument();
     expect(screen.getByLabelText("EDITOR_FIELD_LABEL")).toHaveValue(publishedRevision.content);
     expect(screen.queryByRole("button", { name: "SAVE_DRAFT" })).not.toBeInTheDocument();
-    const publishButton = screen.getByRole("button", { name: "PUBLISH_ACTION" });
-    expect(publishButton).toBeDisabled();
-    expect(publishButton.querySelector("svg")).toBeNull();
+    const saveAndPublishButton = screen.getByRole("button", { name: "SAVE_AND_PUBLISH" });
+    expect(saveAndPublishButton).toBeDisabled();
+    expect(screen.getByRole("button", { name: "PUBLISH_OPTIONS" })).toBeDisabled();
+    const historyButton = screen.getByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    expect(saveAndPublishButton.closest('[data-slot="page-header-actions"]')).not.toBeNull();
     expect(screen.getByText("EDITOR_FAQ_TITLE")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "EDITOR_FAQ_BUSINESS_QUESTION" }));
-    expect(await screen.findByText("EDITOR_FAQ_BUSINESS_ANSWER")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "EDITOR_FAQ_BUSINESS_QUESTION" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByText("EDITOR_FAQ_BUSINESS_ANSWER")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "EDITOR_FAQ_ROLLBACK_QUESTION" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("EFFECTIVE_TITLE")).not.toBeInTheDocument();
     expect(screen.queryByText("HISTORY_TITLE")).not.toBeInTheDocument();
     expect(screen.queryByText("REFERENCES_TITLE")).not.toBeInTheDocument();
     expect(mocks.getEffective).not.toHaveBeenCalled();
-    expect(mocks.listHistory).not.toHaveBeenCalled();
+    expect(mocks.listHistory).toHaveBeenCalled();
     expect(mocks.listBases).not.toHaveBeenCalled();
   });
 
@@ -212,8 +261,28 @@ describe("WorkspaceGuidanceView", () => {
     fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
       target: { value: "Keep source claims traceable." },
     });
-    expect(screen.getByRole("button", { name: "SAVE_DRAFT" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "SAVE_DRAFT" }));
+    const publishOptions = screen.getByRole("button", { name: "PUBLISH_OPTIONS" });
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "SAVE_DRAFT_ONLY" }));
+
+    await waitFor(() => {
+      expect(mocks.saveDraft).toHaveBeenCalledWith(
+        { workspaceId: "workspace-1" },
+        { content: "Keep source claims traceable.", expectedRevision: 3 },
+        "command-key",
+      );
+    });
+    expect(screen.getByRole("button", { name: "SAVE_AND_PUBLISH" })).toBeEnabled();
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    expect(await screen.findByRole("menuitem", { name: "PUBLISH_WITHOUT_SAVING" })).toBeEnabled();
+  });
+
+  it("saves the draft before publishing from the primary action", async () => {
+    renderView();
+    fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Keep source claims traceable." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "SAVE_AND_PUBLISH" }));
 
     await waitFor(() => {
       expect(mocks.saveDraft).toHaveBeenCalledWith(
@@ -223,9 +292,90 @@ describe("WorkspaceGuidanceView", () => {
       );
     });
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "SAVE_DRAFT" })).not.toBeInTheDocument();
+      expect(mocks.publish).toHaveBeenCalledWith(
+        { workspaceId: "workspace-1" },
+        { expectedRevision: 4, revisionId: "revision-2" },
+        "command-key",
+      );
     });
-    expect(screen.getByRole("button", { name: "PUBLISH_ACTION" })).toBeEnabled();
+  });
+
+  it("publishes the saved draft without overwriting newer editor changes", async () => {
+    renderView();
+    fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Publish this saved draft." },
+    });
+    const publishOptions = screen.getByRole("button", { name: "PUBLISH_OPTIONS" });
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "SAVE_DRAFT_ONLY" }));
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Keep this newer edit in the editor." },
+    });
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    const publishWithoutSaving = await screen.findByRole("menuitem", {
+      name: "PUBLISH_WITHOUT_SAVING",
+    });
+    expect(publishWithoutSaving).toBeEnabled();
+    fireEvent.click(publishWithoutSaving);
+
+    await waitFor(() => {
+      expect(mocks.publish).toHaveBeenCalledWith(
+        { workspaceId: "workspace-1" },
+        { expectedRevision: 4, revisionId: "revision-2" },
+        "command-key",
+      );
+    });
+    expect(mocks.saveDraft).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("EDITOR_FIELD_LABEL")).toHaveValue(
+      "Keep this newer edit in the editor.",
+    );
+  });
+
+  it("keeps publish-without-saving available when the editor is empty", async () => {
+    renderView();
+    fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Publish the saved draft." },
+    });
+    const publishOptions = screen.getByRole("button", { name: "PUBLISH_OPTIONS" });
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "SAVE_DRAFT_ONLY" }));
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("EDITOR_FIELD_LABEL"), { target: { value: "" } });
+    expect(publishOptions).toBeEnabled();
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    expect(await screen.findByRole("menuitem", { name: "PUBLISH_WITHOUT_SAVING" })).toBeEnabled();
+  });
+
+  it("publishes new editor content when no draft exists yet", async () => {
+    renderView();
+    fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
+      target: { value: "Publish this content directly." },
+    });
+
+    const publishOptions = screen.getByRole("button", { name: "PUBLISH_OPTIONS" });
+    expect(publishOptions).toBeEnabled();
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    const publishWithoutSaving = await screen.findByRole("menuitem", {
+      name: "PUBLISH_WITHOUT_SAVING",
+    });
+    expect(publishWithoutSaving).toBeEnabled();
+    fireEvent.click(publishWithoutSaving);
+
+    await waitFor(() => {
+      expect(mocks.saveDraft).toHaveBeenCalledWith(
+        { workspaceId: "workspace-1" },
+        { content: "Publish this content directly.", expectedRevision: 3 },
+        "command-key",
+      );
+      expect(mocks.publish).toHaveBeenCalledWith(
+        { workspaceId: "workspace-1" },
+        { expectedRevision: 4, revisionId: "revision-2" },
+        "command-key",
+      );
+    });
   });
 
   it("keeps operation failures in the global toast instead of rendering an alert", async () => {
@@ -236,17 +386,19 @@ describe("WorkspaceGuidanceView", () => {
     fireEvent.change(await screen.findByLabelText("EDITOR_FIELD_LABEL"), {
       target: { value: "Keep source claims traceable." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "SAVE_DRAFT" }));
+    const publishOptions = screen.getByRole("button", { name: "PUBLISH_OPTIONS" });
+    fireEvent.keyDown(publishOptions, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "SAVE_DRAFT_ONLY" }));
 
     await waitFor(() => expect(mocks.notifyError).toHaveBeenCalledWith(error));
     expect(screen.queryByText("OPERATION_FAILED_TITLE")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "SAVE_DRAFT" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "SAVE_AND_PUBLISH" })).toBeEnabled();
   });
 
   it("requires a server-created restoration preview before applying history", async () => {
     mocks.getLayer.mockResolvedValue(projectLayer);
     renderProjectView();
-    fireEvent.click(await screen.findByRole("button", { name: "RESTORE_ACTION" }));
+    fireEvent.click(await screen.findByRole("button", { name: "HISTORY_SWITCH_ACTION" }));
 
     await waitFor(() => {
       expect(mocks.createRestorePreview).toHaveBeenCalledWith(
@@ -268,6 +420,93 @@ describe("WorkspaceGuidanceView", () => {
         "command-key",
       );
     });
+  });
+
+  it("keeps current and historical revision actions independently available", async () => {
+    mocks.listHistory.mockResolvedValue({
+      items: [publishedRevision, supersededRevision],
+      nextCursor: null,
+    });
+    renderView();
+
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+
+    const switchActions = await screen.findAllByRole("button", { name: "HISTORY_SWITCH_ACTION" });
+    expect(switchActions[0]).toBeDisabled();
+    expect(switchActions[1]).toBeEnabled();
+    const currentOptions = screen.getByRole("button", { name: "HISTORY_VERSION_OPTIONS:1" });
+    expect(currentOptions).toBeEnabled();
+    expect(screen.getByRole("button", { name: "HISTORY_VERSION_OPTIONS:2" })).toBeEnabled();
+
+    fireEvent.click(currentOptions);
+    expect(await screen.findByRole("menuitem", { name: "ENABLE_ACTION" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("menuitem", { name: "HISTORY_REMOVE_CURRENT_ACTION" })).toBeEnabled();
+    expect(currentOptions.closest("[aria-current='true']")).toHaveAttribute(
+      "data-menu-open",
+      "true",
+    );
+    expect(currentOptions).toBeVisible();
+    const currentRow = screen.getByText("REVISION_CURRENT").closest("[aria-current='true']");
+    expect(currentRow).toContainElement(screen.getByText("REVISION_DETAIL:1"));
+    const currentBadge = screen.getByText("REVISION_CURRENT");
+    expect(screen.getByText("REVISION_DETAIL:1").parentElement).not.toContainElement(currentBadge);
+    expect(currentBadge.closest("[aria-current='true']")).toBe(currentRow);
+    expect(currentRow).toHaveClass("bg-accent/60");
+  });
+
+  it("keeps a historical revision active while its action menu is open", async () => {
+    mocks.listHistory.mockResolvedValue({
+      items: [publishedRevision, supersededRevision],
+      nextCursor: null,
+    });
+    renderView();
+
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+
+    const historicalOptions = screen.getByRole("button", { name: "HISTORY_VERSION_OPTIONS:2" });
+    fireEvent.click(historicalOptions);
+    expect(await screen.findByRole("menuitem", { name: "ENABLE_ACTION" })).toBeEnabled();
+    expect(screen.getByRole("menuitem", { name: "HISTORY_DELETE_UNAVAILABLE" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(historicalOptions.closest("[data-menu-open='true']")).toHaveClass("bg-accent/60");
+  });
+
+  it("explains removal impact before deactivating workspace knowledge", async () => {
+    mocks.createRemovePreview.mockResolvedValueOnce({
+      ...restorePreview,
+      id: "remove-preview-with-impact",
+      kind: "remove",
+      impact: {
+        referenceCount: 2,
+        sourceCount: 5,
+        readySourceCount: 3,
+        projectGuidanceCount: 12,
+      },
+    });
+    renderView();
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+    fireEvent.click(await screen.findByRole("button", { name: "HISTORY_VERSION_OPTIONS:1" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "HISTORY_REMOVE_CURRENT_ACTION" }));
+
+    expect(await screen.findByRole("heading", { name: "REMOVE_PREVIEW_TITLE" })).toBeVisible();
+    expect(screen.getByText("REMOVE_SCOPE_CHANGE_TITLE")).toBeVisible();
+    expect(screen.getByText("REMOVE_CONNECTED_CONTEXT_TITLE")).toBeVisible();
+    expect(screen.getByText("REMOVE_RETAINED_TITLE")).toBeVisible();
+    for (const value of ["2", "5", "3", "12"]) {
+      expect(screen.getByText(value)).toBeVisible();
+    }
+    expect(screen.getByRole("button", { name: "REMOVE_APPLY" })).toBeEnabled();
   });
 
   it("edits project guidance in its own scope with an explicit precedence mode", async () => {

@@ -14,6 +14,22 @@ function getMarkLogoSrc(themeMode: ThemeMode) {
   return themeMode === "dark" ? "/logo-dark.svg" : "/logo.svg";
 }
 
+export function AdminLogoMark(props: { size?: number; alt?: string }) {
+  const size = props.size ?? 48;
+  const themeMode = usePreferencesStore((state) => state.themeMode);
+
+  return (
+    <img
+      src={getMarkLogoSrc(themeMode)}
+      width={size}
+      height={size}
+      className="block max-w-none shrink-0 object-contain"
+      style={{ width: size, height: size }}
+      alt={props.alt ?? ""}
+    />
+  );
+}
+
 export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number }) {
   const to = props.to ?? "/";
   const size = props.size ?? 48;

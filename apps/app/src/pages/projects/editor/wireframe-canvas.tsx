@@ -1,13 +1,10 @@
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
-import { ScrollArea } from "@arclayer/ui/scroll-area";
 import type { BuilderRevisionPageOut, WireframeSectionV1Output } from "@arclayer/openapi";
 import {
   GripVertical,
-  Minus,
   Monitor,
   PanelsTopLeft,
-  Plus,
   Smartphone,
   Tablet,
   type LucideIcon,
@@ -17,14 +14,20 @@ import type { DragEvent as ReactDragEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BaseTag } from "@/components/ui/tags";
+import {
+  EditorCanvasSurface,
+  EditorCanvasZoomControls,
+  useCanvasContentBounds,
+  useEditorCanvasViewport,
+} from "@/pages/projects/editor/canvas/editor-canvas";
 import { WireframePageRail } from "@/pages/projects/editor/wireframe-page-rail";
 
 type WireframeViewport = "desktop" | "tablet" | "mobile";
 
-const VIEWPORT_WIDTH_CLASS: Record<WireframeViewport, string> = {
-  desktop: "max-w-[920px]",
-  tablet: "max-w-[680px]",
-  mobile: "max-w-[390px]",
+const VIEWPORT_WIDTH: Record<WireframeViewport, number> = {
+  desktop: 920,
+  tablet: 680,
+  mobile: 390,
 };
 
 interface WireframeCanvasProps {
@@ -52,11 +55,16 @@ export function WireframeCanvas({
 }: WireframeCanvasProps) {
   const { t } = useTranslation("account");
   const [viewport, setViewport] = useState<WireframeViewport>("desktop");
-  const [zoom, setZoom] = useState(1);
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null);
   const [dropTargetSectionId, setDropTargetSectionId] = useState<string | null>(null);
   const page = pages.find((candidate) => candidate.itemId === selectedPageId) ?? pages[0] ?? null;
   const sections = page?.wireframe?.sections ?? [];
+  const canvas = useEditorCanvasViewport({
+    initialViewport: { x: 0, y: 32, zoom: 0.8 },
+    fitPadding: 56,
+    fitBottomSafeArea: 48,
+  });
+  const { contentRef, bounds: contentBounds } = useCanvasContentBounds<HTMLElement>();
 
   const handleSectionDrop = (targetSectionId: string) => {
     if (!draggedSectionId || draggedSectionId === targetSectionId || !onReorderSection) return;
@@ -72,9 +80,13 @@ export function WireframeCanvas({
     onSelectSection(sections[0]?.id ?? null);
   }, [onSelectSection, sections, selectedSectionId]);
 
+  useEffect(() => {
+    canvas.fit(contentBounds);
+  }, [canvas.fit, contentBounds, page?.itemId, viewport]);
+
   return (
     <section
-      className="flex min-h-0 min-w-0 flex-1 bg-muted/25"
+      className="flex min-h-0 min-w-0 flex-1 bg-transparent"
       aria-label={t("CREATION_EDITOR_WIREFRAME_CANVAS_LABEL")}
     >
       <WireframePageRail
@@ -83,7 +95,6 @@ export function WireframeCanvas({
         onSelectPage={onSelectPage}
       />
       <div className="relative min-w-0 flex-1 overflow-hidden">
-        <CanvasGrid />
         <div className="absolute top-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
           <ViewportButton
             viewport="desktop"
@@ -106,110 +117,110 @@ export function WireframeCanvas({
             label={t("CREATION_EDITOR_WIREFRAME_VIEWPORT_MOBILE")}
             onChange={setViewport}
           />
-          <span className="mx-1 h-5 w-px bg-border" />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t("CREATION_EDITOR_WIREFRAME_ZOOM_OUT")}
-            onClick={() => setZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))}
-          >
-            <Minus className="size-4" />
-          </Button>
-          <span className="w-12 text-center font-mono text-caption text-label-secondary tabular-nums">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t("CREATION_EDITOR_WIREFRAME_ZOOM_IN")}
-            onClick={() => setZoom((current) => Math.min(1.4, Number((current + 0.1).toFixed(2))))}
-          >
-            <Plus className="size-4" />
-          </Button>
         </div>
-
-        <ScrollArea className="relative h-full">
-          <div className="mx-auto flex min-h-full w-full items-start justify-center px-10 pt-20 pb-16">
-            {!page ? (
+        <EditorCanvasSurface
+          surfaceRef={canvas.surfaceRef}
+          viewport={canvas.viewport}
+          handlers={canvas.handlers}
+          worldBounds={contentBounds}
+          ariaLabel={t("CREATION_EDITOR_WIREFRAME_CANVAS_LABEL")}
+        >
+          {page?.wireframe ? (
+            <article
+              ref={contentRef}
+              className="overflow-hidden rounded-xl border border-border bg-background shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+              aria-label={t("CREATION_EDITOR_WIREFRAME_PAGE_FRAME", { page: page.title })}
+              style={{ width: VIEWPORT_WIDTH[viewport] }}
+            >
+              <header className="flex items-start justify-between gap-6 border-b border-border px-6 py-5">
+                <div className="min-w-0">
+                  <p className="text-caption font-medium text-label-secondary">
+                    {t("CREATION_EDITOR_WIREFRAME_PAGE_LABEL")}
+                  </p>
+                  <h2 className="mt-1 truncate text-title-3 font-semibold text-label-primary">
+                    {page.title}
+                  </h2>
+                </div>
+                <BaseTag>
+                  {t(
+                    candidateActive
+                      ? "CREATION_EDITOR_WIREFRAME_CANDIDATE_ACTIVE"
+                      : "CREATION_EDITOR_WIREFRAME_REVISION_PINNED",
+                  )}
+                </BaseTag>
+              </header>
+              {sections.length > 0 ? (
+                <ol className="relative space-y-4 px-6 py-6 before:absolute before:top-8 before:bottom-8 before:left-9 before:w-px before:bg-border">
+                  {sections.map((section, index) => (
+                    <WireframeSection
+                      key={section.id}
+                      section={section}
+                      index={index}
+                      selected={selectedSectionId === section.id}
+                      draggable={canEdit && Boolean(onReorderSection)}
+                      dropTarget={dropTargetSectionId === section.id}
+                      onDragStart={() => setDraggedSectionId(section.id)}
+                      onDragOver={(event) => {
+                        if (!draggedSectionId || draggedSectionId === section.id) return;
+                        event.preventDefault();
+                        setDropTargetSectionId(section.id);
+                      }}
+                      onDragLeave={() => {
+                        if (dropTargetSectionId === section.id) setDropTargetSectionId(null);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        handleSectionDrop(section.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedSectionId(null);
+                        setDropTargetSectionId(null);
+                      }}
+                      onSelect={() => onSelectSection(section.id)}
+                    />
+                  ))}
+                </ol>
+              ) : (
+                <div className="px-6 py-12">
+                  <WireframeEmpty
+                    title={t("CREATION_EDITOR_WIREFRAME_SECTIONS_EMPTY_TITLE")}
+                    description={t("CREATION_EDITOR_WIREFRAME_SECTIONS_EMPTY_DESC")}
+                    compact
+                  />
+                </div>
+              )}
+            </article>
+          ) : null}
+        </EditorCanvasSurface>
+        {!page ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8">
+            <div className="pointer-events-auto">
               <WireframeEmpty
                 title={t("CREATION_EDITOR_WIREFRAME_PAGE_REQUIRED_TITLE")}
                 description={t("CREATION_EDITOR_WIREFRAME_PAGE_REQUIRED_DESC")}
               />
-            ) : !page.wireframe ? (
+            </div>
+          </div>
+        ) : !page.wireframe ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8">
+            <div className="pointer-events-auto">
               <WireframeEmpty
                 title={t("CREATION_EDITOR_WIREFRAME_EMPTY_TITLE")}
                 description={t("CREATION_EDITOR_WIREFRAME_EMPTY_DESC")}
               />
-            ) : (
-              <article
-                className={cn(
-                  "w-full overflow-hidden rounded-xl border border-border bg-background shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-[max-width] duration-150 motion-reduce:transition-none",
-                  VIEWPORT_WIDTH_CLASS[viewport],
-                )}
-                aria-label={t("CREATION_EDITOR_WIREFRAME_PAGE_FRAME", { page: page.title })}
-                style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
-              >
-                <header className="flex items-start justify-between gap-6 border-b border-border px-6 py-5">
-                  <div className="min-w-0">
-                    <p className="text-caption font-medium text-label-secondary">
-                      {t("CREATION_EDITOR_WIREFRAME_PAGE_LABEL")}
-                    </p>
-                    <h2 className="mt-1 truncate text-title-3 font-semibold text-label-primary">
-                      {page.title}
-                    </h2>
-                  </div>
-                  <BaseTag>
-                    {t(
-                      candidateActive
-                        ? "CREATION_EDITOR_WIREFRAME_CANDIDATE_ACTIVE"
-                        : "CREATION_EDITOR_WIREFRAME_REVISION_PINNED",
-                    )}
-                  </BaseTag>
-                </header>
-                {sections.length > 0 ? (
-                  <ol className="relative space-y-4 px-6 py-6 before:absolute before:top-8 before:bottom-8 before:left-9 before:w-px before:bg-border">
-                    {sections.map((section, index) => (
-                      <WireframeSection
-                        key={section.id}
-                        section={section}
-                        index={index}
-                        selected={selectedSectionId === section.id}
-                        draggable={canEdit && Boolean(onReorderSection)}
-                        dropTarget={dropTargetSectionId === section.id}
-                        onDragStart={() => setDraggedSectionId(section.id)}
-                        onDragOver={(event) => {
-                          if (!draggedSectionId || draggedSectionId === section.id) return;
-                          event.preventDefault();
-                          setDropTargetSectionId(section.id);
-                        }}
-                        onDragLeave={() => {
-                          if (dropTargetSectionId === section.id) setDropTargetSectionId(null);
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          handleSectionDrop(section.id);
-                        }}
-                        onDragEnd={() => {
-                          setDraggedSectionId(null);
-                          setDropTargetSectionId(null);
-                        }}
-                        onSelect={() => onSelectSection(section.id)}
-                      />
-                    ))}
-                  </ol>
-                ) : (
-                  <div className="px-6 py-12">
-                    <WireframeEmpty
-                      title={t("CREATION_EDITOR_WIREFRAME_SECTIONS_EMPTY_TITLE")}
-                      description={t("CREATION_EDITOR_WIREFRAME_SECTIONS_EMPTY_DESC")}
-                      compact
-                    />
-                  </div>
-                )}
-              </article>
-            )}
+            </div>
           </div>
-        </ScrollArea>
+        ) : null}
+        <EditorCanvasZoomControls
+          zoom={canvas.viewport.zoom}
+          onZoomChange={canvas.setZoom}
+          onFit={() => canvas.fit(contentBounds)}
+          labels={{
+            zoomOut: t("CREATION_EDITOR_WIREFRAME_ZOOM_OUT"),
+            zoomIn: t("CREATION_EDITOR_WIREFRAME_ZOOM_IN"),
+            fit: t("CREATION_EDITOR_FIT_CANVAS"),
+          }}
+        />
         {reviewPanel}
       </div>
     </section>
@@ -401,18 +412,5 @@ function WireframeEmpty({
       <h2 className="mt-4 text-body font-semibold text-label-primary">{title}</h2>
       <p className="mt-2 text-footnote leading-5 text-label-secondary">{description}</p>
     </div>
-  );
-}
-
-function CanvasGrid() {
-  return (
-    <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
-      <defs>
-        <pattern id="wireframe-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" className="fill-border/55" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#wireframe-grid)" />
-    </svg>
   );
 }

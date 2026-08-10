@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UserAppearanceSection } from "@/pages/usercenter/appearance/components/preferences-appearance-section";
+import {
+  UserAppearanceSection,
+  UserSidebarNavigationSection,
+} from "@/pages/usercenter/appearance/components/preferences-appearance-section";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 vi.mock("react-i18next", () => ({
@@ -16,6 +19,8 @@ describe("UserAppearanceSection", () => {
       showNotificationsBadge: true,
       reduceMotion: false,
       contrastMore: false,
+      sidebarOpen: false,
+      sidebarDefaultOpen: false,
       sidebarItemVisibility: { favorites: true },
     });
   });
@@ -37,16 +42,31 @@ describe("UserAppearanceSection", () => {
 
   it("toggles favorites sidebar visibility through the preferences switch", async () => {
     const user = userEvent.setup();
-    const { UserSidebarNavigationSection } =
-      await import("@/pages/usercenter/appearance/components/preferences-appearance-section");
     render(<UserSidebarNavigationSection />);
 
-    const favoritesSwitch = screen.getByRole("switch");
+    const favoritesSwitch = screen.getByRole("switch", {
+      name: "ME_PREF_SIDEBAR_FAVORITES_TITLE",
+    });
 
     expect(usePreferencesStore.getState().sidebarItemVisibility.favorites).toBe(true);
 
     await user.click(favoritesSwitch);
 
     expect(usePreferencesStore.getState().sidebarItemVisibility.favorites).toBe(false);
+  });
+
+  it("changes the next-launch sidebar default without changing the current sidebar", async () => {
+    const user = userEvent.setup();
+    render(<UserSidebarNavigationSection />);
+
+    const defaultOpenSwitch = screen.getByRole("switch", {
+      name: "ME_PREF_SIDEBAR_DEFAULT_OPEN_TITLE",
+    });
+
+    expect(defaultOpenSwitch).not.toBeChecked();
+    await user.click(defaultOpenSwitch);
+
+    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(true);
+    expect(usePreferencesStore.getState().sidebarOpen).toBe(false);
   });
 });

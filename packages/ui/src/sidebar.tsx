@@ -399,6 +399,7 @@ type SidebarProps = React.ComponentProps<"div"> & {
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
+  enableHoverPreview?: boolean;
   containerClassName?: string;
   animateOnHover?: boolean;
   transition?: Transition;
@@ -408,6 +409,7 @@ function Sidebar({
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
+  enableHoverPreview = true,
   className,
   children,
   animateOnHover = true,
@@ -487,7 +489,7 @@ function Sidebar({
     );
   }
 
-  const isHoverPreviewExpanded = collapsible === "icon" && !open && hoverOpen;
+  const isHoverPreviewExpanded = enableHoverPreview && collapsible === "icon" && !open && hoverOpen;
 
   return (
     <div
@@ -547,9 +549,15 @@ function Sidebar({
               ),
           className,
         )}
-        onPointerEnter={collapsible === "icon" && !open ? markHoverPointerEnter : undefined}
-        onPointerMove={collapsible === "icon" && !open ? markHoverPointerEnter : undefined}
-        onPointerLeave={collapsible === "icon" && !open ? markHoverPointerLeave : undefined}
+        onPointerEnter={
+          enableHoverPreview && collapsible === "icon" && !open ? markHoverPointerEnter : undefined
+        }
+        onPointerMove={
+          enableHoverPreview && collapsible === "icon" && !open ? markHoverPointerEnter : undefined
+        }
+        onPointerLeave={
+          enableHoverPreview && collapsible === "icon" && !open ? markHoverPointerLeave : undefined
+        }
         {...props}
       >
         <Highlight

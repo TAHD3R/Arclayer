@@ -11,6 +11,7 @@ import type {
 
 const MAX_FAVORITES = 10;
 const FAVORITES_HARD_CUT_VERSION = 5;
+const DEFAULT_FAVORITES_SECTION_EXPANDED = false;
 
 function normalizeFavoritePath(path: string): string {
   return path.trim();
@@ -240,7 +241,7 @@ export const useFavoritesStore = create<FavoritesState>()(
     (set, get) => ({
       paths: [],
       items: [],
-      sectionExpanded: true,
+      sectionExpanded: DEFAULT_FAVORITES_SECTION_EXPANDED,
       toggle: (rawPath) => {
         const path = normalizeFavoritePath(rawPath);
         if (!path) return;
@@ -336,7 +337,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       version: FAVORITES_HARD_CUT_VERSION,
       migrate: (persistedState, persistedVersion) => {
         if (persistedVersion < FAVORITES_HARD_CUT_VERSION) {
-          return buildFavoriteState([], true);
+          return buildFavoriteState([], DEFAULT_FAVORITES_SECTION_EXPANDED);
         }
         const state =
           persistedState && typeof persistedState === "object"
@@ -348,7 +349,10 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? state.items
             : (state.paths ?? []).map((path) => createFavoriteItem(normalizeFavoritePath(path)));
 
-        return buildFavoriteState(items, state.sectionExpanded ?? true);
+        return buildFavoriteState(
+          items,
+          state.sectionExpanded ?? DEFAULT_FAVORITES_SECTION_EXPANDED,
+        );
       },
     },
   ),

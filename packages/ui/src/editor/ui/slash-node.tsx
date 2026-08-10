@@ -41,13 +41,13 @@ import {
 type BlockEntry = [TElement, Path];
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type SlashCommandGroup = {
+export type SlashCommandGroup = {
   id: string;
   label: string;
   items: SlashCommandItem[];
 };
 
-type SlashCommandItem =
+export type SlashCommandItem =
   | {
       description?: string;
       focusEditor?: boolean;
@@ -282,7 +282,11 @@ function SlashCommandItemRow(props: { item: SlashCommandItem }) {
   );
 }
 
-function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
+function SlashMenuContent(
+  props: PlateElementProps<TComboboxInputElement> & {
+    allowedValues?: ReadonlySet<string>;
+  },
+) {
   const { t } = useTranslation(["content", "common"]);
   const commands = useArticleEditorCommands();
 
@@ -327,6 +331,16 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
       t,
     });
   }, [currentBackgroundColor, currentBlock, currentTextColor, currentTurnIntoValue, t]);
+  const visibleGroups = React.useMemo(() => {
+    if (!props.allowedValues) return groups;
+
+    return groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => props.allowedValues?.has(item.value)),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [groups, props.allowedValues]);
 
   const insertItem = React.useCallback(
     (value: string) => {
@@ -434,7 +448,7 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
           {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
         </InlineComboboxEmpty>
 
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <InlineComboboxGroup key={group.id}>
             <InlineComboboxGroupLabel>{group.label}</InlineComboboxGroupLabel>
 
@@ -459,16 +473,34 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
   );
 }
 
-export function SlashInputElement(props: PlateElementProps<TComboboxInputElement>) {
+function ConfiguredSlashInputElement(
+  props: PlateElementProps<TComboboxInputElement> & {
+    allowedValues?: ReadonlySet<string>;
+  },
+) {
+  const { allowedValues, ...elementProps } = props;
+
   return (
-    <PlateElement {...props} as="span">
+    <PlateElement {...elementProps} as="span">
       <InlineCombobox element={props.element} trigger="/">
         <span className="inline-flex items-center align-baseline">
-          <SlashMenuContent {...props} />
+          <SlashMenuContent {...props} allowedValues={allowedValues} />
         </span>
       </InlineCombobox>
 
       {props.children}
     </PlateElement>
   );
+}
+
+export function createSlashInputElement(allowedValues: readonly string[]) {
+  const allowedValueSet = new Set(allowedValues);
+
+  return function RestrictedSlashInputElement(props: PlateElementProps<TComboboxInputElement>) {
+    return <ConfiguredSlashInputElement {...props} allowedValues={allowedValueSet} />;
+  };
+}
+
+export function SlashInputElement(props: PlateElementProps<TComboboxInputElement>) {
+  return <ConfiguredSlashInputElement {...props} />;
 }

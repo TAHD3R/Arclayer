@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal
+from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
@@ -14,11 +15,11 @@ class AgentRunKnowledgeContextV1(BaseSchema):
     context_version: Literal[1] = 1
     workspace_id: PublicUUID
     project_id: PublicUUID | None
-    workspace_layer_id: PublicUUID | None
+    workspace_layer_id: UUID | None
     workspace_revision_id: PublicUUID | None
     workspace_revision_number: int | None = Field(default=None, ge=1)
     workspace_content_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$")
-    project_layer_id: PublicUUID | None
+    project_layer_id: UUID | None
     project_revision_id: PublicUUID | None
     project_revision_number: int | None = Field(default=None, ge=1)
     project_content_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$")

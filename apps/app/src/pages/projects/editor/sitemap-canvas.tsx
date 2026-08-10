@@ -2,15 +2,7 @@ import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import type { BuilderRevisionPageOut } from "@arclayer/openapi";
 import { FileText, Sparkles } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 
@@ -18,17 +10,15 @@ import {
   SitemapCanvasTools,
   SitemapZoomControls,
 } from "@/pages/projects/editor/sitemap-canvas-controls";
-
-const NODE_WIDTH = 244;
-const NODE_HEIGHT = 104;
-const COLUMN_GAP = 92;
-const ROW_GAP = 44;
-const MIN_ZOOM = 0.45;
-const MAX_ZOOM = 1.65;
-const CANVAS_FIT_PADDING = 128;
-const CANVAS_BOTTOM_CONTROL_SAFE_AREA = 72;
-
-type PositionedPage = BuilderRevisionPageOut & { x: number; y: number };
+import {
+  EditorCanvasSurface,
+  useEditorCanvasViewport,
+} from "@/pages/projects/editor/canvas/editor-canvas";
+import {
+  layoutSitemapPages,
+  SITEMAP_NODE_WIDTH,
+  type PositionedSitemapPage,
+} from "@/pages/projects/editor/sitemap-layout";
 
 interface SitemapCanvasProps {
   pages: BuilderRevisionPageOut[];
@@ -43,36 +33,6 @@ interface SitemapCanvasProps {
   openAIDisabledReason: string;
   onReorderPage?: (pageId: string, sortOrder: number) => void;
   reviewPanel?: ReactNode;
-}
-
-function layoutPages(pages: BuilderRevisionPageOut[]): PositionedPage[] {
-  const byId = new Map(pages.map((page) => [page.itemId, page]));
-  const children = new Map<string | null, BuilderRevisionPageOut[]>();
-  for (const page of pages) {
-    const parentId = page.parentItemId && byId.has(page.parentItemId) ? page.parentItemId : null;
-    const siblings = children.get(parentId) ?? [];
-    siblings.push(page);
-    children.set(parentId, siblings);
-  }
-  for (const siblings of children.values()) siblings.sort((a, b) => a.sortOrder - b.sortOrder);
-
-  const positioned: PositionedPage[] = [];
-  const visited = new Set<string>();
-  let row = 0;
-  const visit = (page: BuilderRevisionPageOut, depth: number) => {
-    if (visited.has(page.itemId)) return;
-    visited.add(page.itemId);
-    positioned.push({
-      ...page,
-      x: depth * (NODE_WIDTH + COLUMN_GAP),
-      y: row * (NODE_HEIGHT + ROW_GAP),
-    });
-    row += 1;
-    for (const child of children.get(page.itemId) ?? []) visit(child, depth + 1);
-  };
-  for (const root of children.get(null) ?? []) visit(root, 0);
-  for (const page of pages) visit(page, 0);
-  return positioned;
 }
 
 function primaryRoute(page: BuilderRevisionPageOut): string {
@@ -94,92 +54,26 @@ export function SitemapCanvas({
   reviewPanel,
 }: SitemapCanvasProps) {
   const { t } = useTranslation("account");
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [dropTargetPageId, setDropTargetPageId] = useState<string | null>(null);
-  const [viewport, setViewport] = useState({ x: 88, y: 72, zoom: 1 });
-  const positioned = useMemo(() => layoutPages(pages), [pages]);
+  const canvas = useEditorCanvasViewport({
+    initialViewport: { x: 88, y: 72, zoom: 1 },
+    fitPadding: 96,
+    fitBottomSafeArea: 72,
+  });
+  const layout = useMemo(() => layoutSitemapPages(pages), [pages]);
+  const positioned = layout.pages;
   const byId = useMemo(() => new Map(positioned.map((page) => [page.itemId, page])), [positioned]);
-  const bounds = useMemo(() => {
-    const width = Math.max(...positioned.map((page) => page.x + NODE_WIDTH), NODE_WIDTH);
-    const height = Math.max(...positioned.map((page) => page.y + NODE_HEIGHT), NODE_HEIGHT);
-    return { width, height };
-  }, [positioned]);
-
-  const fitCanvas = useCallback(() => {
-    const surface = surfaceRef.current;
-    if (!surface || positioned.length === 0) return;
-    const availableHeight = surface.clientHeight - CANVAS_BOTTOM_CONTROL_SAFE_AREA;
-    const zoom = Math.min(
-      1,
-      Math.max(
-        MIN_ZOOM,
-        Math.min(
-          (surface.clientWidth - CANVAS_FIT_PADDING) / bounds.width,
-          (availableHeight - CANVAS_FIT_PADDING) / bounds.height,
-        ),
-      ),
-    );
-    setViewport({
-      zoom,
-      x: Math.max(48, (surface.clientWidth - bounds.width * zoom) / 2),
-      y: Math.max(48, (availableHeight - bounds.height * zoom) / 2),
-    });
-  }, [bounds.height, bounds.width, positioned.length]);
+  const fitCanvas = useCallback(
+    () => canvas.fit(positioned.length > 0 ? layout.bounds : null),
+    [canvas.fit, layout.bounds, positioned.length],
+  );
 
   useEffect(() => {
     fitCanvas();
   }, [fitCanvas]);
 
-  const setZoom = (nextZoom: number) => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
-    const centerX = surface.clientWidth / 2;
-    const centerY = surface.clientHeight / 2;
-    setViewport((current) => ({
-      zoom,
-      x: centerX - ((centerX - current.x) / current.zoom) * zoom,
-      y: centerY - ((centerY - current.y) / current.zoom) * zoom,
-    }));
-  };
-
-  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (event.ctrlKey || event.metaKey) {
-      setZoom(viewport.zoom * (event.deltaY > 0 ? 0.92 : 1.08));
-      return;
-    }
-    setViewport((current) => ({
-      ...current,
-      x: current.x - event.deltaX,
-      y: current.y - event.deltaY,
-    }));
-  };
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("[data-sitemap-node]")) return;
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const deltaX = event.clientX - drag.x;
-    const deltaY = event.clientY - drag.y;
-    dragRef.current = { ...drag, x: event.clientX, y: event.clientY };
-    setViewport((current) => ({ ...current, x: current.x + deltaX, y: current.y + deltaY }));
-  };
-
-  const endPointerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
-  };
-
-  const handlePageDrop = (targetPage: PositionedPage) => {
+  const handlePageDrop = (targetPage: PositionedSitemapPage) => {
     if (!draggedPageId || !onReorderPage || draggedPageId === targetPage.itemId) return;
     const draggedPage = byId.get(draggedPageId);
     if (!draggedPage || draggedPage.parentItemId !== targetPage.parentItemId) return;
@@ -194,7 +88,7 @@ export function SitemapCanvas({
   };
 
   return (
-    <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-[#f7f8fa] dark:bg-[#090a0b]">
+    <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-transparent">
       <SitemapCanvasTools
         onAddPage={onAddPage}
         onManageSharedSections={onManageSharedSections}
@@ -205,47 +99,31 @@ export function SitemapCanvas({
         openAIDisabledReason={openAIDisabledReason}
       />
 
-      <div
-        ref={surfaceRef}
-        role="application"
-        aria-label={t("CREATION_EDITOR_CANVAS_LABEL")}
-        className="absolute inset-0 cursor-grab touch-none overflow-hidden active:cursor-grabbing"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endPointerDrag}
-        onPointerCancel={endPointerDrag}
+      <EditorCanvasSurface
+        surfaceRef={canvas.surfaceRef}
+        viewport={canvas.viewport}
+        handlers={canvas.handlers}
+        worldBounds={layout.bounds}
+        ariaLabel={t("CREATION_EDITOR_CANVAS_LABEL")}
       >
-        <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
-          <defs>
-            <pattern id="sitemap-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-              <circle cx="1" cy="1" r="1" className="fill-border/55" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#sitemap-grid)" />
-        </svg>
         <svg
           className="pointer-events-none absolute top-0 left-0 overflow-visible"
-          width={bounds.width}
-          height={bounds.height}
-          style={{
-            transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
-            transformOrigin: "0 0",
-          }}
+          width={layout.bounds.width}
+          height={layout.bounds.height}
           aria-hidden="true"
         >
           {positioned.map((page) => {
             const parent = page.parentItemId ? byId.get(page.parentItemId) : undefined;
             if (!parent) return null;
-            const startX = parent.x + NODE_WIDTH;
-            const startY = parent.y + NODE_HEIGHT / 2;
+            const startX = parent.x + parent.width / 2;
+            const startY = parent.y + parent.height;
             const endX = page.x;
-            const endY = page.y + NODE_HEIGHT / 2;
-            const bend = startX + (endX - startX) / 2;
+            const endY = page.y;
+            const bend = startY + (endY - startY) / 2;
             return (
               <path
                 key={`${parent.itemId}:${page.itemId}`}
-                d={`M ${startX} ${startY} C ${bend} ${startY}, ${bend} ${endY}, ${endX} ${endY}`}
+                d={`M ${startX} ${startY} C ${startX} ${bend}, ${endX + page.width / 2} ${bend}, ${endX + page.width / 2} ${endY}`}
                 fill="none"
                 className="stroke-border"
                 strokeWidth="2"
@@ -253,20 +131,13 @@ export function SitemapCanvas({
             );
           })}
         </svg>
-        <div
-          className="absolute top-0 left-0 motion-reduce:transition-none"
-          style={{
-            width: bounds.width,
-            height: bounds.height,
-            transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
-            transformOrigin: "0 0",
-          }}
-        >
+        <div className="absolute top-0 left-0">
           {positioned.map((page) => (
             <button
               key={page.itemId}
               type="button"
               data-sitemap-node=""
+              data-canvas-interactive=""
               draggable={Boolean(canEdit && onReorderPage)}
               onDragStart={() => {
                 setDraggedPageId(page.itemId);
@@ -297,50 +168,76 @@ export function SitemapCanvas({
                   : "border-border hover:-translate-y-0.5 hover:border-label-secondary/45 hover:shadow-md",
                 dropTargetPageId === page.itemId && "border-primary/70 bg-primary/5",
               )}
-              style={{ left: page.x, top: page.y, width: NODE_WIDTH, height: NODE_HEIGHT }}
+              style={{ left: page.x, top: page.y, width: SITEMAP_NODE_WIDTH, height: page.height }}
             >
-              <span className="mb-3 flex size-7 items-center justify-center rounded-md bg-muted text-label-secondary">
+              <span className="flex size-7 items-center justify-center rounded-md bg-muted text-label-secondary">
                 <FileText className="size-4" />
               </span>
-              <span className="w-full truncate text-body font-semibold text-label-primary">
+              <span className="mt-2 w-full truncate text-body font-semibold text-label-primary">
                 {page.title}
               </span>
               <span className="mt-1 w-full truncate font-mono text-caption text-label-secondary">
                 {primaryRoute(page)}
               </span>
+              {page.wireframe?.sections?.length ? (
+                <div className="mt-3 space-y-1.5 border-t border-border/70 pt-2">
+                  {page.wireframe.sections.slice(0, 6).map((section) => (
+                    <div
+                      key={section.id}
+                      className="flex min-h-7 items-center justify-between gap-2 rounded border border-border/75 bg-muted/25 px-2 py-1 text-left"
+                    >
+                      <span className="truncate text-caption font-medium text-label-primary">
+                        {section.label}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] text-label-tertiary">
+                        {section.componentKey}
+                      </span>
+                    </div>
+                  ))}
+                  {page.wireframe.sections.length > 6 ? (
+                    <span className="block text-left text-caption text-label-secondary">
+                      +{page.wireframe.sections.length - 6} sections
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </button>
           ))}
         </div>
-        {positioned.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center px-8">
-            <div className="max-w-md rounded-xl border border-border bg-background p-6 text-center shadow-sm">
-              <span className="mx-auto flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Sparkles className="size-5" />
-              </span>
-              <h2 className="mt-4 text-title-3 font-semibold text-label-primary">
-                {t("CREATION_EDITOR_EMPTY_TITLE")}
-              </h2>
-              <p className="mt-2 text-footnote leading-5 text-label-secondary">
-                {t("CREATION_EDITOR_EMPTY_DESC")}
-              </p>
-              <Button
-                className="mt-5"
-                onClick={onOpenAI}
-                disabled={!canOpenAI}
-                title={!canOpenAI ? openAIDisabledReason : undefined}
-              >
-                <Sparkles className="size-4" />
-                {t("CREATION_EDITOR_EMPTY_ACTION")}
-              </Button>
-              {!canOpenAI ? (
-                <p className="mt-2 text-caption text-label-secondary">{openAIDisabledReason}</p>
-              ) : null}
-            </div>
+      </EditorCanvasSurface>
+      {positioned.length === 0 ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8">
+          <div className="pointer-events-auto max-w-md rounded-xl border border-border bg-background p-6 text-center shadow-sm">
+            <span className="mx-auto flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-5" />
+            </span>
+            <h2 className="mt-4 text-title-3 font-semibold text-label-primary">
+              {t("CREATION_EDITOR_EMPTY_TITLE")}
+            </h2>
+            <p className="mt-2 text-footnote leading-5 text-label-secondary">
+              {t("CREATION_EDITOR_EMPTY_DESC")}
+            </p>
+            <Button
+              className="mt-5"
+              onClick={onOpenAI}
+              disabled={!canOpenAI}
+              title={!canOpenAI ? openAIDisabledReason : undefined}
+            >
+              <Sparkles className="size-4" />
+              {t("CREATION_EDITOR_EMPTY_ACTION")}
+            </Button>
+            {!canOpenAI ? (
+              <p className="mt-2 text-caption text-label-secondary">{openAIDisabledReason}</p>
+            ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
-      <SitemapZoomControls zoom={viewport.zoom} onZoomChange={setZoom} onFit={fitCanvas} />
+      <SitemapZoomControls
+        zoom={canvas.viewport.zoom}
+        onZoomChange={canvas.setZoom}
+        onFit={fitCanvas}
+      />
       {reviewPanel}
     </div>
   );

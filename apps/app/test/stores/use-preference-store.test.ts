@@ -54,6 +54,51 @@ describe("usePreferencesStore layout width preferences", () => {
     expect(usePreferencesStore.getState().sidebarWidthPx).toBe(305);
   });
 
+  it("starts with a collapsed sidebar and keeps runtime state separate from the default", () => {
+    initializePreferences();
+
+    expect(usePreferencesStore.getState()).toMatchObject({
+      sidebarOpen: false,
+      sidebarDefaultOpen: false,
+      sidebarExpandPromptShown: false,
+    });
+
+    usePreferencesStore.getState().setSidebarOpen(true);
+    expect(usePreferencesStore.getState().sidebarOpen).toBe(true);
+    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(false);
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarOpen)).toBeNull();
+
+    usePreferencesStore.getState().setSidebarDefaultOpen(true);
+    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(true);
+    expect(usePreferencesStore.getState().sidebarOpen).toBe(true);
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarDefaultOpen)).toBe("true");
+  });
+
+  it("migrates the legacy persisted sidebar state into the new default preference", () => {
+    window.localStorage.setItem(STORAGE_KEYS.sidebarOpen, "true");
+
+    initializePreferences();
+
+    expect(usePreferencesStore.getState()).toMatchObject({
+      sidebarOpen: true,
+      sidebarDefaultOpen: true,
+    });
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarDefaultOpen)).toBe("true");
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarOpen)).toBeNull();
+  });
+
+  it("hydrates and persists whether the first expansion prompt has been shown", () => {
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandPromptShown, "true");
+
+    initializePreferences();
+
+    expect(usePreferencesStore.getState().sidebarExpandPromptShown).toBe(true);
+
+    usePreferencesStore.getState().setSidebarExpandPromptShown(false);
+    expect(usePreferencesStore.getState().sidebarExpandPromptShown).toBe(false);
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandPromptShown)).toBe("false");
+  });
+
   it("clamps persisted and updated sidebar width into the 180-320px range", () => {
     window.localStorage.setItem(STORAGE_KEYS.sidebarWidthPx, "999");
 

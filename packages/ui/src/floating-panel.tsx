@@ -688,6 +688,7 @@ interface FloatingPanelButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  "aria-disabled"?: boolean | "true" | "false";
   onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>;
   onFocus?: React.FocusEventHandler<HTMLButtonElement>;
@@ -698,6 +699,7 @@ export function FloatingPanelButton({
   children,
   onClick,
   className,
+  "aria-disabled": ariaDisabled,
   onMouseEnter,
   onMouseLeave,
   onFocus,
@@ -710,6 +712,7 @@ export function FloatingPanelButton({
         "hover:bg-muted",
         className,
       )}
+      aria-disabled={ariaDisabled}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

@@ -18,7 +18,10 @@ export const STORAGE_KEYS = {
   commandRecent: "arclayer:admin:commandRecent",
   assetsRecent: "arclayer:admin:assetsRecent",
   assetsFolderRailOpen: "arclayer:admin:assetsFolderRailOpen",
+  // Legacy key retained only for one-time migration to the default preference.
   sidebarOpen: "arclayer:admin:sidebarOpen",
+  sidebarDefaultOpen: "arclayer:admin:sidebarDefaultOpen",
+  sidebarExpandPromptShown: "arclayer:admin:sidebarExpandPromptShown",
   sidebarWidthPx: "arclayer:admin:sidebarWidthPx",
   sidebarNavCollapsed: "arclayer:admin:sidebarNavCollapsed",
   aiDrawerWidthPx: "arclayer:admin:aiDrawerWidthPx",

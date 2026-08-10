@@ -11,8 +11,8 @@ describe("useFavoritesStore folders", () => {
     });
   });
 
-  it("expands the favorites section for a new store by default", () => {
-    expect(useFavoritesStore.getInitialState().sectionExpanded).toBe(true);
+  it("keeps the favorites section collapsed for a new store by default", () => {
+    expect(useFavoritesStore.getInitialState().sectionExpanded).toBe(false);
   });
 
   it("adds and renames folders", () => {

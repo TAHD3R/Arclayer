@@ -1,9 +1,7 @@
-import { useMemo } from "react";
-import { History, RotateCcw, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, FilePenLine, Send, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { KnowledgeGuidanceRevisionOut } from "@arclayer/openapi";
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import {
   Accordion,
@@ -11,13 +9,167 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@arclayer/ui/accordion";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
+import { ButtonGroup, ButtonGroupSeparator } from "@arclayer/ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Textarea } from "@arclayer/ui/textarea";
 
 import type { WorkspaceGuidanceController } from "./use-workspace-guidance-controller";
+import { RevisionStatusBadge, WorkspaceKnowledgeHistoryDrawer } from "./workspace-guidance-history";
+import { WorkspaceGuidancePlateEditor } from "./workspace-guidance-plate-editor";
+
+const FAQ_ITEMS = [
+  {
+    value: "business",
+    questionKey: "EDITOR_FAQ_BUSINESS_QUESTION",
+    answerKey: "EDITOR_FAQ_BUSINESS_ANSWER",
+    animationClass: "[animation-delay:0ms]",
+  },
+  {
+    value: "voice",
+    questionKey: "EDITOR_FAQ_VOICE_QUESTION",
+    answerKey: "EDITOR_FAQ_VOICE_ANSWER",
+    animationClass: "[animation-delay:45ms]",
+  },
+  {
+    value: "rules",
+    questionKey: "EDITOR_FAQ_RULES_QUESTION",
+    answerKey: "EDITOR_FAQ_RULES_ANSWER",
+    animationClass: "[animation-delay:90ms]",
+  },
+  {
+    value: "projects",
+    questionKey: "EDITOR_FAQ_PROJECTS_QUESTION",
+    answerKey: "EDITOR_FAQ_PROJECTS_ANSWER",
+    animationClass: "[animation-delay:135ms]",
+  },
+  {
+    value: "publish",
+    questionKey: "EDITOR_FAQ_PUBLISH_QUESTION",
+    answerKey: "EDITOR_FAQ_PUBLISH_ANSWER",
+    animationClass: "[animation-delay:180ms]",
+  },
+  {
+    value: "updates",
+    questionKey: "EDITOR_FAQ_UPDATES_QUESTION",
+    answerKey: "EDITOR_FAQ_UPDATES_ANSWER",
+    animationClass: "[animation-delay:225ms]",
+  },
+  {
+    value: "rollback",
+    questionKey: "EDITOR_FAQ_ROLLBACK_QUESTION",
+    answerKey: "EDITOR_FAQ_ROLLBACK_ANSWER",
+    animationClass: "[animation-delay:270ms]",
+  },
+] as const;
+
+export function WorkspaceKnowledgeHeaderActions({
+  controller,
+}: {
+  controller: WorkspaceGuidanceController;
+}) {
+  const { t } = useTranslation("knowledge");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const layer = controller.layer;
+  if (!layer) return null;
+
+  const pending =
+    controller.saveDraftMutation.isPending ||
+    controller.publishMutation.isPending ||
+    controller.saveAndPublishMutation.isPending;
+  const canSaveAndPublish =
+    Boolean(controller.draft.trim()) &&
+    (controller.hasUnsavedChanges || Boolean(layer.currentDraft?.id));
+  const canPublishWithoutSaving =
+    Boolean(layer.currentDraft?.id) ||
+    (Boolean(controller.draft.trim()) && controller.hasUnsavedChanges);
+  const canSaveDraft = Boolean(controller.draft.trim()) && controller.hasUnsavedChanges;
+  const canOpenPublishOptions = canSaveAndPublish || canPublishWithoutSaving || canSaveDraft;
+  const canViewHistory =
+    !controller.historyQuery.isLoading &&
+    controller.history.length > 0 &&
+    !controller.historyQuery.error;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant="outline"
+        className="h-10"
+        disabled={!canViewHistory || pending}
+        onClick={() => setHistoryOpen(true)}
+      >
+        {t("HISTORY_ACTION")}
+      </Button>
+      <ButtonGroup>
+        <Button
+          className="h-10"
+          disabled={!canSaveAndPublish || pending}
+          loading={
+            controller.saveAndPublishMutation.isPending || controller.publishMutation.isPending
+          }
+          onClick={() => {
+            if (controller.hasUnsavedChanges) {
+              controller.saveAndPublish();
+            } else {
+              controller.publish({ notificationKey: "SAVED_AND_PUBLISHED" });
+            }
+          }}
+        >
+          {t("SAVE_AND_PUBLISH")}
+        </Button>
+        <ButtonGroupSeparator />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              className="size-10"
+              aria-label={t("PUBLISH_OPTIONS")}
+              disabled={!canOpenPublishOptions || pending}
+              variant="default"
+            >
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={!canPublishWithoutSaving || pending}
+              onSelect={() => {
+                if (layer.currentDraft?.id) {
+                  controller.publish({ preserveUnsavedChanges: true });
+                } else {
+                  controller.saveAndPublish();
+                }
+              }}
+            >
+              <Send data-icon="inline-start" />
+              {t("PUBLISH_WITHOUT_SAVING")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={!canSaveDraft || pending}
+              onSelect={() => controller.saveDraft()}
+            >
+              <FilePenLine data-icon="inline-start" />
+              {t("SAVE_DRAFT_ONLY")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ButtonGroup>
+      <WorkspaceKnowledgeHistoryDrawer
+        controller={controller}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
+    </div>
+  );
+}
 
 export function WorkspaceKnowledgeEditor({
   controller,
@@ -38,75 +190,55 @@ export function WorkspaceKnowledgeEditor({
             {t("EDITOR_DESCRIPTION")}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-          {controller.hasUnsavedChanges || controller.saveDraftMutation.isPending ? (
-            <Button
-              variant="outline"
-              disabled={
-                !controller.draft.trim() ||
-                controller.saveDraftMutation.isPending ||
-                controller.publishMutation.isPending
-              }
-              loading={controller.saveDraftMutation.isPending}
-              onClick={() => void controller.saveDraft()}
-            >
-              {t("SAVE_DRAFT")}
-            </Button>
-          ) : null}
-          <Button
-            disabled={
-              !layer.currentDraft?.id ||
-              controller.hasUnsavedChanges ||
-              controller.saveDraftMutation.isPending ||
-              controller.publishMutation.isPending
-            }
-            loading={controller.publishMutation.isPending}
-            onClick={() => void controller.publish()}
-          >
-            {t("PUBLISH_ACTION")}
-          </Button>
-        </div>
       </div>
 
       {layer.removedAt ? <RemovedGuidanceAlert isProject={false} /> : null}
 
-      <label htmlFor="workspace-guidance-content" className="sr-only">
-        {t("EDITOR_FIELD_LABEL")}
-      </label>
-      <Textarea
-        id="workspace-guidance-content"
-        aria-describedby="workspace-knowledge-description"
-        className="mt-6 min-h-[32rem] resize-y px-4 py-3 text-body leading-7"
-        disabled={controller.saveDraftMutation.isPending || controller.publishMutation.isPending}
-        value={controller.draft}
-        onChange={(event) => controller.setDraft(event.target.value)}
-        placeholder={t("EDITOR_PLACEHOLDER")}
-      />
+      <div className="mt-6" aria-describedby="workspace-knowledge-description">
+        <WorkspaceGuidancePlateEditor
+          ariaLabel={t("EDITOR_FIELD_LABEL")}
+          disabled={controller.saveDraftMutation.isPending || controller.publishMutation.isPending}
+          onChange={controller.setDraft}
+          placeholder={t("EDITOR_PLACEHOLDER")}
+          value={controller.draft}
+        />
+      </div>
 
-      <section className="mt-6" aria-labelledby="workspace-knowledge-faq-title">
-        <h3 id="workspace-knowledge-faq-title" className="text-headline text-label-primary">
-          {t("EDITOR_FAQ_TITLE")}
-        </h3>
-        <p className="mt-1 text-footnote text-label-secondary">{t("EDITOR_FAQ_DESCRIPTION")}</p>
-        <Accordion type="single" collapsible className="mt-3 rounded-xl border px-4 sm:px-5">
-          <AccordionItem value="business">
-            <AccordionTrigger>{t("EDITOR_FAQ_BUSINESS_QUESTION")}</AccordionTrigger>
-            <AccordionContent className="leading-6 text-label-secondary">
-              {t("EDITOR_FAQ_BUSINESS_ANSWER")}
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="voice">
-            <AccordionTrigger>{t("EDITOR_FAQ_VOICE_QUESTION")}</AccordionTrigger>
-            <AccordionContent className="leading-6 text-label-secondary">
-              {t("EDITOR_FAQ_VOICE_ANSWER")}
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="rules">
-            <AccordionTrigger>{t("EDITOR_FAQ_RULES_QUESTION")}</AccordionTrigger>
-            <AccordionContent className="leading-6 text-label-secondary">
-              {t("EDITOR_FAQ_RULES_ANSWER")}
-            </AccordionContent>
-          </AccordionItem>
+      <section
+        className="mt-20 pt-16 sm:mt-24 sm:pt-20"
+        aria-labelledby="workspace-knowledge-faq-title"
+      >
+        <div className="mx-auto max-w-3xl text-center motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-reduce:animate-none">
+          <h3
+            id="workspace-knowledge-faq-title"
+            className="text-title font-bold text-label-primary"
+          >
+            {t("EDITOR_FAQ_TITLE")}
+          </h3>
+          <p className="mt-4 text-body leading-7 text-label-secondary">
+            {t("EDITOR_FAQ_DESCRIPTION")}
+          </p>
+        </div>
+        <Accordion
+          type="single"
+          collapsible
+          defaultValue="business"
+          className="mx-auto mt-12 max-w-4xl"
+        >
+          {FAQ_ITEMS.map((item) => (
+            <AccordionItem
+              key={item.value}
+              value={item.value}
+              className={`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-both motion-safe:duration-200 motion-reduce:animate-none ${item.animationClass}`}
+            >
+              <AccordionTrigger className="py-6 text-left text-title3 font-semibold hover:no-underline sm:text-title2">
+                {t(item.questionKey)}
+              </AccordionTrigger>
+              <AccordionContent className="max-w-3xl pb-7 text-body leading-7 text-label-secondary">
+                {t(item.answerKey)}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
         </Accordion>
       </section>
     </section>
@@ -256,123 +388,4 @@ function ProjectGuidanceMode({ controller }: { controller: WorkspaceGuidanceCont
       <p className="mt-2 text-caption text-label-secondary">{t("PROJECT_MODE_HELP")}</p>
     </div>
   );
-}
-
-export function GuidanceHistory({ controller }: { controller: WorkspaceGuidanceController }) {
-  const { t, i18n } = useTranslation("knowledge");
-  const date = useMemo(
-    () => new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, { dateStyle: "medium" }),
-    [i18n.language, i18n.resolvedLanguage],
-  );
-
-  return (
-    <section
-      className="rounded-xl border bg-card p-4 sm:p-6"
-      aria-labelledby="guidance-history-title"
-    >
-      <h2 id="guidance-history-title" className="text-title3 font-semibold text-label-primary">
-        {t("HISTORY_TITLE")}
-      </h2>
-      <p className="mt-1 max-w-2xl text-footnote text-label-secondary">
-        {t("HISTORY_DESCRIPTION")}
-      </p>
-
-      <ContentGuard
-        className="mt-5"
-        loading={controller.historyQuery.isLoading}
-        error={controller.historyQuery.error}
-        onRetry={() => void controller.historyQuery.refetch()}
-        loadingVariant="form"
-      >
-        {controller.history.length ? (
-          <div className="divide-y rounded-lg border">
-            {controller.history.map((revision) => (
-              <RevisionRow
-                key={revision.id}
-                revision={revision}
-                date={date}
-                pending={controller.restorePreviewMutation.isPending}
-                onRestore={() => void controller.previewRestore(revision.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <Empty className="min-h-40 border border-dashed">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <History aria-hidden="true" />
-              </EmptyMedia>
-              <EmptyTitle>{t("HISTORY_EMPTY_TITLE")}</EmptyTitle>
-              <EmptyDescription>{t("HISTORY_EMPTY_DESCRIPTION")}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-      </ContentGuard>
-
-      {controller.historyQuery.hasNextPage ? (
-        <Button
-          className="mt-4"
-          variant="outline"
-          loading={controller.historyQuery.isFetchingNextPage}
-          onClick={() => void controller.historyQuery.fetchNextPage()}
-        >
-          {t("HISTORY_LOAD_MORE")}
-        </Button>
-      ) : null}
-    </section>
-  );
-}
-
-function RevisionRow(props: {
-  revision: KnowledgeGuidanceRevisionOut;
-  date: Intl.DateTimeFormat;
-  pending: boolean;
-  onRestore: () => void;
-}) {
-  const { t } = useTranslation("knowledge");
-  const canRestore = props.revision.status !== "draft";
-  const createdAt = props.revision.createdAt
-    ? props.date.format(new Date(props.revision.createdAt))
-    : t("DATE_UNAVAILABLE");
-
-  return (
-    <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-footnote font-semibold text-label-primary">
-            {t("REVISION_DETAIL", { revision: props.revision.revisionNumber })}
-          </span>
-          <RevisionStatusBadge status={props.revision.status} />
-        </div>
-        <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-caption leading-5 text-label-secondary">
-          {props.revision.content}
-        </p>
-        <p className="mt-2 text-caption text-label-tertiary">{createdAt}</p>
-      </div>
-      <Button
-        className="self-start"
-        size="sm"
-        variant="outline"
-        disabled={!canRestore || props.pending}
-        loading={props.pending}
-        onClick={props.onRestore}
-      >
-        <RotateCcw data-icon="inline-start" />
-        {t("RESTORE_ACTION")}
-      </Button>
-    </div>
-  );
-}
-
-function RevisionStatusBadge({ status }: { status?: string }) {
-  const { t } = useTranslation("knowledge");
-  const label =
-    status === "published"
-      ? t("REVISION_PUBLISHED")
-      : status === "superseded"
-        ? t("REVISION_SUPERSEDED")
-        : t("REVISION_DRAFT");
-  const variant =
-    status === "published" ? "default" : status === "superseded" ? "secondary" : "outline";
-  return <Badge variant={variant}>{label}</Badge>;
 }

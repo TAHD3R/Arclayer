@@ -29,7 +29,7 @@ export function StyleGuideStage(props: StyleGuideStageProps) {
 
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col bg-muted/25 xl:flex-row"
+      className="flex min-h-0 flex-1 flex-col bg-transparent xl:flex-row"
       role="region"
       aria-label={t("CREATION_EDITOR_STYLE_GUIDE_LABEL")}
     >

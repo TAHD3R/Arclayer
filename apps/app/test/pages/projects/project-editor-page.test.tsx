@@ -12,11 +12,14 @@ import type {
 } from "@arclayer/openapi";
 
 import { ProjectEditorPage, type ProjectEditorPageProps } from "@/pages/projects/editor/page";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
+import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { siteRenderDocumentFixture } from "../../fixtures/site-render-document";
 import { ApiError } from "@/lib/http";
 
 const navigateMock = vi.fn();
 const getProjectDetailMock = vi.fn();
+const patchProjectMock = vi.fn();
 const getProjectBuilderMock = vi.fn();
 const getProjectBuilderHistoryMock = vi.fn();
 const getProjectBuilderDraftCheckpointMock = vi.fn();
@@ -85,6 +88,7 @@ vi.mock("@/hooks/use-workspace-permission-access", () => ({
 
 vi.mock("@/api/projects", () => ({
   getProjectDetail: (...args: unknown[]) => getProjectDetailMock(...args),
+  patchProject: (...args: unknown[]) => patchProjectMock(...args),
 }));
 
 vi.mock("@/api/project-builder", async (importOriginal) => {
@@ -1187,7 +1191,11 @@ function renderPage(props: Omit<ProjectEditorPageProps, "projectId"> = {}) {
   });
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEditorPage projectId="project-1" {...props} />
+      <SettingsScreenProvider>
+        <SidebarProvider open={false}>
+          <ProjectEditorPage projectId="project-1" {...props} />
+        </SidebarProvider>
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
   return {
@@ -1195,7 +1203,11 @@ function renderPage(props: Omit<ProjectEditorPageProps, "projectId"> = {}) {
     rerenderPage: (nextProps: Omit<ProjectEditorPageProps, "projectId"> = {}) =>
       view.rerender(
         <QueryClientProvider client={queryClient}>
-          <ProjectEditorPage projectId="project-1" {...nextProps} />
+          <SettingsScreenProvider>
+            <SidebarProvider open={false}>
+              <ProjectEditorPage projectId="project-1" {...nextProps} />
+            </SidebarProvider>
+          </SettingsScreenProvider>
         </QueryClientProvider>,
       ),
   };
@@ -1204,6 +1216,7 @@ function renderPage(props: Omit<ProjectEditorPageProps, "projectId"> = {}) {
 describe("ProjectEditorPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    patchProjectMock.mockResolvedValue({ id: "project-1", name: "Northstar" });
     hasProjectActionMock.mockReturnValue(true);
     previewProjectBuilderChangeSetMock.mockReset();
     applyProjectBuilderChangeSetMock.mockReset();
@@ -1407,7 +1420,7 @@ describe("ProjectEditorPage", () => {
     });
   });
 
-  it("renders the immutable Sitemap revision on a fullscreen creation canvas", async () => {
+  it("renders the immutable Sitemap revision inside the editor shell", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -1415,7 +1428,53 @@ describe("ProjectEditorPage", () => {
     const stageNavigation = screen.getByRole("navigation", {
       name: "CREATION_EDITOR_STAGE_NAV",
     });
-    expect(stageNavigation.closest("header")).toHaveClass("grid", "lg:flex", "lg:h-14");
+    const editorHeader = stageNavigation.closest("header");
+    expect(editorHeader).toHaveClass("grid", "lg:flex", "lg:h-14");
+    expect(screen.getByText("Northstar")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "CREATION_EDITOR_BACK" })).not.toBeInTheDocument();
+    expect(editorHeader).not.toHaveTextContent("v2");
+    expect(within(editorHeader as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "common:TOPBAR_FEEDBACK" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "common:TOPBAR_ASK_AI" })).not.toBeInTheDocument();
+    expect(
+      within(stageNavigation)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual([
+      "CREATION_EDITOR_STAGE_SITEMAP",
+      "CREATION_EDITOR_STAGE_WIREFRAME",
+      "CREATION_EDITOR_STAGE_DESIGN",
+      "CREATION_EDITOR_STAGE_STYLE_GUIDE",
+    ]);
+    expect(within(stageNavigation).getAllByRole("button")[0]).toHaveClass(
+      "bg-background",
+      "font-bold",
+      "text-label-primary",
+    );
+    const editorActions = editorHeader?.querySelector<HTMLElement>(
+      "[data-creation-editor-actions]",
+    );
+    expect(editorActions).not.toBeNull();
+    expect(
+      within(editorActions as HTMLElement)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual([
+      "CREATION_EDITOR_UNDO",
+      "CREATION_EDITOR_REDO",
+      "CREATION_EDITOR_PREVIEW",
+      "CREATION_EDITOR_PUBLISH",
+    ]);
+    const previewButton = within(editorActions as HTMLElement).getByRole("button", {
+      name: "CREATION_EDITOR_PREVIEW",
+    });
+    const publishButton = within(editorActions as HTMLElement).getByRole("button", {
+      name: "CREATION_EDITOR_PUBLISH",
+    });
+    expect(previewButton.querySelector("svg")).toBeNull();
+    expect(publishButton.querySelector("svg")).toBeNull();
     expect(stageNavigation).toHaveClass(
       "col-span-2",
       "overflow-x-auto",
@@ -3798,7 +3857,6 @@ describe("ProjectEditorPage", () => {
     expect(
       await screen.findByRole("region", { name: "CREATION_EDITOR_CONFLICT_LABEL" }),
     ).toBeVisible();
-    expect(screen.getByText("CREATION_EDITOR_SYNC_CONFLICT")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_CONFLICT_REFRESH" }));
     await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(2));
@@ -3820,7 +3878,6 @@ describe("ProjectEditorPage", () => {
     expect(
       await screen.findByRole("region", { name: "CREATION_EDITOR_WIREFRAME_REVIEW_LABEL" }),
     ).toBeVisible();
-    expect(screen.getByText("CREATION_EDITOR_SYNC_REVIEW")).toBeVisible();
     expect(
       screen.queryByRole("region", { name: "CREATION_EDITOR_CONFLICT_LABEL" }),
     ).not.toBeInTheDocument();

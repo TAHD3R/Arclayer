@@ -35,6 +35,7 @@ import { type ThemeMode } from "@arclayer/ui/theme-mode";
 const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
   favorites: true,
 };
+const DEFAULT_SIDEBAR_OPEN = false;
 const DEFAULT_SIDEBAR_WIDTH_PX = 220;
 const MIN_SIDEBAR_WIDTH_PX = 180;
 const MAX_SIDEBAR_WIDTH_PX = 320;
@@ -309,7 +310,9 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   contrastMore: false,
   fontScalePreference: null,
   fontWeightPreference: null,
-  sidebarOpen: true,
+  sidebarOpen: DEFAULT_SIDEBAR_OPEN,
+  sidebarDefaultOpen: DEFAULT_SIDEBAR_OPEN,
+  sidebarExpandPromptShown: false,
   sidebarWidthPx: DEFAULT_SIDEBAR_WIDTH_PX,
   aiDrawerWidthPx: DEFAULT_AI_DRAWER_WIDTH_PX,
   showNotificationsBadge: true,
@@ -428,8 +431,19 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   },
 
   setSidebarOpen: (open) => {
-    writeStorageItem(STORAGE_KEYS.sidebarOpen, String(open));
     set({ sidebarOpen: Boolean(open) });
+  },
+
+  setSidebarDefaultOpen: (open) => {
+    const next = Boolean(open);
+    writeStorageItem(STORAGE_KEYS.sidebarDefaultOpen, String(next));
+    set({ sidebarDefaultOpen: next });
+  },
+
+  setSidebarExpandPromptShown: (shown) => {
+    const next = Boolean(shown);
+    writeStorageItem(STORAGE_KEYS.sidebarExpandPromptShown, String(next));
+    set({ sidebarExpandPromptShown: next });
   },
 
   setSidebarWidthPx: (widthPx) => {
@@ -500,8 +514,22 @@ export function initializePreferences() {
   applyThemeModeToDom(initialThemeMode);
   applyLocaleToDom(initialLocaleState.locale);
 
-  const sidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
-  const sidebarOpen = sidebarOpenStored ? sidebarOpenStored === "true" : true;
+  const sidebarDefaultOpenStored = readStorageItem(STORAGE_KEYS.sidebarDefaultOpen);
+  const legacySidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
+  const sidebarDefaultOpen =
+    sidebarDefaultOpenStored !== null
+      ? sidebarDefaultOpenStored === "true"
+      : legacySidebarOpenStored !== null
+        ? legacySidebarOpenStored === "true"
+        : DEFAULT_SIDEBAR_OPEN;
+  if (sidebarDefaultOpenStored === null && legacySidebarOpenStored !== null) {
+    writeStorageItem(STORAGE_KEYS.sidebarDefaultOpen, String(sidebarDefaultOpen));
+  }
+  if (legacySidebarOpenStored !== null) {
+    removeStorageItem(STORAGE_KEYS.sidebarOpen);
+  }
+  const sidebarExpandPromptShown =
+    readStorageItem(STORAGE_KEYS.sidebarExpandPromptShown) === "true";
   const sidebarWidthPx = normalizeSidebarWidthPx(readStorageItem(STORAGE_KEYS.sidebarWidthPx));
   const aiDrawerWidthPx = normalizeAiDrawerWidthPx(readStorageItem(STORAGE_KEYS.aiDrawerWidthPx));
   const timeZonePreference = normalizeTimeZonePreference(
@@ -539,7 +567,9 @@ export function initializePreferences() {
     contrastMore,
     fontScalePreference,
     fontWeightPreference,
-    sidebarOpen,
+    sidebarOpen: sidebarDefaultOpen,
+    sidebarDefaultOpen,
+    sidebarExpandPromptShown,
     sidebarWidthPx,
     aiDrawerWidthPx,
     showNotificationsBadge,

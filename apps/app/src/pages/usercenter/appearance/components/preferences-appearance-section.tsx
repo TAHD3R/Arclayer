@@ -20,7 +20,13 @@ function PreferenceSwitchRow(props: PreferenceSwitchRowProps) {
     <PreferenceSettingRow
       title={props.title}
       description={props.description}
-      action={<Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />}
+      action={
+        <Switch
+          aria-label={props.title}
+          checked={props.checked}
+          onCheckedChange={props.onCheckedChange}
+        />
+      }
     />
   );
 }
@@ -91,15 +97,25 @@ export function UserAppearanceSection() {
 
 export function UserSidebarNavigationSection() {
   const { t } = useTranslation("account");
+  const sidebarDefaultOpen = usePreferencesStore((s) => s.sidebarDefaultOpen);
+  const setSidebarDefaultOpen = usePreferencesStore((s) => s.setSidebarDefaultOpen);
   const showFavoritesInSidebar = usePreferencesStore((s) => s.sidebarItemVisibility.favorites);
   const setSidebarItemVisible = usePreferencesStore((s) => s.setSidebarItemVisible);
 
   return (
-    <PreferenceSwitchRow
-      checked={showFavoritesInSidebar}
-      description={t("ME_PREF_SIDEBAR_FAVORITES_DESC")}
-      onCheckedChange={(checked) => setSidebarItemVisible("favorites", checked)}
-      title={t("ME_PREF_SIDEBAR_FAVORITES_TITLE")}
-    />
+    <div className="flex flex-col gap-6">
+      <PreferenceSwitchRow
+        checked={sidebarDefaultOpen}
+        description={t("ME_PREF_SIDEBAR_DEFAULT_OPEN_DESC")}
+        onCheckedChange={setSidebarDefaultOpen}
+        title={t("ME_PREF_SIDEBAR_DEFAULT_OPEN_TITLE")}
+      />
+      <PreferenceSwitchRow
+        checked={showFavoritesInSidebar}
+        description={t("ME_PREF_SIDEBAR_FAVORITES_DESC")}
+        onCheckedChange={(checked) => setSidebarItemVisible("favorites", checked)}
+        title={t("ME_PREF_SIDEBAR_FAVORITES_TITLE")}
+      />
+    </div>
   );
 }

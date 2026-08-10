@@ -1,7 +1,6 @@
 import { cn } from "@arclayer/lib/utils";
 import { SiteRenderer } from "@arclayer/site-renderer";
 import { Button } from "@arclayer/ui/button";
-import { ScrollArea } from "@arclayer/ui/scroll-area";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import type {
   BuilderChangeSetPreviewOut,
@@ -18,8 +17,8 @@ import {
   Tablet,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
 
 import { BaseTag } from "@/components/ui/tags";
 import { getErrorMessage } from "@/lib/notifications";
@@ -28,13 +27,19 @@ import {
   projectDesignPreviewDocument,
 } from "@/pages/projects/editor/design-preview-document";
 import type { useProjectDesignController } from "@/pages/projects/editor/use-project-design-controller";
+import {
+  EditorCanvasSurface,
+  EditorCanvasZoomControls,
+  useCanvasContentBounds,
+  useEditorCanvasViewport,
+} from "@/pages/projects/editor/canvas/editor-canvas";
 
 export type DesignViewport = "desktop" | "tablet" | "mobile";
 
-const VIEWPORT_WIDTH: Record<DesignViewport, string> = {
-  desktop: "max-w-[90rem]",
-  tablet: "max-w-[48rem]",
-  mobile: "max-w-[24rem]",
+const VIEWPORT_WIDTH: Record<DesignViewport, number> = {
+  desktop: 1440,
+  tablet: 768,
+  mobile: 384,
 };
 
 interface DesignCanvasProps {
@@ -71,6 +76,14 @@ export function DesignCanvas({
   const { t } = useTranslation("account");
   const render = controller.renderQuery;
   const previewBreakpoint = viewport in breakpoints ? viewport : null;
+  const canvas = useEditorCanvasViewport({
+    initialViewport: { x: 0, y: 32, zoom: 0.65 },
+    minZoom: 0.2,
+    maxZoom: 1.5,
+    fitPadding: 48,
+    fitBottomSafeArea: 56,
+  });
+  const { contentRef, bounds: contentBounds } = useCanvasContentBounds<HTMLDivElement>();
   const previewProjection = useMemo(() => {
     if (!preview || !render.data || !page) return null;
     const candidate = preview.changeSet.designCandidates?.find(
@@ -103,12 +116,15 @@ export function DesignCanvas({
   const document = previewProjection?.document ?? render.data ?? null;
   const source = document?.renderSource ?? null;
 
+  useEffect(() => {
+    canvas.fit(contentBounds);
+  }, [canvas.fit, contentBounds, page?.itemId, viewport]);
+
   return (
     <section
-      className="relative min-w-0 flex-1 overflow-hidden bg-muted/25"
+      className="relative min-w-0 flex-1 overflow-hidden bg-transparent"
       aria-label={t("CREATION_EDITOR_DESIGN_CANVAS_LABEL")}
     >
-      <CanvasGrid />
       <div className="absolute top-3 right-3 left-3 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-background/95 p-1.5 shadow-sm backdrop-blur-sm">
         <div className="flex items-center gap-1">
           <ViewportButton
@@ -162,78 +178,93 @@ export function DesignCanvas({
         </div>
       </div>
 
-      <ScrollArea className="relative h-full">
-        <div className="mx-auto flex min-h-full w-full items-start justify-center px-5 pt-24 pb-28 sm:px-10">
-          <div
-            className={cn(
-              "w-full overflow-hidden rounded-xl border border-border bg-background shadow-[0_18px_48px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] transition-[max-width] duration-200 ease-out motion-reduce:transition-none",
-              VIEWPORT_WIDTH[viewport],
-            )}
-            data-testid="design-canvas-plane"
-            data-viewport={viewport}
-          >
-            {!page ? (
-              <CanvasState
-                icon={FileWarning}
-                title={t("CREATION_EDITOR_DESIGN_PAGE_REQUIRED_TITLE")}
-                description={t("CREATION_EDITOR_DESIGN_PAGE_REQUIRED_DESC")}
-              />
-            ) : !page.wireframe ? (
-              <CanvasState
-                icon={FileWarning}
-                title={t("CREATION_EDITOR_DESIGN_WIREFRAME_REQUIRED_TITLE")}
-                description={t("CREATION_EDITOR_DESIGN_WIREFRAME_REQUIRED_DESC")}
-              />
-            ) : !online ? (
-              <CanvasState
-                icon={Laptop}
-                title={t("CREATION_EDITOR_DESIGN_OFFLINE_TITLE")}
-                description={t("CREATION_EDITOR_DESIGN_OFFLINE_DESC")}
-              />
-            ) : render.isPending ? (
-              <DesignCanvasSkeleton />
-            ) : render.error ? (
-              <CanvasState
-                icon={RefreshCw}
-                title={t("CREATION_EDITOR_DESIGN_RENDER_ERROR_TITLE")}
-                description={getErrorMessage(
-                  render.error,
-                  t("CREATION_EDITOR_DESIGN_RENDER_ERROR_DESC"),
-                )}
-                action={
-                  <Button type="button" size="sm" onClick={() => void render.refetch()}>
-                    {t("CREATION_EDITOR_RETRY")}
-                  </Button>
-                }
-              />
-            ) : previewProjection?.error ? (
-              <CanvasState
-                icon={FileWarning}
-                title={t("CREATION_EDITOR_DESIGN_PREVIEW_INVALID_TITLE")}
-                description={t("CREATION_EDITOR_DESIGN_PREVIEW_INVALID_DESC")}
-              />
-            ) : document ? (
-              <SiteRenderer
-                document={document}
-                interactionMode="read-only"
-                selectedSectionId={selectedSectionId}
-                onSectionSelect={onSelectSection}
-                sectionSelectionLabel={(section) =>
-                  t("CREATION_EDITOR_DESIGN_SELECT_SECTION", { section: section.label })
-                }
-                previewStateKey={stateKey}
-                previewBreakpoint={previewBreakpoint}
-              />
-            ) : (
-              <CanvasState
-                icon={LoaderCircle}
-                title={t("CREATION_EDITOR_DESIGN_RENDER_EMPTY_TITLE")}
-                description={t("CREATION_EDITOR_DESIGN_RENDER_EMPTY_DESC")}
-              />
-            )}
-          </div>
+      <EditorCanvasSurface
+        surfaceRef={canvas.surfaceRef}
+        viewport={canvas.viewport}
+        handlers={canvas.handlers}
+        worldBounds={contentBounds}
+        ariaLabel={t("CREATION_EDITOR_DESIGN_CANVAS_LABEL")}
+      >
+        <div
+          ref={contentRef}
+          className={cn(
+            "overflow-hidden rounded-xl border border-border bg-background shadow-[0_18px_48px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)]",
+          )}
+          style={{ width: VIEWPORT_WIDTH[viewport] }}
+          data-testid="design-canvas-plane"
+          data-viewport={viewport}
+        >
+          {!page ? (
+            <CanvasState
+              icon={FileWarning}
+              title={t("CREATION_EDITOR_DESIGN_PAGE_REQUIRED_TITLE")}
+              description={t("CREATION_EDITOR_DESIGN_PAGE_REQUIRED_DESC")}
+            />
+          ) : !page.wireframe ? (
+            <CanvasState
+              icon={FileWarning}
+              title={t("CREATION_EDITOR_DESIGN_WIREFRAME_REQUIRED_TITLE")}
+              description={t("CREATION_EDITOR_DESIGN_WIREFRAME_REQUIRED_DESC")}
+            />
+          ) : !online ? (
+            <CanvasState
+              icon={Laptop}
+              title={t("CREATION_EDITOR_DESIGN_OFFLINE_TITLE")}
+              description={t("CREATION_EDITOR_DESIGN_OFFLINE_DESC")}
+            />
+          ) : render.isPending ? (
+            <DesignCanvasSkeleton />
+          ) : render.error ? (
+            <CanvasState
+              icon={RefreshCw}
+              title={t("CREATION_EDITOR_DESIGN_RENDER_ERROR_TITLE")}
+              description={getErrorMessage(
+                render.error,
+                t("CREATION_EDITOR_DESIGN_RENDER_ERROR_DESC"),
+              )}
+              action={
+                <Button type="button" size="sm" onClick={() => void render.refetch()}>
+                  {t("CREATION_EDITOR_RETRY")}
+                </Button>
+              }
+            />
+          ) : previewProjection?.error ? (
+            <CanvasState
+              icon={FileWarning}
+              title={t("CREATION_EDITOR_DESIGN_PREVIEW_INVALID_TITLE")}
+              description={t("CREATION_EDITOR_DESIGN_PREVIEW_INVALID_DESC")}
+            />
+          ) : document ? (
+            <SiteRenderer
+              document={document}
+              interactionMode="read-only"
+              selectedSectionId={selectedSectionId}
+              onSectionSelect={onSelectSection}
+              sectionSelectionLabel={(section) =>
+                t("CREATION_EDITOR_DESIGN_SELECT_SECTION", { section: section.label })
+              }
+              previewStateKey={stateKey}
+              previewBreakpoint={previewBreakpoint}
+            />
+          ) : (
+            <CanvasState
+              icon={LoaderCircle}
+              title={t("CREATION_EDITOR_DESIGN_RENDER_EMPTY_TITLE")}
+              description={t("CREATION_EDITOR_DESIGN_RENDER_EMPTY_DESC")}
+            />
+          )}
         </div>
-      </ScrollArea>
+      </EditorCanvasSurface>
+      <EditorCanvasZoomControls
+        zoom={canvas.viewport.zoom}
+        onZoomChange={canvas.setZoom}
+        onFit={() => canvas.fit(contentBounds)}
+        labels={{
+          zoomOut: t("CREATION_EDITOR_ZOOM_OUT"),
+          zoomIn: t("CREATION_EDITOR_ZOOM_IN"),
+          fit: t("CREATION_EDITOR_FIT_CANVAS"),
+        }}
+      />
     </section>
   );
 }
@@ -308,18 +339,5 @@ function DesignCanvasSkeleton() {
         <Skeleton className="min-h-56 rounded-lg" />
       </div>
     </div>
-  );
-}
-
-function CanvasGrid() {
-  return (
-    <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
-      <defs>
-        <pattern id="design-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" className="fill-border/55" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#design-grid)" />
-    </svg>
   );
 }

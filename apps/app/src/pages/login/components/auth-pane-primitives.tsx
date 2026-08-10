@@ -14,7 +14,7 @@ export const AUTH_PANE_CONTENT_CLASS = "grid gap-4";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "select-none text-headline text-label-primary";
 export const AUTH_INPUT_GROUP_CLASS = cn(
-  "h-10 min-w-0 rounded-md border-border/80 bg-card ",
+  "h-10 min-w-0 rounded-md border-border bg-card dark:bg-card! ",
   "has-[[data-slot=input-group-control]:focus-visible]:border-primary",
   "has-[[data-slot=input-group-control]:focus-visible]:ring-primary/15",
 );
@@ -26,27 +26,29 @@ export const AUTH_PILL_INPUT_GROUP_CLASS = cn(
   "[&>[data-align=inline-end]]:mr-0! [&>[data-align=inline-end]]:pr-4!",
 );
 export const AUTH_PILL_INPUT_CLASS = cn(AUTH_INPUT_CLASS, "h-14! text-body md:text-body");
-export const AUTH_PILL_BUTTON_CLASS = "h-14! w-full rounded-full!";
+export const AUTH_PILL_BUTTON_CLASS = cn(
+  "h-14! w-full rounded-full! bg-primary text-primary-foreground hover:bg-primary!",
+);
 export const AUTH_PILL_OUTLINE_BUTTON_CLASS = cn(
   AUTH_PILL_BUTTON_CLASS,
-  "border-border/80 bg-card/80 hover:bg-accent/35",
+  "border-border bg-card dark:bg-card! text-label-primary! hover:bg-accent! hover:text-accent-foreground!",
 );
 export const AUTH_PILL_GHOST_BUTTON_CLASS = cn(
   "h-10! w-full rounded-full!",
-  "bg-transparent text-label-secondary hover:bg-accent/35 hover:text-label-primary",
+  "bg-transparent! text-label-secondary hover:bg-accent! hover:text-label-primary",
 );
 export const AUTH_PILL_PLAIN_INPUT_CLASS = cn(
-  "h-14! min-w-0 rounded-full! border-border/80 bg-card px-5 text-body",
+  "h-14! min-w-0 rounded-full! border-border bg-card dark:bg-card! px-5 text-body",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-body",
 );
 export const AUTH_PLAIN_INPUT_CLASS = cn(
-  "h-10 min-w-0 rounded-md border-border/80 bg-card px-4 text-callout ",
+  "h-10 min-w-0 rounded-md border-border bg-card dark:bg-card! px-4 text-callout ",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-callout",
 );
 export const AUTH_OTP_CONTAINER_CLASS = "w-full min-w-0";
 export const AUTH_OTP_GROUP_CLASS = "grid w-full min-w-0 grid-cols-6 gap-2.5";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-14! min-w-0 w-full flex-1 rounded-2xl! border border-border/80 bg-card",
+  "h-14! min-w-0 w-full flex-1 rounded-2xl! border border-border bg-card dark:bg-card!",
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");

@@ -160,7 +160,7 @@ export function AuthOauthButtons({
           {fullWidthLeadingActions.map((action) => (
             <Button
               key={action.key}
-              className="h-10 w-full justify-center rounded-md  px-4 "
+              className="h-10 w-full justify-center rounded-md border-border! bg-card! px-4 hover:bg-accent! hover:text-accent-foreground!"
               variant="outline"
               size="lg"
               disabled={isBusy}
@@ -189,7 +189,7 @@ export function AuthOauthButtons({
             <Button
               key={action.key}
               className={cn(
-                "h-10 rounded-md  ",
+                "h-10 rounded-md border-border! bg-card! hover:bg-accent! hover:text-accent-foreground!",
                 isSingleInlineLeadingAction
                   ? "h-10 w-full justify-center px-4"
                   : "w-full justify-center px-3 text-footnote",
@@ -217,7 +217,7 @@ export function AuthOauthButtons({
           {providerActions.slice(0, 1).map((action) => (
             <Button
               key={action.key}
-              className="h-14! w-full justify-center rounded-full! border-transparent! bg-foreground! px-4 text-background! hover:bg-foreground/90! hover:text-background!"
+              className="h-14! w-full justify-center rounded-full! border-transparent! bg-foreground! px-4 text-background! hover:bg-foreground! hover:text-background!"
               variant="outline"
               size="lg"
               disabled={isBusy || action.isLoading}
@@ -233,7 +233,7 @@ export function AuthOauthButtons({
               {providerActions.slice(1).map((action) => (
                 <Button
                   key={action.key}
-                  className="h-14! w-full justify-center rounded-full! border-border/80! bg-card! px-3 hover:bg-accent!"
+                  className="h-14! w-full justify-center rounded-full! border-border! bg-card! px-3 hover:bg-accent! hover:text-accent-foreground!"
                   variant="outline"
                   size="lg"
                   disabled={isBusy || action.isLoading}
@@ -253,7 +253,7 @@ export function AuthOauthButtons({
           {providerActions.map((action) => (
             <Button
               key={action.key}
-              className="h-10 w-full justify-center rounded-md px-4"
+              className="h-10 w-full justify-center rounded-md border-border! bg-card! px-4 hover:bg-accent! hover:text-accent-foreground!"
               variant="outline"
               size="lg"
               disabled={isBusy || action.isLoading}

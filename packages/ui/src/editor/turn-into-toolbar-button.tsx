@@ -26,7 +26,7 @@ import {
   setBlockType,
 } from "./transforms";
 
-export function TurnIntoToolbarButton() {
+export function TurnIntoToolbarButton(props: { allowedValues?: readonly string[] }) {
   const { t } = useTranslation("content");
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
@@ -36,11 +36,15 @@ export function TurnIntoToolbarButton() {
     getProp: (node) => getTurnIntoValue(node as TElement),
   });
 
+  const items = React.useMemo(() => {
+    if (!props.allowedValues) return TURN_INTO_MENU_ITEMS;
+    const allowedValues = new Set(props.allowedValues);
+    return TURN_INTO_MENU_ITEMS.filter((item) => allowedValues.has(item.value));
+  }, [props.allowedValues]);
   const selectedItem = React.useMemo(
     () =>
-      TURN_INTO_MENU_ITEMS.find((item) => item.value === (value ?? KEYS.p)) ??
-      TURN_INTO_MENU_ITEMS[0],
-    [value],
+      items.find((item) => item.value === (value ?? KEYS.p)) ?? items[0] ?? TURN_INTO_MENU_ITEMS[0],
+    [items, value],
   );
 
   return (
@@ -98,7 +102,7 @@ export function TurnIntoToolbarButton() {
             );
           }}
         >
-          {TURN_INTO_MENU_ITEMS.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
 
             return (

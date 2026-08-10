@@ -216,6 +216,7 @@ describe("AdminSiderNav capability nodes", () => {
 
     const favoritesActionButton = screen.getByRole("button", { name: "Favorites actions" });
     expect(favoritesActionButton.parentElement?.className).toContain("opacity-0");
+    expect(screen.queryByText("No favorites yet")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Favorites" }));
 

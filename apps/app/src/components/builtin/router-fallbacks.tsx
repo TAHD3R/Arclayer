@@ -4,8 +4,12 @@ import { ApiError } from "@/lib/http";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import { NotFoundView } from "@/components/builtin/not-found-page";
-import { ServerErrorView } from "@/components/builtin/server-error-page";
+import { ServerErrorView, type ServerErrorViewProps } from "@/components/builtin/server-error-page";
 import { UnauthorizedView } from "@/components/builtin/unauthorized-page";
+
+type RouterDefaultErrorProps = Pick<ErrorComponentProps, "error"> & {
+  variant?: ServerErrorViewProps["variant"];
+};
 
 export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -21,9 +25,9 @@ export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
   return <NotFoundView variant={variant} />;
 }
 
-export function RouterDefaultError(props: ErrorComponentProps) {
+export function RouterDefaultError(props: RouterDefaultErrorProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
-  const variant = accessToken ? "admin" : "fullscreen";
+  const variant = props.variant ?? (accessToken ? "admin" : "fullscreen");
   const err = props.error;
 
   if (err instanceof ApiError) {

@@ -285,11 +285,17 @@ function TopbarDefaultLeading(props: {
   );
 }
 
-function TopbarTrailing() {
+export function AdminTopbarActions(props: { className?: string; includeAccount?: boolean } = {}) {
   const { t } = useTranslation(["common"]);
+  const includeAccount = props.includeAccount ?? true;
 
   return (
-    <div className="flex min-w-0 items-center justify-end gap-1.5 min-[769px]:gap-2">
+    <div
+      className={cn(
+        "flex min-w-0 items-center justify-end gap-1.5 min-[769px]:gap-2",
+        props.className,
+      )}
+    >
       <HeaderFeedbackPopover
         trigger={
           <Button
@@ -310,7 +316,7 @@ function TopbarTrailing() {
         className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME}
       />
       <WorkspaceCreditsControl compactOnMobile className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME} />
-      <AdminAccountMenu variant="header" />
+      {includeAccount ? <AdminAccountMenu variant="header" /> : null}
     </div>
   );
 }
@@ -350,7 +356,7 @@ export function AdminTopbar(props: {
             onNavigate={props.onNavigate}
           />
         )}
-        <TopbarTrailing />
+        <AdminTopbarActions />
       </div>
     </header>
   );

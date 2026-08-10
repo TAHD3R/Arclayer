@@ -12,6 +12,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
+from src.common.utils.public_ids import encode_uuid
 from src.models.agents.runtime_knowledge_v1 import AgentRunKnowledgeSourceSnapshotV1Record
 from src.models.knowledge._enums import (
     KnowledgeBaseStatus,
@@ -115,13 +116,13 @@ class TenantAgentKnowledgeContextResolver:
         )
         payload = {
             "contextVersion": 1,
-            "workspaceId": str(workspace_id),
-            "projectId": str(project_id) if project_id is not None else None,
+            "workspaceId": workspace_id,
+            "projectId": project_id,
             "workspaceLayerId": (
                 str(effective.workspace_layer_id) if effective.workspace_layer_id is not None else None
             ),
             "workspaceRevisionId": (
-                str(effective.workspace_published_revision.id)
+                UUID(str(effective.workspace_published_revision.id))
                 if effective.workspace_published_revision is not None
                 else None
             ),
@@ -137,7 +138,7 @@ class TenantAgentKnowledgeContextResolver:
             ),
             "projectLayerId": (str(effective.project_layer_id) if effective.project_layer_id is not None else None),
             "projectRevisionId": (
-                str(effective.project_published_revision.id)
+                UUID(str(effective.project_published_revision.id))
                 if effective.project_published_revision is not None
                 else None
             ),
@@ -154,7 +155,7 @@ class TenantAgentKnowledgeContextResolver:
             "projectMode": effective.project_mode,
             "precedence": effective.precedence,
             "effectiveGuidance": effective.effective_content,
-            "attachedKnowledgeBaseIds": tuple(str(value) for value in effective.attached_knowledge_base_ids),
+            "attachedKnowledgeBaseIds": tuple(UUID(str(value)) for value in effective.attached_knowledge_base_ids),
             "unavailableCodes": effective.unavailable_codes,
             "conflictCodes": effective.conflict_codes,
         }
@@ -464,8 +465,15 @@ def _rank_evidence(
 
 
 def _content_hash(payload: object) -> str:
-    serialized = orjson.dumps(payload, option=orjson.OPT_SORT_KEYS)
+    serialized = orjson.dumps(payload, default=_encode_uuid_for_json, option=orjson.OPT_SORT_KEYS)
     return f"sha256:{hashlib.sha256(serialized).hexdigest()}"
+
+
+def _encode_uuid_for_json(value: object) -> str:
+    try:
+        return encode_uuid(UUID(str(value)))
+    except (TypeError, ValueError, AttributeError) as error:
+        raise TypeError(f"Unsupported JSON value: {type(value).__name__}") from error
 
 
 __all__ = [

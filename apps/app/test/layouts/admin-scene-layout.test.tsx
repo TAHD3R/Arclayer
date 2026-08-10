@@ -156,9 +156,13 @@ vi.mock("@/stores/use-auth-store", () => ({
 const preferencesState = {
   showNotificationsBadge: true,
   sidebarOpen: true,
+  sidebarDefaultOpen: false,
+  sidebarExpandPromptShown: false,
   sidebarWidthPx: 280,
   aiDrawerWidthPx: 380,
   setSidebarOpen: vi.fn(),
+  setSidebarDefaultOpen: vi.fn(),
+  setSidebarExpandPromptShown: vi.fn(),
   setSidebarWidthPx: vi.fn(),
   setAiDrawerWidthPx: vi.fn(),
 };
@@ -219,9 +223,13 @@ describe("AdminSceneLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     preferencesState.setSidebarOpen.mockReset();
+    preferencesState.setSidebarDefaultOpen.mockReset();
+    preferencesState.setSidebarExpandPromptShown.mockReset();
     preferencesState.setSidebarWidthPx.mockReset();
     preferencesState.setAiDrawerWidthPx.mockReset();
     preferencesState.sidebarOpen = true;
+    preferencesState.sidebarDefaultOpen = false;
+    preferencesState.sidebarExpandPromptShown = false;
     preferencesState.aiDrawerWidthPx = 380;
     useAiChatStore.setState({
       drawerOpen: false,
@@ -371,6 +379,83 @@ describe("AdminSceneLayout", () => {
       );
     });
     expect(preferencesState.setSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  it("asks once whether the first manual expansion should become the default", async () => {
+    const user = userEvent.setup();
+    preferencesState.sidebarOpen = false;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderSceneLayout(queryClient);
+
+    const providerProps = sidebarProviderSpy.mock.calls.at(-1)?.[0] as {
+      onOpenChange?: (open: boolean) => void;
+    };
+    if (!providerProps.onOpenChange) throw new Error("Missing sidebar open handler");
+
+    act(() => providerProps.onOpenChange?.(true));
+
+    expect(preferencesState.setSidebarOpen).toHaveBeenCalledWith(true);
+    expect(preferencesState.setSidebarExpandPromptShown).toHaveBeenCalledWith(true);
+    expect(screen.getByText("ME_PREF_SIDEBAR_DEFAULT_DIALOG_TITLE")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "ME_PREF_SIDEBAR_DEFAULT_DIALOG_KEEP_COLLAPSED",
+      }),
+    );
+    expect(preferencesState.setSidebarDefaultOpen).not.toHaveBeenCalled();
+  });
+
+  it("updates the default preference when the expansion dialog is confirmed", async () => {
+    const user = userEvent.setup();
+    preferencesState.sidebarOpen = false;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderSceneLayout(queryClient);
+
+    const providerProps = sidebarProviderSpy.mock.calls.at(-1)?.[0] as {
+      onOpenChange?: (open: boolean) => void;
+    };
+    if (!providerProps.onOpenChange) throw new Error("Missing sidebar open handler");
+
+    act(() => providerProps.onOpenChange?.(true));
+    await user.click(
+      screen.getByRole("button", {
+        name: "ME_PREF_SIDEBAR_DEFAULT_DIALOG_EXPAND",
+      }),
+    );
+
+    expect(preferencesState.setSidebarDefaultOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("does not prompt when expansion is already the default or the prompt was shown before", () => {
+    preferencesState.sidebarOpen = false;
+    preferencesState.sidebarDefaultOpen = true;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const view = renderSceneLayout(queryClient);
+
+    let providerProps = sidebarProviderSpy.mock.calls.at(-1)?.[0] as {
+      onOpenChange?: (open: boolean) => void;
+    };
+    act(() => providerProps.onOpenChange?.(true));
+    expect(preferencesState.setSidebarExpandPromptShown).not.toHaveBeenCalled();
+
+    view.unmount();
+    preferencesState.sidebarDefaultOpen = false;
+    preferencesState.sidebarExpandPromptShown = true;
+    renderSceneLayout(queryClient);
+    providerProps = sidebarProviderSpy.mock.calls.at(-1)?.[0] as {
+      onOpenChange?: (open: boolean) => void;
+    };
+    act(() => providerProps.onOpenChange?.(true));
+
+    expect(preferencesState.setSidebarExpandPromptShown).not.toHaveBeenCalled();
+    expect(screen.queryByText("ME_PREF_SIDEBAR_DEFAULT_DIALOG_TITLE")).toBeNull();
   });
 
   it("stacks one toast per newly arrived unread preview item after a refetch", async () => {

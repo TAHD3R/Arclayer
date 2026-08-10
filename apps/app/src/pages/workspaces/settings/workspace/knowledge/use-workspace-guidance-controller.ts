@@ -33,6 +33,17 @@ type PendingPreview = Readonly<{
   preview: KnowledgeGuidancePreviewOut;
 }>;
 
+type SaveDraftCommand = Readonly<{
+  request: KnowledgeGuidanceDraftSaveRequest;
+  notify?: boolean;
+}>;
+
+type PublishCommand = Readonly<{
+  request: { expectedRevision: number; revisionId: string };
+  notificationKey?: "PUBLISHED" | "SAVED_AND_PUBLISHED";
+  preserveUnsavedChanges?: boolean;
+}>;
+
 function guidanceQueryKey(workspaceId: string, projectId?: string | null) {
   return [
     ...WORKSPACE_GUIDANCE_QUERY_KEY,
@@ -101,7 +112,7 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
       }),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: Boolean(layer && projectId),
+    enabled: Boolean(layer),
     retry: false,
   });
   const referenceBasesQuery = useQuery({
@@ -134,25 +145,50 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     setHasUnsavedChanges(false);
   };
   const saveDraftMutation = useMutation({
-    mutationFn: (input: KnowledgeGuidanceDraftSaveRequest) =>
-      saveGuidanceDraft(scope, input, crypto.randomUUID()),
-    onSuccess: async (nextLayer, input) => {
+    mutationFn: (command: SaveDraftCommand) =>
+      saveGuidanceDraft(scope, command.request, crypto.randomUUID()),
+    onSuccess: async (nextLayer, command) => {
       cacheServerLayer(nextLayer);
       const savedCurrentEditor =
-        draft === input.content &&
-        (!projectId || projectMode === (input.projectMode ?? "supplement"));
+        draft === command.request.content &&
+        (!projectId || projectMode === (command.request.projectMode ?? "supplement"));
       if (savedCurrentEditor) acceptServerLayer(nextLayer);
       await invalidate();
-      notifySuccessText(t("DRAFT_SAVED"));
+      if (command.notify !== false) notifySuccessText(t("DRAFT_SAVED"));
     },
   });
   const publishMutation = useMutation({
-    mutationFn: (input: { expectedRevision: number; revisionId: string }) =>
-      publishGuidance(scope, input, crypto.randomUUID()),
-    onSuccess: async (nextLayer) => {
-      acceptServerLayer(nextLayer);
+    mutationFn: (command: PublishCommand) =>
+      publishGuidance(scope, command.request, crypto.randomUUID()),
+    onSuccess: async (nextLayer, command) => {
+      cacheServerLayer(nextLayer);
+      if (!command.preserveUnsavedChanges || !hasUnsavedChanges) acceptServerLayer(nextLayer);
       await invalidate();
-      notifySuccessText(t("PUBLISHED"));
+      notifySuccessText(t(command.notificationKey ?? "PUBLISHED"));
+    },
+  });
+  const saveAndPublishMutation = useMutation({
+    mutationFn: async () => {
+      if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
+
+      const savedLayer = await saveDraftMutation.mutateAsync({
+        notify: false,
+        request: {
+          content: draft,
+          expectedRevision: layer.metadataRevision,
+          ...(projectId ? { projectMode } : {}),
+        },
+      });
+      const revisionId = savedLayer.currentDraft?.id;
+      if (!revisionId) throw new Error("KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED");
+
+      await publishMutation.mutateAsync({
+        notificationKey: "SAVED_AND_PUBLISHED",
+        request: {
+          expectedRevision: savedLayer.metadataRevision,
+          revisionId,
+        },
+      });
     },
   });
   const restorePreviewMutation = useMutation({
@@ -240,6 +276,7 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     referenceBasesQuery,
     saveDraftMutation,
     publishMutation,
+    saveAndPublishMutation,
     restorePreviewMutation,
     removePreviewMutation,
     applyPreviewMutation,
@@ -248,16 +285,24 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     saveDraft: () => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
       saveDraftMutation.mutate({
-        content: draft,
-        expectedRevision: layer.metadataRevision,
-        ...(projectId ? { projectMode } : {}),
+        request: {
+          content: draft,
+          expectedRevision: layer.metadataRevision,
+          ...(projectId ? { projectMode } : {}),
+        },
       });
     },
-    publish: () => {
+    saveAndPublish: () => {
+      saveAndPublishMutation.mutate();
+    },
+    publish: (options?: Omit<PublishCommand, "request">) => {
       if (!layer?.currentDraft?.id) throw new Error("KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED");
       publishMutation.mutate({
-        expectedRevision: layer.metadataRevision,
-        revisionId: layer.currentDraft.id,
+        ...options,
+        request: {
+          expectedRevision: layer.metadataRevision,
+          revisionId: layer.currentDraft.id,
+        },
       });
     },
     previewRestore: (sourceRevisionId: string) => {

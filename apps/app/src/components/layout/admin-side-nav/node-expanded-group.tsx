@@ -228,7 +228,7 @@ function GroupRootDropdown({
           label={label}
           isOpen={isOpen}
           isTrailActive={isTrailActive}
-          tooltip={undefined}
+          tooltip={label}
           onClick={handleClick}
         />
       </WithBlockedTooltip>
@@ -256,7 +256,7 @@ function GroupRootDropdown({
             label={label}
             isOpen={isOpen || dropdownOpen}
             isTrailActive={isTrailActive}
-            tooltip={undefined}
+            tooltip={label}
             onClick={handleClick}
           />
         </DropdownMenuTrigger>
