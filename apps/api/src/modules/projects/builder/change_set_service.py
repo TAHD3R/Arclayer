@@ -16,6 +16,7 @@ from src.modules.projects.builder.change_set_analysis import require_builder_cha
 from src.modules.projects.builder.change_set_apply_context import resolve_builder_change_set_apply_context
 from src.modules.projects.builder.change_set_apply_operations import (
     AppliedBuilderOperations,
+    apply_revision_restore_operation,
     apply_sitemap_operations,
 )
 from src.modules.projects.builder.change_set_apply_persistence import (
@@ -39,6 +40,7 @@ from src.modules.projects.builder.change_set_schema import (
     BuilderChangeSetApplyRequest,
     BuilderChangeSetPreviewOut,
     BuilderChangeSetPreviewRequest,
+    BuilderRevisionRestoreOperationV1,
     BuilderSitemapOperationV1,
 )
 from src.modules.projects.builder.change_set_token import builder_change_set_preview_token_hash
@@ -58,6 +60,8 @@ from src.modules.projects.builder.design_system_change_set_schema import (
 from src.modules.projects.builder.design_system_context import ResolvedBuilderDesignSystem
 from src.modules.projects.builder.initialization import ActivityWriter
 from src.modules.projects.builder.repository import SiteBuilderRepository
+from src.modules.projects.builder.restore_change_set import analyze_revision_restore_change_set
+from src.modules.projects.builder.restore_change_set_context import resolve_builder_restore_target
 from src.modules.projects.builder.wireframe_change_set import analyze_wireframe_change_set
 from src.modules.projects.builder.wireframe_change_set_apply import apply_wireframe_operations
 from src.modules.projects.builder.wireframe_change_set_schema import (
@@ -160,7 +164,28 @@ class SiteBuilderChangeSetService(BaseService):
                 payload=payload,
                 conn=conn,
             )
-            if isinstance(payload.operations[0], BuilderDesignSystemRefreshOperationV1):
+            if isinstance(payload.operations[0], BuilderRevisionRestoreOperationV1):
+                restore_operation = cast(BuilderRevisionRestoreOperationV1, payload.operations[0])
+                target = await resolve_builder_restore_target(
+                    repository=self._repository,
+                    workspace_id=workspace_id,
+                    project_id=project_id,
+                    current_manifest=context.manifest,
+                    operation=restore_operation,
+                    conn=conn,
+                )
+                analysis = analyze_revision_restore_change_set(
+                    current_manifest=context.manifest,
+                    current_structure=context.structure,
+                    target_manifest=target.manifest,
+                    target_structure=target.structure,
+                    operation=restore_operation,
+                    live_item_ids=set(target.live_item_ids),
+                    target_version_ids=set(target.version_ids),
+                    missing_model_definition_item_ids=set(target.missing_model_definition_item_ids),
+                    provenance_source=context.provenance,
+                )
+            elif isinstance(payload.operations[0], BuilderDesignSystemRefreshOperationV1):
                 analysis = analyze_design_system_change_set(
                     manifest=context.manifest,
                     resolved=_require_design_system_refresh(context.design_system_refresh),
@@ -279,7 +304,40 @@ class SiteBuilderChangeSetService(BaseService):
                 context.operations[0],
                 BuilderDesignSystemRefreshOperationV1,
             )
-            if is_design_system_refresh:
+            is_restore = isinstance(context.operations[0], BuilderRevisionRestoreOperationV1)
+            if is_restore:
+                restore_operation = cast(BuilderRevisionRestoreOperationV1, context.operations[0])
+                target = context.restore_target
+                if target is None:
+                    raise RuntimeError("Restore ChangeSet apply requires a resolved target revision")
+                analysis = analyze_revision_restore_change_set(
+                    current_manifest=context.base_manifest,
+                    current_structure=context.base_structure,
+                    target_manifest=target.manifest,
+                    target_structure=target.structure,
+                    operation=restore_operation,
+                    live_item_ids=set(target.live_item_ids),
+                    target_version_ids=set(target.version_ids),
+                    missing_model_definition_item_ids=set(target.missing_model_definition_item_ids),
+                    provenance_source=context.provenance_source,
+                )
+                require_builder_change_set_not_blocked(analysis)
+                applied_operations = await apply_revision_restore_operation(
+                    commands=self._content_commands,
+                    current_manifest=context.base_manifest,
+                    current_structure=context.base_structure,
+                    target=target,
+                    operation=restore_operation,
+                    workspace_id=workspace_id,
+                    project_id=project_id,
+                    runtime_id=runtime_id,
+                    site_id=context.change_set.site_id,
+                    environment_id=context.change_set.environment_id,
+                    actor_user_id=actor_user_id,
+                    conn=conn,
+                )
+                command_dispatcher = self._content_commands
+            elif is_design_system_refresh:
                 target = _require_design_system_refresh(context.design_system_refresh)
                 applied_operations = AppliedBuilderOperations(
                     client_page_ids={},

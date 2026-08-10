@@ -34,6 +34,7 @@ from src.modules.projects.builder.wireframe_change_set_schema import (
     BuilderWireframeSetComponentOperationV1,
     BuilderWireframeSetGlobalReferenceOperationV1,
     BuilderWireframeSetInteractionsOperationV1,
+    BuilderWireframeSetLayoutOperationV1,
     BuilderWireframeSetResponsiveRuleOperationV1,
     BuilderWireframeSetVariantOperationV1,
 )
@@ -335,6 +336,12 @@ def _update_section(*, section: WireframeSectionV1, operation: BuilderWireframeO
             responsive_rules=list(operation.responsive_rules),
             interaction_rules=list(operation.interaction_rules),
         )
+    if isinstance(operation, BuilderWireframeSetLayoutOperationV1):
+        return _replace_section(
+            section,
+            layout=operation.layout,
+            responsive_layouts=list(operation.responsive_layouts),
+        )
     if isinstance(operation, BuilderWireframeSetComponentOperationV1):
         return _replace_section(section, component_key=_nonblank(operation.component_key))
     if isinstance(operation, BuilderWireframeSetVariantOperationV1):
@@ -397,6 +404,7 @@ def _replace_section(section: WireframeSectionV1, **updates: object) -> Wirefram
             "variant_key": "variantKey",
             "responsive_rules": "responsiveRules",
             "interaction_rules": "interactionRules",
+            "responsive_layouts": "responsiveLayouts",
             "global_reference_id": "globalReferenceId",
         }.get(key, key)
         payload[alias] = value

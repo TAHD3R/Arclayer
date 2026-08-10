@@ -856,3 +856,75 @@ Remix 允许调整结构、布局、内容槽位、样式变量和组件组合�
 - 在本方向文档追加已完成事项、未决问题和下一阶段入口。
 
 各阶段可直接复制的独立对话 Prompt 见 [`ai-builder-implementation-prompts.md`](./ai-builder-implementation-prompts.md)。
+
+### 阶段 4 实施记录（2026-08-09）
+
+已完成统一 Editor 的一条真实结构编辑切片：Sitemap 页面拖拽排序和
+Wireframe Section 拖拽排序都通过当前 Site Revision 的 typed ChangeSet
+Preview/Apply 写入，成功后重新读取 canonical revision；Wireframe 增加了
+受边界约束的 DOM/CSS 缩放控件，旧 `/content/site-builder` 直达入口改为迁移
+到 `/projects/{projectId}/editor`。
+
+当时尚未完成的阶段 4 验收项已在后续追加记录中逐项收敛。本切片没有引入
+本地假数据、静默 rebase 或自动 Apply。
+
+### 阶段 4 追加实施记录（2026-08-10）
+
+本轮将 Wireframe 布局收敛为可持久化的语义合同：`layout` 与
+`responsiveLayouts` 随 `WireframeDocumentV1` 保存，由 `wireframe.set_layout`
+通过服务端 ChangeSet Preview/Apply 写入。Render Document 和共享
+`SiteRenderer` 现在读取同一布局值，在 DOM/CSS section frame 中应用宽度、
+对齐、间距、网格列数和断点覆盖；Inspector 也展示 canonical 值。
+
+并发冲突面板保留最近一次 Sitemap/Wireframe typed intent。用户选择刷新时，
+编辑器读取最新 Site Revision，只更新 draft-version pin 后重新 Preview；
+选择放弃才会清除 intent。Sitemap 额外提供明确的“检查并同步 Wireframe”入口，
+跳转到同一页面的 Wireframe 场景，不在客户端静默改写下游结构。
+
+新增冲突组件测试、渲染布局往返测试和阶段 4 Playwright 场景；真实浏览器
+场景需要本地 `LOCAL_E2E_PROJECT_ID`，缺少该上下文会明确跳过。服务端现在提供
+受限的 `revision.restore` target ChangeSet：Preview/Apply 会在同一事务中恢复仍保留
+的内容版本、presentation、binding、层级、路由和规划，并保留当前操作者来源。
+已删除实体、Design System 变更、缺失历史版本或缺失内容类型会返回明确需要处理的
+问题；删除前会保留内容聚合快照，恢复时重建内容版本、展示文档、绑定、SEO、路由
+和层级。恢复仍受当前站点与设计系统范围约束，不会把已删除模型伪装成可用内容。
+
+### 阶段 4 历史读取追加（2026-08-10）
+
+Editor 现在通过真实的 `GET /projects/{projectId}/builder/history` 读取不可变
+Builder revision 历史，支持服务端分页游标、当前 revision 标识和明确的
+`restore_capability` 状态。对于存在 `base_revision_id` 且目标聚合仍完整保留的当前
+Revision，前端可发起真实 `revision.restore` Preview 并进入审阅；不会把历史读取
+误报为撤销成功。
+
+无效历史游标返回明确错误。Undo 和 Redo 都使用服务器返回的
+`undo_target_revision_id` / `redo_target_revision_id`，统一遵循 Preview → Review → Apply；
+restore lineage 持久化 source/target 关系，刷新后仍能继续撤销或重做。已删除实体、层级、
+路由、内容类型或历史版本不完整时，恢复会保留明确的服务端问题，不添加本地回退、
+客户端逆操作或静默恢复。
+
+阶段 4 的同步状态继续遵循 checkpoint → Preview → Apply → canonical reload：顶栏明确区分已保存、
+正在生成预览、需要确认、正在保存版本、冲突和失败。Durable checkpoint 表示草稿已可恢复，
+不表示站点版本已经应用。
+Builder 专用 draft checkpoint/autosave contract 已落地：Sitemap、Wireframe、Design、样式指南刷新、
+新增页面、共享区块以及 AI 候选应用都会先写入 durable checkpoint，再生成服务端 Preview；Apply 成功
+后丢弃 checkpoint。刷新会重新预览未应用草稿，保存版本冲突会暴露冲突状态并保留 typed intent，
+等待用户刷新或放弃，不静默覆盖其他操作者的草稿。真实浏览器场景使用每次运行唯一的页面路径，
+并验证 checkpoint 写入、服务端 Revision 推进、精确页面顺序、Builder/Revision 身份一致、
+Undo/Redo、双上下文冲突以及刷新后的已同步状态。
+
+### 阶段 4 闭环追加记录（2026-08-10）
+
+阶段 4 已完成统一 Editor 的 Sitemap/Wireframe 主流程闭环：DOM/CSS 画布、页面与区块层级、
+拖拽排序、缩放、对齐、属性与响应式布局值都通过同一 Site Revision 的 typed ChangeSet 持久化；
+Sitemap 到 Wireframe 提供明确的检查并同步入口。自动保存不再把 Preview 当作保存结果，而是以
+checkpoint 作为刷新恢复与冲突检测的事实来源。
+
+服务端 restore target 现在由 caller-owned 单事务执行，删除前保存内容聚合 retention 快照，
+恢复覆盖 ContentItem、ContentVersion、presentation、component binding、SEO、route binding 和
+hierarchy node，并写入 restore lineage。真实本地 Playwright 已通过两条场景（新增页面与排序、
+草稿恢复与 Undo/Redo/双上下文冲突），同时 API 焦点测试覆盖 restore blocker、ChangeSet apply、
+渲染布局、历史游标与 Wireframe 规则。
+
+仍需保持显式限制：任意像素绝对定位、任意代码组件和第二个 site-builder 编辑器不在首版范围；
+AI 生成候选仍必须经过当前页面/目标范围与服务端 ChangeSet 审阅，失败或冲突不得显示为成功。

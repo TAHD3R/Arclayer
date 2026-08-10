@@ -12,6 +12,7 @@ import {
   cancelProjectBuilderGeneration,
   createProjectBuilderCompositionSaga,
   createProjectBuilderGeneration,
+  getProjectBuilderHistory,
   getProjectBuilderPageRenderDocument,
   getProjectBuilderCompositionSaga,
   getProjectBuilderGeneration,
@@ -177,5 +178,15 @@ describe("api/project Builder generation contracts", () => {
       "/projects/project%2Falpha/builder/revisions/revision%2Fone/pages/page%2Fhome/render-document?locale=zh-CN&theme=dark",
       { signal: controller.signal },
     );
+  });
+
+  it("reads immutable Builder revision history without inventing restore state", async () => {
+    const controller = new AbortController();
+
+    await getProjectBuilderHistory("project/alpha", controller.signal);
+
+    expect(api.get).toHaveBeenCalledWith("/projects/project%2Falpha/builder/history", {
+      signal: controller.signal,
+    });
   });
 });

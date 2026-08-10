@@ -41,6 +41,7 @@ from src.modules.projects.builder.wireframe_change_set_schema import (
     BuilderWireframeSetComponentOperationV1,
     BuilderWireframeSetGlobalReferenceOperationV1,
     BuilderWireframeSetInteractionsOperationV1,
+    BuilderWireframeSetLayoutOperationV1,
     BuilderWireframeSetResponsiveRuleOperationV1,
     BuilderWireframeSetVariantOperationV1,
 )
@@ -48,7 +49,9 @@ from src.modules.projects.builder.wireframe_schema import (
     WireframeDocumentV1,
     WireframeFieldBindingV1,
     WireframeInteractionRuleV1,
+    WireframeLayoutV1,
     WireframeLiteralBindingV1,
+    WireframeResponsiveLayoutV1,
     WireframeResponsiveRuleV1,
     WireframeSectionV1,
 )
@@ -790,6 +793,39 @@ def test_section_configuration_replaces_the_complete_component_contract_atomical
     assert [(rule.event, rule.action, rule.target) for rule in candidate.interaction_rules] == [
         ("click", "navigate", "/features")
     ]
+    assert not [issue for issue in analysis.issues if issue.severity == "blocker"]
+
+
+def test_set_layout_persists_semantic_grid_geometry_and_breakpoint_overrides() -> None:
+    structure, manifest, page_id, _ = _state()
+    wireframe = _wireframe(page_id, UUID(str(manifest.design_system_version_id)))
+    operation = BuilderWireframeSetLayoutOperationV1(
+        type="wireframe.set_layout",
+        operation_id="layout-hero",
+        item_id=page_id,
+        expected_draft_version=2,
+        section_id="hero",
+        layout=WireframeLayoutV1(mode="grid", width="content", align="center", gap="lg", columns=3, span=8),
+        responsive_layouts=(
+            WireframeResponsiveLayoutV1(
+                breakpoint="mobile",
+                layout=WireframeLayoutV1(mode="stack", width="full", align="stretch", gap="sm", columns=1, span=12),
+            ),
+        ),
+    )
+
+    analysis = analyze_wireframe_change_set(
+        structure=structure,
+        manifest=manifest,
+        wireframes_by_item={page_id: wireframe},
+        component_catalog=_catalog(),
+        operations=(operation,),
+        provenance_source=BuilderProvenanceSource.HUMAN,
+    )
+
+    candidate = analysis.wireframe_candidates[0].wireframe.sections[0]
+    assert candidate.layout == operation.layout
+    assert candidate.responsive_layouts == operation.responsive_layouts
     assert not [issue for issue in analysis.issues if issue.severity == "blocker"]
 
 

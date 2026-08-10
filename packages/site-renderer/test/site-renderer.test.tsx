@@ -62,6 +62,27 @@ function renderDocument(componentKey = "landing.hero"): SiteRenderDocument {
         componentKey,
         variantKey: "default",
         label: "Hero",
+        layout: {
+          mode: "grid",
+          width: "content",
+          align: "center",
+          gap: "md",
+          columns: 2,
+          span: 2,
+        },
+        responsiveLayouts: [
+          {
+            breakpoint: "mobile",
+            layout: {
+              mode: "stack",
+              width: "full",
+              align: "stretch",
+              gap: "sm",
+              columns: 1,
+              span: 1,
+            },
+          },
+        ],
         slots: [
           {
             key: "heading",
@@ -109,6 +130,19 @@ test("renders the pinned document as semantic text without injecting HTML", () =
   expect(screen.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/contact");
   expect(container.querySelector("script")).toBeNull();
   expect(container.querySelector("strong")).toBeNull();
+});
+
+test("projects the canonical semantic layout into the rendered section frame", () => {
+  const { container } = render(
+    <SiteRenderer document={renderDocument()} previewBreakpoint="mobile" />,
+  );
+  const frame = container.querySelector(".arc-site-section-frame");
+  expect(frame).toHaveStyle({
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  });
 });
 
 test("rejects unknown visitor components instead of rendering a fallback", () => {

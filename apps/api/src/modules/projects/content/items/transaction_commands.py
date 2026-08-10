@@ -23,6 +23,10 @@ from src.modules.projects.content.items.domain_helpers import (
     extract_seo_payload,
 )
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+from src.modules.projects.content.items.retention import (
+    restore_retained_content_item,
+    retain_content_item_aggregate,
+)
 from src.modules.tenancy.router_helpers import tenant_payload_from_context
 
 CONTENT_ITEM_CREATED_EVENT = "content.item.created"
@@ -292,6 +296,8 @@ class ProjectContentItemTransactionCommands(BaseService):
         model_key = self._model_key(item)
         version_number = int(item.draft_version or 0)
 
+        await retain_content_item_aggregate(item=item, actor_user_id=actor_user_id, conn=conn)
+
         async def before_commit(
             deleted_item: ContentItemRecord,
             transaction: BaseDBAsyncClient,
@@ -336,6 +342,120 @@ class ProjectContentItemTransactionCommands(BaseService):
                 model_key=model_key,
                 actor_user_id=actor_user_id,
                 extra={"deleted": True},
+            ),
+        )
+
+    async def restore_deleted_item(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        runtime_id: UUID,
+        site_id: UUID,
+        environment_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> ContentItemRecord:
+        item = await restore_retained_content_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+            actor_user_id=actor_user_id,
+            conn=conn,
+        )
+        model_key = self._model_key(item)
+        await self._write_activity(
+            event_name=CONTENT_ITEM_UPDATED_EVENT,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item=item,
+            model_key=model_key,
+            version_number=int(item.draft_version or 0),
+            actor_user_id=actor_user_id,
+            deleted=False,
+            conn=conn,
+        )
+        return item
+
+    async def restore_version_to_draft(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        runtime_id: UUID,
+        site_id: UUID,
+        environment_id: UUID,
+        item_id: UUID,
+        source_version_number: int,
+        actor_user_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> ContentItemTransactionResult:
+        item = await self._require_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+            conn=conn,
+        )
+        source = await self._repo.get_version_by_number(
+            item_id=item.id,
+            version_number=source_version_number,
+            conn=conn,
+            for_update=True,
+        )
+        if source is None:
+            raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
+        model_key = self._model_key(item)
+        presentations = self._presentations(source)
+
+        async def before_commit(
+            updated_item: ContentItemRecord,
+            version: ContentVersionRecord,
+            transaction: BaseDBAsyncClient,
+        ) -> None:
+            await self._replace_presentations(version_id=version.id, presentations=presentations, conn=transaction)
+            await self._write_activity(
+                event_name=CONTENT_ITEM_UPDATED_EVENT,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item=updated_item,
+                model_key=model_key,
+                version_number=int(version.version),
+                actor_user_id=actor_user_id,
+                deleted=False,
+                conn=transaction,
+            )
+
+        mutation = await self._entity_manager.update_in_transaction(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            model_key=model_key,
+            item_id=item.id,
+            data=cast(JsonObject, source.fields_snapshot),
+            actor_id=actor_user_id,
+            before_commit=before_commit,
+            conn=conn,
+        )
+        version = mutation.result.version
+        return ContentItemTransactionResult(
+            item_id=item.id,
+            version_id=version.id,
+            version_number=int(version.version),
+            after_commit=self._after_commit_effect(
+                lifecycle=mutation.after_commit,
+                event_name=CONTENT_ITEM_UPDATED_EVENT,
+                workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=runtime_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item=item,
+                model_key=model_key,
+                actor_user_id=actor_user_id,
+                extra={"restored_from_version": source_version_number},
             ),
         )
 

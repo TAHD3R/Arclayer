@@ -297,6 +297,7 @@ Module-local paths are mounted under the global Admin `/api/v1` prefix by `core/
 | --- | --- |
 | `GET /projects/{projectId}/builder` | Current composed projection. |
 | `POST /projects/{projectId}/builder/initializations` | Idempotently create the exact root Content Structure/Site Revision baseline from explicit authoring and Design System expectations. |
+| `GET /projects/{projectId}/builder/history` | Read immutable Builder revision metadata with a server cursor; this is history evidence only and does not grant restore capability. |
 | `GET /projects/{projectId}/builder/revisions/{revisionId}` | One immutable manifest and authorized projections. |
 | `GET /projects/{projectId}/builder/pages/{itemId}/{stage}` | Exact stage payload pinned by revision. |
 | `POST /projects/{projectId}/builder/change-sets/preview` | Persist and preview typed operations. |
@@ -312,7 +313,7 @@ Module-local paths are mounted under the global Admin `/api/v1` prefix by `core/
 | `GET /projects/{projectId}/builder/preview-artifacts` | List authorized revision/release preview artifacts. |
 | `POST /projects/{projectId}/authoring-mode-migrations` | Preview/create approval-gated mode migration Job. |
 
-All unsafe requests require browser CSRF/auth, `PublicUUID`, typed request/response schemas, stable errors, permissions, and generated clients. Create/apply/generation/migration calls require `Idempotency-Key`.
+All unsafe requests require browser CSRF/auth, `PublicUUID`, typed request/response schemas, stable errors, permissions, and generated clients. Create/apply/generation/migration calls require `Idempotency-Key`. Revision history cursors are validated against the project/site/environment scope; an invalid cursor is an explicit `BUILDER_HISTORY_CURSOR_NOT_FOUND` error. Undo and Redo use a typed `revision.restore` target only when the history projection exposes a valid cursor/lineage; history reads alone must never be presented as a successful restore.
 
 ## 13. Errors and conflicts
 
@@ -1162,9 +1163,10 @@ Required tests cover schema rejection, operation-family isolation, duplicate
 semantic writes, Preview normalization, pin/hash drift, catalog type
 validation, page versus reusable-section SEO, multi-host transaction rollback,
 idempotent Apply/replay, renderer source selection, and invalid-Blueprint
-fail-closed behavior. AI Design generation, asset/font authorization,
-automated accessibility execution, compiler bundles, release activation,
-thumbnail capture, comments, and server undo/redo remain gated.
+fail-closed behavior. Asset/font authorization, automated accessibility
+execution, compiler bundles, release activation, thumbnail capture, and comments
+remain gated. AI Design generation and server Undo/Redo use the typed generation
+and `revision.restore` contracts defined below.
 
 ### 32.6 Revision-pinned Design authoring inputs
 

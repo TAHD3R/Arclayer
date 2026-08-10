@@ -9,6 +9,8 @@ from src.common.types.json_types import JsonValue
 from src.common.types.public_uuid import PublicUUID
 from src.modules.projects.builder.wireframe_schema import (
     WireframeInteractionRuleV1,
+    WireframeLayoutV1,
+    WireframeResponsiveLayoutV1,
     WireframeResponsiveRuleV1,
 )
 
@@ -144,6 +146,8 @@ class BuilderRenderSectionOut(BaseSchema):
     variant_key: str = Field(min_length=1, max_length=128)
     label: str = Field(min_length=1, max_length=128)
     slots: tuple[BuilderRenderSlotOut, ...]
+    layout: WireframeLayoutV1 = Field(default_factory=WireframeLayoutV1)
+    responsive_layouts: tuple[WireframeResponsiveLayoutV1, ...] = ()
     responsive_rules: tuple[WireframeResponsiveRuleV1, ...]
     interaction_rules: tuple[WireframeInteractionRuleV1, ...]
     asset_references: tuple[PublicUUID, ...]

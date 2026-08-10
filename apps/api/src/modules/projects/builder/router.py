@@ -37,6 +37,11 @@ from src.modules.projects.builder.composition_saga_schema import (
 )
 from src.modules.projects.builder.composition_saga_service import BuilderCompositionSagaService
 from src.modules.projects.builder.composition_saga_transition import BuilderCompositionChildCreator
+from src.modules.projects.builder.draft_checkpoint_schema import (
+    BuilderDraftCheckpointOut,
+    BuilderDraftCheckpointSaveIn,
+)
+from src.modules.projects.builder.draft_checkpoint_service import BuilderDraftCheckpointService
 from src.modules.projects.builder.generation_authority import CanonicalBuilderGenerationAuthorityResolver
 from src.modules.projects.builder.generation_repository import BuilderGenerationRepository
 from src.modules.projects.builder.generation_schema import (
@@ -53,6 +58,7 @@ from src.modules.projects.builder.schema import (
     BuilderComponentCatalogOut,
     BuilderInitializationOut,
     BuilderInitializationRequest,
+    BuilderRevisionHistoryOut,
     BuilderRevisionOut,
     ProjectBuilderProjectionOut,
 )
@@ -110,6 +116,16 @@ def get_site_builder_service(_ctx: ProjectContext) -> SiteBuilderService:
 
 
 Service = Annotated[SiteBuilderService, Depends(get_site_builder_service)]
+
+
+def get_builder_draft_checkpoint_service(_ctx: ProjectContext) -> BuilderDraftCheckpointService:
+    return BuilderDraftCheckpointService(repository=SiteBuilderRepository(require_current_tenant_context()))
+
+
+DraftCheckpointService = Annotated[
+    BuilderDraftCheckpointService,
+    Depends(get_builder_draft_checkpoint_service),
+]
 
 
 def get_site_builder_change_set_service(request: Request, _ctx: ProjectContext) -> SiteBuilderChangeSetService:
@@ -242,6 +258,28 @@ async def get_project_builder_component_catalog(
 
 
 @router.get(
+    "/history",
+    response_model=ResponseModel[BuilderRevisionHistoryOut],
+    dependencies=[require_project_permission("project:site:read")],
+    summary="List immutable Builder revision history",
+)
+async def list_project_builder_history(
+    ctx: ProjectContext,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    cursor: Annotated[PublicUUID | None, Query()] = None,
+) -> ResponseModel[BuilderRevisionHistoryOut]:
+    data = await service.get_revision_history(
+        workspace_id=ctx.workspace_id,
+        project_id=ctx.project_id,
+        runtime_id=ctx.runtime_id,
+        limit=limit,
+        cursor=UUID(str(cursor)) if cursor is not None else None,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
     "/revisions/{revision_id}",
     response_model=ResponseModel[BuilderRevisionOut],
     dependencies=[require_project_permission("project:site:read")],
@@ -256,6 +294,78 @@ async def get_project_builder_revision(
         workspace_id=ctx.workspace_id,
         project_id=ctx.project_id,
         revision_id=UUID(str(revision_id)),
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/draft-checkpoint",
+    response_model=ResponseModel[BuilderDraftCheckpointOut | None],
+    dependencies=[require_project_permission("project:site:read")],
+    summary="Read the current durable Builder draft checkpoint",
+)
+async def get_project_builder_draft_checkpoint(
+    ctx: ProjectContext,
+    actor_user_id: ActorUserId,
+    service: DraftCheckpointService,
+    client_session_id: Annotated[str, Query(min_length=1, max_length=128)] = "project-editor",
+) -> ResponseModel[BuilderDraftCheckpointOut | None]:
+    data = await service.get(
+        project_id=ctx.project_id,
+        runtime_id=ctx.runtime_id,
+        actor_user_id=actor_user_id,
+        client_session_id=client_session_id,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.put(
+    "/draft-checkpoint",
+    response_model=ResponseModel[BuilderDraftCheckpointOut],
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        require_project_permission("project:content:site-builder:write"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Persist the current Builder draft checkpoint",
+)
+async def save_project_builder_draft_checkpoint(
+    payload: BuilderDraftCheckpointSaveIn,
+    ctx: ProjectContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: DraftCheckpointService,
+) -> ResponseModel[BuilderDraftCheckpointOut]:
+    data = await service.save(
+        workspace_id=ctx.workspace_id,
+        project_id=ctx.project_id,
+        runtime_id=ctx.runtime_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.delete(
+    "/draft-checkpoint",
+    response_model=ResponseModel[BuilderDraftCheckpointOut | None],
+    dependencies=[require_project_permission("project:content:site-builder:write")],
+    summary="Discard the current Builder draft checkpoint",
+)
+async def discard_project_builder_draft_checkpoint(
+    ctx: ProjectContext,
+    actor_user_id: ActorUserId,
+    service: DraftCheckpointService,
+    client_session_id: Annotated[str, Query(min_length=1, max_length=128)] = "project-editor",
+    expected_checkpoint_version: Annotated[int, Query(ge=1)] = 1,
+) -> ResponseModel[BuilderDraftCheckpointOut | None]:
+    data = await service.discard(
+        project_id=ctx.project_id,
+        runtime_id=ctx.runtime_id,
+        actor_user_id=actor_user_id,
+        client_session_id=client_session_id,
+        expected_checkpoint_version=expected_checkpoint_version,
     )
     return ApiResponse.success(data=data)
 

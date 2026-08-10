@@ -37,6 +37,8 @@ from src.modules.projects.builder.schema import (
     BuilderDesignTokenOut,
     BuilderInitializationOut,
     BuilderInitializationRequest,
+    BuilderRevisionHistoryEntryOut,
+    BuilderRevisionHistoryOut,
     BuilderRevisionOut,
     ProjectBuilderProjectionOut,
 )
@@ -92,6 +94,74 @@ class SiteBuilderService(BaseService):
                 revision_id=revision_id,
                 conn=conn,
             )
+
+    async def get_revision_history(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        runtime_id: UUID | None,
+        limit: int,
+        cursor: UUID | None,
+    ) -> BuilderRevisionHistoryOut:
+        projection = await self.get_projection(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+        )
+        current = projection.current_site_revision
+        if current is None:
+            return BuilderRevisionHistoryOut()
+        async with self.tx() as conn:
+            if cursor is not None:
+                cursor_record = await self._repository.get_site_revision(
+                    project_id=project_id,
+                    revision_id=cursor,
+                    conn=conn,
+                )
+                if (
+                    cursor_record is None
+                    or UUID(str(cursor_record.site_id)) != UUID(str(current.site_id))
+                    or UUID(str(cursor_record.environment_id)) != UUID(str(current.environment_id))
+                ):
+                    raise NotFound("Builder history cursor not found", error="BUILDER_HISTORY_CURSOR_NOT_FOUND")
+            records, next_cursor = await self._repository.list_site_revisions(
+                project_id=project_id,
+                site_id=UUID(str(current.site_id)),
+                environment_id=UUID(str(current.environment_id)),
+                limit=limit,
+                cursor=cursor,
+                conn=conn,
+            )
+            lineage = await self._repository.get_restore_lineage(
+                project_id=project_id,
+                restore_revision_id=current.id,
+                conn=conn,
+            )
+        current_id = UUID(str(current.id))
+        undo_target = lineage.target_revision_id if lineage is not None else current.base_revision_id
+        redo_target = lineage.source_revision_id if lineage is not None else None
+        return BuilderRevisionHistoryOut(
+            current_revision_id=current.id,
+            undo_target_revision_id=undo_target,
+            redo_target_revision_id=redo_target,
+            restore_capability="available" if undo_target is not None else "unavailable",
+            items=tuple(
+                BuilderRevisionHistoryEntryOut(
+                    id=record.id,
+                    revision_number=int(record.revision_number),
+                    base_revision_id=record.base_revision_id,
+                    manifest_hash=str(record.manifest_hash),
+                    provenance_source=record.provenance_source,
+                    actor_user_id=record.actor_user_id,
+                    agent_run_id=record.agent_run_id,
+                    created_at=record.created_at,
+                    is_current=UUID(str(record.id)) == current_id,
+                )
+                for record in records
+            ),
+            next_cursor=next_cursor,
+        )
 
     async def get_page_render_document(
         self,

@@ -94,12 +94,13 @@ function RenderSection({
     selected ? previewStateKey : "default",
     selected ? previewBreakpoint : null,
   );
+  const layoutStyle = sectionLayoutStyle(section, previewBreakpoint);
   return (
     <div
       className="arc-site-section-frame"
       data-component={section.componentKey}
       data-selected={selected || undefined}
-      style={recipeStyle}
+      style={{ ...layoutStyle, ...recipeStyle }}
     >
       <Component
         section={section}
@@ -117,6 +118,56 @@ function RenderSection({
       ) : null}
     </div>
   );
+}
+
+function sectionLayoutStyle(section: SiteRenderSection, breakpoint: string | null): CSSProperties {
+  const layout = section.responsiveLayouts?.find((item) => item.breakpoint === breakpoint)
+    ?.layout ??
+    section.layout ?? {
+      mode: "stack",
+      width: "full",
+      align: "stretch",
+      gap: "md",
+      columns: 1,
+      span: 12,
+    };
+  const columns = Math.max(1, Math.min(12, layout.columns ?? 1));
+  const span = Math.max(1, Math.min(columns, layout.span ?? 12));
+  const gap = {
+    none: "0",
+    xs: "0.5rem",
+    sm: "0.75rem",
+    md: "1rem",
+    lg: "1.5rem",
+    xl: "2rem",
+  }[layout.gap ?? "md"];
+  const width = {
+    full: "100%",
+    wide: "min(100%, 90rem)",
+    content: "min(100%, 72rem)",
+    narrow: "min(100%, 48rem)",
+  }[layout.width ?? "full"];
+  const align = {
+    start: "flex-start",
+    center: "center",
+    end: "flex-end",
+    stretch: "stretch",
+  }[layout.align ?? "stretch"];
+  return {
+    width,
+    marginInline: layout.align === "stretch" ? undefined : "auto",
+    alignSelf: align,
+    display: layout.mode === "stack" ? "flex" : "grid",
+    flexDirection: layout.mode === "stack" ? "column" : undefined,
+    gridTemplateColumns:
+      layout.mode === "grid" || layout.mode === "split"
+        ? `repeat(${columns}, minmax(0, 1fr))`
+        : undefined,
+    gridColumn:
+      layout.mode === "grid" || layout.mode === "split" ? `span ${span} / span ${span}` : undefined,
+    gap,
+    position: layout.mode === "overlay" ? "relative" : undefined,
+  };
 }
 
 function documentStyle(document: SiteRenderDocument): CSSProperties {

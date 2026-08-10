@@ -30,6 +30,7 @@ interface SitemapIntentEditorProps {
   onPreview: (draft: SitemapPlanningDraft) => void;
   onApply: () => void;
   onDiscard: () => void;
+  onSyncWireframe?: () => void;
 }
 
 export function SitemapIntentEditor({
@@ -42,6 +43,7 @@ export function SitemapIntentEditor({
   onPreview,
   onApply,
   onDiscard,
+  onSyncWireframe,
 }: SitemapIntentEditorProps) {
   const { t } = useTranslation("account");
   const [draft, setDraft] = useState(() => draftFromPage(page));
@@ -106,6 +108,27 @@ export function SitemapIntentEditor({
           >
             <WandSparkles className="size-4" aria-hidden="true" />
             {t("CREATION_EDITOR_SITEMAP_ADOPT_WIREFRAME")}
+          </Button>
+        </div>
+      ) : null}
+      {page.wireframe && onSyncWireframe ? (
+        <div className="mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-3">
+          <p className="text-footnote font-medium text-label-primary">
+            {t("CREATION_EDITOR_SITEMAP_WIREFRAME_SYNC_TITLE")}
+          </p>
+          <p className="mt-1 text-caption leading-5 text-label-secondary">
+            {t("CREATION_EDITOR_SITEMAP_WIREFRAME_SYNC_DESC")}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            disabled={!canWrite || previewing || applying}
+            onClick={onSyncWireframe}
+          >
+            <WandSparkles className="size-4" aria-hidden="true" />
+            {t("CREATION_EDITOR_SITEMAP_WIREFRAME_SYNC_ACTION")}
           </Button>
         </div>
       ) : null}

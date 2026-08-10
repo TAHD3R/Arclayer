@@ -246,6 +246,31 @@ class BuilderRevisionOut(BaseSchema):
     )
 
 
+class BuilderRevisionHistoryEntryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    id: PublicUUID
+    revision_number: int = Field(ge=1)
+    base_revision_id: PublicUUID | None = None
+    manifest_hash: Checksum = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    provenance_source: BuilderProvenanceSource
+    actor_user_id: PublicUUID | None = None
+    agent_run_id: PublicUUID | None = None
+    created_at: datetime
+    is_current: bool
+
+
+class BuilderRevisionHistoryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    current_revision_id: PublicUUID | None = None
+    undo_target_revision_id: PublicUUID | None = None
+    redo_target_revision_id: PublicUUID | None = None
+    items: tuple[BuilderRevisionHistoryEntryOut, ...] = ()
+    next_cursor: PublicUUID | None = None
+    restore_capability: Literal["available", "unavailable"] = "unavailable"
+
+
 class BuilderDesignTokenOut(BaseSchema):
     path: str = Field(min_length=1, max_length=256)
     type: TokenValueType

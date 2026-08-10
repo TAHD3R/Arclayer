@@ -16,6 +16,7 @@ from src.modules.projects.builder.change_set_revision import AppliedBuilderRevis
 from src.modules.projects.builder.change_set_schema import (
     BuilderChangeSetApplyOut,
     BuilderChangeSetApprovalOut,
+    BuilderRevisionRestoreOperationV1,
 )
 from src.modules.projects.builder.initialization import ActivityWriter
 from src.modules.projects.builder.repository import SiteBuilderRepository
@@ -77,6 +78,42 @@ async def persist_builder_change_set_apply(
         },
         conn=conn,
     )
+    operation_payload = [operation.model_dump(mode="json", by_alias=True) for operation in context.operations]
+    for checkpoint in await repository.list_draft_checkpoints_for_apply(
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        base_revision_id=UUID(str(context.base_manifest.id)),
+        conn=conn,
+        for_update=True,
+    ):
+        if checkpoint.operations != operation_payload:
+            continue
+        await repository.update_draft_checkpoint(
+            record=checkpoint,
+            values={
+                "status": "applied",
+                "applied_change_set_id": context.change_set.id,
+                "conflict_meta": None,
+            },
+            conn=conn,
+        )
+        break
+    restore_operation = next(
+        (operation for operation in context.operations if isinstance(operation, BuilderRevisionRestoreOperationV1)),
+        None,
+    )
+    if restore_operation is not None:
+        await repository.create_restore_lineage(
+            values={
+                "project_id": project_id,
+                "site_id": UUID(str(context.base_manifest.site_id)),
+                "environment_id": UUID(str(context.base_manifest.environment_id)),
+                "restore_revision_id": revision.site_revision.id,
+                "source_revision_id": context.base_manifest.id,
+                "target_revision_id": restore_operation.target_revision_id,
+            },
+            conn=conn,
+        )
     await activity_writer(
         settings=settings,
         payload=ActivityAuditPayload(

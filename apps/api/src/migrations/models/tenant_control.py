@@ -63,6 +63,9 @@ _TENANT_OWNED_TABLES = (
     "builder_change_set_approvals",
     "builder_generations",
     "builder_composition_sagas",
+    "builder_draft_checkpoints",
+    "builder_restore_lineages",
+    "content_item_deletion_records",
     "design_system_concept_generations",
 )
 

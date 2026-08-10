@@ -3,6 +3,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
+  BuilderChangeSetPreviewRequest,
   BuilderChangeSetPreviewOut,
   BuilderRevisionGlobalSectionOut,
   BuilderRevisionOut,
@@ -32,6 +33,8 @@ interface UseSharedSectionManagerInput {
   revision: BuilderRevisionOut;
   onOpenChange: (open: boolean) => void;
   onApplied: () => Promise<void>;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }
 
 function commandKey(prefix: string): string {
@@ -84,6 +87,8 @@ export function useSharedSectionManager({
   revision,
   onOpenChange,
   onApplied,
+  onDraftAutosave,
+  onDraftDiscard,
 }: UseSharedSectionManagerInput) {
   const { t } = useTranslation("account");
   const online = useOnlineStatus();
@@ -94,10 +99,13 @@ export function useSharedSectionManager({
   const defaultProps = useMemo(() => parseDefaultProps(draft.defaultProps), [draft.defaultProps]);
 
   const previewMutation = useMutation({
-    mutationFn: (request: {
+    mutationFn: async (request: {
       payload: Parameters<typeof previewProjectBuilderChangeSet>[1];
       key: string;
-    }) => previewProjectBuilderChangeSet(projectId, request.payload, request.key),
+    }) => {
+      await onDraftAutosave(request.payload.operations);
+      return previewProjectBuilderChangeSet(projectId, request.payload, request.key);
+    },
     onSuccess: setPreview,
   });
   const applyMutation = useMutation({
@@ -120,6 +128,7 @@ export function useSharedSectionManager({
       );
     },
     onSuccess: async () => {
+      await onDraftDiscard();
       await onApplied();
       closeDialog();
     },

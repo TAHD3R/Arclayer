@@ -110,6 +110,7 @@ export function WireframeInspector({
                   label={t("CREATION_EDITOR_WIREFRAME_COMPONENT")}
                   value={section.componentKey}
                 />
+                <LayoutSummary section={section} />
                 <BindingList section={section} />
                 <RuleList section={section} />
               </section>
@@ -124,6 +125,51 @@ export function WireframeInspector({
         )}
       </ScrollArea>
     </aside>
+  );
+}
+
+function LayoutSummary({ section }: { section: WireframeSectionV1Output }) {
+  const { t } = useTranslation("account");
+  const layout = section.layout ?? {
+    mode: "stack",
+    width: "full",
+    align: "stretch",
+    gap: "md",
+    columns: 1,
+    span: 12,
+  };
+  const overrides = section.responsiveLayouts ?? [];
+  return (
+    <section
+      className="mt-5 border-t border-border pt-5"
+      aria-labelledby="wireframe-layout-summary-heading"
+    >
+      <h4
+        id="wireframe-layout-summary-heading"
+        className="text-footnote font-semibold text-label-primary"
+      >
+        {t("CREATION_EDITOR_WIREFRAME_LAYOUT_TITLE")}
+      </h4>
+      <p className="mt-2 font-mono text-caption text-label-secondary">
+        {layout.mode} · {layout.width} · {layout.align} · {layout.gap} · {layout.columns}/
+        {layout.span}
+      </p>
+      {overrides.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {overrides.map((override) => (
+            <li key={override.breakpoint} className="rounded-lg border border-border px-3 py-2">
+              <p className="text-caption font-medium text-label-primary">
+                {t(`CREATION_EDITOR_WIREFRAME_VIEWPORT_${override.breakpoint.toUpperCase()}`)}
+              </p>
+              <p className="mt-1 font-mono text-caption text-label-secondary">
+                {override.layout.mode} · {override.layout.width} · {override.layout.align} ·{" "}
+                {override.layout.gap} · {override.layout.columns}/{override.layout.span}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 

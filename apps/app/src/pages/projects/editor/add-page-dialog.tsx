@@ -9,7 +9,11 @@ import {
 } from "@arclayer/ui/dialog";
 import { Input } from "@arclayer/ui/input";
 import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
-import type { BuilderChangeSetPreviewOut, BuilderRevisionOut } from "@arclayer/openapi";
+import type {
+  BuilderChangeSetPreviewOut,
+  BuilderChangeSetPreviewRequest,
+  BuilderRevisionOut,
+} from "@arclayer/openapi";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
@@ -27,6 +31,7 @@ interface AddPageDialogProps {
   projectId: string;
   revision: BuilderRevisionOut;
   onApplied: () => Promise<void>;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
 }
 
 function commandKey(prefix: string): string {
@@ -48,6 +53,7 @@ export function AddPageDialog({
   projectId,
   revision,
   onApplied,
+  onDraftAutosave,
 }: AddPageDialogProps) {
   const { t } = useTranslation("account");
   const [title, setTitle] = useState("");
@@ -62,32 +68,34 @@ export function AddPageDialog({
   const formValid = Boolean(normalizedTitle && pathValid);
 
   const previewMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!formValid || normalizedSlug === null) {
         throw new Error(t("CREATION_EDITOR_ADD_PAGE_INVALID"));
       }
       const siblings = revision.pages.filter((page) => (page.parentItemId ?? "") === parentItemId);
+      const operations: BuilderChangeSetPreviewRequest["operations"] = [
+        {
+          type: "page.create",
+          operationId: commandKey("page-create-operation"),
+          clientPageId: commandKey("page-create-client"),
+          modelKey: "page",
+          title: normalizedTitle,
+          slug: normalizedSlug,
+          path: normalizedPath,
+          locale: revision.contentStructureRevision.snapshot.locales[0],
+          parentItemId: parentItemId || null,
+          sortOrder: siblings.length,
+          fieldsSnapshot: { title: normalizedTitle, path: normalizedPath },
+        },
+      ];
+      await onDraftAutosave(operations);
       return previewProjectBuilderChangeSet(
         projectId,
         {
           baseRevisionId: revision.siteRevision.id,
           baseEtag: revision.siteRevision.manifestHash,
           provenanceSource: "human",
-          operations: [
-            {
-              type: "page.create",
-              operationId: commandKey("page-create-operation"),
-              clientPageId: commandKey("page-create-client"),
-              modelKey: "page",
-              title: normalizedTitle,
-              slug: normalizedSlug,
-              path: normalizedPath,
-              locale: revision.contentStructureRevision.snapshot.locales[0],
-              parentItemId: parentItemId || null,
-              sortOrder: siblings.length,
-              fieldsSnapshot: { title: normalizedTitle, path: normalizedPath },
-            },
-          ],
+          operations,
         },
         commandKey("page-create-preview"),
       );

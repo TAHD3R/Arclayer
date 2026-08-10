@@ -1,7 +1,11 @@
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { BuilderChangeSetPreviewOut, BuilderRevisionOut } from "@arclayer/openapi";
+import type {
+  BuilderChangeSetPreviewOut,
+  BuilderChangeSetPreviewRequest,
+  BuilderRevisionOut,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
@@ -23,6 +27,8 @@ interface SharedSectionManagerDialogProps {
   canWrite: boolean;
   permissionReady: boolean;
   onApplied: () => Promise<void>;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }
 
 export function SharedSectionManagerDialog({
@@ -33,9 +39,18 @@ export function SharedSectionManagerDialog({
   canWrite,
   permissionReady,
   onApplied,
+  onDraftAutosave,
+  onDraftDiscard,
 }: SharedSectionManagerDialogProps) {
   const { t } = useTranslation("account");
-  const manager = useSharedSectionManager({ projectId, revision, onOpenChange, onApplied });
+  const manager = useSharedSectionManager({
+    projectId,
+    revision,
+    onOpenChange,
+    onApplied,
+    onDraftAutosave,
+    onDraftDiscard,
+  });
   const { state, actions } = manager;
   const titleKey = resolveDialogCopyKey(state.flow, "title");
   const descriptionKey = resolveDialogCopyKey(state.flow, "description");

@@ -28,6 +28,7 @@ from src.modules.projects.builder.change_set_schema import (
     BuilderGlobalSectionIntentReplaceOperationV1,
     BuilderOperationV1,
     BuilderPageIntentReplaceOperationV1,
+    BuilderRevisionRestoreOperationV1,
 )
 from src.modules.projects.builder.change_set_token import (
     builder_change_set_preview_token_hash,
@@ -48,6 +49,10 @@ from src.modules.projects.builder.design_system_context import (
 )
 from src.modules.projects.builder.manifest import parse_site_revision_manifest
 from src.modules.projects.builder.repository import SiteBuilderRepository
+from src.modules.projects.builder.restore_change_set_context import (
+    ResolvedBuilderRestoreTarget,
+    resolve_builder_restore_target,
+)
 from src.modules.projects.builder.schema import ContentStructureSnapshotV1, SiteRevisionManifestV1
 from src.modules.projects.builder.snapshot import (
     BuilderSnapshotError,
@@ -85,6 +90,7 @@ class BuilderChangeSetApplyContext(BaseModel):
     component_catalog: ComponentCatalogV1 | None
     design_contract: ResolvedBuilderDesignContract | None = None
     design_system_refresh: ResolvedBuilderDesignSystem | None
+    restore_target: ResolvedBuilderRestoreTarget | None = None
     provenance_source: BuilderProvenanceSource
     now: datetime
 
@@ -181,6 +187,18 @@ async def resolve_builder_change_set_apply_context(
         conn=conn,
     )
     operations = _parse_operations(change_set)
+    restore_target = (
+        await resolve_builder_restore_target(
+            repository=repository,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            current_manifest=base_manifest,
+            operation=operations[0],
+            conn=conn,
+        )
+        if isinstance(operations[0], BuilderRevisionRestoreOperationV1)
+        else None
+    )
     wireframes_by_item = (
         await load_manifest_wireframes(
             repository=repository,
@@ -277,6 +295,7 @@ async def resolve_builder_change_set_apply_context(
         component_catalog=component_catalog,
         design_contract=design_contract,
         design_system_refresh=design_system_refresh,
+        restore_target=restore_target,
         provenance_source=provenance,
         now=now,
     )

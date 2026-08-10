@@ -26,6 +26,7 @@ from src.modules.projects.builder.change_set_schema import (
     BuilderPageMoveOperationV1,
     BuilderPageRenameOperationV1,
     BuilderPageReorderOperationV1,
+    BuilderRevisionRestoreOperationV1,
     BuilderRouteDisableOperationV1,
     BuilderRouteSetOperationV1,
 )
@@ -35,6 +36,7 @@ from src.modules.projects.builder.change_set_token import (
     builder_change_set_preview_token_hash,
     verify_builder_change_set_preview_token,
 )
+from src.modules.projects.builder.restore_change_set import analyze_revision_restore_change_set
 from src.modules.projects.builder.schema import (
     BuilderGlobalSectionNodeSnapshotV1,
     BuilderGlobalSectionVersionPinV1,
@@ -116,6 +118,138 @@ def _request_operation(**overrides) -> dict:
         "sortOrder": 10,
         **overrides,
     }
+
+
+def _restore_request(operation: dict | None = None) -> BuilderChangeSetPreviewRequest:
+    return BuilderChangeSetPreviewRequest.model_validate({
+        "baseRevisionId": uuid4(),
+        "baseEtag": canonical_hash({}),
+        "operations": (
+            operation
+            or {
+                "type": "revision.restore",
+                "operationId": "restore-1",
+                "targetRevisionId": uuid4(),
+            },
+        ),
+    })
+
+
+def test_preview_request_accepts_restore_as_a_single_typed_operation() -> None:
+    request = _restore_request()
+
+    assert isinstance(request.operations[0], BuilderRevisionRestoreOperationV1)
+    assert request.operations[0].target_revision_id is not None
+
+
+def test_preview_request_rejects_restore_mixed_with_sitemap_operations() -> None:
+    with pytest.raises(ValidationError):
+        BuilderChangeSetPreviewRequest.model_validate({
+            "baseRevisionId": uuid4(),
+            "baseEtag": canonical_hash({}),
+            "operations": (
+                {
+                    "type": "revision.restore",
+                    "operationId": "restore-1",
+                    "targetRevisionId": uuid4(),
+                },
+                _request_operation(operationId="reorder-1"),
+            ),
+        })
+
+
+def test_restore_analyzer_accepts_compatible_human_target() -> None:
+    structure, manifest, _, _ = _builder_state()
+    operation = BuilderRevisionRestoreOperationV1(
+        type="revision.restore",
+        operation_id="restore-1",
+        target_revision_id=manifest.id,
+    )
+    version_ids = {UUID(str(pin.content_version_id)) for pin in manifest.page_versions}
+
+    analysis = analyze_revision_restore_change_set(
+        current_manifest=manifest,
+        current_structure=structure,
+        target_manifest=manifest,
+        target_structure=structure,
+        operation=operation,
+        live_item_ids={UUID(str(page.item_id)) for page in structure.pages},
+        target_version_ids=version_ids,
+        missing_model_definition_item_ids=set(),
+        provenance_source=BuilderProvenanceSource.HUMAN,
+    )
+
+    assert analysis.issues == ()
+    assert analysis.approval_class is BuilderApprovalClass.NONE
+    assert analysis.required_permissions == (
+        "project:content:site-builder:write",
+        "project:content:items:write",
+    )
+    assert analysis.summary_params == {"targetRevision": "1"}
+
+
+def test_restore_analyzer_exposes_all_unavailable_target_blockers() -> None:
+    structure, manifest, _, _ = _builder_state()
+    target_structure = structure.model_copy(update={"pages": (structure.pages[0],)})
+    target_manifest = manifest.model_copy(
+        update={
+            "revision_number": 2,
+            "page_versions": (
+                manifest.page_versions[0].model_copy(update={"content_version_id": uuid4()}),
+                manifest.page_versions[1],
+            ),
+            "design_system_version_id": uuid4(),
+        }
+    )
+    operation = BuilderRevisionRestoreOperationV1(
+        type="revision.restore",
+        operation_id="restore-1",
+        target_revision_id=target_manifest.id,
+    )
+
+    analysis = analyze_revision_restore_change_set(
+        current_manifest=manifest,
+        current_structure=structure,
+        target_manifest=target_manifest,
+        target_structure=target_structure,
+        operation=operation,
+        live_item_ids=set(),
+        target_version_ids=set(),
+        missing_model_definition_item_ids=set(),
+        provenance_source=BuilderProvenanceSource.AGENT,
+    )
+
+    assert {issue.code for issue in analysis.issues} == {
+        "BUILDER_RESTORE_TARGET_UNAVAILABLE",
+        "BUILDER_RESTORE_DESIGN_SYSTEM_CHANGED",
+        "BUILDER_RESTORE_VERSION_MISSING",
+    }
+    assert all(issue.operation_id == "restore-1" for issue in analysis.issues)
+    assert analysis.approval_class is BuilderApprovalClass.REVIEW
+
+
+def test_restore_analyzer_blocks_missing_content_model() -> None:
+    structure, manifest, _, _ = _builder_state()
+    operation = BuilderRevisionRestoreOperationV1(
+        type="revision.restore",
+        operation_id="restore-1",
+        target_revision_id=manifest.id,
+    )
+
+    analysis = analyze_revision_restore_change_set(
+        current_manifest=manifest,
+        current_structure=structure,
+        target_manifest=manifest,
+        target_structure=structure,
+        operation=operation,
+        live_item_ids={UUID(str(page.item_id)) for page in structure.pages},
+        target_version_ids={UUID(str(pin.content_version_id)) for pin in manifest.page_versions},
+        missing_model_definition_item_ids={UUID(str(structure.pages[0].item_id))},
+        provenance_source=BuilderProvenanceSource.HUMAN,
+    )
+
+    assert [issue.code for issue in analysis.issues] == ["BUILDER_RESTORE_MODEL_MISSING"]
+    assert analysis.issues[0].meta == {"itemCount": 1}
 
 
 @pytest.mark.parametrize(

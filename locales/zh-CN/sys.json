@@ -32,7 +32,7 @@
   "SYS_REVISION_ACTIVE": "当前生效",
   "SYS_REVISION_ID": "修订 ID",
   "SYS_REVISION_TEST": "测试",
-  "SYS_REVISION_TITLE": "配置修订",
+  "SYS_REVISION_TITLE": "版本记录",
   "SYS_SETTINGS_DESC": "管理存储、邮件等系统配置。",
   "SYS_SETTINGS_TITLE": "系统设置",
   "SYS_STEP_UP_CANCEL": "取消",

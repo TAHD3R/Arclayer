@@ -17,6 +17,7 @@
 
 .arc-site-section-frame {
   position: relative;
+  min-width: 0;
 }
 
 .arc-site-section-selector {

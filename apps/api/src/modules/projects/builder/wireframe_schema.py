@@ -48,6 +48,24 @@ class WireframeResponsiveRuleV1(BaseSchema):
     visible: bool = True
 
 
+class WireframeLayoutV1(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    mode: Literal["stack", "grid", "split", "overlay"] = "stack"
+    width: Literal["full", "wide", "content", "narrow"] = "full"
+    align: Literal["start", "center", "end", "stretch"] = "stretch"
+    gap: Literal["none", "xs", "sm", "md", "lg", "xl"] = "md"
+    columns: int = Field(default=1, ge=1, le=12)
+    span: int = Field(default=12, ge=1, le=12)
+
+
+class WireframeResponsiveLayoutV1(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    breakpoint: Literal["desktop", "tablet", "mobile"]
+    layout: WireframeLayoutV1
+
+
 class WireframeInteractionRuleV1(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
@@ -75,6 +93,8 @@ class WireframeSectionV1(BaseSchema):
     responsive_rules: tuple[WireframeResponsiveRuleV1, ...] = Field(default=(), max_length=3)
     interaction_rules: tuple[WireframeInteractionRuleV1, ...] = Field(default=(), max_length=32)
     asset_references: tuple[PublicUUID, ...] = Field(default=(), max_length=64)
+    layout: WireframeLayoutV1 = Field(default_factory=WireframeLayoutV1)
+    responsive_layouts: tuple[WireframeResponsiveLayoutV1, ...] = Field(default=(), max_length=3)
 
     @model_validator(mode="after")
     def require_unique_section_contracts(self) -> Self:
@@ -84,6 +104,9 @@ class WireframeSectionV1(BaseSchema):
         breakpoints = [rule.breakpoint for rule in self.responsive_rules]
         if len(breakpoints) != len(set(breakpoints)):
             raise ValueError("wireframe responsive breakpoints must be unique per section")
+        layout_breakpoints = [rule.breakpoint for rule in self.responsive_layouts]
+        if len(layout_breakpoints) != len(set(layout_breakpoints)):
+            raise ValueError("wireframe responsive layout breakpoints must be unique per section")
         return self
 
 
@@ -113,7 +136,9 @@ __all__ = [
     "WireframeFieldBindingV1",
     "WireframeInteractionRuleV1",
     "WireframeLiteralBindingV1",
+    "WireframeLayoutV1",
     "WireframeMissingBindingV1",
     "WireframeResponsiveRuleV1",
+    "WireframeResponsiveLayoutV1",
     "WireframeSectionV1",
 ]

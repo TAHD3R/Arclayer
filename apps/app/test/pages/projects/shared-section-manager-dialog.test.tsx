@@ -183,6 +183,8 @@ function renderDialog({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const onOpenChange = vi.fn();
+  const onDraftAutosave = vi.fn().mockResolvedValue({ checkpointVersion: 1 });
+  const onDraftDiscard = vi.fn().mockResolvedValue(undefined);
   render(
     <QueryClientProvider client={queryClient}>
       <SharedSectionManagerDialog
@@ -193,10 +195,12 @@ function renderDialog({
         canWrite={canWrite}
         permissionReady={permissionReady}
         onApplied={onApplied}
+        onDraftAutosave={onDraftAutosave}
+        onDraftDiscard={onDraftDiscard}
       />
     </QueryClientProvider>,
   );
-  return { onApplied, onOpenChange };
+  return { onApplied, onOpenChange, onDraftAutosave, onDraftDiscard };
 }
 
 describe("SharedSectionManagerDialog", () => {
@@ -246,7 +250,7 @@ describe("SharedSectionManagerDialog", () => {
       }),
     );
     const user = userEvent.setup();
-    const { onApplied, onOpenChange } = renderDialog();
+    const { onApplied, onOpenChange, onDraftAutosave, onDraftDiscard } = renderDialog();
 
     await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_SHARED_SECTIONS_ADD" }));
     const dialog = screen.getByRole("dialog", {
@@ -297,6 +301,10 @@ describe("SharedSectionManagerDialog", () => {
       ],
     });
     expect(JSON.stringify(previewPayload)).not.toContain("modelKey");
+    expect(onDraftAutosave).toHaveBeenCalledWith(previewPayload.operations);
+    expect(onDraftAutosave.mock.invocationCallOrder[0]).toBeLessThan(
+      previewProjectBuilderChangeSetMock.mock.invocationCallOrder[0]!,
+    );
     expect(
       await within(dialog).findByText("CREATION_EDITOR_SHARED_SECTIONS_PREVIEW_READY"),
     ).toBeVisible();
@@ -313,6 +321,7 @@ describe("SharedSectionManagerDialog", () => {
       { previewToken: "preview-token-1", approval: undefined },
       expect.stringContaining("global-section-apply:"),
     );
+    expect(onDraftDiscard).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

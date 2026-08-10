@@ -26,6 +26,9 @@ interface ProjectDesignControllerInput {
   page: BuilderRevisionPageOut | null;
   componentCatalog: BuilderComponentCatalogOut | null;
   enabled: boolean;
+  recoveredPreview?: BuilderChangeSetPreviewOut | null;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }
 
 function commandKey(prefix: string): string {
@@ -38,6 +41,9 @@ export function useProjectDesignController({
   page,
   componentCatalog,
   enabled,
+  recoveredPreview,
+  onDraftAutosave,
+  onDraftDiscard,
 }: ProjectDesignControllerInput) {
   const { t } = useTranslation("account");
   const queryClient = useQueryClient();
@@ -48,6 +54,10 @@ export function useProjectDesignController({
   const pageItemId = page?.itemId ?? null;
 
   useEffect(() => setPreview(null), [pageItemId, revisionId]);
+
+  useEffect(() => {
+    if (recoveredPreview) setPreview(recoveredPreview);
+  }, [pageItemId, recoveredPreview, revisionId]);
 
   const renderQuery = useQuery({
     queryKey: buildProjectBuilderPageRenderDocumentQueryKey(
@@ -71,8 +81,9 @@ export function useProjectDesignController({
   });
 
   const previewChange = useMutation({
-    mutationFn: (operations: readonly DesignChangeOperation[]) => {
+    mutationFn: async (operations: readonly DesignChangeOperation[]) => {
       if (!revision) throw new Error(t("CREATION_EDITOR_DESIGN_REVISION_REQUIRED"));
+      await onDraftAutosave([...operations]);
       return previewProjectBuilderChangeSet(
         projectId,
         {
@@ -107,6 +118,7 @@ export function useProjectDesignController({
       );
     },
     onSuccess: async () => {
+      await onDraftDiscard();
       await queryClient.invalidateQueries({ queryKey: buildProjectBuilderQueryKey(projectId) });
       setPreview(null);
     },

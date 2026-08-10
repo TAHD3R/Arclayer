@@ -24,6 +24,7 @@ interface EditorInspectorProps {
   onPreviewPlanning: (draft: SitemapPlanningDraft) => void;
   onApplyPlanning: () => void;
   onDiscardPlanning: () => void;
+  onSyncWireframe?: () => void;
 }
 
 export function EditorInspector({
@@ -31,6 +32,7 @@ export function EditorInspector({
   onModeChange,
   page,
   aiPanel,
+  onSyncWireframe,
   ...planningProps
 }: EditorInspectorProps) {
   const { t } = useTranslation("account");
@@ -53,7 +55,11 @@ export function EditorInspector({
           onClick={() => onModeChange("ai")}
         />
       </div>
-      {mode === "ai" ? aiPanel : <PageInspector page={page} {...planningProps} />}
+      {mode === "ai" ? (
+        aiPanel
+      ) : (
+        <PageInspector page={page} onSyncWireframe={onSyncWireframe} {...planningProps} />
+      )}
     </aside>
   );
 }
@@ -95,6 +101,7 @@ function PageInspector({
   onPreviewPlanning,
   onApplyPlanning,
   onDiscardPlanning,
+  onSyncWireframe,
 }: Omit<EditorInspectorProps, "mode" | "onModeChange" | "aiPanel">) {
   const { t } = useTranslation("account");
   if (!page) {
@@ -157,6 +164,7 @@ function PageInspector({
           onPreview={onPreviewPlanning}
           onApply={onApplyPlanning}
           onDiscard={onDiscardPlanning}
+          onSyncWireframe={onSyncWireframe}
         />
 
         <section

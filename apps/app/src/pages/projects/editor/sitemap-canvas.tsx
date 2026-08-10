@@ -12,6 +12,7 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
 
 import {
   SitemapCanvasTools,
@@ -24,6 +25,8 @@ const COLUMN_GAP = 92;
 const ROW_GAP = 44;
 const MIN_ZOOM = 0.45;
 const MAX_ZOOM = 1.65;
+const CANVAS_FIT_PADDING = 128;
+const CANVAS_BOTTOM_CONTROL_SAFE_AREA = 72;
 
 type PositionedPage = BuilderRevisionPageOut & { x: number; y: number };
 
@@ -38,6 +41,8 @@ interface SitemapCanvasProps {
   editDisabledReason: string;
   canOpenAI: boolean;
   openAIDisabledReason: string;
+  onReorderPage?: (pageId: string, sortOrder: number) => void;
+  reviewPanel?: ReactNode;
 }
 
 function layoutPages(pages: BuilderRevisionPageOut[]): PositionedPage[] {
@@ -85,10 +90,14 @@ export function SitemapCanvas({
   editDisabledReason,
   canOpenAI,
   openAIDisabledReason,
+  onReorderPage,
+  reviewPanel,
 }: SitemapCanvasProps) {
   const { t } = useTranslation("account");
   const surfaceRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dropTargetPageId, setDropTargetPageId] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ x: 88, y: 72, zoom: 1 });
   const positioned = useMemo(() => layoutPages(pages), [pages]);
   const byId = useMemo(() => new Map(positioned.map((page) => [page.itemId, page])), [positioned]);
@@ -101,21 +110,21 @@ export function SitemapCanvas({
   const fitCanvas = useCallback(() => {
     const surface = surfaceRef.current;
     if (!surface || positioned.length === 0) return;
-    const padding = 128;
+    const availableHeight = surface.clientHeight - CANVAS_BOTTOM_CONTROL_SAFE_AREA;
     const zoom = Math.min(
       1,
       Math.max(
         MIN_ZOOM,
         Math.min(
-          (surface.clientWidth - padding) / bounds.width,
-          (surface.clientHeight - padding) / bounds.height,
+          (surface.clientWidth - CANVAS_FIT_PADDING) / bounds.width,
+          (availableHeight - CANVAS_FIT_PADDING) / bounds.height,
         ),
       ),
     );
     setViewport({
       zoom,
       x: Math.max(48, (surface.clientWidth - bounds.width * zoom) / 2),
-      y: Math.max(48, (surface.clientHeight - bounds.height * zoom) / 2),
+      y: Math.max(48, (availableHeight - bounds.height * zoom) / 2),
     });
   }, [bounds.height, bounds.width, positioned.length]);
 
@@ -168,6 +177,20 @@ export function SitemapCanvas({
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const handlePageDrop = (targetPage: PositionedPage) => {
+    if (!draggedPageId || !onReorderPage || draggedPageId === targetPage.itemId) return;
+    const draggedPage = byId.get(draggedPageId);
+    if (!draggedPage || draggedPage.parentItemId !== targetPage.parentItemId) return;
+    const siblings = positioned
+      .filter((page) => page.parentItemId === targetPage.parentItemId)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const targetIndex = siblings.findIndex((page) => page.itemId === targetPage.itemId);
+    if (targetIndex < 0) return;
+    onReorderPage(draggedPageId, targetIndex);
+    setDraggedPageId(null);
+    setDropTargetPageId(null);
   };
 
   return (
@@ -244,6 +267,27 @@ export function SitemapCanvas({
               key={page.itemId}
               type="button"
               data-sitemap-node=""
+              draggable={Boolean(canEdit && onReorderPage)}
+              onDragStart={() => {
+                setDraggedPageId(page.itemId);
+                setDropTargetPageId(null);
+              }}
+              onDragOver={(event) => {
+                if (!draggedPageId || draggedPageId === page.itemId) return;
+                event.preventDefault();
+                setDropTargetPageId(page.itemId);
+              }}
+              onDragLeave={() => {
+                if (dropTargetPageId === page.itemId) setDropTargetPageId(null);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                handlePageDrop(page);
+              }}
+              onDragEnd={() => {
+                setDraggedPageId(null);
+                setDropTargetPageId(null);
+              }}
               aria-pressed={selectedPageId === page.itemId}
               onClick={() => onSelectPage(page.itemId)}
               className={cn(
@@ -251,6 +295,7 @@ export function SitemapCanvas({
                 selectedPageId === page.itemId
                   ? "border-primary shadow-[0_0_0_1px_var(--primary),0_8px_24px_rgba(0,0,0,0.08)]"
                   : "border-border hover:-translate-y-0.5 hover:border-label-secondary/45 hover:shadow-md",
+                dropTargetPageId === page.itemId && "border-primary/70 bg-primary/5",
               )}
               style={{ left: page.x, top: page.y, width: NODE_WIDTH, height: NODE_HEIGHT }}
             >
@@ -296,6 +341,7 @@ export function SitemapCanvas({
       </div>
 
       <SitemapZoomControls zoom={viewport.zoom} onZoomChange={setZoom} onFit={fitCanvas} />
+      {reviewPanel}
     </div>
   );
 }

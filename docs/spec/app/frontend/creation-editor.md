@@ -288,13 +288,13 @@ This type is a frontend context shape, not a substitute for backend request sche
 Command lifecycle:
 
 1. Validate the current capability, permission, base revision, and form/interaction input.
-2. For impact-bearing operations, request a server preview and display affected objects, warnings, blockers, approvals, and signed `previewToken`.
+2. For impact-bearing operations, request a server preview and display affected objects, warnings, items needing attention, approvals, and signed `previewToken`.
 3. Send one command with a fresh idempotency key and exact base revision/ETag.
 4. Keep a visible pending state scoped to the affected object without blocking unrelated reading/navigation.
 5. Reconcile from the canonical command outcome/new revision; do not manufacture the resulting graph in the browser.
 6. On conflict, retain the user's intent and require explicit re-preview against the new base or deliberate discard.
 
-Optimistic presentation is allowed only for reversible, low-risk interaction feedback such as a drag preview, expanded tree row, or selection. A new page, deleted object, accepted AI change, published release, or completed job is never declared successful before the server result.
+Optimistic presentation is allowed only for reversible, low-risk interaction feedback such as a drag preview, expanded tree row, or selection. A new page, deleted object, accepted AI proposal, published release, or completed job is never declared successful before the server result.
 
 #### 6.3 Undo and redo
 
@@ -463,12 +463,12 @@ Every state below is implemented and tested independently of the route skeleton.
 | Generation running | Page/section phase progress, progressively materialized real nodes, cancel action, and explicit run/job provenance. |
 | Partial result | Successful pages/sections remain usable; each failure has scoped evidence and retry/re-preview where supported. |
 | Cancel requested/cancelled | Distinguish accepted request from terminal cancellation and retain completed partial work according to the job contract. |
-| Change review | Human-readable summary, visual/text diff, affected objects, warnings, blockers, approval requirement, and base revision. |
+| Adjustment review | Human-readable summary, visual/text diff, affected objects, warnings, items needing attention, approval requirement, and base revision. |
 | Conflict | Base/current revision and actor summary, retained user intent, re-preview/inspect/discard actions; no silent rebase. |
 | Offline | Stop server-owned mutations and runs, preserve only unsent Composer/form drafts, show reconnect state, and do not replay queued writes. |
 | Permission lost | Freeze new writes, preserve safe drafts, explain the changed access, and provide a management/back action. |
 | Source-managed | Compatibility report and approval-gated migration entry; no editable builder canvas or round-trip claim. |
-| Migration required | Recorded decision requirement and explicit blocker; no inferred authoring mode or synthetic baseline. |
+| Migration required | Recorded decision requirement and explicit issue to resolve; no inferred authoring mode or synthetic baseline. |
 | Capability unavailable | Explain the missing backend/Connector/Agent/stage capability; disable the action without fake success. |
 | Readiness blocked | Findings grouped by affected object/domain with navigation to repair; publish remains disabled by server truth. |
 | Ready | Preview and publish/release action reflect current server readiness and exact revision. |
@@ -765,7 +765,7 @@ projection required by Wireframe:
   explicit fields. Reorder and remove use native buttons with visible focus and
   44px targets on narrow layouts;
 - Save first submits `page.intent.replace` to ChangeSet Preview. The inspector
-  then shows the server summary, warnings/blockers, approval state, Apply, and
+  then shows the server summary, warnings/items needing attention, approval state, Apply, and
   Discard. It never writes on blur, inserts local canvas sections, or announces
   success before the new revision is read back;
 - when a historical Wireframe has orphaned IDs, the UI may offer an explicit
@@ -776,7 +776,7 @@ projection required by Wireframe:
   exact missing/orphaned counts. Unknown references block further composition
   Preview until the Sitemap plan is reconciled; missing compositions remain an
   explicit progressive-work state;
-- pending, validation, Preview blocker, approval, Apply failure, conflict,
+- pending, validation, Preview issue, approval, Apply failure, conflict,
   offline, read-only, and successful revision reconciliation are distinct. New
   copy ships in `zh-CN` and `en-US`.
 
@@ -800,7 +800,7 @@ backend contract without turning the inspector into a chat transcript:
   candidate failures, and recovery after refresh are explicit. Inputs lock only
   while the exact stage/page generation is active;
 - each result renders the server ChangeSet summary, affected page/section
-  counts, warning/blocker evidence, and approval state. The canvas may preview
+  counts, warning/issue evidence, and approval state. The canvas may preview
   the selected server candidate, but Apply remains a separate labelled action
   and the canonical revision reload is the only success signal;
 - the global assistant toolkit registers an exact
@@ -843,7 +843,7 @@ field:
   authoritative and retains the local component only as reversible context.
   Clearing is explicit; changing the referenced reusable section affects every
   dependent host projected by the server;
-- read-only, offline, stale base, permission failure, Preview blocker, required
+- read-only, offline, stale base, permission failure, Preview issue, required
   approval, Apply failure, and successful revision reconciliation remain
   distinct. New copy ships in `zh-CN` and `en-US`.
 
@@ -926,7 +926,7 @@ Creation is a two-step typed command:
   optional default fields; the browser submits `global_section.create` with the
   exact current Revision/ETag and cannot choose a model key;
 - a real Preview shows normalized identity, affected targets, permissions,
-  issues, and approval state. Apply is enabled only when Preview has no blocker;
+  issues, and approval state. Apply is enabled only when Preview has no issue requiring resolution;
   success means the Editor has reloaded the returned canonical Site Revision.
 
 Retirement starts from one exact listed shared section. Its review shows pinned
@@ -936,7 +936,7 @@ first; the dialog never offers “delete anyway”. When there are no incoming
 references, the user must still review the destructive approval before Apply.
 The row remains visible until revision reconciliation proves removal.
 
-Create Preview failure, delete dependency blocker, approval required, Apply
+Create Preview failure, delete dependency issue, approval required, Apply
 failure, stale Revision, permission/read-only state, offline state, and
 successful reconciliation are distinct. Closing or editing the form discards
 the local Preview rather than reusing stale evidence. Product copy ships in
@@ -996,7 +996,7 @@ Product states are distinct:
 | --- | --- |
 | Loading | Stable editor chrome and shape-matched page/inspector skeleton |
 | No page | Page selection prompt; no fabricated canvas |
-| Wireframe missing/invalid | Blocked explanation linking to Wireframe stage |
+| Wireframe missing/invalid | Explanation linking to the Wireframe stage and the exact issue to resolve |
 | Blueprint absent | Labelled “Wireframe preview”; initialize Design is the primary action |
 | Canonical Design | Real visitor render with source and Revision evidence |
 | Candidate review | Before/after summary, issues, affected targets, Apply/Discard |
@@ -1016,10 +1016,12 @@ opacity, remains under 300ms, and honors reduced motion.
 
 New copy ships in `zh-CN` and `en-US`. The recognizable visual decision is the
 continuous trace from selected Wireframe section to visual state, server
-Preview, and canonical Revision—not a dashboard card stack or decorative
+Preview, and canonical Site Version—not a dashboard card stack or decorative
 canvas effect. AI Design generation, automated accessibility execution,
-asset/font rights, compiler/publish actions, comments, and server undo/redo
-remain visibly unavailable until their own contracts are implemented.
+asset/font rights, compiler/publish actions, and comments remain visibly
+unavailable until their own contracts are implemented. Undo and Redo are shown
+when history returns a typed restore target; otherwise the unavailable state
+explains that no safe saved version is available.
 
 #### 38.1 Design authoring invariants
 
@@ -1054,7 +1056,7 @@ style-slot controls. It contains:
 - a product objective and one-to-three direction count;
 - explicit start and cooperative cancel actions;
 - persisted Job phase/progress, per-direction failures, and recovery evidence;
-- server-owned candidate choices with operation, affected-target, blocker, and
+- server-owned candidate choices with operation, affected-target, issue, and
   approval summaries.
 
 Starting from the stage sends the selected page, exact Revision/ETag, direct
@@ -1074,7 +1076,7 @@ updates the canvas. Discard never cancels, deletes, or rewrites the persisted
 candidate.
 
 Loading, no page, missing Wireframe, stale catalog, read-only, offline, active,
-partial, failed, cancelled, recovery failure, candidate blocker, Apply failure,
+partial, failed, cancelled, recovery failure, candidate issue, Apply failure,
 and stale Revision are separate product states. The surface uses the existing
 quiet Inspector hierarchy, labelled controls, visible focus, 44px narrow-layout
 targets, transform/opacity-only restrained motion, and reduced-motion-safe
@@ -1085,7 +1087,7 @@ paths, component identities, assets, SEO, or publish actions. It never merges
 candidate operations, fills missing targets, calculates checksums, auto-selects
 success, auto-applies, or treats a candidate as canonical. Asset/font rights,
 automated accessibility execution, compiler output, release activation,
-thumbnail capture, comments, and server undo/redo remain gated.
+thumbnail capture and comments remain gated. Server Undo/Redo remains available only when history returns a typed restore target.
 
 ## 40. Wave 4 Website Config workbench
 
@@ -1166,3 +1168,81 @@ the separate openable-link policy continues to suppress unsupported external
 navigation to `.arclayer.localhost`. This frontend convergence does not replace
 the still-required typed backend website/runtime facade, optimistic
 concurrency, Activity evidence, or Agent grants.
+
+## 43. Stage 4 Sitemap/Wireframe interaction slice (2026-08-09 baseline)
+
+The unified Editor now exposes server-reviewed structural drag operations in the
+canonical Sitemap and Wireframe scenes. Sitemap page reordering emits a typed
+`page.reorder` operation against the active revision and renders a review surface
+before Apply. Wireframe section reordering emits a typed
+`wireframe.section.reorder` operation with the selected page's draft version and
+uses the existing ChangeSet preview/apply/reconcile path. Neither scene mutates a
+client-owned page graph or reports success before the canonical revision reload.
+
+Wireframe keeps DOM/CSS rendering as the source of the visible document and adds
+bounded viewport zoom controls. Section drag state is transient; only the
+server-approved reorder is persisted. The legacy direct
+`/content/site-builder` route is a migration alias that redirects to
+`/projects/{projectId}/editor` and no longer renders an editor surface.
+
+The baseline did not claim completion of server-recognized undo/redo history.
+Stage 4 closes that gate with typed restore targets, retained content aggregates,
+and server-projected Undo/Redo lineage as recorded in section 44.
+
+## 44. Stage 4 semantic layout, conflict, and sync contract
+
+Wireframe sections persist a constrained `layout` value and optional
+`responsiveLayouts` overrides inside the canonical `WireframeDocumentV1`.
+The values are semantic mode/width/alignment/gap/grid tokens; they are not
+client-owned x/y coordinates. `wireframe.set_layout` replaces the base layout
+and the complete breakpoint override set through the normal Preview/Apply
+ChangeSet flow.
+
+The render document carries the same layout model, and the shared SiteRenderer
+projects it into the DOM section frame for the selected breakpoint. Preview and
+authoring therefore consume one canonical layout contract instead of a
+canvas-only projection.
+
+When Apply returns a 409, the Editor surfaces the server conflict metadata,
+keeps the last typed intent, reloads the latest revision, rebases only the
+draft-version pins, and explicitly re-previews the intent. Discard clears the
+pending intent. Sitemap exposes a downstream Wireframe action that moves to the
+same page's Wireframe scene; it does not silently mutate Wireframe locally.
+
+The repository now includes a real-browser Stage 4 scenario covering Add Page,
+Sitemap drag reorder, Preview/Apply, canonical API verification, and refresh
+recovery. It requires a local `LOCAL_E2E_PROJECT_ID`; without that environment
+input the test is reported as skipped rather than claiming success.
+
+The toolbar exposes canonical synchronization state as `Synced`, `Saving`,
+`Preparing preview`, `Review required`, `Applying`, `Conflict needs attention`,
+or `Sync failed`. Before a Preview request, Sitemap, Wireframe, Design, and
+style-guide refresh operations are written to a durable draft checkpoint. A
+checkpoint is a recoverable draft, not an applied Site Version; Preview and
+Apply remain explicit decisions. During a 409 refresh, the Editor preserves the
+typed conflict intent across the revision query transition so the newly rebased
+Preview is not cleared by canonical Site Version reconciliation.
+
+The Stage 4 browser scenario uses unique routes per run, verifies that the
+server revision advances, asserts the exact persisted page order rather than
+only page presence, checks Builder/revision identity alignment, and confirms the
+reloaded Editor returns to the `Synced` state.
+
+The Editor now reads an immutable Builder revision-history projection from the
+server and uses it to distinguish “no earlier saved state” from “a previous
+state exists but cannot yet be restored safely”. When the server reports an
+available `undo_target_revision_id`, Undo creates a typed `revision.restore`
+ChangeSet and follows Preview → Review → Apply. The restore transaction only
+accepts a server-side target revision and replays retained structure,
+presentation, binding, route, hierarchy, and provenance data in one
+caller-owned transaction; deleted entities, missing versions, and Design System
+drift are explicit issues to resolve. Redo follows the same path when the
+server exposes a redo cursor/lineage. History reads do not imply restore
+capability, and an invalid history cursor is an explicit API error rather than
+an empty fallback.
+
+Builder editing persists a durable draft checkpoint before a typed Preview
+request. The checkpoint survives refresh and is re-prepared for review by the
+Editor; it is discarded after the corresponding ChangeSet is applied or the
+user discards the draft. `Synced` means the canonical Site Version and the
+editor state agree, while `Saving` means the recoverable draft is being written.

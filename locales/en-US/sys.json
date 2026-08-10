@@ -32,7 +32,7 @@
   "SYS_REVISION_ACTIVE": "Active",
   "SYS_REVISION_ID": "Revision ID",
   "SYS_REVISION_TEST": "Test",
-  "SYS_REVISION_TITLE": "Revisions",
+  "SYS_REVISION_TITLE": "Version history",
   "SYS_SETTINGS_DESC": "Manage system settings for storage, mail, and more.",
   "SYS_SETTINGS_TITLE": "System settings",
   "SYS_STEP_UP_CANCEL": "Cancel",

@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 
 import {
   WireframeInteractionEditor,
+  WireframeLayoutEditor,
   WireframeResponsiveEditor,
 } from "@/pages/projects/editor/wireframe-binding-rule-editors";
 import { WireframeCompositionEditor } from "@/pages/projects/editor/wireframe-composition-editor";
@@ -189,6 +190,12 @@ function SectionEditor({
         page={page}
         section={section}
         components={components}
+        disabled={disabled}
+        onPreview={onPreview}
+      />
+      <WireframeLayoutEditor
+        page={page}
+        section={section}
         disabled={disabled}
         onPreview={onPreview}
       />

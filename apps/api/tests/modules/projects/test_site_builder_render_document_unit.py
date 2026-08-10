@@ -159,6 +159,27 @@ def _wireframe(*, page_item_id: UUID, design_version_id: UUID, global_item_id: U
             },
         ],
         "responsiveRules": [{"breakpoint": "desktop", "layout": "grid", "columns": 2}],
+        "layout": {
+            "mode": "grid",
+            "width": "content",
+            "align": "center",
+            "gap": "lg",
+            "columns": 2,
+            "span": 2,
+        },
+        "responsiveLayouts": [
+            {
+                "breakpoint": "mobile",
+                "layout": {
+                    "mode": "stack",
+                    "width": "full",
+                    "align": "stretch",
+                    "gap": "sm",
+                    "columns": 1,
+                    "span": 1,
+                },
+            }
+        ],
         "interactionRules": [{"event": "click", "action": "navigate", "target": "/contact"}],
     })
     return WireframeDocumentV1.model_validate({
@@ -640,6 +661,18 @@ def test_render_document_hash_changes_with_pinned_content() -> None:
     )
 
     assert changed.document_hash != baseline.document_hash
+
+
+def test_render_document_preserves_semantic_layout_and_breakpoint_overrides() -> None:
+    document = _build(_render_fixture())
+    section = document.sections[0]
+
+    assert section.layout.mode == "grid"
+    assert section.layout.width == "content"
+    assert section.layout.columns == 2
+    assert [(item.breakpoint, item.layout.mode, item.layout.gap) for item in section.responsive_layouts] == [
+        ("mobile", "stack", "sm")
+    ]
 
 
 @pytest.mark.parametrize(

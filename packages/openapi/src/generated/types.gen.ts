@@ -3807,6 +3807,8 @@ export type BuilderChangeSetPreviewOut = {
     } & BuilderPageReorderOperationV1) | ({
         type: 'page.delete';
     } & BuilderPageDeleteOperationV1) | ({
+        type: 'revision.restore';
+    } & BuilderRevisionRestoreOperationV1) | ({
         type: 'global_section.create';
     } & BuilderGlobalSectionCreateOperationV1Output) | ({
         type: 'global_section.delete';
@@ -3831,6 +3833,8 @@ export type BuilderChangeSetPreviewOut = {
     } & BuilderWireframeSectionReorderOperationV1) | ({
         type: 'wireframe.section.configure';
     } & BuilderWireframeSectionConfigureOperationV1Output) | ({
+        type: 'wireframe.set_layout';
+    } & BuilderWireframeSetLayoutOperationV1Output) | ({
         type: 'wireframe.set_component';
     } & BuilderWireframeSetComponentOperationV1) | ({
         type: 'wireframe.set_variant';
@@ -3932,6 +3936,8 @@ export type BuilderChangeSetPreviewRequest = {
     } & BuilderPageReorderOperationV1) | ({
         type: 'page.delete';
     } & BuilderPageDeleteOperationV1) | ({
+        type: 'revision.restore';
+    } & BuilderRevisionRestoreOperationV1) | ({
         type: 'global_section.create';
     } & BuilderGlobalSectionCreateOperationV1Input) | ({
         type: 'global_section.delete';
@@ -3956,6 +3962,8 @@ export type BuilderChangeSetPreviewRequest = {
     } & BuilderWireframeSectionReorderOperationV1) | ({
         type: 'wireframe.section.configure';
     } & BuilderWireframeSectionConfigureOperationV1Input) | ({
+        type: 'wireframe.set_layout';
+    } & BuilderWireframeSetLayoutOperationV1Input) | ({
         type: 'wireframe.set_component';
     } & BuilderWireframeSetComponentOperationV1) | ({
         type: 'wireframe.set_variant';
@@ -4491,6 +4499,238 @@ export type BuilderDesignTokenOut = {
      * Type
      */
     type: 'color' | 'dimension' | 'number' | 'duration' | 'cubic-bezier' | 'font-family' | 'font-weight' | 'shadow';
+};
+
+/**
+ * BuilderDraftCheckpointOut
+ */
+export type BuilderDraftCheckpointOut = {
+    /**
+     * Appliedchangesetid
+     */
+    appliedChangeSetId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Checkpointversion
+     */
+    checkpointVersion: number;
+    /**
+     * Clientsessionid
+     */
+    clientSessionId: string;
+    /**
+     * Conflictmeta
+     */
+    conflictMeta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Operations
+     */
+    operations: Array<({
+        type: 'page.create';
+    } & BuilderPageCreateOperationV1Output) | ({
+        type: 'page.rename';
+    } & BuilderPageRenameOperationV1) | ({
+        type: 'page.move';
+    } & BuilderPageMoveOperationV1) | ({
+        type: 'page.reorder';
+    } & BuilderPageReorderOperationV1) | ({
+        type: 'page.delete';
+    } & BuilderPageDeleteOperationV1) | ({
+        type: 'revision.restore';
+    } & BuilderRevisionRestoreOperationV1) | ({
+        type: 'global_section.create';
+    } & BuilderGlobalSectionCreateOperationV1Output) | ({
+        type: 'global_section.delete';
+    } & BuilderGlobalSectionDeleteOperationV1) | ({
+        type: 'page.intent.replace';
+    } & BuilderPageIntentReplaceOperationV1) | ({
+        type: 'global_section.intent.replace';
+    } & BuilderGlobalSectionIntentReplaceOperationV1) | ({
+        type: 'route.set';
+    } & BuilderRouteSetOperationV1) | ({
+        type: 'route.disable';
+    } & BuilderRouteDisableOperationV1) | ({
+        type: 'wireframe.initialize';
+    } & BuilderWireframeInitializeOperationV1Output) | ({
+        type: 'wireframe.section.add';
+    } & BuilderWireframeSectionAddOperationV1Output) | ({
+        type: 'wireframe.section.duplicate';
+    } & BuilderWireframeSectionDuplicateOperationV1) | ({
+        type: 'wireframe.section.remove';
+    } & BuilderWireframeSectionRemoveOperationV1) | ({
+        type: 'wireframe.section.reorder';
+    } & BuilderWireframeSectionReorderOperationV1) | ({
+        type: 'wireframe.section.configure';
+    } & BuilderWireframeSectionConfigureOperationV1Output) | ({
+        type: 'wireframe.set_layout';
+    } & BuilderWireframeSetLayoutOperationV1Output) | ({
+        type: 'wireframe.set_component';
+    } & BuilderWireframeSetComponentOperationV1) | ({
+        type: 'wireframe.set_variant';
+    } & BuilderWireframeSetVariantOperationV1) | ({
+        type: 'wireframe.set_binding';
+    } & BuilderWireframeSetBindingOperationV1Output) | ({
+        type: 'wireframe.clear_binding';
+    } & BuilderWireframeClearBindingOperationV1) | ({
+        type: 'wireframe.set_responsive_rule';
+    } & BuilderWireframeSetResponsiveRuleOperationV1) | ({
+        type: 'wireframe.clear_responsive_rule';
+    } & BuilderWireframeClearResponsiveRuleOperationV1) | ({
+        type: 'wireframe.set_interactions';
+    } & BuilderWireframeSetInteractionsOperationV1) | ({
+        type: 'wireframe.set_global_reference';
+    } & BuilderWireframeSetGlobalReferenceOperationV1) | ({
+        type: 'wireframe.clear_global_reference';
+    } & BuilderWireframeClearGlobalReferenceOperationV1) | ({
+        type: 'design.initialize';
+    } & BuilderDesignInitializeOperationV1) | ({
+        type: 'design.style.set';
+    } & BuilderDesignStyleSetOperationV1) | ({
+        type: 'design.style.clear';
+    } & BuilderDesignStyleClearOperationV1) | ({
+        type: 'design.responsive_style.set';
+    } & BuilderDesignResponsiveStyleSetOperationV1) | ({
+        type: 'design.responsive_style.clear';
+    } & BuilderDesignResponsiveStyleClearOperationV1) | ({
+        type: 'design-system.refresh';
+    } & BuilderDesignSystemRefreshOperationV1)>;
+    /**
+     * Operationshash
+     */
+    operationsHash: string;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    provenanceSource: BuilderProvenanceSource;
+    /**
+     * Status
+     */
+    status: 'draft' | 'conflict' | 'applied' | 'discarded';
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * BuilderDraftCheckpointSaveIn
+ */
+export type BuilderDraftCheckpointSaveIn = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Clientsessionid
+     */
+    clientSessionId: string;
+    /**
+     * Expectedcheckpointversion
+     */
+    expectedCheckpointVersion: number;
+    /**
+     * Operations
+     */
+    operations: Array<({
+        type: 'page.create';
+    } & BuilderPageCreateOperationV1Input) | ({
+        type: 'page.rename';
+    } & BuilderPageRenameOperationV1) | ({
+        type: 'page.move';
+    } & BuilderPageMoveOperationV1) | ({
+        type: 'page.reorder';
+    } & BuilderPageReorderOperationV1) | ({
+        type: 'page.delete';
+    } & BuilderPageDeleteOperationV1) | ({
+        type: 'revision.restore';
+    } & BuilderRevisionRestoreOperationV1) | ({
+        type: 'global_section.create';
+    } & BuilderGlobalSectionCreateOperationV1Input) | ({
+        type: 'global_section.delete';
+    } & BuilderGlobalSectionDeleteOperationV1) | ({
+        type: 'page.intent.replace';
+    } & BuilderPageIntentReplaceOperationV1) | ({
+        type: 'global_section.intent.replace';
+    } & BuilderGlobalSectionIntentReplaceOperationV1) | ({
+        type: 'route.set';
+    } & BuilderRouteSetOperationV1) | ({
+        type: 'route.disable';
+    } & BuilderRouteDisableOperationV1) | ({
+        type: 'wireframe.initialize';
+    } & BuilderWireframeInitializeOperationV1Input) | ({
+        type: 'wireframe.section.add';
+    } & BuilderWireframeSectionAddOperationV1Input) | ({
+        type: 'wireframe.section.duplicate';
+    } & BuilderWireframeSectionDuplicateOperationV1) | ({
+        type: 'wireframe.section.remove';
+    } & BuilderWireframeSectionRemoveOperationV1) | ({
+        type: 'wireframe.section.reorder';
+    } & BuilderWireframeSectionReorderOperationV1) | ({
+        type: 'wireframe.section.configure';
+    } & BuilderWireframeSectionConfigureOperationV1Input) | ({
+        type: 'wireframe.set_layout';
+    } & BuilderWireframeSetLayoutOperationV1Input) | ({
+        type: 'wireframe.set_component';
+    } & BuilderWireframeSetComponentOperationV1) | ({
+        type: 'wireframe.set_variant';
+    } & BuilderWireframeSetVariantOperationV1) | ({
+        type: 'wireframe.set_binding';
+    } & BuilderWireframeSetBindingOperationV1Input) | ({
+        type: 'wireframe.clear_binding';
+    } & BuilderWireframeClearBindingOperationV1) | ({
+        type: 'wireframe.set_responsive_rule';
+    } & BuilderWireframeSetResponsiveRuleOperationV1) | ({
+        type: 'wireframe.clear_responsive_rule';
+    } & BuilderWireframeClearResponsiveRuleOperationV1) | ({
+        type: 'wireframe.set_interactions';
+    } & BuilderWireframeSetInteractionsOperationV1) | ({
+        type: 'wireframe.set_global_reference';
+    } & BuilderWireframeSetGlobalReferenceOperationV1) | ({
+        type: 'wireframe.clear_global_reference';
+    } & BuilderWireframeClearGlobalReferenceOperationV1) | ({
+        type: 'design.initialize';
+    } & BuilderDesignInitializeOperationV1) | ({
+        type: 'design.style.set';
+    } & BuilderDesignStyleSetOperationV1) | ({
+        type: 'design.style.clear';
+    } & BuilderDesignStyleClearOperationV1) | ({
+        type: 'design.responsive_style.set';
+    } & BuilderDesignResponsiveStyleSetOperationV1) | ({
+        type: 'design.responsive_style.clear';
+    } & BuilderDesignResponsiveStyleClearOperationV1) | ({
+        type: 'design-system.refresh';
+    } & BuilderDesignSystemRefreshOperationV1)>;
+    provenanceSource?: BuilderProvenanceSource;
 };
 
 /**
@@ -5498,10 +5738,15 @@ export type BuilderRenderSectionOut = {
      * Label
      */
     label: string;
+    layout?: WireframeLayoutV1;
     /**
      * Referencelineage
      */
     referenceLineage?: Array<BuilderRenderGlobalReferenceHopOut>;
+    /**
+     * Responsivelayouts
+     */
+    responsiveLayouts?: Array<WireframeResponsiveLayoutV1>;
     /**
      * Responsiverules
      */
@@ -5747,6 +5992,75 @@ export type BuilderRevisionGlobalSectionOut = {
 };
 
 /**
+ * BuilderRevisionHistoryEntryOut
+ */
+export type BuilderRevisionHistoryEntryOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Iscurrent
+     */
+    isCurrent: boolean;
+    /**
+     * Manifesthash
+     */
+    manifestHash: string;
+    provenanceSource: BuilderProvenanceSource;
+    /**
+     * Revisionnumber
+     */
+    revisionNumber: number;
+};
+
+/**
+ * BuilderRevisionHistoryOut
+ */
+export type BuilderRevisionHistoryOut = {
+    /**
+     * Currentrevisionid
+     */
+    currentRevisionId?: string | null;
+    /**
+     * Items
+     */
+    items?: Array<BuilderRevisionHistoryEntryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+    /**
+     * Redotargetrevisionid
+     */
+    redoTargetRevisionId?: string | null;
+    /**
+     * Restorecapability
+     */
+    restoreCapability?: 'available' | 'unavailable';
+    /**
+     * Undotargetrevisionid
+     */
+    undoTargetRevisionId?: string | null;
+};
+
+/**
  * BuilderRevisionOut
  */
 export type BuilderRevisionOut = {
@@ -5815,6 +6129,24 @@ export type BuilderRevisionPageOut = {
      */
     wireframeChecksum?: string | null;
     wireframeTraceability: BuilderWireframeTraceabilityOut;
+};
+
+/**
+ * BuilderRevisionRestoreOperationV1
+ */
+export type BuilderRevisionRestoreOperationV1 = {
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Targetrevisionid
+     */
+    targetRevisionId: string;
+    /**
+     * Type
+     */
+    type: 'revision.restore';
 };
 
 /**
@@ -6501,6 +6833,68 @@ export type BuilderWireframeSetInteractionsOperationV1 = {
      * Type
      */
     type: 'wireframe.set_interactions';
+};
+
+/**
+ * BuilderWireframeSetLayoutOperationV1
+ */
+export type BuilderWireframeSetLayoutOperationV1Input = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    layout: WireframeLayoutV1;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Responsivelayouts
+     */
+    responsiveLayouts?: Array<WireframeResponsiveLayoutV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_layout';
+};
+
+/**
+ * BuilderWireframeSetLayoutOperationV1
+ */
+export type BuilderWireframeSetLayoutOperationV1Output = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    layout: WireframeLayoutV1;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Responsivelayouts
+     */
+    responsiveLayouts?: Array<WireframeResponsiveLayoutV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_layout';
 };
 
 /**
@@ -21332,6 +21726,31 @@ export type ResponseModelBuilderCompositionSagaRecoveryOut = {
 };
 
 /**
+ * ResponseModel[BuilderDraftCheckpointOut]
+ */
+export type ResponseModelBuilderDraftCheckpointOut = {
+    data?: BuilderDraftCheckpointOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[BuilderGenerationOut]
  */
 export type ResponseModelBuilderGenerationOut = {
@@ -21411,6 +21830,31 @@ export type ResponseModelBuilderInitializationOut = {
  */
 export type ResponseModelBuilderPageRenderDocumentOut = {
     data?: BuilderPageRenderDocumentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderRevisionHistoryOut]
+ */
+export type ResponseModelBuilderRevisionHistoryOut = {
+    data?: BuilderRevisionHistoryOut | null;
     /**
      * Error
      */
@@ -25989,6 +26433,31 @@ export type ResponseModelTwoFactorSetupOut = {
  */
 export type ResponseModelTwoFactorStatusOut = {
     data?: TwoFactorStatusOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[Union[BuilderDraftCheckpointOut, NoneType]]
+ */
+export type ResponseModelUnionBuilderDraftCheckpointOutNoneType = {
+    data?: BuilderDraftCheckpointOut | null;
     /**
      * Error
      */
@@ -31787,6 +32256,36 @@ export type WireframeInteractionRuleV1 = {
 };
 
 /**
+ * WireframeLayoutV1
+ */
+export type WireframeLayoutV1 = {
+    /**
+     * Align
+     */
+    align?: 'start' | 'center' | 'end' | 'stretch';
+    /**
+     * Columns
+     */
+    columns?: number;
+    /**
+     * Gap
+     */
+    gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    /**
+     * Mode
+     */
+    mode?: 'stack' | 'grid' | 'split' | 'overlay';
+    /**
+     * Span
+     */
+    span?: number;
+    /**
+     * Width
+     */
+    width?: 'full' | 'wide' | 'content' | 'narrow';
+};
+
+/**
  * WireframeLiteralBindingV1
  */
 export type WireframeLiteralBindingV1Input = {
@@ -31832,6 +32331,17 @@ export type WireframeMissingBindingV1 = {
      * Slotkey
      */
     slotKey: string;
+};
+
+/**
+ * WireframeResponsiveLayoutV1
+ */
+export type WireframeResponsiveLayoutV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: 'desktop' | 'tablet' | 'mobile';
+    layout: WireframeLayoutV1;
 };
 
 /**
@@ -31898,6 +32408,11 @@ export type WireframeSectionV1Input = {
      * Label
      */
     label: string;
+    layout?: WireframeLayoutV1;
+    /**
+     * Responsivelayouts
+     */
+    responsiveLayouts?: Array<WireframeResponsiveLayoutV1>;
     /**
      * Responsiverules
      */
@@ -31950,6 +32465,11 @@ export type WireframeSectionV1Output = {
      * Label
      */
     label: string;
+    layout?: WireframeLayoutV1;
+    /**
+     * Responsivelayouts
+     */
+    responsiveLayouts?: Array<WireframeResponsiveLayoutV1>;
     /**
      * Responsiverules
      */
@@ -39858,6 +40378,122 @@ export type DomainProjectsTransitionBuilderCompositionSagaPhaseResponses = {
 
 export type DomainProjectsTransitionBuilderCompositionSagaPhaseResponse = DomainProjectsTransitionBuilderCompositionSagaPhaseResponses[keyof DomainProjectsTransitionBuilderCompositionSagaPhaseResponses];
 
+export type DomainProjectsDiscardProjectBuilderDraftCheckpointData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Client Session Id
+         */
+        client_session_id?: string;
+        /**
+         * Expected Checkpoint Version
+         */
+        expected_checkpoint_version?: number;
+    };
+    url: '/api/v1/projects/{project_id}/builder/draft-checkpoint';
+};
+
+export type DomainProjectsDiscardProjectBuilderDraftCheckpointErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDiscardProjectBuilderDraftCheckpointError = DomainProjectsDiscardProjectBuilderDraftCheckpointErrors[keyof DomainProjectsDiscardProjectBuilderDraftCheckpointErrors];
+
+export type DomainProjectsDiscardProjectBuilderDraftCheckpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUnionBuilderDraftCheckpointOutNoneType;
+};
+
+export type DomainProjectsDiscardProjectBuilderDraftCheckpointResponse = DomainProjectsDiscardProjectBuilderDraftCheckpointResponses[keyof DomainProjectsDiscardProjectBuilderDraftCheckpointResponses];
+
+export type DomainProjectsGetProjectBuilderDraftCheckpointData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Client Session Id
+         */
+        client_session_id?: string;
+    };
+    url: '/api/v1/projects/{project_id}/builder/draft-checkpoint';
+};
+
+export type DomainProjectsGetProjectBuilderDraftCheckpointErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectBuilderDraftCheckpointError = DomainProjectsGetProjectBuilderDraftCheckpointErrors[keyof DomainProjectsGetProjectBuilderDraftCheckpointErrors];
+
+export type DomainProjectsGetProjectBuilderDraftCheckpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUnionBuilderDraftCheckpointOutNoneType;
+};
+
+export type DomainProjectsGetProjectBuilderDraftCheckpointResponse = DomainProjectsGetProjectBuilderDraftCheckpointResponses[keyof DomainProjectsGetProjectBuilderDraftCheckpointResponses];
+
+export type DomainProjectsSaveProjectBuilderDraftCheckpointData = {
+    body: BuilderDraftCheckpointSaveIn;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/draft-checkpoint';
+};
+
+export type DomainProjectsSaveProjectBuilderDraftCheckpointErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSaveProjectBuilderDraftCheckpointError = DomainProjectsSaveProjectBuilderDraftCheckpointErrors[keyof DomainProjectsSaveProjectBuilderDraftCheckpointErrors];
+
+export type DomainProjectsSaveProjectBuilderDraftCheckpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderDraftCheckpointOut;
+};
+
+export type DomainProjectsSaveProjectBuilderDraftCheckpointResponse = DomainProjectsSaveProjectBuilderDraftCheckpointResponses[keyof DomainProjectsSaveProjectBuilderDraftCheckpointResponses];
+
 export type DomainProjectsCreateBuilderGenerationData = {
     body: BuilderGenerationCreateRequest;
     headers: {
@@ -40008,6 +40644,47 @@ export type DomainProjectsCancelBuilderGenerationResponses = {
 };
 
 export type DomainProjectsCancelBuilderGenerationResponse = DomainProjectsCancelBuilderGenerationResponses[keyof DomainProjectsCancelBuilderGenerationResponses];
+
+export type DomainProjectsListProjectBuilderHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/builder/history';
+};
+
+export type DomainProjectsListProjectBuilderHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectBuilderHistoryError = DomainProjectsListProjectBuilderHistoryErrors[keyof DomainProjectsListProjectBuilderHistoryErrors];
+
+export type DomainProjectsListProjectBuilderHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderRevisionHistoryOut;
+};
+
+export type DomainProjectsListProjectBuilderHistoryResponse = DomainProjectsListProjectBuilderHistoryResponses[keyof DomainProjectsListProjectBuilderHistoryResponses];
 
 export type DomainProjectsInitializeProjectBuilderData = {
     body: BuilderInitializationRequest;

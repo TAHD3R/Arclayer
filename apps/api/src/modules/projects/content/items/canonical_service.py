@@ -71,6 +71,7 @@ from src.modules.projects.content.items.read_service import (
     ProjectContentCanonicalItemReadService,
 )
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+from src.modules.projects.content.items.retention import retain_content_item_aggregate
 from src.modules.projects.content.items.workflow_policy import (
     resolve_workflow_actor,
     resolve_workflow_policy,
@@ -1053,17 +1054,34 @@ class ProjectContentCanonicalItemsService(BaseService):
                 conn=conn,
             )
 
-        deleted = await self.entity_manager.delete(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            environment_id=environment_id,
-            model_key=model_key,
-            item_id=item_id,
-            actor_id=actor_user_id,
-            before_commit=_before_delete_commit,
-        )
-        if not deleted:
-            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+        after_commit = None
+        async with self.tx() as conn:
+            locked_item = await self.repo.get_item_with_model(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item_id=item_id,
+                conn=conn,
+                for_update=True,
+            )
+            if locked_item is None:
+                raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+            await retain_content_item_aggregate(item=locked_item, actor_user_id=actor_user_id, conn=conn)
+            mutation = await self.entity_manager.delete_in_transaction(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_key=model_key,
+                item_id=item_id,
+                actor_id=actor_user_id,
+                before_commit=_before_delete_commit,
+                conn=conn,
+            )
+            if not mutation.deleted:
+                raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+            after_commit = mutation.after_commit
+        if after_commit is not None:
+            await self.entity_manager.dispatch_after_commit(after_commit)
 
     async def archive_item(
         self,

@@ -45,6 +45,7 @@ from src.modules.projects.builder.wireframe_change_set_schema import (
     BuilderWireframeSetComponentOperationV1,
     BuilderWireframeSetGlobalReferenceOperationV1,
     BuilderWireframeSetInteractionsOperationV1,
+    BuilderWireframeSetLayoutOperationV1,
     BuilderWireframeSetResponsiveRuleOperationV1,
     BuilderWireframeSetVariantOperationV1,
     BuilderWireframeTargetOperationV1,
@@ -101,6 +102,11 @@ class BuilderPageDeleteOperationV1(BuilderOperationBaseV1):
     type: Literal["page.delete"]
     item_id: PublicUUID
     expected_draft_version: int = Field(ge=1)
+
+
+class BuilderRevisionRestoreOperationV1(BuilderOperationBaseV1):
+    type: Literal["revision.restore"]
+    target_revision_id: PublicUUID
 
 
 class BuilderGlobalSectionCreateOperationV1(BuilderOperationBaseV1):
@@ -188,6 +194,7 @@ BuilderOperationV1 = Annotated[
     | BuilderPageMoveOperationV1
     | BuilderPageReorderOperationV1
     | BuilderPageDeleteOperationV1
+    | BuilderRevisionRestoreOperationV1
     | BuilderGlobalSectionCreateOperationV1
     | BuilderGlobalSectionDeleteOperationV1
     | BuilderPageIntentReplaceOperationV1
@@ -200,6 +207,7 @@ BuilderOperationV1 = Annotated[
     | BuilderWireframeSectionRemoveOperationV1
     | BuilderWireframeSectionReorderOperationV1
     | BuilderWireframeSectionConfigureOperationV1
+    | BuilderWireframeSetLayoutOperationV1
     | BuilderWireframeSetComponentOperationV1
     | BuilderWireframeSetVariantOperationV1
     | BuilderWireframeSetBindingOperationV1
@@ -258,12 +266,18 @@ class BuilderChangeSetPreviewRequest(BaseSchema):
                 if isinstance(operation, BuilderDesignTargetOperationV1)
                 else "design_system"
                 if isinstance(operation, BuilderDesignSystemRefreshOperationV1)
+                else "restore"
+                if isinstance(operation, BuilderRevisionRestoreOperationV1)
                 else "sitemap"
             )
             for operation in self.operations
         }
         if len(operation_families) != 1:
-            raise ValueError("Builder ChangeSets cannot mix Sitemap, Wireframe, Design, and Design System operations")
+            raise ValueError(
+                "Builder ChangeSets cannot mix Sitemap, Wireframe, Design, and Design System or Restore operations"
+            )
+        if "restore" in operation_families and len(self.operations) != 1:
+            raise ValueError("A Restore ChangeSet requires exactly one operation")
         if "design_system" in operation_families and len(self.operations) != 1:
             raise ValueError("A Design System refresh ChangeSet requires exactly one operation")
         is_agent = self.provenance_source == BuilderProvenanceSource.AGENT

@@ -33,7 +33,7 @@ export function SitemapCanvasTools({
   const { t } = useTranslation("account");
   return (
     <TooltipProvider>
-      <div className="absolute top-1/2 left-4 z-30 flex -translate-y-1/2 flex-col gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
+      <div className="pointer-events-none absolute top-1/2 left-4 z-30 flex -translate-y-1/2 flex-col gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
         <CanvasTool icon={MousePointer2} label={t("CREATION_EDITOR_TOOL_SELECT")} active />
         <CanvasTool
           icon={Plus}
@@ -70,10 +70,11 @@ export function SitemapZoomControls({
 }) {
   const { t } = useTranslation("account");
   return (
-    <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
+    <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
       <Button
         variant="ghost"
         size="icon-sm"
+        className="pointer-events-auto"
         aria-label={t("CREATION_EDITOR_ZOOM_OUT")}
         onClick={() => onZoomChange(zoom - 0.1)}
       >
@@ -85,6 +86,7 @@ export function SitemapZoomControls({
       <Button
         variant="ghost"
         size="icon-sm"
+        className="pointer-events-auto"
         aria-label={t("CREATION_EDITOR_ZOOM_IN")}
         onClick={() => onZoomChange(zoom + 0.1)}
       >
@@ -94,6 +96,7 @@ export function SitemapZoomControls({
       <Button
         variant="ghost"
         size="icon-sm"
+        className="pointer-events-auto"
         aria-label={t("CREATION_EDITOR_FIT_CANVAS")}
         onClick={onFit}
       >
@@ -124,7 +127,7 @@ function CanvasTool({
         <Button
           variant={active ? "secondary" : "ghost"}
           size="icon"
-          className="min-h-11 min-w-11"
+          className="pointer-events-auto min-h-11 min-w-11"
           aria-label={label}
           disabled={disabled}
           onClick={onClick}

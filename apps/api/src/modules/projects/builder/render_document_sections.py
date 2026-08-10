@@ -245,6 +245,8 @@ def _render_section(
         variant_key=section.variant_key,
         label=section.label,
         slots=slots,
+        layout=section.layout,
+        responsive_layouts=section.responsive_layouts,
         responsive_rules=section.responsive_rules,
         interaction_rules=section.interaction_rules,
         asset_references=section.asset_references,

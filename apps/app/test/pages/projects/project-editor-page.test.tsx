@@ -13,10 +13,15 @@ import type {
 
 import { ProjectEditorPage, type ProjectEditorPageProps } from "@/pages/projects/editor/page";
 import { siteRenderDocumentFixture } from "../../fixtures/site-render-document";
+import { ApiError } from "@/lib/http";
 
 const navigateMock = vi.fn();
 const getProjectDetailMock = vi.fn();
 const getProjectBuilderMock = vi.fn();
+const getProjectBuilderHistoryMock = vi.fn();
+const getProjectBuilderDraftCheckpointMock = vi.fn();
+const saveProjectBuilderDraftCheckpointMock = vi.fn();
+const discardProjectBuilderDraftCheckpointMock = vi.fn();
 const getProjectBuilderRevisionMock = vi.fn();
 const getProjectBuilderPageRenderDocumentMock = vi.fn();
 const getProjectBuilderComponentCatalogMock = vi.fn();
@@ -87,6 +92,13 @@ vi.mock("@/api/project-builder", async (importOriginal) => {
   return {
     ...actual,
     getProjectBuilder: (...args: unknown[]) => getProjectBuilderMock(...args),
+    getProjectBuilderHistory: (...args: unknown[]) => getProjectBuilderHistoryMock(...args),
+    getProjectBuilderDraftCheckpoint: (...args: unknown[]) =>
+      getProjectBuilderDraftCheckpointMock(...args),
+    saveProjectBuilderDraftCheckpoint: (...args: unknown[]) =>
+      saveProjectBuilderDraftCheckpointMock(...args),
+    discardProjectBuilderDraftCheckpoint: (...args: unknown[]) =>
+      discardProjectBuilderDraftCheckpointMock(...args),
     getProjectBuilderRevision: (...args: unknown[]) => getProjectBuilderRevisionMock(...args),
     getProjectBuilderPageRenderDocument: (...args: unknown[]) =>
       getProjectBuilderPageRenderDocumentMock(...args),
@@ -1208,6 +1220,42 @@ describe("ProjectEditorPage", () => {
     vi.stubGlobal("crypto", { randomUUID: () => `command-${++key}` });
     getProjectDetailMock.mockResolvedValue({ project: { id: "project-1", name: "Northstar" } });
     getProjectBuilderMock.mockResolvedValue(readyBuilder);
+    getProjectBuilderHistoryMock.mockResolvedValue({
+      currentRevisionId: "revision-1",
+      items: [
+        {
+          id: "revision-1",
+          revisionNumber: 1,
+          baseRevisionId: null,
+          manifestHash: siteRevision.manifestHash,
+          provenanceSource: "human",
+          actorUserId: "user-1",
+          agentRunId: null,
+          createdAt: "2026-08-10T00:00:00Z",
+          isCurrent: true,
+        },
+      ],
+      nextCursor: null,
+      restoreCapability: "unavailable",
+    });
+    getProjectBuilderDraftCheckpointMock.mockResolvedValue(null);
+    saveProjectBuilderDraftCheckpointMock.mockImplementation(async (_projectId, payload) => ({
+      id: "draft-checkpoint-1",
+      projectId: "project-1",
+      clientSessionId: payload.clientSessionId,
+      baseRevisionId: payload.baseRevisionId,
+      baseEtag: payload.baseEtag,
+      checkpointVersion: payload.expectedCheckpointVersion + 1,
+      operations: payload.operations,
+      operationsHash: `sha256:${"6".repeat(64)}`,
+      status: "draft",
+      provenanceSource: "human",
+      conflictMeta: null,
+      appliedChangeSetId: null,
+      createdAt: "2026-08-10T00:00:00Z",
+      updatedAt: "2026-08-10T00:00:00Z",
+    }));
+    discardProjectBuilderDraftCheckpointMock.mockResolvedValue(null);
     getProjectBuilderRevisionMock.mockResolvedValue(revisionProjection);
     getProjectBuilderPageRenderDocumentMock.mockResolvedValue(siteRenderDocumentFixture());
     getProjectBuilderComponentCatalogMock.mockResolvedValue(componentCatalog);
@@ -1395,6 +1443,61 @@ describe("ProjectEditorPage", () => {
     );
   });
 
+  it("keeps restore controls unavailable when history exposes no safe target", async () => {
+    renderPage();
+
+    expect(await screen.findByTestId("creation-editor")).toBeInTheDocument();
+    expect(getProjectBuilderHistoryMock).toHaveBeenCalledWith("project-1", expect.any(AbortSignal));
+    expect(screen.getByRole("button", { name: "CREATION_EDITOR_UNDO" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "CREATION_EDITOR_REDO" })).toBeDisabled();
+  });
+
+  it("previews and applies a server restore target from Undo", async () => {
+    const user = userEvent.setup();
+    getProjectBuilderHistoryMock.mockResolvedValueOnce({
+      currentRevisionId: "revision-1",
+      undoTargetRevisionId: "revision-0",
+      redoTargetRevisionId: null,
+      items: [],
+      nextCursor: null,
+      restoreCapability: "available",
+    });
+
+    renderPage();
+
+    const undo = await screen.findByRole("button", { name: "CREATION_EDITOR_UNDO" });
+    expect(undo).toBeEnabled();
+    await user.click(undo);
+
+    await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
+    expect(previewProjectBuilderChangeSetMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        baseRevisionId: "revision-1",
+        operations: [
+          expect.objectContaining({
+            type: "revision.restore",
+            targetRevisionId: "revision-0",
+          }),
+        ],
+      }),
+    );
+    expect(
+      await screen.findByRole("region", { name: "CREATION_EDITOR_SITEMAP_REVIEW_LABEL" }),
+    ).toBeVisible();
+
+    await user.click(
+      screen.getByRole("button", { name: "CREATION_EDITOR_WIREFRAME_APPLY_PREVIEW" }),
+    );
+    await waitFor(() =>
+      expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
+        "project-1",
+        "manual-change-set-1",
+        { previewToken: "manual-preview-token", approval: undefined },
+        expect.stringContaining("revision-restore-apply:"),
+      ),
+    );
+  });
+
   it("initializes, reviews, and applies a revision-pinned Design candidate", async () => {
     const user = userEvent.setup();
     previewProjectBuilderChangeSetMock.mockResolvedValueOnce(
@@ -1469,6 +1572,47 @@ describe("ProjectEditorPage", () => {
       expect.stringContaining("design-apply:"),
     );
     await waitFor(() => expect(getProjectBuilderRevisionMock.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("routes a durable Design checkpoint back to Design review after reload", async () => {
+    const recoveryOperation = {
+      type: "design.initialize",
+      operationId: "recovered-design-initialize",
+      itemId: "home-page",
+      expectedDraftVersion: 2,
+      sourceWireframeChecksum: `sha256:${"a".repeat(64)}`,
+    } as const;
+    getProjectBuilderDraftCheckpointMock.mockResolvedValueOnce({
+      id: "draft-checkpoint-design",
+      projectId: "project-1",
+      clientSessionId: "project-editor",
+      baseRevisionId: "revision-1",
+      baseEtag: siteRevision.manifestHash,
+      checkpointVersion: 1,
+      operations: [recoveryOperation],
+      operationsHash: `sha256:${"6".repeat(64)}`,
+      status: "draft",
+      provenanceSource: "human",
+      conflictMeta: null,
+      appliedChangeSetId: null,
+      createdAt: "2026-08-10T00:00:00Z",
+      updatedAt: "2026-08-10T00:00:00Z",
+    });
+    previewProjectBuilderChangeSetMock.mockResolvedValueOnce(designPreview(recoveryOperation));
+
+    renderPage({ initialStage: "design" });
+
+    expect(
+      await screen.findByRole("region", { name: "CREATION_EDITOR_DESIGN_REVIEW_LABEL" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "CREATION_EDITOR_SITEMAP_REVIEW_LABEL" }),
+    ).toBeNull();
+    expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({ operations: [recoveryOperation] }),
+      expect.stringContaining("builder-draft-recovery-preview:"),
+    );
   });
 
   it("builds typed base, responsive, and clear Design operations from catalog slots", async () => {
@@ -1691,6 +1835,17 @@ describe("ProjectEditorPage", () => {
     await user.click(within(review).getByRole("button", { name: "CREATION_EDITOR_DESIGN_APPLY" }));
 
     await waitFor(() => expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
+    expect(saveProjectBuilderDraftCheckpointMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({
+        baseRevisionId: "revision-1",
+        operations: designGenerationWithCandidate().candidates[0]?.changeSet.operations,
+      }),
+      expect.stringContaining("builder-draft-autosave:"),
+    );
+    expect(saveProjectBuilderDraftCheckpointMock.mock.invocationCallOrder[0]).toBeLessThan(
+      applyProjectBuilderChangeSetMock.mock.invocationCallOrder[0]!,
+    );
     expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
       "project-1",
       "design-change-set-1",
@@ -2276,12 +2431,24 @@ describe("ProjectEditorPage", () => {
       screen.getByRole("button", { name: "CREATION_EDITOR_WIREFRAME_APPLY_PREVIEW" }),
     );
     await waitFor(() => expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
+    expect(saveProjectBuilderDraftCheckpointMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({
+        baseRevisionId: "revision-1",
+        operations: wireframeGenerationWithCandidate().candidates[0]?.changeSet.operations,
+      }),
+      expect.stringContaining("builder-draft-autosave:"),
+    );
+    expect(saveProjectBuilderDraftCheckpointMock.mock.invocationCallOrder[0]).toBeLessThan(
+      applyProjectBuilderChangeSetMock.mock.invocationCallOrder[0]!,
+    );
     expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
       "project-1",
       "wireframe-agent-change-set-1",
       { previewToken: "wireframe-agent-preview-token", approval: undefined },
       expect.stringContaining("wireframe-generation-apply:"),
     );
+    await waitFor(() => expect(discardProjectBuilderDraftCheckpointMock).toHaveBeenCalledTimes(1));
   });
 
   it("coordinates an ordered page and reusable-section scope through one generation and Apply", async () => {
@@ -2738,6 +2905,14 @@ describe("ProjectEditorPage", () => {
       }),
       "style-guide-refresh-preview:4",
     );
+    expect(saveProjectBuilderDraftCheckpointMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({
+        baseRevisionId: "revision-1",
+        operations: [expect.objectContaining({ type: "design-system.refresh" })],
+      }),
+      expect.stringContaining("builder-draft-autosave:"),
+    );
     expect(
       await screen.findByRole("region", { name: "CREATION_EDITOR_STYLE_REVIEW_LABEL" }),
     ).toBeVisible();
@@ -2754,6 +2929,49 @@ describe("ProjectEditorPage", () => {
         },
       },
       "style-guide-refresh-apply:style-refresh-1",
+    );
+  });
+
+  it("routes a durable Style Guide checkpoint back to the Style Guide review", async () => {
+    const recoveryOperation = {
+      type: "design-system.refresh",
+      operationId: "recovered-style-refresh",
+      expectedAssignmentRevision: 4,
+      designSystemId: "design-system-1",
+      versionId: "design-version-2",
+      expectedManifestChecksum: `sha256:${"8".repeat(64)}`,
+      validationFindingHash: `sha256:${"a".repeat(64)}`,
+    } as const;
+    getProjectBuilderDraftCheckpointMock.mockResolvedValueOnce({
+      id: "draft-checkpoint-style",
+      projectId: "project-1",
+      clientSessionId: "project-editor",
+      baseRevisionId: "revision-1",
+      baseEtag: siteRevision.manifestHash,
+      checkpointVersion: 1,
+      operations: [recoveryOperation],
+      operationsHash: `sha256:${"6".repeat(64)}`,
+      status: "draft",
+      provenanceSource: "human",
+      conflictMeta: null,
+      appliedChangeSetId: null,
+      createdAt: "2026-08-10T00:00:00Z",
+      updatedAt: "2026-08-10T00:00:00Z",
+    });
+    previewProjectBuilderChangeSetMock.mockResolvedValueOnce(designPreview(recoveryOperation));
+
+    renderPage({ initialStage: "styleGuide" });
+
+    expect(
+      await screen.findByRole("region", { name: "CREATION_EDITOR_STYLE_REVIEW_LABEL" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "CREATION_EDITOR_DESIGN_REVIEW_LABEL" }),
+    ).toBeNull();
+    expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({ operations: [recoveryOperation] }),
+      expect.stringContaining("builder-draft-recovery-preview:"),
     );
   });
 
@@ -3430,6 +3648,182 @@ describe("ProjectEditorPage", () => {
       { previewToken: "wireframe-preview-token", approval: undefined },
       expect.stringContaining("wireframe-apply:"),
     );
+  });
+
+  it("re-previews the typed Wireframe intent after a stale revision conflict", async () => {
+    const user = userEvent.setup();
+    const sourceWireframe = revisionProjection.pages[0]?.wireframe;
+    const sourceSection = sourceWireframe?.sections[0];
+    if (!sourceWireframe || !sourceSection) throw new Error("Wireframe test fixture is incomplete");
+    const latestSiteRevision = {
+      ...siteRevision,
+      id: "revision-2",
+      revisionNumber: 3,
+      manifestHash: `sha256:${"9".repeat(64)}`,
+    };
+    const latestRevision = {
+      ...revisionProjection,
+      siteRevision: latestSiteRevision,
+      pages: revisionProjection.pages.map((page) =>
+        page.itemId === "home-page" ? { ...page, versionNumber: 3 } : page,
+      ),
+    };
+    const candidateWireframe = {
+      ...sourceWireframe,
+      sections: [
+        {
+          ...sourceSection,
+          componentKey: "landing.feature-grid",
+          variantKey: "split",
+          bindings: [
+            { kind: "field" as const, slotKey: "heading", fieldKey: "heroHeadline" },
+            { kind: "literal" as const, slotKey: "items", value: [{ title: "Fast" }] },
+          ],
+        },
+      ],
+    };
+    const preview = (
+      changeSetId: string,
+      previewToken: string,
+      baseRevisionId: string,
+      baseEtag: string,
+      expectedDraftVersion: number,
+    ) => ({
+      changeSetId,
+      previewToken,
+      previewRef: `/projects/project-1/builder/change-sets/${changeSetId}`,
+      baseRevisionId,
+      baseEtag,
+      status: "previewed" as const,
+      approvalClass: "none" as const,
+      approval: null,
+      operationsHash: `sha256:${"6".repeat(64)}`,
+      expiresAt: "2026-07-22T00:00:00Z",
+      summaryKey: "BUILDER_CHANGE_SET_PREVIEW_SUMMARY",
+      summaryParams: { operationCount: 1 },
+      requiredPermissions: ["project:content:items:write", "project:content:site-builder:write"],
+      affectedTargets: [],
+      issues: [],
+      operations: [
+        {
+          type: "wireframe.section.configure" as const,
+          operationId: "configure-op",
+          itemId: "home-page",
+          expectedDraftVersion,
+          sectionId: "hero",
+          componentKey: "landing.feature-grid",
+          variantKey: "split",
+          bindings: candidateWireframe.sections[0]?.bindings ?? [],
+          responsiveRules: sourceSection.responsiveRules,
+          interactionRules: sourceSection.interactionRules,
+        },
+      ],
+      wireframeCandidates: [
+        {
+          itemId: "home-page",
+          baseContentVersionId: "home-version",
+          baseVersionNumber: expectedDraftVersion,
+          wireframe: candidateWireframe,
+        },
+      ],
+    });
+    const initialPreview = preview(
+      "wireframe-change-set-1",
+      "wireframe-preview-token",
+      "revision-1",
+      siteRevision.manifestHash,
+      2,
+    );
+    const rebasedPreview = preview(
+      "wireframe-change-set-2",
+      "wireframe-rebased-preview-token",
+      "revision-2",
+      latestSiteRevision.manifestHash,
+      3,
+    );
+    getProjectBuilderMock.mockResolvedValueOnce(readyBuilder).mockResolvedValueOnce({
+      ...readyBuilder,
+      currentSiteRevision: latestSiteRevision,
+    });
+    getProjectBuilderHistoryMock
+      .mockResolvedValueOnce({
+        currentRevisionId: "revision-1",
+        items: [],
+        nextCursor: null,
+        restoreCapability: "unavailable",
+      })
+      .mockResolvedValueOnce({
+        currentRevisionId: "revision-2",
+        items: [],
+        nextCursor: null,
+        restoreCapability: "unavailable",
+      });
+    getProjectBuilderRevisionMock.mockImplementation((_projectId: string, revisionId: string) =>
+      Promise.resolve(revisionId === "revision-2" ? latestRevision : revisionProjection),
+    );
+    previewProjectBuilderChangeSetMock
+      .mockResolvedValueOnce(initialPreview)
+      .mockResolvedValueOnce(rebasedPreview);
+    applyProjectBuilderChangeSetMock.mockRejectedValueOnce(
+      new ApiError({
+        status: 409,
+        error: "SITE_REVISION_STALE",
+        message: "The site revision changed.",
+        meta: { expectedVersion: 2, currentVersion: 3, itemId: "home-page" },
+      }),
+    );
+
+    renderPage();
+    await screen.findByTestId("creation-editor");
+    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_WIREFRAME" }));
+    await user.click(await screen.findByLabelText("CREATION_EDITOR_WIREFRAME_COMPONENT"));
+    await user.click(screen.getByRole("option", { name: "Feature grid" }));
+    await user.click(screen.getByLabelText("CREATION_EDITOR_WIREFRAME_VARIANT"));
+    await user.click(screen.getByRole("option", { name: "Guided split" }));
+    await user.click(screen.getByLabelText("Feature items CREATION_EDITOR_WIREFRAME_BINDING_KIND"));
+    await user.click(
+      screen.getByRole("option", { name: "CREATION_EDITOR_WIREFRAME_BINDING_LITERAL" }),
+    );
+    await user.click(
+      screen.getByLabelText("Feature items CREATION_EDITOR_WIREFRAME_BINDING_VALUE"),
+    );
+    await user.paste('[{"title":"Fast"}]');
+    await user.click(
+      screen.getByRole("button", { name: "CREATION_EDITOR_WIREFRAME_PREVIEW_COMPOSITION" }),
+    );
+    await screen.findByRole("region", { name: "CREATION_EDITOR_WIREFRAME_REVIEW_LABEL" });
+    await user.click(
+      screen.getByRole("button", { name: "CREATION_EDITOR_WIREFRAME_APPLY_PREVIEW" }),
+    );
+    expect(
+      await screen.findByRole("region", { name: "CREATION_EDITOR_CONFLICT_LABEL" }),
+    ).toBeVisible();
+    expect(screen.getByText("CREATION_EDITOR_SYNC_CONFLICT")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_CONFLICT_REFRESH" }));
+    await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(2));
+    expect(previewProjectBuilderChangeSetMock.mock.calls[1]).toEqual([
+      "project-1",
+      expect.objectContaining({
+        baseRevisionId: "revision-2",
+        baseEtag: latestSiteRevision.manifestHash,
+        provenanceSource: "human",
+        operations: [
+          expect.objectContaining({
+            type: "wireframe.section.configure",
+            expectedDraftVersion: 3,
+          }),
+        ],
+      }),
+      expect.stringContaining("conflict-repreview:"),
+    ]);
+    expect(
+      await screen.findByRole("region", { name: "CREATION_EDITOR_WIREFRAME_REVIEW_LABEL" }),
+    ).toBeVisible();
+    expect(screen.getByText("CREATION_EDITOR_SYNC_REVIEW")).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "CREATION_EDITOR_CONFLICT_LABEL" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps an invalid structured slot draft local and explains why preview cannot start", async () => {

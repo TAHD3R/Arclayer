@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import type {
+  BuilderChangeSetPreviewRequest,
   BuilderChangeSetPreviewOut,
   BuilderRevisionOut,
   DesignSystemValidationResultOut,
@@ -39,6 +40,9 @@ interface ProjectStyleGuideControllerInput {
   revision: BuilderRevisionOut | null;
   enabled: boolean;
   canWrite: boolean;
+  recoveredPreview?: BuilderChangeSetPreviewOut | null;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }
 
 function assignmentQueryKey(projectId: string) {
@@ -52,6 +56,7 @@ function requireOnline(online: boolean) {
 export function useProjectStyleGuideController(input: ProjectStyleGuideControllerInput) {
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
+  const { onDraftAutosave, onDraftDiscard } = input;
   const [candidateVersion, setCandidateVersion] = useState<DesignSystemVersionDetailOut | null>(
     null,
   );
@@ -66,6 +71,10 @@ export function useProjectStyleGuideController(input: ProjectStyleGuideControlle
     setCandidateValidation(null);
     setRefreshPreview(null);
   }, [input.revision?.siteRevision.id]);
+
+  useEffect(() => {
+    if (input.recoveredPreview) setRefreshPreview(input.recoveredPreview);
+  }, [input.recoveredPreview, input.revision?.siteRevision.id]);
 
   const assignmentQuery = useQuery({
     queryKey: assignmentQueryKey(input.projectId),
@@ -190,7 +199,7 @@ export function useProjectStyleGuideController(input: ProjectStyleGuideControlle
   });
 
   const validateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       requireOnline(online);
       if (!candidateVersion) throw new Error("CREATION_EDITOR_STYLE_CANDIDATE_REQUIRED");
       return validateProjectDesignSystemVersion(
@@ -247,27 +256,29 @@ export function useProjectStyleGuideController(input: ProjectStyleGuideControlle
   });
 
   const previewRefreshMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       requireOnline(online);
       const revision = input.revision;
       if (!assignment || !revision) throw new Error("CREATION_EDITOR_STYLE_REVISION_REQUIRED");
+      const operations: BuilderChangeSetPreviewRequest["operations"] = [
+        {
+          type: "design-system.refresh",
+          operationId: "refresh-design-system",
+          expectedAssignmentRevision: assignment.metadataRevision,
+          designSystemId: assignment.designSystemId,
+          versionId: assignment.versionId,
+          expectedManifestChecksum: assignment.manifestChecksum,
+          validationFindingHash: assignment.validationFindingHash,
+        },
+      ];
+      await onDraftAutosave(operations);
       return previewProjectBuilderChangeSet(
         input.projectId,
         {
           baseRevisionId: revision.siteRevision.id,
           baseEtag: revision.siteRevision.manifestHash,
           provenanceSource: "human",
-          operations: [
-            {
-              type: "design-system.refresh",
-              operationId: "refresh-design-system",
-              expectedAssignmentRevision: assignment.metadataRevision,
-              designSystemId: assignment.designSystemId,
-              versionId: assignment.versionId,
-              expectedManifestChecksum: assignment.manifestChecksum,
-              validationFindingHash: assignment.validationFindingHash,
-            },
-          ],
+          operations,
         },
         `style-guide-refresh-preview:${assignment.metadataRevision}`,
       );
@@ -299,6 +310,7 @@ export function useProjectStyleGuideController(input: ProjectStyleGuideControlle
       setCandidateVersion(null);
       setCandidateValidation(null);
       setRefreshPreview(null);
+      await onDraftDiscard();
       await queryClient.invalidateQueries({
         queryKey: buildProjectBuilderQueryKey(input.projectId),
       });

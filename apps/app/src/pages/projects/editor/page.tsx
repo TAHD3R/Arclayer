@@ -7,10 +7,16 @@ import { AddPageDialog } from "@/pages/projects/editor/add-page-dialog";
 import { CompositionSagaReview } from "@/pages/projects/editor/composition-saga-review";
 import { DesignStage } from "@/pages/projects/editor/design-stage";
 import { EditorBoundary, EditorLoadingState } from "@/pages/projects/editor/editor-boundaries";
+import { EditorConflictSurface } from "@/pages/projects/editor/editor-conflict-surface";
 import { EditorInspector } from "@/pages/projects/editor/editor-inspector";
-import { EditorToolbar, type EditorStage } from "@/pages/projects/editor/editor-toolbar";
+import {
+  EditorToolbar,
+  type EditorStage,
+  type EditorSyncState,
+} from "@/pages/projects/editor/editor-toolbar";
 import { GenerationPanel } from "@/pages/projects/editor/generation-panel";
 import { SitemapCanvas } from "@/pages/projects/editor/sitemap-canvas";
+import { SitemapChangeReview } from "@/pages/projects/editor/sitemap-change-review";
 import { SharedSectionManagerDialog } from "@/pages/projects/editor/shared-section-manager-dialog";
 import { StyleGuideStage } from "@/pages/projects/editor/style-guide-stage";
 import { useProjectEditorController } from "@/pages/projects/editor/use-project-editor-controller";
@@ -79,6 +85,8 @@ export function ProjectEditorPage({
     canWrite: editor.canWrite,
     permissionReady: editor.permissionReady,
     blockedByPreview: Boolean(editor.wireframePreview),
+    onDraftAutosave: editor.queueDraftAutosave,
+    onDraftDiscard: editor.discardDraftCheckpoint,
   });
   const projectName =
     editor.projectQuery.data?.project.name ?? t("CREATION_EDITOR_PROJECT_FALLBACK");
@@ -88,6 +96,12 @@ export function ProjectEditorPage({
     revision: editor.revisionQuery.data ?? null,
     enabled: stage === "styleGuide" && Boolean(editor.revisionQuery.data),
     canWrite: editor.canWrite,
+    recoveredPreview:
+      editor.recoveredDraftPreview?.kind === "styleGuide"
+        ? editor.recoveredDraftPreview.preview
+        : null,
+    onDraftAutosave: editor.queueDraftAutosave,
+    onDraftDiscard: editor.discardDraftCheckpoint,
   });
   const design = useProjectDesignController({
     projectId,
@@ -95,6 +109,10 @@ export function ProjectEditorPage({
     page: currentPage,
     componentCatalog: editor.componentCatalogQuery.data ?? null,
     enabled: stage === "design",
+    recoveredPreview:
+      editor.recoveredDraftPreview?.kind === "design" ? editor.recoveredDraftPreview.preview : null,
+    onDraftAutosave: editor.queueDraftAutosave,
+    onDraftDiscard: editor.discardDraftCheckpoint,
   });
   const backToProject = () => void navigate({ to: `/projects/${projectId}` as never });
   const retryBuilderBootstrap = () => {
@@ -198,9 +216,53 @@ export function ProjectEditorPage({
   const canonicalSelectedSection =
     (selectedPage?.wireframe?.sections ?? []).find((section) => section.id === selectedSectionId) ??
     null;
+  const undoDisabledReason = editor.historyQuery.isPending
+    ? t("CREATION_EDITOR_HISTORY_LOADING")
+    : editor.historyQuery.error
+      ? t("CREATION_EDITOR_HISTORY_ERROR")
+      : editor.historyQuery.data?.restoreCapability === "available" &&
+          editor.historyQuery.data.undoTargetRevisionId
+        ? undefined
+        : t("CREATION_EDITOR_UNDO_EMPTY");
+  const redoDisabledReason = editor.historyQuery.isPending
+    ? t("CREATION_EDITOR_HISTORY_LOADING")
+    : editor.historyQuery.error
+      ? t("CREATION_EDITOR_HISTORY_ERROR")
+      : editor.historyQuery.data?.redoTargetRevisionId
+        ? undefined
+        : t("CREATION_EDITOR_REDO_EMPTY");
+  const syncState: EditorSyncState = editor.conflictError
+    ? "conflict"
+    : editor.draftSaveState === "conflict"
+      ? "conflict"
+      : editor.draftSaveState === "error"
+        ? "error"
+        : editor.draftSaveState === "saving"
+          ? "saving"
+          : editor.draftSaveState === "queued"
+            ? "queued"
+            : editor.applyWireframeChange.isPending ||
+                editor.applySitemapPlanning.isPending ||
+                editor.applySitemapChange.isPending ||
+                editor.applyRestore.isPending
+              ? "applying"
+              : editor.previewWireframeChange.isPending ||
+                  editor.previewSitemapPlanning.isPending ||
+                  editor.previewSitemapChange.isPending ||
+                  editor.previewRestore.isPending
+                ? "previewing"
+                : editor.wireframePreview ||
+                    editor.sitemapPlanningPreview ||
+                    editor.sitemapStructurePreview ||
+                    editor.restorePreview
+                  ? "review"
+                  : editor.operationError
+                    ? "error"
+                    : "saved";
+  const syncStateLabel = t(`CREATION_EDITOR_SYNC_${syncState.toUpperCase()}`);
   return (
     <main
-      className="flex h-screen min-h-0 flex-col overflow-hidden bg-background"
+      className="relative flex h-screen min-h-0 flex-col overflow-hidden bg-background"
       data-testid="creation-editor"
     >
       <EditorToolbar
@@ -223,6 +285,15 @@ export function ProjectEditorPage({
             : t("CREATION_EDITOR_PREVIEW_PAGE_REQUIRED")
         }
         designDisabledReason={designDisabledReason}
+        undoDisabledReason={undoDisabledReason}
+        redoDisabledReason={redoDisabledReason}
+        onUndo={() => editor.previewRestore.mutate(undefined)}
+        onRedo={() => {
+          const target = editor.historyQuery.data?.redoTargetRevisionId;
+          if (target) editor.previewRestore.mutate(target);
+        }}
+        syncState={syncState}
+        syncStateLabel={syncStateLabel}
       />
       <div className="flex min-h-0 flex-1">
         {stage === "sitemap" ? (
@@ -238,6 +309,33 @@ export function ProjectEditorPage({
               onOpenAI={() => editor.setInspectorMode("ai")}
               onAddPage={() => editor.setAddPageOpen(true)}
               onManageSharedSections={() => setSharedSectionsOpen(true)}
+              onReorderPage={(pageId, sortOrder) =>
+                editor.previewSitemapChange.mutate([
+                  {
+                    type: "page.reorder",
+                    operationId: globalThis.crypto.randomUUID(),
+                    itemId: pageId,
+                    sortOrder,
+                  },
+                ])
+              }
+              reviewPanel={
+                editor.restorePreview ? (
+                  <SitemapChangeReview
+                    preview={editor.restorePreview}
+                    applying={editor.applyRestore.isPending}
+                    onApply={() => editor.applyRestore.mutate()}
+                    onDiscard={editor.discardRestorePreview}
+                  />
+                ) : editor.sitemapStructurePreview ? (
+                  <SitemapChangeReview
+                    preview={editor.sitemapStructurePreview}
+                    applying={editor.applySitemapChange.isPending}
+                    onApply={() => editor.applySitemapChange.mutate()}
+                    onDiscard={editor.discardSitemapStructurePreview}
+                  />
+                ) : undefined
+              }
               canEdit={editor.canWrite}
               editDisabledReason={
                 editor.permissionReady
@@ -261,6 +359,11 @@ export function ProjectEditorPage({
               onPreviewPlanning={(draft) => editor.previewSitemapPlanning.mutate(draft)}
               onApplyPlanning={() => editor.applySitemapPlanning.mutate()}
               onDiscardPlanning={editor.discardSitemapPlanningPreview}
+              onSyncWireframe={() => {
+                editor.setInspectorMode("page");
+                setSelectedSectionId(null);
+                setStage("wireframe");
+              }}
               aiPanel={
                 <GenerationPanel
                   agents={editor.eligibleAgents}
@@ -288,7 +391,11 @@ export function ProjectEditorPage({
               onOpenChange={editor.setAddPageOpen}
               projectId={projectId}
               revision={revision}
-              onApplied={editor.invalidateBuilder}
+              onApplied={async () => {
+                await editor.discardDraftCheckpoint();
+                await editor.invalidateBuilder();
+              }}
+              onDraftAutosave={editor.queueDraftAutosave}
             />
             <SharedSectionManagerDialog
               open={sharedSectionsOpen}
@@ -298,6 +405,8 @@ export function ProjectEditorPage({
               canWrite={editor.canEditWireframe}
               permissionReady={editor.permissionReady}
               onApplied={editor.invalidateBuilder}
+              onDraftAutosave={editor.queueDraftAutosave}
+              onDraftDiscard={editor.discardDraftCheckpoint}
             />
           </>
         ) : stage === "wireframe" ? (
@@ -313,6 +422,24 @@ export function ProjectEditorPage({
               selectedSectionId={selectedSectionId}
               onSelectSection={setSelectedSectionId}
               candidateActive={Boolean(wireframeCandidate)}
+              canEdit={editor.canEditWireframe}
+              onReorderSection={(sectionId, index) => {
+                if (!selectedPage) return;
+                const section = selectedPage.wireframe?.sections?.find(
+                  (candidate) => candidate.id === sectionId,
+                );
+                if (!section) return;
+                editor.previewWireframeChange.mutate([
+                  {
+                    type: "wireframe.section.reorder",
+                    operationId: globalThis.crypto.randomUUID(),
+                    itemId: selectedPage.itemId,
+                    expectedDraftVersion: selectedPage.versionNumber,
+                    sectionId,
+                    index,
+                  },
+                ]);
+              }}
               reviewPanel={
                 editor.wireframePreview ? (
                   <WireframeChangeReview
@@ -435,6 +562,8 @@ export function ProjectEditorPage({
             canEdit={editor.canEditWireframe}
             permissionReady={editor.permissionReady}
             controller={design}
+            onDraftAutosave={editor.queueDraftAutosave}
+            onDraftDiscard={editor.discardDraftCheckpoint}
           />
         )}
       </div>
@@ -449,6 +578,17 @@ export function ProjectEditorPage({
           pageItemId={selectedPage.itemId}
           pageTitle={selectedPage.title}
           availableLocales={previewLocales}
+        />
+      ) : null}
+      {editor.conflictError ? (
+        <EditorConflictSurface
+          error={editor.conflictError}
+          refreshing={editor.conflictRefreshing}
+          repreviewError={
+            editor.conflictRepreviewError ? getErrorMessage(editor.conflictRepreviewError) : null
+          }
+          onRefresh={() => void editor.refreshConflict()}
+          onDiscard={editor.discardConflict}
         />
       ) : null}
     </main>

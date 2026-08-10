@@ -7,6 +7,15 @@ import { ArrowLeft, Eye, Redo2, Send, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export type EditorStage = "sitemap" | "wireframe" | "styleGuide" | "design";
+export type EditorSyncState =
+  | "saved"
+  | "queued"
+  | "saving"
+  | "previewing"
+  | "review"
+  | "applying"
+  | "conflict"
+  | "error";
 
 const STAGES: ReadonlyArray<{
   id: EditorStage;
@@ -29,6 +38,12 @@ interface EditorToolbarProps {
   onPreview: () => void;
   previewDisabledReason?: string;
   designDisabledReason?: string;
+  undoDisabledReason?: string;
+  redoDisabledReason?: string;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  syncState: EditorSyncState;
+  syncStateLabel: string;
 }
 
 export function EditorToolbar({
@@ -41,6 +56,12 @@ export function EditorToolbar({
   onPreview,
   previewDisabledReason,
   designDisabledReason,
+  undoDisabledReason,
+  redoDisabledReason,
+  onUndo,
+  onRedo,
+  syncState,
+  syncStateLabel,
 }: EditorToolbarProps) {
   const { t } = useTranslation("account");
   return (
@@ -63,6 +84,21 @@ export function EditorToolbar({
               </span>
               <Badge variant="outline" className="font-mono font-normal">
                 v{revisionNumber}
+              </Badge>
+              <Badge
+                variant="outline"
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "hidden font-normal sm:inline-flex",
+                  syncState === "conflict" && "border-warning/60 text-warning",
+                  syncState === "error" && "border-destructive/60 text-destructive",
+                  syncState === "applying" && "border-primary/60 text-primary",
+                  (syncState === "saving" || syncState === "queued") &&
+                    "border-primary/60 text-primary",
+                )}
+              >
+                {syncStateLabel}
               </Badge>
             </div>
             <span className="sr-only">
@@ -111,16 +147,38 @@ export function EditorToolbar({
         </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-1 lg:flex-1">
-          <UnavailableAction
-            icon={Undo2}
-            label={t("CREATION_EDITOR_UNDO")}
-            reason={t("CREATION_EDITOR_UNDO_PENDING")}
-          />
-          <UnavailableAction
-            icon={Redo2}
-            label={t("CREATION_EDITOR_REDO")}
-            reason={t("CREATION_EDITOR_UNDO_PENDING")}
-          />
+          {onUndo && !undoDisabledReason ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("CREATION_EDITOR_UNDO")}
+              onClick={onUndo}
+            >
+              <Undo2 className="size-4" />
+            </Button>
+          ) : (
+            <UnavailableAction
+              icon={Undo2}
+              label={t("CREATION_EDITOR_UNDO")}
+              reason={undoDisabledReason ?? t("CREATION_EDITOR_UNDO_PENDING")}
+            />
+          )}
+          {onRedo && !redoDisabledReason ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("CREATION_EDITOR_REDO")}
+              onClick={onRedo}
+            >
+              <Redo2 className="size-4" />
+            </Button>
+          ) : (
+            <UnavailableAction
+              icon={Redo2}
+              label={t("CREATION_EDITOR_REDO")}
+              reason={redoDisabledReason ?? t("CREATION_EDITOR_UNDO_PENDING")}
+            />
+          )}
           <span className="mx-1 h-5 w-px bg-border" />
           <PreviewAction
             onPreview={onPreview}

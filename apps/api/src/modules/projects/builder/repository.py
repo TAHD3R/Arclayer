@@ -14,6 +14,8 @@ from src.models.builder.change_set import (
     BuilderChangeSetRecord,
 )
 from src.models.builder.content_structure import ContentStructureRevisionRecord
+from src.models.builder.draft_checkpoint import BuilderDraftCheckpointRecord
+from src.models.builder.restore_lineage import BuilderRestoreLineageRecord
 from src.models.builder.site_revision import (
     BuilderInitializationCommandRecord,
     SiteRevisionManifestRecord,
@@ -191,6 +193,41 @@ class SiteBuilderRepository(TenantScopedRepository):
                 query = query.select_for_update()
             return await query.first()
 
+    async def list_site_revisions(
+        self,
+        *,
+        project_id: UUID,
+        site_id: UUID,
+        environment_id: UUID,
+        limit: int,
+        cursor: UUID | None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> tuple[list[SiteRevisionManifestRecord], UUID | None]:
+        async with self.connection(conn) as tenant_conn:
+            query = SiteRevisionManifestRecord.filter(
+                project_id=project_id,
+                site_id=site_id,
+                environment_id=environment_id,
+            ).using_db(tenant_conn)
+            if cursor is not None:
+                cursor_record = await (
+                    SiteRevisionManifestRecord
+                    .filter(
+                        project_id=project_id,
+                        site_id=site_id,
+                        environment_id=environment_id,
+                        id=cursor,
+                    )
+                    .using_db(tenant_conn)
+                    .first()
+                )
+                if cursor_record is None:
+                    return [], None
+                query = query.filter(revision_number__lt=int(cursor_record.revision_number))
+            records = list(await query.order_by("-revision_number").limit(limit + 1))
+            next_cursor = UUID(str(records[limit - 1].id)) if len(records) > limit else None
+            return records[:limit], next_cursor
+
     async def get_structure_revision(
         self,
         *,
@@ -259,6 +296,122 @@ class SiteBuilderRepository(TenantScopedRepository):
             if for_update:
                 query = query.select_for_update()
             return await query.first()
+
+    async def get_draft_checkpoint(
+        self,
+        *,
+        project_id: UUID,
+        actor_user_id: UUID,
+        client_session_id: str,
+        site_id: UUID | None = None,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+        for_update: bool = False,
+    ) -> BuilderDraftCheckpointRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            query = BuilderDraftCheckpointRecord.filter(
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                client_session_id=client_session_id,
+            ).using_db(tenant_conn)
+            if site_id is not None:
+                query = query.filter(site_id=site_id)
+            if environment_id is not None:
+                query = query.filter(environment_id=environment_id)
+            if for_update:
+                query = query.select_for_update()
+            return await query.first()
+
+    async def get_draft_checkpoint_by_change_set(
+        self,
+        *,
+        project_id: UUID,
+        change_set_id: UUID,
+        conn: BaseDBAsyncClient,
+        for_update: bool = False,
+    ) -> BuilderDraftCheckpointRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            query = BuilderDraftCheckpointRecord.filter(
+                project_id=project_id,
+                applied_change_set_id=change_set_id,
+            ).using_db(tenant_conn)
+            if for_update:
+                query = query.select_for_update()
+            return await query.first()
+
+    async def list_draft_checkpoints_for_apply(
+        self,
+        *,
+        project_id: UUID,
+        actor_user_id: UUID,
+        base_revision_id: UUID,
+        conn: BaseDBAsyncClient,
+        for_update: bool = False,
+    ) -> list[BuilderDraftCheckpointRecord]:
+        async with self.connection(conn) as tenant_conn:
+            query = (
+                BuilderDraftCheckpointRecord
+                .filter(
+                    project_id=project_id,
+                    actor_user_id=actor_user_id,
+                    base_revision_id=base_revision_id,
+                    status="draft",
+                )
+                .using_db(tenant_conn)
+                .order_by("-updated_at")
+            )
+            if for_update:
+                query = query.select_for_update()
+            return list(await query)
+
+    async def get_restore_lineage(
+        self,
+        *,
+        project_id: UUID,
+        restore_revision_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> BuilderRestoreLineageRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            return (
+                await BuilderRestoreLineageRecord
+                .filter(
+                    project_id=project_id,
+                    restore_revision_id=restore_revision_id,
+                )
+                .using_db(tenant_conn)
+                .first()
+            )
+
+    async def create_restore_lineage(
+        self,
+        *,
+        values: dict[str, object],
+        conn: BaseDBAsyncClient,
+    ) -> BuilderRestoreLineageRecord:
+        async with self.connection(conn) as tenant_conn:
+            return await BuilderRestoreLineageRecord.create(using_db=tenant_conn, **values)
+
+    async def create_draft_checkpoint(
+        self,
+        *,
+        values: dict[str, object],
+        conn: BaseDBAsyncClient,
+    ) -> BuilderDraftCheckpointRecord:
+        async with self.connection(conn) as tenant_conn:
+            return await BuilderDraftCheckpointRecord.create(using_db=tenant_conn, **values)
+
+    async def update_draft_checkpoint(
+        self,
+        *,
+        record: BuilderDraftCheckpointRecord,
+        values: dict[str, object],
+        conn: BaseDBAsyncClient,
+    ) -> BuilderDraftCheckpointRecord:
+        async with self.connection(conn) as tenant_conn:
+            for field, value in values.items():
+                setattr(record, field, value)
+            await record.save(using_db=tenant_conn, update_fields=[*values, "updated_at"])
+            return record
 
     async def get_status(
         self,

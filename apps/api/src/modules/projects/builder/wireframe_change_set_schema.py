@@ -9,6 +9,8 @@ from src.modules.projects.builder.change_set_operation_schema import BuilderOper
 from src.modules.projects.builder.wireframe_schema import (
     WireframeBindingV1,
     WireframeInteractionRuleV1,
+    WireframeLayoutV1,
+    WireframeResponsiveLayoutV1,
     WireframeResponsiveRuleV1,
     WireframeSectionV1,
 )
@@ -58,6 +60,13 @@ class BuilderWireframeSectionConfigureOperationV1(BuilderWireframeTargetOperatio
     bindings: tuple[WireframeBindingV1, ...] = Field(default=(), max_length=128)
     responsive_rules: tuple[WireframeResponsiveRuleV1, ...] = Field(default=(), max_length=3)
     interaction_rules: tuple[WireframeInteractionRuleV1, ...] = Field(default=(), max_length=32)
+
+
+class BuilderWireframeSetLayoutOperationV1(BuilderWireframeTargetOperationV1):
+    type: Literal["wireframe.set_layout"]
+    section_id: str = Field(min_length=1, max_length=128)
+    layout: WireframeLayoutV1
+    responsive_layouts: tuple[WireframeResponsiveLayoutV1, ...] = Field(default=(), max_length=3)
 
 
 class BuilderWireframeSetComponentOperationV1(BuilderWireframeTargetOperationV1):
@@ -120,6 +129,7 @@ BuilderWireframeOperationV1 = Annotated[
     | BuilderWireframeSectionRemoveOperationV1
     | BuilderWireframeSectionReorderOperationV1
     | BuilderWireframeSectionConfigureOperationV1
+    | BuilderWireframeSetLayoutOperationV1
     | BuilderWireframeSetComponentOperationV1
     | BuilderWireframeSetVariantOperationV1
     | BuilderWireframeSetBindingOperationV1
@@ -144,6 +154,7 @@ __all__ = [
     "BuilderWireframeSectionDuplicateOperationV1",
     "BuilderWireframeSectionRemoveOperationV1",
     "BuilderWireframeSectionReorderOperationV1",
+    "BuilderWireframeSetLayoutOperationV1",
     "BuilderWireframeSetBindingOperationV1",
     "BuilderWireframeSetComponentOperationV1",
     "BuilderWireframeSetGlobalReferenceOperationV1",

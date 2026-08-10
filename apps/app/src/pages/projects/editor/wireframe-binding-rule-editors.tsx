@@ -1,9 +1,14 @@
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import type { BuilderRevisionPageOut, WireframeSectionV1Output } from "@arclayer/openapi";
+import type {
+  BuilderRevisionPageOut,
+  WireframeLayoutV1,
+  WireframeResponsiveLayoutV1,
+  WireframeSectionV1Output,
+} from "@arclayer/openapi";
 import { X } from "lucide-react";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WireframeChangeOperation } from "@/pages/projects/editor/use-project-editor-controller";
@@ -229,6 +234,311 @@ export function WireframeResponsiveEditor(props: WireframeEditorProps) {
           {t("CREATION_EDITOR_WIREFRAME_PREVIEW_RESPONSIVE")}
         </Button>
       </form>
+    </section>
+  );
+}
+
+export function WireframeLayoutEditor(props: WireframeEditorProps) {
+  const { t } = useTranslation("account");
+  const id = useId();
+  const current = props.section.layout ?? {};
+  const [mode, setMode] = useState<NonNullable<WireframeLayoutV1["mode"]>>(current.mode ?? "stack");
+  const [width, setWidth] = useState<NonNullable<WireframeLayoutV1["width"]>>(
+    current.width ?? "full",
+  );
+  const [align, setAlign] = useState<NonNullable<WireframeLayoutV1["align"]>>(
+    current.align ?? "stretch",
+  );
+  const [gap, setGap] = useState<NonNullable<WireframeLayoutV1["gap"]>>(current.gap ?? "md");
+  const [columns, setColumns] = useState(String(current.columns ?? 1));
+  const [span, setSpan] = useState(String(current.span ?? 12));
+  const [breakpoint, setBreakpoint] =
+    useState<WireframeResponsiveLayoutV1["breakpoint"]>("desktop");
+  const [overrideMode, setOverrideMode] = useState<NonNullable<WireframeLayoutV1["mode"]>>(mode);
+  const [overrideWidth, setOverrideWidth] =
+    useState<NonNullable<WireframeLayoutV1["width"]>>(width);
+  const [overrideAlign, setOverrideAlign] =
+    useState<NonNullable<WireframeLayoutV1["align"]>>(align);
+  const [overrideGap, setOverrideGap] = useState<NonNullable<WireframeLayoutV1["gap"]>>(gap);
+  const [overrideColumns, setOverrideColumns] = useState(String(current.columns ?? 1));
+  const [overrideSpan, setOverrideSpan] = useState(String(current.span ?? 12));
+  const base = operationBase(props);
+  const responsiveLayouts = props.section.responsiveLayouts ?? [];
+  const selectedOverride = responsiveLayouts.find((item) => item.breakpoint === breakpoint);
+  useEffect(() => {
+    const next = selectedOverride?.layout ?? current;
+    setOverrideMode(next.mode ?? "stack");
+    setOverrideWidth(next.width ?? "full");
+    setOverrideAlign(next.align ?? "stretch");
+    setOverrideGap(next.gap ?? "md");
+    setOverrideColumns(String(next.columns ?? 1));
+    setOverrideSpan(String(next.span ?? 12));
+  }, [breakpoint, props.section.id, props.section.responsiveLayouts, props.section.layout]);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    props.onPreview([
+      {
+        ...base,
+        type: "wireframe.set_layout",
+        layout: {
+          mode,
+          width,
+          align,
+          gap,
+          columns: Number(columns),
+          span: Number(span),
+        },
+        responsiveLayouts: props.section.responsiveLayouts ?? [],
+      },
+    ]);
+  };
+  const submitOverride = (event: FormEvent) => {
+    event.preventDefault();
+    const nextOverride: WireframeResponsiveLayoutV1 = {
+      breakpoint,
+      layout: {
+        mode: overrideMode,
+        width: overrideWidth,
+        align: overrideAlign,
+        gap: overrideGap,
+        columns: Number(overrideColumns),
+        span: Number(overrideSpan),
+      },
+    };
+    props.onPreview([
+      {
+        ...base,
+        type: "wireframe.set_layout",
+        layout: { mode, width, align, gap, columns: Number(columns), span: Number(span) },
+        responsiveLayouts: [
+          ...responsiveLayouts.filter((item) => item.breakpoint !== breakpoint),
+          nextOverride,
+        ],
+      },
+    ]);
+  };
+  const clearOverride = () =>
+    props.onPreview([
+      {
+        ...base,
+        type: "wireframe.set_layout",
+        layout: { mode, width, align, gap, columns: Number(columns), span: Number(span) },
+        responsiveLayouts: responsiveLayouts.filter((item) => item.breakpoint !== breakpoint),
+      },
+    ]);
+  const overrideValid =
+    Number(overrideColumns) >= 1 &&
+    Number(overrideColumns) <= 12 &&
+    Number(overrideSpan) >= 1 &&
+    Number(overrideSpan) <= 12 &&
+    Number(overrideSpan) <= Number(overrideColumns);
+  return (
+    <section className="mt-5 border-t border-border pt-5" aria-labelledby={`${id}-heading`}>
+      <h4 id={`${id}-heading`} className="text-footnote font-semibold text-label-primary">
+        {t("CREATION_EDITOR_WIREFRAME_LAYOUT_TITLE")}
+      </h4>
+      <p className="mt-1 text-caption leading-5 text-label-secondary">
+        {t("CREATION_EDITOR_WIREFRAME_LAYOUT_DESC")}
+      </p>
+      <form className="mt-3 grid grid-cols-2 gap-3" onSubmit={submit}>
+        <SelectField
+          id={`${id}-mode`}
+          label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_MODE")}
+          value={mode}
+          disabled={props.disabled}
+          onChange={(value) => setMode(value as typeof mode)}
+          options={["stack", "grid", "split", "overlay"]}
+        />
+        <SelectField
+          id={`${id}-width`}
+          label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_WIDTH")}
+          value={width}
+          disabled={props.disabled}
+          onChange={(value) => setWidth(value as typeof width)}
+          options={["full", "wide", "content", "narrow"]}
+        />
+        <SelectField
+          id={`${id}-align`}
+          label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_ALIGN")}
+          value={align}
+          disabled={props.disabled}
+          onChange={(value) => setAlign(value as typeof align)}
+          options={["start", "center", "end", "stretch"]}
+        />
+        <SelectField
+          id={`${id}-gap`}
+          label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_GAP")}
+          value={gap}
+          disabled={props.disabled}
+          onChange={(value) => setGap(value as typeof gap)}
+          options={["none", "xs", "sm", "md", "lg", "xl"]}
+        />
+        <div>
+          <FieldLabel htmlFor={`${id}-columns`} label={t("CREATION_EDITOR_WIREFRAME_COLUMNS")} />
+          <Input
+            id={`${id}-columns`}
+            type="number"
+            min={1}
+            max={12}
+            value={columns}
+            disabled={props.disabled}
+            onChange={(event) => setColumns(event.target.value)}
+          />
+        </div>
+        <div>
+          <FieldLabel htmlFor={`${id}-span`} label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_SPAN")} />
+          <Input
+            id={`${id}-span`}
+            type="number"
+            min={1}
+            max={12}
+            value={span}
+            disabled={props.disabled}
+            onChange={(event) => setSpan(event.target.value)}
+          />
+        </div>
+        <Button
+          type="submit"
+          variant="secondary"
+          className="col-span-2 min-h-11"
+          disabled={
+            props.disabled ||
+            Number(columns) < 1 ||
+            Number(columns) > 12 ||
+            Number(span) < 1 ||
+            Number(span) > 12
+          }
+        >
+          {t("CREATION_EDITOR_WIREFRAME_PREVIEW_LAYOUT")}
+        </Button>
+      </form>
+      <section
+        className="mt-5 border-t border-border pt-5"
+        aria-labelledby={`${id}-responsive-heading`}
+      >
+        <h5
+          id={`${id}-responsive-heading`}
+          className="text-footnote font-semibold text-label-primary"
+        >
+          {t("CREATION_EDITOR_WIREFRAME_LAYOUT_RESPONSIVE_TITLE")}
+        </h5>
+        <p className="mt-1 text-caption leading-5 text-label-secondary">
+          {t("CREATION_EDITOR_WIREFRAME_LAYOUT_RESPONSIVE_DESC")}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {responsiveLayouts.length > 0 ? (
+            responsiveLayouts.map((item) => (
+              <Button
+                key={item.breakpoint}
+                type="button"
+                variant={item.breakpoint === breakpoint ? "secondary" : "ghost"}
+                size="sm"
+                className="min-h-9"
+                onClick={() => setBreakpoint(item.breakpoint)}
+                disabled={props.disabled}
+              >
+                {t(`CREATION_EDITOR_WIREFRAME_VIEWPORT_${item.breakpoint.toUpperCase()}`)} ·{" "}
+                {item.layout.mode}
+              </Button>
+            ))
+          ) : (
+            <p className="text-caption text-label-secondary">
+              {t("CREATION_EDITOR_WIREFRAME_LAYOUT_RESPONSIVE_EMPTY")}
+            </p>
+          )}
+        </div>
+        <form className="mt-3 grid grid-cols-2 gap-3" onSubmit={submitOverride}>
+          <SelectField
+            id={`${id}-responsive-breakpoint`}
+            label={t("CREATION_EDITOR_WIREFRAME_BREAKPOINT")}
+            value={breakpoint}
+            disabled={props.disabled}
+            onChange={(value) => setBreakpoint(value as typeof breakpoint)}
+            options={["desktop", "tablet", "mobile"]}
+          />
+          <SelectField
+            id={`${id}-responsive-mode`}
+            label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_MODE")}
+            value={overrideMode}
+            disabled={props.disabled}
+            onChange={(value) => setOverrideMode(value as typeof overrideMode)}
+            options={["stack", "grid", "split", "overlay"]}
+          />
+          <SelectField
+            id={`${id}-responsive-width`}
+            label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_WIDTH")}
+            value={overrideWidth}
+            disabled={props.disabled}
+            onChange={(value) => setOverrideWidth(value as typeof overrideWidth)}
+            options={["full", "wide", "content", "narrow"]}
+          />
+          <SelectField
+            id={`${id}-responsive-align`}
+            label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_ALIGN")}
+            value={overrideAlign}
+            disabled={props.disabled}
+            onChange={(value) => setOverrideAlign(value as typeof overrideAlign)}
+            options={["start", "center", "end", "stretch"]}
+          />
+          <SelectField
+            id={`${id}-responsive-gap`}
+            label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_GAP")}
+            value={overrideGap}
+            disabled={props.disabled}
+            onChange={(value) => setOverrideGap(value as typeof overrideGap)}
+            options={["none", "xs", "sm", "md", "lg", "xl"]}
+          />
+          <div>
+            <FieldLabel
+              htmlFor={`${id}-responsive-columns`}
+              label={t("CREATION_EDITOR_WIREFRAME_COLUMNS")}
+            />
+            <Input
+              id={`${id}-responsive-columns`}
+              type="number"
+              min={1}
+              max={12}
+              value={overrideColumns}
+              disabled={props.disabled}
+              onChange={(event) => setOverrideColumns(event.target.value)}
+            />
+          </div>
+          <div>
+            <FieldLabel
+              htmlFor={`${id}-responsive-span`}
+              label={t("CREATION_EDITOR_WIREFRAME_LAYOUT_SPAN")}
+            />
+            <Input
+              id={`${id}-responsive-span`}
+              type="number"
+              min={1}
+              max={12}
+              value={overrideSpan}
+              disabled={props.disabled}
+              onChange={(event) => setOverrideSpan(event.target.value)}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="secondary"
+            className="col-span-2 min-h-11"
+            disabled={props.disabled || !overrideValid}
+          >
+            {t("CREATION_EDITOR_WIREFRAME_PREVIEW_RESPONSIVE_LAYOUT")}
+          </Button>
+          {selectedOverride ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="col-span-2 min-h-11"
+              disabled={props.disabled}
+              onClick={clearOverride}
+            >
+              {t("CREATION_EDITOR_WIREFRAME_CLEAR_RESPONSIVE_LAYOUT")}
+            </Button>
+          ) : null}
+        </form>
+      </section>
     </section>
   );
 }

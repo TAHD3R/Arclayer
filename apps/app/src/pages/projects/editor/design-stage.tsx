@@ -5,6 +5,7 @@ import { Button } from "@arclayer/ui/button";
 import { ScrollArea } from "@arclayer/ui/scroll-area";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import type {
+  BuilderChangeSetPreviewRequest,
   BuilderComponentCatalogOut,
   BuilderRevisionOut,
   ComponentCatalogComponentV1,
@@ -34,6 +35,8 @@ interface DesignStageProps {
   canEdit: boolean;
   permissionReady: boolean;
   controller: ReturnType<typeof useProjectDesignController>;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }
 
 export function DesignStage({
@@ -49,6 +52,8 @@ export function DesignStage({
   canEdit,
   permissionReady,
   controller,
+  onDraftAutosave,
+  onDraftDiscard,
 }: DesignStageProps) {
   const { t } = useTranslation("account");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -74,6 +79,8 @@ export function DesignStage({
     permissionReady,
     online,
     blockedByPreview: Boolean(controller.preview),
+    onDraftAutosave,
+    onDraftDiscard,
   });
   const activePreview = generation.selectedCandidate
     ? {

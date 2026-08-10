@@ -15,6 +15,7 @@ import type {
   BuilderGenerationRecoveryOut,
   BuilderGenerationTargetV1,
   BuilderPageRenderDocumentOut,
+  BuilderRevisionHistoryOut,
   BuilderRevisionOut,
   ProjectBuilderProjectionOut,
 } from "@arclayer/openapi";
@@ -23,6 +24,23 @@ import { projectPath } from "@/lib/api";
 import { api } from "@/lib/http";
 
 export const PROJECT_BUILDER_QUERY_KEY = ["project", "builder"] as const;
+
+export interface BuilderDraftCheckpoint {
+  id: string;
+  projectId: string;
+  clientSessionId: string;
+  baseRevisionId: string;
+  baseEtag: string;
+  checkpointVersion: number;
+  operations: BuilderChangeSetPreviewRequest["operations"];
+  operationsHash: string;
+  status: "draft" | "conflict" | "applied" | "discarded";
+  provenanceSource: "human" | "agent";
+  conflictMeta?: Record<string, unknown> | null;
+  appliedChangeSetId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export function buildProjectBuilderQueryKey(projectId: string | null) {
   return [...PROJECT_BUILDER_QUERY_KEY, projectId] as const;
@@ -33,6 +51,10 @@ export function buildProjectBuilderRevisionQueryKey(
   revisionId: string | null,
 ) {
   return [...PROJECT_BUILDER_QUERY_KEY, projectId, "revision", revisionId] as const;
+}
+
+export function buildProjectBuilderHistoryQueryKey(projectId: string | null) {
+  return [...PROJECT_BUILDER_QUERY_KEY, projectId, "history"] as const;
 }
 
 export function buildProjectBuilderPageRenderDocumentQueryKey(
@@ -84,6 +106,58 @@ export function getProjectBuilderRevision(
   return api.get<BuilderRevisionOut>(
     projectPath(projectId, `/builder/revisions/${encodeURIComponent(revisionId)}`),
     { signal },
+  );
+}
+
+export function getProjectBuilderHistory(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<BuilderRevisionHistoryOut> {
+  return api.get<BuilderRevisionHistoryOut>(projectPath(projectId, "/builder/history"), { signal });
+}
+
+export function getProjectBuilderDraftCheckpoint(
+  projectId: string,
+  clientSessionId = "project-editor",
+  signal?: AbortSignal,
+): Promise<BuilderDraftCheckpoint | null> {
+  const query = new URLSearchParams({ client_session_id: clientSessionId });
+  return api.get<BuilderDraftCheckpoint | null>(
+    `${projectPath(projectId, "/builder/draft-checkpoint")}?${query.toString()}`,
+    { signal },
+  );
+}
+
+export function saveProjectBuilderDraftCheckpoint(
+  projectId: string,
+  payload: Readonly<{
+    baseRevisionId: string;
+    baseEtag: string;
+    expectedCheckpointVersion: number;
+    clientSessionId: string;
+    operations: BuilderChangeSetPreviewRequest["operations"];
+    provenanceSource: "human";
+  }>,
+  idempotencyKey: string,
+): Promise<BuilderDraftCheckpoint> {
+  return api.put<BuilderDraftCheckpoint>(
+    projectPath(projectId, "/builder/draft-checkpoint"),
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
+}
+
+export function discardProjectBuilderDraftCheckpoint(
+  projectId: string,
+  checkpointVersion: number,
+  clientSessionId = "project-editor",
+): Promise<BuilderDraftCheckpoint | null> {
+  const query = new URLSearchParams({
+    client_session_id: clientSessionId,
+    expected_checkpoint_version: String(checkpointVersion),
+  });
+  return api.delete<BuilderDraftCheckpoint | null>(
+    `${projectPath(projectId, "/builder/draft-checkpoint")}?${query.toString()}`,
   );
 }
 

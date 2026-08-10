@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
+  BuilderChangeSetPreviewRequest,
   BuilderGenerationOut,
   BuilderGenerationTargetV1,
   BuilderComponentCatalogOut,
@@ -64,6 +65,8 @@ export function useProjectWireframeGeneration({
   canWrite,
   permissionReady,
   blockedByPreview,
+  onDraftAutosave,
+  onDraftDiscard,
 }: {
   projectId: string;
   workspaceId: string | null;
@@ -78,6 +81,8 @@ export function useProjectWireframeGeneration({
   canWrite: boolean;
   permissionReady: boolean;
   blockedByPreview: boolean;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }) {
   const { t } = useTranslation("account");
   const queryClient = useQueryClient();
@@ -274,6 +279,7 @@ export function useProjectWireframeGeneration({
         throw new Error(t("CREATION_EDITOR_WIREFRAME_GENERATION_CANDIDATE_REQUIRED"));
       }
       const changeSet = selectedCandidate.changeSet;
+      await onDraftAutosave(changeSet.operations);
       const sagaPhase = compositionSaga.reviewPhase;
       const saga = compositionSaga.saga;
       const idempotencyKey =
@@ -304,7 +310,8 @@ export function useProjectWireframeGeneration({
       });
       return { kind: "saga" as const, transitioned };
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
+      await onDraftDiscard();
       if (result.kind === "direct") {
         if (directGeneration) setDismissedGenerationId(directGeneration.generationId);
         setGenerationId(null);

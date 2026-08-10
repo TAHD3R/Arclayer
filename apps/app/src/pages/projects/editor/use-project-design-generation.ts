@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
+  BuilderChangeSetPreviewRequest,
   BuilderComponentCatalogOut,
   BuilderGenerationOut,
   BuilderGenerationTargetV1,
@@ -58,6 +59,8 @@ export function useProjectDesignGeneration({
   permissionReady,
   online,
   blockedByPreview,
+  onDraftAutosave,
+  onDraftDiscard,
 }: Readonly<{
   projectId: string;
   workspaceId: string | null;
@@ -71,6 +74,8 @@ export function useProjectDesignGeneration({
   permissionReady: boolean;
   online: boolean;
   blockedByPreview: boolean;
+  onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
+  onDraftDiscard: () => Promise<void>;
 }>) {
   const { t } = useTranslation("account");
   const queryClient = useQueryClient();
@@ -223,6 +228,7 @@ export function useProjectDesignGeneration({
         throw new Error(t("CREATION_EDITOR_DESIGN_GENERATION_CANDIDATE_REQUIRED"));
       }
       const changeSet = selectedCandidate.changeSet;
+      await onDraftAutosave(changeSet.operations);
       const applied = await applyProjectBuilderChangeSet(
         projectId,
         changeSet.changeSetId,
@@ -258,6 +264,7 @@ export function useProjectDesignGeneration({
       setDismissedGenerationId(generation?.generationId ?? null);
       setGenerationId(null);
       setSelectedCandidateIndex(null);
+      await onDraftDiscard();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: buildProjectBuilderQueryKey(projectId) }),
         queryClient.invalidateQueries({

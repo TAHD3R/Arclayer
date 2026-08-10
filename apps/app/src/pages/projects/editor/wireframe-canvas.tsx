@@ -2,9 +2,18 @@ import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { ScrollArea } from "@arclayer/ui/scroll-area";
 import type { BuilderRevisionPageOut, WireframeSectionV1Output } from "@arclayer/openapi";
-import { Monitor, PanelsTopLeft, Smartphone, Tablet, type LucideIcon } from "lucide-react";
+import {
+  GripVertical,
+  Minus,
+  Monitor,
+  PanelsTopLeft,
+  Plus,
+  Smartphone,
+  Tablet,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { DragEvent as ReactDragEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BaseTag } from "@/components/ui/tags";
@@ -26,6 +35,8 @@ interface WireframeCanvasProps {
   onSelectSection: (sectionId: string | null) => void;
   reviewPanel?: ReactNode;
   candidateActive?: boolean;
+  canEdit?: boolean;
+  onReorderSection?: (sectionId: string, index: number) => void;
 }
 
 export function WireframeCanvas({
@@ -36,11 +47,25 @@ export function WireframeCanvas({
   onSelectSection,
   reviewPanel,
   candidateActive = false,
+  canEdit = false,
+  onReorderSection,
 }: WireframeCanvasProps) {
   const { t } = useTranslation("account");
   const [viewport, setViewport] = useState<WireframeViewport>("desktop");
+  const [zoom, setZoom] = useState(1);
+  const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null);
+  const [dropTargetSectionId, setDropTargetSectionId] = useState<string | null>(null);
   const page = pages.find((candidate) => candidate.itemId === selectedPageId) ?? pages[0] ?? null;
   const sections = page?.wireframe?.sections ?? [];
+
+  const handleSectionDrop = (targetSectionId: string) => {
+    if (!draggedSectionId || draggedSectionId === targetSectionId || !onReorderSection) return;
+    const targetIndex = sections.findIndex((section) => section.id === targetSectionId);
+    if (targetIndex < 0) return;
+    onReorderSection(draggedSectionId, targetIndex);
+    setDraggedSectionId(null);
+    setDropTargetSectionId(null);
+  };
 
   useEffect(() => {
     if (selectedSectionId && sections.some((section) => section.id === selectedSectionId)) return;
@@ -81,6 +106,26 @@ export function WireframeCanvas({
             label={t("CREATION_EDITOR_WIREFRAME_VIEWPORT_MOBILE")}
             onChange={setViewport}
           />
+          <span className="mx-1 h-5 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("CREATION_EDITOR_WIREFRAME_ZOOM_OUT")}
+            onClick={() => setZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))}
+          >
+            <Minus className="size-4" />
+          </Button>
+          <span className="w-12 text-center font-mono text-caption text-label-secondary tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("CREATION_EDITOR_WIREFRAME_ZOOM_IN")}
+            onClick={() => setZoom((current) => Math.min(1.4, Number((current + 0.1).toFixed(2))))}
+          >
+            <Plus className="size-4" />
+          </Button>
         </div>
 
         <ScrollArea className="relative h-full">
@@ -102,6 +147,7 @@ export function WireframeCanvas({
                   VIEWPORT_WIDTH_CLASS[viewport],
                 )}
                 aria-label={t("CREATION_EDITOR_WIREFRAME_PAGE_FRAME", { page: page.title })}
+                style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
               >
                 <header className="flex items-start justify-between gap-6 border-b border-border px-6 py-5">
                   <div className="min-w-0">
@@ -128,6 +174,25 @@ export function WireframeCanvas({
                         section={section}
                         index={index}
                         selected={selectedSectionId === section.id}
+                        draggable={canEdit && Boolean(onReorderSection)}
+                        dropTarget={dropTargetSectionId === section.id}
+                        onDragStart={() => setDraggedSectionId(section.id)}
+                        onDragOver={(event) => {
+                          if (!draggedSectionId || draggedSectionId === section.id) return;
+                          event.preventDefault();
+                          setDropTargetSectionId(section.id);
+                        }}
+                        onDragLeave={() => {
+                          if (dropTargetSectionId === section.id) setDropTargetSectionId(null);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          handleSectionDrop(section.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedSectionId(null);
+                          setDropTargetSectionId(null);
+                        }}
                         onSelect={() => onSelectSection(section.id)}
                       />
                     ))}
@@ -155,18 +220,40 @@ function WireframeSection({
   section,
   index,
   selected,
+  draggable,
+  dropTarget,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
   onSelect,
 }: {
   section: WireframeSectionV1Output;
   index: number;
   selected: boolean;
+  draggable: boolean;
+  dropTarget: boolean;
+  onDragStart: () => void;
+  onDragOver: (event: ReactDragEvent<HTMLLIElement>) => void;
+  onDragLeave: () => void;
+  onDrop: (event: ReactDragEvent<HTMLLIElement>) => void;
+  onDragEnd: () => void;
   onSelect: () => void;
 }) {
   const { t } = useTranslation("account");
   const bindings = section.bindings ?? [];
   const missingCount = bindings.filter((binding) => binding.kind === "missing").length;
   return (
-    <li className="relative pl-8">
+    <li
+      className={cn("relative pl-8", dropTarget && "rounded-lg bg-primary/5")}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
       <span
         className={cn(
           "absolute top-5 left-0 z-10 flex size-6 items-center justify-center rounded-full border bg-background font-mono text-caption tabular-nums",
@@ -182,6 +269,8 @@ function WireframeSection({
         onClick={onSelect}
         className={cn(
           "w-full rounded-lg border p-5 text-left transition-[border-color,box-shadow,transform] duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 motion-reduce:transition-none",
+          layoutWidthClass(section.layout?.width),
+          layoutAlignClass(section.layout?.align),
           selected
             ? "border-primary shadow-[0_0_0_1px_var(--primary)]"
             : "border-border hover:-translate-y-0.5 hover:border-label-secondary/45 hover:shadow-sm",
@@ -203,6 +292,12 @@ function WireframeSection({
               : t("CREATION_EDITOR_WIREFRAME_BINDINGS_READY")}
           </BaseTag>
         </div>
+        {draggable ? (
+          <span className="mt-3 inline-flex items-center gap-1 text-caption text-label-secondary">
+            <GripVertical className="size-3.5" aria-hidden="true" />
+            {t("CREATION_EDITOR_WIREFRAME_DRAG_TO_REORDER")}
+          </span>
+        ) : null}
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {bindings.slice(0, 4).map((binding) => (
             <div
@@ -230,6 +325,32 @@ function WireframeSection({
       </button>
     </li>
   );
+}
+
+function layoutWidthClass(width: string | undefined): string {
+  switch (width) {
+    case "narrow":
+      return "max-w-2xl";
+    case "content":
+      return "max-w-4xl";
+    case "wide":
+      return "max-w-6xl";
+    default:
+      return "max-w-none";
+  }
+}
+
+function layoutAlignClass(align: string | undefined): string {
+  switch (align) {
+    case "start":
+      return "mr-auto";
+    case "end":
+      return "ml-auto";
+    case "center":
+      return "mx-auto";
+    default:
+      return "w-full";
+  }
 }
 
 function ViewportButton({
