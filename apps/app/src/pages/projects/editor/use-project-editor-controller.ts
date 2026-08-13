@@ -1,21 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { listAIWorkspaceAgents } from "@/api/ai";
 import {
   applyProjectBuilderChangeSet,
   buildProjectBuilderQueryKey,
   buildProjectBuilderHistoryQueryKey,
   buildProjectBuilderRevisionQueryKey,
-  cancelProjectBuilderGeneration,
-  createProjectBuilderGeneration,
   discardProjectBuilderDraftCheckpoint,
   getProjectBuilder,
   getProjectBuilderDraftCheckpoint,
   getProjectBuilderHistory,
   getProjectBuilderComponentCatalog,
-  getProjectBuilderGeneration,
   getProjectBuilderRevision,
   previewProjectBuilderChangeSet,
   saveProjectBuilderDraftCheckpoint,
@@ -27,17 +23,12 @@ import type {
   BuilderSectionIntentV1,
 } from "@arclayer/openapi";
 import { getProjectDetail } from "@/api/projects";
-import type { InspectorMode } from "@/pages/projects/editor/editor-inspector";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
-import { createAgentRun } from "@/lib/ai/agent-run-api";
-import { createAgentThread } from "@/lib/ai/agent-thread-api";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ApiError } from "@/lib/http";
 
-const BUILDER_GENERATION_TOOL = "builder.sitemap.generate";
 const BUILDER_DRAFT_SESSION = "project-editor";
 const BUILDER_DRAFT_DEBOUNCE_MS = 250;
-const TERMINAL_GENERATION_STATUSES = new Set(["partial", "succeeded", "failed", "cancelled"]);
 
 type BuilderChangeOperation = BuilderChangeSetPreviewRequest["operations"][number];
 type RestoreChangeOperation = Extract<BuilderChangeOperation, { type: "revision.restore" }>;
@@ -76,11 +67,6 @@ export function useProjectEditorController(
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(initialSelectedPageId);
-  const [inspectorMode, setInspectorMode] = useState<InspectorMode>("page");
-  const [objective, setObjective] = useState("");
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
-  const [generationId, setGenerationId] = useState<string | null>(null);
-  const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number | null>(null);
   const [addPageOpen, setAddPageOpen] = useState(false);
   const [wireframePreview, setWireframePreview] = useState<BuilderChangeSetPreviewOut | null>(null);
   const [sitemapPlanningPreview, setSitemapPlanningPreview] =
@@ -138,25 +124,7 @@ export function useProjectEditorController(
     enabled: Boolean(revisionId),
     retry: false,
   });
-  const agentsQuery = useQuery({
-    queryKey: ["ai", "workspace-agents", workspaceId, projectId, "builder"],
-    queryFn: ({ signal }) =>
-      listAIWorkspaceAgents({ workspaceId: workspaceId!, projectId, signal }),
-    enabled: Boolean(workspaceId),
-    staleTime: 60_000,
-    retry: false,
-  });
   const permission = useProjectPermissionAccess(projectId);
-  const eligibleAgents = useMemo(
-    () =>
-      (agentsQuery.data?.agents ?? []).filter(
-        (agent) =>
-          agent.available &&
-          agent.supportedExecutionModes.includes("build") &&
-          agent.toolGrants.includes(BUILDER_GENERATION_TOOL),
-      ),
-    [agentsQuery.data?.agents],
-  );
 
   const flushDraftAutosave = useCallback(async () => {
     if (draftSaveInFlightRef.current) return;
@@ -307,15 +275,6 @@ export function useProjectEditorController(
   );
 
   useEffect(() => {
-    if (selectedAgentId && eligibleAgents.some((agent) => agent.agentId === selectedAgentId))
-      return;
-    const defaultAgent = eligibleAgents.find(
-      (agent) => agent.agentId === agentsQuery.data?.defaultAgentId,
-    );
-    setSelectedAgentId(defaultAgent?.agentId ?? eligibleAgents[0]?.agentId ?? null);
-  }, [agentsQuery.data?.defaultAgentId, eligibleAgents, selectedAgentId]);
-
-  useEffect(() => {
     const pages = revisionQuery.data?.pages ?? [];
     if (pages.length === 0) return;
     if (selectedPageId && pages.some((page) => page.itemId === selectedPageId)) return;
@@ -332,115 +291,6 @@ export function useProjectEditorController(
     setSitemapStructurePreview(null);
     setRecoveredDraftPreview(null);
   }, [revisionId]);
-
-  const generationQuery = useQuery({
-    queryKey: ["project", "builder", projectId, "generation", generationId],
-    queryFn: ({ signal }) => getProjectBuilderGeneration(projectId, generationId!, signal),
-    enabled: Boolean(generationId),
-    retry: false,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status && TERMINAL_GENERATION_STATUSES.has(status) ? false : 1_250;
-    },
-  });
-
-  const startGeneration = useMutation({
-    mutationFn: async () => {
-      const revision = revisionQuery.data;
-      const agentId = selectedAgentId;
-      const normalizedObjective = objective.trim();
-      if (!workspaceId || !revision || !agentId || !normalizedObjective) {
-        throw new Error(t("CREATION_EDITOR_AI_REQUEST_INVALID"));
-      }
-      const thread = await createAgentThread(workspaceId, {
-        projectId,
-        leadAgentId: agentId,
-        title: t("CREATION_EDITOR_AI_THREAD_TITLE"),
-        idempotencyKey: commandKey("builder-thread"),
-      });
-      const run = await createAgentRun({
-        workspaceId,
-        projectId,
-        threadId: thread.threadId,
-        leadAgentId: agentId,
-        mentionedAgentIds: [],
-        selectedSkillInstallationIds: [],
-        executionMode: "build",
-        siteRevisionId: revision.siteRevision.id,
-        message: normalizedObjective,
-        idempotencyKey: commandKey("builder-run"),
-      });
-      return createProjectBuilderGeneration(
-        projectId,
-        {
-          targetStage: "sitemap",
-          baseRevisionId: revision.siteRevision.id,
-          baseEtag: revision.siteRevision.manifestHash,
-          agentRunId: run.runId,
-          objective: normalizedObjective,
-          locale: revision.contentStructureRevision.snapshot.locales[0] ?? "zh-CN",
-          candidateCount: 2,
-        },
-        commandKey("builder-generation"),
-      );
-    },
-    onSuccess: (generation) => {
-      setGenerationId(generation.generationId);
-      setSelectedCandidateIndex(null);
-    },
-  });
-
-  const cancelGeneration = useMutation({
-    mutationFn: () => {
-      if (!generationId) throw new Error(t("CREATION_EDITOR_AI_REQUEST_INVALID"));
-      return cancelProjectBuilderGeneration(projectId, generationId, {
-        reason: t("CREATION_EDITOR_AI_CANCEL_REASON"),
-      });
-    },
-    onSuccess: (generation) => {
-      queryClient.setQueryData(
-        ["project", "builder", projectId, "generation", generation.generationId],
-        generation,
-      );
-    },
-  });
-
-  const generation = generationQuery.data ?? startGeneration.data ?? null;
-  const selectedCandidate =
-    generation?.candidates.find(
-      (candidate) => candidate.candidateIndex === selectedCandidateIndex,
-    ) ??
-    generation?.candidates[0] ??
-    null;
-  const applyCandidate = useMutation({
-    mutationFn: async () => {
-      if (!selectedCandidate) throw new Error(t("CREATION_EDITOR_AI_CANDIDATE_REQUIRED"));
-      const changeSet = selectedCandidate.changeSet;
-      await queueDraftAutosave(changeSet.operations);
-      return applyProjectBuilderChangeSet(
-        projectId,
-        changeSet.changeSetId,
-        {
-          previewToken: changeSet.previewToken,
-          approval: changeSet.approval
-            ? {
-                approvalId: changeSet.approval.approvalId,
-                decision: "approve",
-                expectedApprovalClass: changeSet.approval.approvalClass,
-              }
-            : undefined,
-        },
-        commandKey("builder-apply"),
-      );
-    },
-    onSuccess: async () => {
-      setGenerationId(null);
-      setSelectedCandidateIndex(null);
-      setInspectorMode("page");
-      await discardDraftCheckpoint();
-      await invalidateBuilder();
-    },
-  });
 
   const previewWireframeChange = useMutation({
     mutationFn: async (operations: WireframeChangeOperation[]) => {
@@ -671,7 +521,6 @@ export function useProjectEditorController(
     ]);
   };
   const conflictError = [
-    applyCandidate.error,
     previewWireframeChange.error,
     applyWireframeChange.error,
     previewSitemapPlanning.error,
@@ -718,7 +567,6 @@ export function useProjectEditorController(
         if (intent.kind === "wireframe") setWireframePreview(nextPreview);
         else setSitemapStructurePreview(nextPreview);
       }
-      applyCandidate.reset();
       applyWireframeChange.reset();
       applySitemapPlanning.reset();
       applySitemapChange.reset();
@@ -734,7 +582,6 @@ export function useProjectEditorController(
     setSitemapStructurePreview(null);
     conflictIntentRef.current = null;
     setConflictRepreviewError(null);
-    applyCandidate.reset();
     applyWireframeChange.reset();
     applySitemapPlanning.reset();
     applySitemapChange.reset();
@@ -742,21 +589,6 @@ export function useProjectEditorController(
   const permissionReady = !permission.authzQuery.isPending && !permission.actionsQuery.isPending;
   const canWrite = permissionReady && permission.hasAction("project:content:site-builder:write");
   const canEditWireframe = canWrite && permission.hasAction("project:content:items:write");
-  const canStart =
-    canWrite &&
-    Boolean(workspaceId && revisionQuery.data && selectedAgentId && objective.trim()) &&
-    !agentsQuery.isPending;
-  const startDisabledReason = resolveGenerationDisabledReason({
-    canWrite,
-    permissionReady,
-    workspaceId,
-    revisionReady: Boolean(revisionQuery.data),
-    selectedAgentId,
-    objective,
-    agentsPending: agentsQuery.isPending,
-    translate: t,
-  });
-
   return {
     workspaceId,
     projectQuery,
@@ -769,34 +601,15 @@ export function useProjectEditorController(
     discardDraftCheckpoint,
     queueDraftAutosave,
     componentCatalogQuery,
-    eligibleAgents,
     selectedPageId,
     setSelectedPageId,
-    inspectorMode,
-    setInspectorMode,
-    objective,
-    setObjective,
-    selectedAgentId,
-    setSelectedAgentId,
-    generation,
-    selectedCandidateIndex,
-    setSelectedCandidateIndex,
-    startGeneration,
-    cancelGeneration,
-    applyCandidate,
     canWrite,
     permissionReady,
-    canStart,
-    startDisabledReason,
     operationError:
-      startGeneration.error ??
-      cancelGeneration.error ??
-      applyCandidate.error ??
       previewWireframeChange.error ??
       applyWireframeChange.error ??
       previewSitemapChange.error ??
-      applySitemapChange.error ??
-      generationQuery.error,
+      applySitemapChange.error,
     addPageOpen,
     setAddPageOpen,
     invalidateBuilder,
@@ -854,31 +667,4 @@ function rebaseConflictOperations(
 
 function isEditorConflictError(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 409;
-}
-
-function resolveGenerationDisabledReason({
-  canWrite,
-  permissionReady,
-  workspaceId,
-  revisionReady,
-  selectedAgentId,
-  objective,
-  agentsPending,
-  translate,
-}: {
-  canWrite: boolean;
-  permissionReady: boolean;
-  workspaceId: string | null;
-  revisionReady: boolean;
-  selectedAgentId: string | null;
-  objective: string;
-  agentsPending: boolean;
-  translate: (key: string) => string;
-}): string {
-  if (!permissionReady || agentsPending) return translate("CREATION_EDITOR_AI_PREPARING");
-  if (!workspaceId || !revisionReady) return translate("CREATION_EDITOR_AI_CONTEXT_REQUIRED");
-  if (!canWrite) return translate("CREATION_EDITOR_AI_PERMISSION_REQUIRED");
-  if (!selectedAgentId) return translate("CREATION_EDITOR_AI_AGENT_REQUIRED");
-  if (!objective.trim()) return translate("CREATION_EDITOR_AI_OBJECTIVE_REQUIRED");
-  return "";
 }

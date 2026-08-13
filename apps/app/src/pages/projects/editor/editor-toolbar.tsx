@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arcla
 import { Redo2, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { WorkspaceCreditsControl } from "@/components/commerce/workspace-credits-control";
+import { AskAiButton } from "@/components/ai/ask-ai-button";
 import { EditorLogoMenu } from "@/layouts/creation-layout-menu";
 import { ProjectInlineNameEditor } from "@/pages/usercenter/projects/components/project-inline-name-editor";
 
@@ -145,7 +145,7 @@ export function EditorToolbar({
           data-creation-editor-actions
           className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto lg:flex-1"
         >
-          <WorkspaceCreditsControl compactOnMobile className="shrink-0" />
+          <AskAiButton labelKey="common:TOPBAR_ASK_AI" className="shrink-0" />
           <span className="mx-1 h-5 w-px shrink-0 bg-border" />
           {onUndo && !undoDisabledReason ? (
             <Button

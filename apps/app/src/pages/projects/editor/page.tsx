@@ -10,11 +10,10 @@ import { CompositionSagaReview } from "@/pages/projects/editor/composition-saga-
 import { DesignStage } from "@/pages/projects/editor/design-stage";
 import { EditorBoundary, EditorLoadingState } from "@/pages/projects/editor/editor-boundaries";
 import { EditorConflictSurface } from "@/pages/projects/editor/editor-conflict-surface";
-import { EditorInspector } from "@/pages/projects/editor/editor-inspector";
 import { EditorToolbar, type EditorStage } from "@/pages/projects/editor/editor-toolbar";
-import { GenerationPanel } from "@/pages/projects/editor/generation-panel";
 import { SitemapCanvas } from "@/pages/projects/editor/sitemap-canvas";
 import { SitemapChangeReview } from "@/pages/projects/editor/sitemap-change-review";
+import { SitemapIntentEditor } from "@/pages/projects/editor/sitemap-intent-editor";
 import { SharedSectionManagerDialog } from "@/pages/projects/editor/shared-section-manager-dialog";
 import { StyleGuideStage } from "@/pages/projects/editor/style-guide-stage";
 import { useProjectEditorController } from "@/pages/projects/editor/use-project-editor-controller";
@@ -30,6 +29,7 @@ import { useProjectWireframeGeneration } from "@/pages/projects/editor/use-proje
 import { serializeProjectEditorTarget } from "@/pages/projects/editor/editor-deep-link";
 import { patchProject } from "@/api/projects";
 import { getErrorMessage, notifyError, notifySuccessText } from "@/lib/notifications";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 
 const EMPTY_GENERATION_TARGETS: readonly BuilderGenerationTargetV1[] = [];
 
@@ -50,6 +50,7 @@ export function ProjectEditorPage({
   const navigate = useNavigate({ from: "/projects/$projectId/editor/" });
   const queryClient = useQueryClient();
   const editor = useProjectEditorController(projectId, initialPageId);
+  const openAiDrawer = useAiChatStore((state) => state.openDrawer);
   const [stage, setStage] = useState<EditorStage>(initialStage);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [sharedSectionsOpen, setSharedSectionsOpen] = useState(false);
@@ -280,14 +281,14 @@ export function ProjectEditorPage({
           {stage === "sitemap" ? (
             <>
               <SitemapCanvas
+                projectName={projectName}
                 pages={revision.pages}
                 selectedPageId={editor.selectedPageId}
                 onSelectPage={(pageId) => {
                   editor.discardSitemapPlanningPreview();
                   editor.setSelectedPageId(pageId);
-                  editor.setInspectorMode("page");
                 }}
-                onOpenAI={() => editor.setInspectorMode("ai")}
+                onOpenAI={openAiDrawer}
                 onAddPage={() => editor.setAddPageOpen(true)}
                 onManageSharedSections={() => setSharedSectionsOpen(true)}
                 onReorderPage={(pageId, sortOrder) =>
@@ -325,46 +326,53 @@ export function ProjectEditorPage({
                 }
                 canOpenAI
                 openAIDisabledReason=""
-              />
-              <EditorInspector
-                mode={editor.inspectorMode}
-                onModeChange={editor.setInspectorMode}
-                page={selectedPage}
-                canWrite={editor.canWrite}
-                planningPreview={editor.sitemapPlanningPreview}
-                planningPreviewing={editor.previewSitemapPlanning.isPending}
-                planningApplying={editor.applySitemapPlanning.isPending}
-                planningError={
-                  editor.sitemapPlanningError ? getErrorMessage(editor.sitemapPlanningError) : null
-                }
-                onPreviewPlanning={(draft) => editor.previewSitemapPlanning.mutate(draft)}
-                onApplyPlanning={() => editor.applySitemapPlanning.mutate()}
-                onDiscardPlanning={editor.discardSitemapPlanningPreview}
-                onSyncWireframe={() => {
-                  editor.setInspectorMode("page");
-                  setSelectedSectionId(null);
-                  setStage("wireframe");
-                }}
-                aiPanel={
-                  <GenerationPanel
-                    agents={editor.eligibleAgents}
-                    selectedAgentId={editor.selectedAgentId}
-                    onSelectAgent={editor.setSelectedAgentId}
-                    objective={editor.objective}
-                    onObjectiveChange={editor.setObjective}
-                    generation={editor.generation}
-                    selectedCandidateIndex={editor.selectedCandidateIndex}
-                    onSelectCandidate={editor.setSelectedCandidateIndex}
-                    onStart={() => editor.startGeneration.mutate()}
-                    onCancel={() => editor.cancelGeneration.mutate()}
-                    onApply={() => editor.applyCandidate.mutate()}
-                    starting={editor.startGeneration.isPending}
-                    cancelling={editor.cancelGeneration.isPending}
-                    applying={editor.applyCandidate.isPending}
-                    canStart={editor.canStart}
-                    startDisabledReason={editor.startDisabledReason}
-                    error={editor.operationError ? getErrorMessage(editor.operationError) : null}
-                  />
+                pageDetails={
+                  selectedPage ? (
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-caption font-semibold tracking-wide text-label-secondary uppercase">
+                            {t("CREATION_EDITOR_PAGE_TYPE")}
+                          </p>
+                          <h2 className="mt-1 truncate text-title-3 font-semibold text-label-primary">
+                            {selectedPage.title}
+                          </h2>
+                          <p className="mt-1 truncate font-mono text-caption text-label-secondary">
+                            {selectedPage.routes?.find((route) => route.isActive)?.path ??
+                              selectedPage.routes?.[0]?.path ??
+                              "—"}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-md border border-border px-2 py-1 font-mono text-caption text-label-secondary">
+                          v{selectedPage.versionNumber}
+                        </span>
+                      </div>
+                      {selectedPage.summary ? (
+                        <p className="mt-3 break-words text-footnote leading-5 text-label-secondary">
+                          {selectedPage.summary}
+                        </p>
+                      ) : null}
+                      <SitemapIntentEditor
+                        page={selectedPage}
+                        canWrite={editor.canWrite}
+                        preview={editor.sitemapPlanningPreview}
+                        previewing={editor.previewSitemapPlanning.isPending}
+                        applying={editor.applySitemapPlanning.isPending}
+                        error={
+                          editor.sitemapPlanningError
+                            ? getErrorMessage(editor.sitemapPlanningError)
+                            : null
+                        }
+                        onPreview={(draft) => editor.previewSitemapPlanning.mutate(draft)}
+                        onApply={() => editor.applySitemapPlanning.mutate()}
+                        onDiscard={editor.discardSitemapPlanningPreview}
+                        onSyncWireframe={() => {
+                          setSelectedSectionId(null);
+                          setStage("wireframe");
+                        }}
+                      />
+                    </div>
+                  ) : undefined
                 }
               />
               <AddPageDialog

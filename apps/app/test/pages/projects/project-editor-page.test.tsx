@@ -1430,14 +1430,13 @@ describe("ProjectEditorPage", () => {
     });
     const editorHeader = stageNavigation.closest("header");
     expect(editorHeader).toHaveClass("grid", "lg:flex", "lg:h-14");
-    expect(screen.getByText("Northstar")).toBeVisible();
+    expect(within(editorHeader as HTMLElement).getByText("Northstar")).toBeVisible();
     expect(screen.queryByRole("button", { name: "CREATION_EDITOR_BACK" })).not.toBeInTheDocument();
     expect(editorHeader).not.toHaveTextContent("v2");
     expect(within(editorHeader as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "common:TOPBAR_FEEDBACK" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "common:TOPBAR_ASK_AI" })).not.toBeInTheDocument();
     expect(
       within(stageNavigation)
         .getAllByRole("button")
@@ -1462,6 +1461,7 @@ describe("ProjectEditorPage", () => {
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label")),
     ).toEqual([
+      "common:TOPBAR_ASK_AI",
       "CREATION_EDITOR_UNDO",
       "CREATION_EDITOR_REDO",
       "CREATION_EDITOR_PREVIEW",
@@ -1482,19 +1482,27 @@ describe("ProjectEditorPage", () => {
       "lg:overflow-visible",
     );
     expect(screen.getByRole("application", { name: "CREATION_EDITOR_CANVAS_LABEL" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /^Home/ })).toBeVisible();
+    const sitemapRoot = document.querySelector("[data-sitemap-root]");
+    expect(sitemapRoot).toBeInTheDocument();
+    expect(within(sitemapRoot as HTMLElement).getByText("Northstar")).toBeVisible();
+    const homeNode = screen.getByRole("button", { name: /^Home/ });
+    expect(homeNode).toBeVisible();
+    expect(within(homeNode).getByText("landing.hero")).toBeVisible();
     expect(screen.getByRole("button", { name: /^About/ })).toBeVisible();
+    await user.hover(homeNode);
+    expect(homeNode.querySelector("[data-sitemap-node-arrows]")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_WIREFRAME" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_STYLE_GUIDE" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_DESIGN" })).toBeEnabled();
     expect(screen.queryByRole("iframe")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^About/ }));
-    const inspector = screen.getByRole("complementary", {
-      name: "CREATION_EDITOR_INSPECTOR_LABEL",
-    });
-    expect(within(inspector).getByRole("heading", { name: "About" })).toBeVisible();
-    expect(within(inspector).getByText("/about")).toBeVisible();
+    const pageDetails = document.querySelector("[data-sitemap-page-details]");
+    expect(pageDetails).toBeInTheDocument();
+    expect(
+      within(pageDetails as HTMLElement).getByRole("heading", { name: "About" }),
+    ).toBeVisible();
+    expect(within(pageDetails as HTMLElement).getByText("/about")).toBeVisible();
     expect(getProjectBuilderRevisionMock).toHaveBeenCalledWith(
       "project-1",
       "revision-1",
@@ -3933,47 +3941,13 @@ describe("ProjectEditorPage", () => {
     });
   });
 
-  it("creates a revision-bound Agent Run before durable Sitemap generation", async () => {
-    const user = userEvent.setup();
+  it("moves Sitemap AI collaboration to the shared Ask AI entry", async () => {
     renderPage();
     await screen.findByTestId("creation-editor");
-
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_INSPECTOR_AI" }));
-    await user.type(
-      screen.getByLabelText("CREATION_EDITOR_AI_OBJECTIVE_LABEL"),
-      "Plan a focused product website",
-    );
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_AI_GENERATE" }));
-
-    await waitFor(() => expect(createProjectBuilderGenerationMock).toHaveBeenCalledTimes(1));
-    expect(createAgentThreadMock).toHaveBeenCalledWith(
-      "workspace-1",
-      expect.objectContaining({ projectId: "project-1", leadAgentId: "agent-1" }),
-    );
-    expect(createAgentRunMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workspaceId: "workspace-1",
-        projectId: "project-1",
-        threadId: "thread-1",
-        leadAgentId: "agent-1",
-        executionMode: "build",
-        siteRevisionId: "revision-1",
-        message: "Plan a focused product website",
-      }),
-    );
-    expect(createProjectBuilderGenerationMock).toHaveBeenCalledWith(
-      "project-1",
-      expect.objectContaining({
-        agentRunId: "run-1",
-        baseRevisionId: "revision-1",
-        baseEtag: siteRevision.manifestHash,
-        targetStage: "sitemap",
-      }),
-      expect.stringContaining("builder-generation:"),
-    );
+    expect(screen.getByRole("button", { name: "common:TOPBAR_ASK_AI" })).toBeVisible();
     expect(
-      await screen.findByRole("button", { name: "CREATION_EDITOR_AI_APPROVE_APPLY" }),
-    ).toBeEnabled();
+      screen.queryByRole("complementary", { name: "CREATION_EDITOR_INSPECTOR_LABEL" }),
+    ).not.toBeInTheDocument();
   });
 
   it("previews a manual page ChangeSet before creating the page", async () => {
@@ -4040,30 +4014,14 @@ describe("ProjectEditorPage", () => {
     ).toBeEnabled();
   });
 
-  it("submits the exact candidate preview and approval evidence when applying", async () => {
-    const user = userEvent.setup();
+  it("does not expose the retired Sitemap generation inspector", async () => {
     renderPage();
     await screen.findByTestId("creation-editor");
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_INSPECTOR_AI" }));
-    await user.type(screen.getByLabelText("CREATION_EDITOR_AI_OBJECTIVE_LABEL"), "Add pricing");
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_AI_GENERATE" }));
-    await user.click(
-      await screen.findByRole("button", { name: "CREATION_EDITOR_AI_APPROVE_APPLY" }),
-    );
-
-    await waitFor(() => expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
-    expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
-      "project-1",
-      "change-set-1",
-      {
-        previewToken: "signed-preview-token",
-        approval: {
-          approvalId: "approval-1",
-          decision: "approve",
-          expectedApprovalClass: "review",
-        },
-      },
-      expect.stringContaining("builder-apply:"),
-    );
+    expect(
+      screen.queryByRole("button", { name: "CREATION_EDITOR_INSPECTOR_AI" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CREATION_EDITOR_AI_GENERATE" }),
+    ).not.toBeInTheDocument();
   });
 });

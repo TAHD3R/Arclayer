@@ -586,8 +586,8 @@ The target composition stays cohesive under `apps/app/src/pages/projects/editor/
 | `EditorCanvasViewport` | Viewport transform, culling host, spatial focus, selection overlay, and stage scene outlet. |
 | `SitemapScene` / `WireframeScene` / `StyleGuideScene` / `DesignScene` | Stage-specific projections and typed command entry points. |
 | `EditorToolRail` | Global and stage-specific tools without owning their domain state. |
-| `EditorInspector` | Selection-derived forms, validation, bindings, and responsive properties. |
-| `EditorAgentPanel` | assistant-ui composition over the Arclayer runtime adapter. |
+| `SitemapPageDetails` | Selection-derived page planning forms and validation rendered beside the selected canvas node. |
+| `AIDrawerOverlay` | Shared assistant-ui composition over the Arclayer runtime adapter. |
 | Builder query/controller | Generated-client reads, resource invalidation, capability mapping, and server snapshot projection. |
 | Editor transient store | Viewport, selection, hover, interaction preview, and panel preference only. |
 | Command dispatcher | Typed command/ChangeSet lifecycle, idempotency, pending state, result reconciliation, and conflict routing. |
@@ -609,11 +609,11 @@ Boundary rules:
 |---|---|---|
 | Route bootstrap/access | `CreationEditorPage` | Retry, authenticate, or back to management. |
 | Stage query | Active stage work region | Retry the resource without remounting stable shell/panels. |
-| Inspector query | Inspector | Retry/close inspector; preserve canvas. |
-| Form/schema input | Field/inspector | Inline accessible error; focus first invalid field on submit. |
+| Selection-derived page details | Sitemap canvas details surface | Retry the resource without remounting the stable shell or changing canvas selection. |
+| Form/schema input | Page details surface | Inline accessible error; focus first invalid field on submit. |
 | Command conflict | Change review/conflict surface | Re-preview against current base, inspect current, or discard. |
 | Durable generation/build job | Job/progress surface | Retry allowed scope or inspect evidence; retain successful partial results. |
-| Agent stream/reconnect | Agent panel | Reconnect/resume, retry a new run when safe, or expose terminal error. |
+| Agent stream/reconnect | AI drawer | Reconnect/resume, retry a new run when safe, or expose terminal error. |
 | Tool renderer absent | Tool-call fallback renderer | Show validated Tool name/status/summary and explicit unsupported-renderer error; never execute or claim success. |
 | Preview/publish failure | Readiness/release surface | Preserve last-known-good/prelaunch truth and show failed candidate evidence. |
 | Offline | Shell connection state plus affected actions | Preserve unsent drafts, reconnect, then refresh server truth; no offline mutation replay. |
