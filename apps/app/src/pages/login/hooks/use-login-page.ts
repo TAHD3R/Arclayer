@@ -194,10 +194,6 @@ function isChallengeInvalidationError(error: unknown): boolean {
   );
 }
 
-function isHandledTwoFactorError(error: unknown): error is ApiError {
-  return error instanceof ApiError && resolveTwoFactorChallengeMeta(error) !== null;
-}
-
 function resolveEmailVerificationMeta(error: ApiError): EmailVerificationMeta | null {
   if (error.error !== EMAIL_NOT_VERIFIED_ERROR) return null;
   const meta = (error.meta ?? {}) as {
@@ -292,33 +288,26 @@ export function useLoginPage(): LoginPageState {
 
   const emailCheckMutation = useMutation({
     mutationFn: async (email: string) => authApi.emailCheck({ email }),
-    onError: notifyError,
+    meta: { silent: true },
   });
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) =>
       authApi.login({ email: values.email, password: values.password }),
-    onError: (error) => {
-      if (isHandledTwoFactorError(error)) return;
-      if (error instanceof ApiError && resolveEmailVerificationMeta(error)) return;
-      notifyError(error);
-    },
+    meta: { silent: true },
   });
   const loginEmailCodeRequestMutation = useMutation({
     mutationFn: async (email: string) => authApi.requestLoginEmailCode({ email }),
-    onError: (error) => {
-      if (error instanceof ApiError && resolveEmailVerificationMeta(error)) return;
-    },
+    meta: { silent: true },
   });
   const loginEmailCodeVerifyMutation = useMutation({
     mutationFn: async (values: LoginEmailCodeFormValues) =>
       authApi.verifyLoginEmailCode({ email: values.email, code: values.code }),
-    onError: (error) => {
-      if (isHandledTwoFactorError(error)) return;
-    },
+    meta: { silent: true },
   });
   const loginTwoFactorMutation = useMutation({
     mutationFn: async (values: { twoFactorToken: string; code?: string; backupCode?: string }) =>
       authApi.loginTwoFactor(values),
+    meta: { silent: true },
   });
   const loginTwoFactorWebAuthnMutation = useMutation({
     mutationFn: async (twoFactorToken: string) => {
@@ -337,7 +326,7 @@ export function useLoginPage(): LoginPageState {
         email: values.email,
         password: values.password,
       }),
-    onError: notifyError,
+    meta: { silent: true },
   });
   const invitationPreviewQuery = useQuery({
     queryKey: ["invitePreview", inviteToken],
@@ -358,7 +347,7 @@ export function useLoginPage(): LoginPageState {
         confirmPassword: values.password,
       });
     },
-    onError: notifyError,
+    meta: { silent: true },
   });
   const invitationAcceptExistingMutation = useMutation({
     mutationFn: async () => {
@@ -369,7 +358,7 @@ export function useLoginPage(): LoginPageState {
   });
   const registerVerificationResendMutation = useMutation({
     mutationFn: async (email: string) => authApi.resendRegistrationEmailVerification({ email }),
-    onError: notifyError,
+    meta: { silent: true },
   });
   const registerVerificationConfirmMutation = useMutation({
     mutationFn: async (token: string) => authApi.confirmRegistrationEmailVerification({ token }),
@@ -382,7 +371,7 @@ export function useLoginPage(): LoginPageState {
   });
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => authApi.forgotPassword({ email }),
-    onError: notifyError,
+    meta: { silent: true },
   });
 
   const invitationEmail =
@@ -947,6 +936,7 @@ export function useLoginPage(): LoginPageState {
       if (startEmailVerificationState(error)) {
         return;
       }
+      throw error;
     }
   };
 
@@ -1008,9 +998,10 @@ export function useLoginPage(): LoginPageState {
     } catch (error) {
       if (isChallengeInvalidationError(error)) {
         clearActiveChallenge();
+        notifyError(error);
         return;
       }
-      notifyError(error);
+      throw error;
     }
   };
 
@@ -1108,6 +1099,7 @@ export function useLoginPage(): LoginPageState {
       ) {
         return;
       }
+      throw error;
     }
   };
 

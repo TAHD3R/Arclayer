@@ -1,9 +1,10 @@
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, CircleX, Info } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { type ReactNode, useId } from "react";
 
 import { LegalFooter } from "@/components/layout/legal-footer";
 import { cn } from "@arclayer/lib/utils";
+import { Alert, AlertDescription } from "@arclayer/ui/alert";
 import { FieldTitle } from "@arclayer/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -94,6 +95,43 @@ export function AuthPaneTitleRow(props: { title: string; helpText?: string; acti
 
 export function AuthButtonLabel(props: { children: ReactNode }) {
   return <span>{props.children}</span>;
+}
+
+export function AuthFormFeedback(props: {
+  message?: string | null;
+  action?: ReactNode;
+  tone?: "danger" | "neutral";
+  variants?: Variants | {};
+}) {
+  if (!props.message) return null;
+
+  const danger = props.tone !== "neutral";
+
+  const content = (
+    <Alert
+      role={danger ? "alert" : "status"}
+      variant={danger ? "destructive" : "default"}
+      className={cn(
+        "rounded-[1.75rem] bg-card px-4 py-3 text-callout",
+        danger
+          ? "border-destructive/30 [&>svg]:text-destructive!"
+          : "border-border [&>svg]:text-label-secondary!",
+      )}
+    >
+      {danger ? <CircleX aria-hidden="true" /> : <Info aria-hidden="true" />}
+      <AlertDescription
+        className={cn(
+          "flex flex-wrap items-baseline gap-x-1.5 text-callout! leading-5",
+          danger ? "text-destructive!" : "text-label-secondary!",
+        )}
+      >
+        <span>{props.message}</span>
+        {props.action}
+      </AlertDescription>
+    </Alert>
+  );
+
+  return props.variants ? <motion.div variants={props.variants}>{content}</motion.div> : content;
 }
 
 export function AuthOtpInput(props: {

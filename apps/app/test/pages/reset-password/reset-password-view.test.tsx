@@ -75,4 +75,36 @@ describe("ResetPasswordView", () => {
       newPassword: "NewPassword1",
     });
   });
+
+  it("keeps form values and shows a reset failure above the fields", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ResetPasswordView
+        loading={false}
+        onSubmit={async () => {
+          throw new Error("Internal reset detail");
+        }}
+        onBackToLogin={() => undefined}
+      />,
+    );
+
+    const token = screen.getByLabelText("auth:FIELD_RESET_TOKEN_LABEL");
+    const password = screen.getByLabelText("auth:FIELD_NEW_PASSWORD_LABEL");
+    const confirmation = screen.getByLabelText("auth:FIELD_CONFIRM_PASSWORD_LABEL");
+    await user.type(token, "reset-token");
+    await user.type(password, "NewPassword1");
+    await user.type(confirmation, "NewPassword1");
+    await user.click(screen.getByRole("button", { name: "auth:RESET_PASSWORD_BUTTON" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("errors:REQUEST_FAILED");
+    expect(alert).not.toHaveTextContent("Internal reset detail");
+    expect(token).toHaveValue("reset-token");
+    expect(password).toHaveValue("NewPassword1");
+    expect(confirmation).toHaveValue("NewPassword1");
+
+    await user.type(confirmation, "x");
+    expect(screen.queryByText("errors:REQUEST_FAILED")).not.toBeInTheDocument();
+  });
 });

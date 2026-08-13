@@ -23,6 +23,7 @@ describe("auth branding i18n", () => {
 
   it("uses localized copy for login-method actions and dividers", async () => {
     expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("或使用以下方式登录");
+    expect(i18n.t("auth:OAUTH_REGISTER_DIVIDER")).toBe("或使用以下方式注册");
     expect(i18n.t("auth:OAUTH_METHOD_DIVIDER")).toBe("或");
     expect(i18n.t("auth:LOGIN_CONTINUE_EMAIL")).toBe("使用邮箱登录");
     expect(i18n.t("auth:LOGIN_BACK_TO_METHODS")).toBe("返回");
@@ -30,6 +31,7 @@ describe("auth branding i18n", () => {
 
     await i18n.changeLanguage("en-US");
     expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("Or continue with");
+    expect(i18n.t("auth:OAUTH_REGISTER_DIVIDER")).toBe("Or sign up with");
     expect(i18n.t("auth:OAUTH_METHOD_DIVIDER")).toBe("OR");
     expect(i18n.t("auth:LOGIN_CONTINUE_EMAIL")).toBe("Continue with email");
     expect(i18n.t("auth:LOGIN_BACK_TO_METHODS")).toBe("Go Back");

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
+import { resolveAuthFormError } from "@/lib/auth/form-feedback";
 import { AuthInputControl, AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
@@ -19,6 +20,7 @@ import {
   AUTH_PILL_INPUT_GROUP_CLASS,
   AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
+  AuthFormFeedback,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
 import { AuthEntryHeader } from "./login-brand-slogan";
@@ -43,6 +45,7 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
   const navigate = useNavigate();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [step, setStep] = useState<ForgotPasswordPaneStep>("form");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(
       z.object({
@@ -61,12 +64,24 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
   useEffect(() => {
     resetRef.current({ email: props.initialEmail ?? "" });
     setStep("form");
+    setSubmitError(null);
   }, [props.initialEmail]);
 
+  const emailValue = form.watch("email");
+
+  useEffect(() => {
+    setSubmitError(null);
+  }, [emailValue]);
+
   const handleSubmit = form.handleSubmit(async (values) => {
-    await props.onSubmit(values.email);
-    form.reset({ email: values.email });
-    setStep("success");
+    setSubmitError(null);
+    try {
+      await props.onSubmit(values.email);
+      form.reset({ email: values.email });
+      setStep("success");
+    } catch (error) {
+      setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
+    }
   });
 
   const goToReset = () => {
@@ -102,6 +117,7 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
     <div className={AUTH_PANE_ROOT_CLASS}>
       <AuthEntryHeader subtitleKey="auth:FORGOT_PASSWORD_MODAL_DESC" variants={variants} />
       <form className="grid gap-4" autoComplete="on" onSubmit={handleSubmit}>
+        <AuthFormFeedback message={submitError} variants={variants} />
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
             <FieldContent className="gap-2">

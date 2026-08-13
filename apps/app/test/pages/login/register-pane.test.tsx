@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@arclayer/web/http";
+
 import { RegisterPane } from "@/pages/login/components/register-pane";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -72,7 +74,7 @@ describe("RegisterPane oauth section", () => {
     expect(contentGroup).toHaveClass("grid", "gap-4");
     expect(contentGroup?.parentElement).toHaveClass("grid", "gap-6");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
-    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_REGISTER_DIVIDER")).toBeInTheDocument();
     expect(screen.getByTestId("login-brand-slogan")).toBeInTheDocument();
     expect(screen.getByText("auth:REGISTER_PAGE_TITLE")).toHaveClass("sr-only");
     expect(screen.queryByText("auth:FIELD_EMAIL_LABEL")).not.toBeInTheDocument();
@@ -126,7 +128,7 @@ describe("RegisterPane oauth section", () => {
     expect(screen.queryByLabelText("auth:FIELD_USERNAME_LABEL")).not.toBeInTheDocument();
   });
 
-  it("shows existing-email recovery inside the email field content", async () => {
+  it("shows existing-email recovery at form level with a direct login action", async () => {
     const user = userEvent.setup();
 
     renderPane({ onEmailSubmit: async () => true });
@@ -136,22 +138,27 @@ describe("RegisterPane oauth section", () => {
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
     await user.click(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }));
 
-    const notice = await screen.findByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
-    const noticeContainer = notice.closest("div");
+    await screen.findByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
+    const noticeContainer = screen.getByRole("status");
     const submitButton = screen.getByRole("button", {
       name: "auth:REGISTER_BUTTON",
     });
 
-    expect(noticeContainer).toHaveClass("text-callout", "text-label-secondary");
+    expect(noticeContainer).toHaveTextContent("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
+    expect(noticeContainer).toHaveClass("rounded-[1.75rem]");
     expect(noticeContainer).toContainElement(
       screen.getByRole("button", { name: "auth:REGISTER_EMAIL_EXISTS_ACTION" }),
     );
     expect(
-      emailField.compareDocumentPosition(noticeContainer!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      noticeContainer.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      noticeContainer!.compareDocumentPosition(submitButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+      noticeContainer.compareDocumentPosition(submitButton) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(emailField).not.toHaveAttribute("aria-invalid");
+
+    await user.type(emailField, "x");
+    expect(screen.queryByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE")).not.toBeInTheDocument();
   });
 
   it("submits valid registration values after checking that the email is new", async () => {
@@ -172,6 +179,42 @@ describe("RegisterPane oauth section", () => {
         password: "ValidPass1",
       });
     });
+  });
+
+  it("maps backend validation details to the matching field", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn(async () => {
+      throw new ApiError({
+        status: 422,
+        message: "参数校验失败",
+        error: "VALIDATION_ERROR",
+        meta: {
+          details: [
+            {
+              code: "PASSWORD_INVALID",
+              loc: ["body", "password"],
+              message: "密码必须为 8-128 个字符，并同时包含大写字母、小写字母和数字。",
+            },
+          ],
+        },
+      });
+    });
+
+    renderPane({ onSubmit });
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
+    await user.click(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }));
+
+    expect(await screen.findByText("auth:PASSWORD_INVALID")).toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.queryByText("参数校验失败")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "x");
+    expect(screen.queryByText("auth:PASSWORD_INVALID")).not.toBeInTheDocument();
   });
 
   it("hides password guidance before focus and shows the checklist in a popover", async () => {

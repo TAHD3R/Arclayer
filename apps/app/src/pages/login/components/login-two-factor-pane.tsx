@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 
+import { resolveAuthFormError } from "@/lib/auth/form-feedback";
+import { ApiError } from "@/lib/http";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
@@ -17,6 +19,7 @@ import {
   AUTH_PILL_BUTTON_CLASS,
   AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AUTH_PILL_PLAIN_INPUT_CLASS,
+  AuthFormFeedback,
   AuthOtpInput,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
@@ -29,7 +32,7 @@ type VerificationMethod = "totp" | "backup_code";
 type LoginTwoFactorPaneProps = {
   challenge: AuthChallengeSnapshot;
   loading: boolean;
-  onSubmit: (values: LoginTwoFactorFormValues) => void;
+  onSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;
   onPasskeySubmit?: () => void;
   onBackToLogin: () => void;
   reducedMotion: boolean;
@@ -52,6 +55,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
   const [method, setMethod] = useState<VerificationMethod>("totp");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const methods = props.challenge.methods?.length
     ? props.challenge.methods
     : ["totp", "backup_code"];
@@ -62,9 +66,10 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
   useEffect(() => {
     setValue("");
     setError(null);
+    setSubmitError(null);
   }, [method, props.challenge.twoFactorToken]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const payload = buildSubmitPayload(method, value);
     if (!payload) {
       setError(
@@ -76,7 +81,20 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
     }
 
     setError(null);
-    props.onSubmit(payload);
+    setSubmitError(null);
+    try {
+      await props.onSubmit(payload);
+    } catch (submitFailure) {
+      if (
+        submitFailure instanceof ApiError &&
+        (submitFailure.error === "TWO_FACTOR_CODE_INVALID" ||
+          submitFailure.error === "BACKUP_CODE_INVALID")
+      ) {
+        setError(resolveAuthFormError(submitFailure, t("errors:INVALID_CREDENTIALS")));
+        return;
+      }
+      setSubmitError(resolveAuthFormError(submitFailure, t("errors:REQUEST_FAILED")));
+    }
   };
 
   const methodSwitchLabel =
@@ -95,16 +113,21 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
         autoComplete="on"
         onSubmit={(event) => {
           event.preventDefault();
-          handleSubmit();
+          void handleSubmit();
         }}
       >
+        <AuthFormFeedback message={submitError} variants={variants} />
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
             <FieldContent className="gap-2">
               {method === "backup_code" ? (
                 <Input
                   value={value}
-                  onChange={(event) => setValue(event.target.value)}
+                  onChange={(event) => {
+                    setValue(event.target.value);
+                    setError(null);
+                    setSubmitError(null);
+                  }}
                   aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
                   aria-invalid={error ? true : undefined}
                   className={AUTH_PILL_PLAIN_INPUT_CLASS}
@@ -116,7 +139,11 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
               ) : (
                 <AuthOtpInput
                   value={value}
-                  onChange={setValue}
+                  onChange={(nextValue) => {
+                    setValue(nextValue);
+                    setError(null);
+                    setSubmitError(null);
+                  }}
                   aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
                   invalid={Boolean(error)}
                   disabled={props.loading}

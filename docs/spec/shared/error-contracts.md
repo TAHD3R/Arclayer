@@ -21,7 +21,10 @@ This code-spec defines the error contract shared by backend handlers and fronten
 
 - Frontend behavior must branch on stable `error` codes, never on localized `message` text.
 - Backend business errors must supply a stable `error` code.
-- Validation failures expose `VALIDATION_ERROR`; details may appear in `meta.details` where handlers include them.
+- Validation failures expose `VALIDATION_ERROR`; `meta.details` entries use
+  `{ code: string, loc: Array<string | number>, message: string }`.
+- Validation detail control flow uses stable `code` and `loc`; `message` is localized display copy.
+- Validation details must not expose rejected `input`, exception context, or other raw request values.
 - `meta` is client-visible and must be sanitized.
 - Debug trace fields and raw exception details are debug-only.
 - Auth, permission, rate-limit, missing-entity, and conflict errors must use explicit domain codes.
@@ -45,6 +48,7 @@ This code-spec defines the error contract shared by backend handlers and fronten
 - Good: backend raises `NotFound("Content entry not found", error="CONTENT_ENTRY_NOT_FOUND")`.
 - Base: frontend displays localized backend `message` as support copy but does not branch on it.
 - Bad: frontend checks whether `message.includes("permission")`.
+- Bad: validation details echo a submitted password through an `input` property.
 - Bad: backend returns a raw provider exception in `meta` for a 500 response.
 
 ### 6. Tests Required

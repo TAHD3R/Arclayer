@@ -679,7 +679,7 @@
   "PAGE_ROUTE_NOT_FOUND": "未找到页面。请刷新后重试。",
   "PASSWORD_ALREADY_SET": "该账户已设置密码，无需重复设置。",
   "PASSWORD_DUPLICATE": "新密码不能与当前密码相同。",
-  "PASSWORD_INVALID": "密码格式不符合要求，请按页面提示重新设置。",
+  "PASSWORD_INVALID": "密码必须为 8-128 个字符，并同时包含字母和数字。",
   "PERMISSION_CATALOG_CONFLICT": "权限目录已发生变化，请核对最新定义后再保存。",
   "PERMISSION_CONDITION_EMPTY": "权限条件组不能为空。",
   "PERMISSION_CONDITION_UNSUPPORTED": "该权限不支持提交的条件。",

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@/lib/http";
 import { LoginEmailCodePane } from "@/pages/login/components/login-email-code-pane";
 import { LoginTwoFactorPane } from "@/pages/login/components/login-two-factor-pane";
 
@@ -241,7 +242,7 @@ describe("Login auth otp layouts", () => {
           source: "email-code",
         }}
         loading={false}
-        onSubmit={() => undefined}
+        onSubmit={async () => undefined}
         onBackToLogin={() => undefined}
         reducedMotion
         itemVariants={{}}
@@ -297,7 +298,7 @@ describe("Login auth otp layouts", () => {
           source: "email-code",
         }}
         loading={false}
-        onSubmit={() => undefined}
+        onSubmit={async () => undefined}
         onBackToLogin={() => undefined}
         reducedMotion
         itemVariants={{}}
@@ -305,5 +306,99 @@ describe("Login auth otp layouts", () => {
     );
 
     expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
+  });
+
+  it("keeps an invalid email code attached to the code field", async () => {
+    const { container } = render(
+      <LoginEmailCodePane
+        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        requestLoading={false}
+        verifyLoading={false}
+        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onSubmit={async () => {
+          throw new ApiError({
+            status: 401,
+            message: "Raw invalid-code detail",
+            error: "LOGIN_CODE_INVALID",
+          });
+        }}
+        onBackToPassword={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const codeInput = await screen.findByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL");
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    await waitFor(() => expect(codeInput).toHaveAttribute("aria-invalid", "true"));
+    expect(container.querySelector("[data-slot='field-error']")).toBeInTheDocument();
+    expect(container.querySelector("[data-slot='alert']")).not.toBeInTheDocument();
+    expect(screen.queryByText("Raw invalid-code detail")).not.toBeInTheDocument();
+  });
+
+  it("shows email-code service failures above the form without marking the code invalid", async () => {
+    const { container } = render(
+      <LoginEmailCodePane
+        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        requestLoading={false}
+        verifyLoading={false}
+        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onSubmit={async () => {
+          throw new ApiError({
+            status: 503,
+            message: "Raw service detail",
+            error: "LOGIN_CODE_STORE_UNAVAILABLE",
+          });
+        }}
+        onBackToPassword={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const codeInput = await screen.findByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL");
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    await waitFor(() => expect(container.querySelector("[data-slot='alert']")).toBeInTheDocument());
+    expect(codeInput).not.toHaveAttribute("aria-invalid");
+    expect(container.querySelector("[data-slot='field-error']")).not.toBeInTheDocument();
+    expect(screen.queryByText("Raw service detail")).not.toBeInTheDocument();
+  });
+
+  it("keeps an invalid authenticator code attached to the two-factor field", async () => {
+    const { container } = render(
+      <LoginTwoFactorPane
+        challenge={{
+          twoFactorToken: "challenge-token",
+          expiresAt: Date.now() + 60_000,
+          keepSession: true,
+          redirect: null,
+          source: "password",
+        }}
+        loading={false}
+        onSubmit={async () => {
+          throw new ApiError({
+            status: 401,
+            message: "Raw two-factor detail",
+            error: "TWO_FACTOR_CODE_INVALID",
+          });
+        }}
+        onBackToLogin={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const codeInput = screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL");
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON" }));
+
+    await waitFor(() => expect(codeInput).toHaveAttribute("aria-invalid", "true"));
+    expect(container.querySelector("[data-slot='field-error']")).toBeInTheDocument();
+    expect(container.querySelector("[data-slot='alert']")).not.toBeInTheDocument();
+    expect(screen.queryByText("Raw two-factor detail")).not.toBeInTheDocument();
   });
 });

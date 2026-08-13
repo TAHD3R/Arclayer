@@ -7,7 +7,11 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
-import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
+import {
+  getAuthValidationDetails,
+  PASSWORD_PATTERN,
+  resolveAuthFormError,
+} from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
@@ -25,6 +29,7 @@ import {
   AUTH_PILL_INPUT_GROUP_CLASS,
   AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
+  AuthFormFeedback,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
 import { AuthEntryHeader } from "./login-brand-slogan";
@@ -73,6 +78,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [emailExists, setEmailExists] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(
       z
@@ -120,6 +126,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   });
   const emailValue = form.watch("email");
   const passwordValue = form.watch("password");
+  const usernameValue = form.watch("username");
   const resetRef = useRef(form.reset);
   resetRef.current = form.reset;
   const seedEmail = props.registerSeed?.email ?? "";
@@ -135,6 +142,7 @@ export function RegisterPane(props: RegisterPaneProps) {
       username: "",
     });
     setEmailExists(false);
+    setSubmitError(null);
   }, [seedEmail]);
 
   useEffect(() => {
@@ -148,30 +156,72 @@ export function RegisterPane(props: RegisterPaneProps) {
 
   useEffect(() => {
     setEmailExists(false);
+    setSubmitError(null);
+    form.clearErrors("email");
   }, [emailValue]);
+
+  useEffect(() => {
+    setSubmitError(null);
+    form.clearErrors("password");
+  }, [passwordValue]);
+
+  useEffect(() => {
+    setSubmitError(null);
+    form.clearErrors("username");
+  }, [usernameValue]);
 
   const submitRegister = form.handleSubmit(async (values) => {
     setEmailExists(false);
-    const exists = await props.onEmailSubmit(values.email);
-    if (exists) {
-      setEmailExists(true);
-      return;
+    setSubmitError(null);
+    try {
+      const exists = await props.onEmailSubmit(values.email);
+      if (exists) {
+        setEmailExists(true);
+        return;
+      }
+      await props.onSubmit(
+        props.invitationRegistration
+          ? values
+          : {
+              email: values.email,
+              password: values.password,
+            },
+      );
+    } catch (error) {
+      const validationDetails = getAuthValidationDetails(error);
+      let fieldErrorHandled = false;
+      let formValidationError: string | null = null;
+      for (const detail of validationDetails) {
+        if (
+          detail.field !== "email" &&
+          detail.field !== "password" &&
+          detail.field !== "username"
+        ) {
+          formValidationError ??= detail.message;
+          continue;
+        }
+        form.setError(detail.field, {
+          type: "server",
+          message: detail.code === "PASSWORD_INVALID" ? t("auth:PASSWORD_INVALID") : detail.message,
+        });
+        fieldErrorHandled = true;
+      }
+      if (formValidationError) setSubmitError(formValidationError);
+      if (fieldErrorHandled || formValidationError) return;
+      setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
     }
-    await props.onSubmit(
-      props.invitationRegistration
-        ? values
-        : {
-            email: values.email,
-            password: values.password,
-          },
-    );
   });
 
   const resendVerification = async () => {
     const email = verificationEmail || form.getValues("email");
     if (!email) return;
-    const result = await props.onVerificationResend(email);
-    setRetryAfter(result.retryAfter);
+    setSubmitError(null);
+    try {
+      const result = await props.onVerificationResend(email);
+      setRetryAfter(result.retryAfter);
+    } catch (error) {
+      setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -198,6 +248,7 @@ export function RegisterPane(props: RegisterPaneProps) {
           <AuthOauthButtons
             disabled={busy || isVerificationPending}
             redirect={props.redirect}
+            dividerLabelKey="auth:OAUTH_REGISTER_DIVIDER"
             dividerPlacement="after"
             providerLayout="primary-plus-grid"
             loadingProvider={props.pendingOAuthProvider}
@@ -214,6 +265,33 @@ export function RegisterPane(props: RegisterPaneProps) {
           />
         </motion.div>
         <form onSubmit={handleSubmit} className="grid gap-4" autoComplete="on">
+          <AuthFormFeedback message={submitError} variants={variants} />
+          <AuthFormFeedback
+            message={
+              isVerificationPending
+                ? t("auth:REGISTER_VERIFY_EMAIL_SENT_HINT", {
+                    email: verificationEmail || form.getValues("email"),
+                  })
+                : null
+            }
+            tone="neutral"
+            variants={variants}
+          />
+          <AuthFormFeedback
+            message={emailExists ? t("auth:REGISTER_EMAIL_EXISTS_MESSAGE") : null}
+            tone="neutral"
+            variants={variants}
+            action={
+              <AuthLinkButton
+                className="!text-callout"
+                disabled={busy}
+                onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
+                type="button"
+              >
+                {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
+              </AuthLinkButton>
+            }
+          />
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
               <FieldContent className="gap-2">
@@ -234,26 +312,6 @@ export function RegisterPane(props: RegisterPaneProps) {
                     ? String(form.formState.errors.email.message)
                     : undefined}
                 </FieldError>
-                {isVerificationPending ? (
-                  <div className="text-callout text-label-secondary">
-                    {t("auth:REGISTER_VERIFY_EMAIL_SENT_HINT", {
-                      email: verificationEmail || form.getValues("email"),
-                    })}
-                  </div>
-                ) : null}
-                {emailExists && !form.formState.errors.email ? (
-                  <div className="text-callout text-label-secondary">
-                    <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
-                    <AuthLinkButton
-                      className="!text-callout"
-                      disabled={busy}
-                      onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
-                      type="button"
-                    >
-                      {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
-                    </AuthLinkButton>
-                  </div>
-                ) : null}
               </FieldContent>
             </Field>
           </motion.div>

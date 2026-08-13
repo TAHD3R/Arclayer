@@ -387,7 +387,10 @@ class AuthService(BaseService):
     def _ensure_password_strength(self, password: str) -> None:
         if not re.match(PASSWORD_REGEX, password):
             raise BadRequest(
-                message=self._ta("PASSWORD_INVALID", "密码必须包含字母和数字，且长度为8-128"),
+                message=self._ta(
+                    "PASSWORD_INVALID",
+                    "密码必须为 8-128 个字符，并同时包含字母和数字。",
+                ),
                 error="PASSWORD_INVALID",
             )
 

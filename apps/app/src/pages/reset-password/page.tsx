@@ -16,6 +16,7 @@ export function ResetPasswordPage() {
   const resetMutation = useMutation({
     mutationFn: async (values: { resetToken: string; newPassword: string }) =>
       authApi.resetPassword(values),
+    meta: { silent: true },
   });
 
   return (
@@ -23,13 +24,9 @@ export function ResetPasswordPage() {
       initialToken={token}
       loading={resetMutation.isPending}
       onSubmit={async (values) => {
-        try {
-          await resetMutation.mutateAsync(values);
-          notifySuccessText(t("auth:RESET_SUCCESS"));
-          void navigate({ to: "/login", search: { mode: "login" } });
-        } catch {
-          // Error toast is handled globally by TanStack Query's MutationCache onError.
-        }
+        await resetMutation.mutateAsync(values);
+        notifySuccessText(t("auth:RESET_SUCCESS"));
+        void navigate({ to: "/login", search: { mode: "login" } });
       }}
       onBackToLogin={() => {
         void navigate({ to: "/login", search: { mode: "login" } });

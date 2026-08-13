@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@/lib/http";
 import { LoginPane } from "@/pages/login/components/login-pane";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -280,7 +281,7 @@ describe("LoginPane email form", () => {
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true, false);
   });
 
-  it("shows unknown email as a callout field validation error without switching to register", async () => {
+  it("shows unknown email as a form error without exposing account existence", async () => {
     const onSwitchToRegister = vi.fn();
 
     render(
@@ -309,11 +310,59 @@ describe("LoginPane email form", () => {
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
-    const alert = await screen.findByText("auth:LOGIN_EMAIL_NOT_REACHABLE");
-    expect(alert).toBeInTheDocument();
-    expect(alert).toHaveClass("!text-callout", "font-normal", "text-destructive");
+    const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("errors:INVALID_CREDENTIALS");
+    expect(alert).toHaveClass("rounded-[1.75rem]");
+    expect(alert).toHaveClass("[&>svg]:text-destructive!");
+    expect(alert.querySelector("svg")).toHaveClass("lucide-circle-x");
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(alert.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByText("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")).not.toBeInTheDocument();
     expect(onSwitchToRegister).not.toHaveBeenCalled();
+
+    await user.type(email, "x");
+    expect(screen.queryByText("errors:INVALID_CREDENTIALS")).not.toBeInTheDocument();
+  });
+
+  it("shows rejected credentials at form level and preserves both inputs", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => {
+          throw new ApiError({
+            status: 401,
+            message: "Internal credential detail",
+            error: "INVALID_CREDENTIALS",
+          });
+        }}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
+        emailCheckLoading={false}
+        loading={false}
+        resendLoading={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
+    const password = screen.getByLabelText("auth:FIELD_PASSWORD_LABEL");
+    await user.type(email, "demo@example.com");
+    await user.type(password, "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    expect(await screen.findByRole("alert")).not.toHaveTextContent("Internal credential detail");
+    expect(email).toHaveValue("demo@example.com");
+    expect(password).toHaveValue("secret123");
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(password).not.toHaveAttribute("aria-invalid");
   });
 
   it("submits login with keep-session enabled by default", async () => {

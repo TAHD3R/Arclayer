@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { ApiError } from "@/lib/http";
+import { resolveAuthFormError } from "@/lib/auth/form-feedback";
 import { notifySuccessText } from "@/lib/notifications";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthLinkButton, AuthInputControl } from "@arclayer/ui/auth-controls";
@@ -25,6 +26,7 @@ import {
   AUTH_PILL_INPUT_CLASS,
   AUTH_PILL_INPUT_GROUP_CLASS,
   AuthButtonLabel,
+  AuthFormFeedback,
   AuthOtpInput,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
@@ -114,8 +116,8 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [step, setStep] = useState<LoginEmailCodePaneStep>("request");
-  const [requestError, setRequestError] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState(0);
   const [codeValue, setCodeValue] = useState("");
   const attemptedSeedRef = useRef<string | null>(null);
@@ -148,6 +150,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     mode: "onSubmit",
   });
   const { clearErrors, reset, setValue } = form;
+  const emailValue = form.watch("email");
 
   useEffect(() => {
     requestCodeRef.current = props.onRequestCode;
@@ -157,8 +160,8 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
   const handleCodeRequestSuccess = useCallback(
     (result: LoginEmailCodeRequestResult, options: { notify?: boolean } = {}) => {
       const normalized = normalizeRequestResult(result);
-      setRequestError(null);
       setVerifyError(null);
+      setSubmitError(null);
       setStep("verify");
       setRetryAfter(normalized.retryAfter);
       clearErrors("code");
@@ -182,12 +185,16 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
       code: "",
     });
     setStep("request");
-    setRequestError(null);
     setVerifyError(null);
+    setSubmitError(null);
     setRetryAfter(0);
     setCodeValue("");
     attemptedSeedRef.current = null;
   }, [seedEmail, seedKey]);
+
+  useEffect(() => {
+    setSubmitError(null);
+  }, [emailValue]);
 
   useEffect(() => {
     if (!seedEmail || !seedAutoRequest || !autoRequestKey) return;
@@ -209,10 +216,8 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
           return;
         }
         setStep("request");
-        setRequestError(
-          error instanceof ApiError
-            ? error.message
-            : tRef.current("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED"),
+        setSubmitError(
+          resolveAuthFormError(error, tRef.current("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED")),
         );
       });
 
@@ -235,15 +240,14 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     const isValid = await form.trigger("email");
     if (!isValid) return;
     try {
+      setSubmitError(null);
       handleCodeRequestSuccess(await props.onRequestCode(form.getValues("email")));
     } catch (error) {
       if (error instanceof Error && error.message === LOGIN_EMAIL_VERIFICATION_STATE_STARTED) {
         return;
       }
       setStep("request");
-      setRequestError(
-        error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED"),
-      );
+      setSubmitError(resolveAuthFormError(error, t("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED")));
     }
   };
 
@@ -255,11 +259,14 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     }
     try {
       setVerifyError(null);
+      setSubmitError(null);
       await props.onSubmit({ email: form.getValues("email"), code });
     } catch (error) {
-      setVerifyError(
-        error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_INVALID"),
-      );
+      if (error instanceof ApiError && error.error === "LOGIN_CODE_INVALID") {
+        setVerifyError(resolveAuthFormError(error, t("auth:LOGIN_EMAIL_CODE_INVALID")));
+        return;
+      }
+      setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
     }
   };
   const canSubmitVerification = codeValue.trim().length === OTP_LENGTH;
@@ -287,6 +294,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
           void submitVerification();
         }}
       >
+        <AuthFormFeedback message={submitError} variants={variants} />
         {step === "request" ? (
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
@@ -294,7 +302,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                 <AuthInputControl
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
-                  aria-invalid={form.formState.errors.email || requestError ? true : undefined}
+                  aria-invalid={form.formState.errors.email ? true : undefined}
                   className={AUTH_PILL_INPUT_GROUP_CLASS}
                   inputClassName={AUTH_PILL_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
@@ -306,7 +314,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                 <FieldError>
                   {form.formState.errors.email?.message
                     ? String(form.formState.errors.email.message)
-                    : requestError}
+                    : undefined}
                 </FieldError>
               </FieldContent>
             </Field>
@@ -328,9 +336,10 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                       form.clearErrors("code");
                     }
                     if (verifyError) setVerifyError(null);
+                    if (submitError) setSubmitError(null);
                   }}
                   aria-label={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")}
-                  invalid={Boolean(verifyError)}
+                  invalid={Boolean(form.formState.errors.code || verifyError)}
                   disabled={props.verifyLoading}
                   maxLength={OTP_LENGTH}
                 />

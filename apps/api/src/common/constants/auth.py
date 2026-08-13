@@ -9,7 +9,7 @@ REFRESH_STATUS_REVOKED = "revoked"
 TOKEN_TYPE_ACCESS = "access"
 TOKEN_TYPE_REFRESH = "refresh"
 
-PASSWORD_REGEX = r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d~!@#$%^&*()_\-+=\[\]{}|;:'\",.<>?/]{8,128}$"
+PASSWORD_REGEX = r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$"
 RESET_TOKEN_REGEX = r"^[a-f0-9]{32}$"
 
 REAUTH_MAX_AGE_SECONDS = 5 * 60

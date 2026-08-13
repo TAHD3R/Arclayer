@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Self
 
 from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
@@ -283,11 +284,11 @@ class DirectoryUserUpdateRequest(BaseSchema):
 class DirectoryUserResetPasswordRequest(BaseSchema):
     new_password: str = Field(min_length=8, max_length=128, description="New password.")
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="before")
     @classmethod
-    def validate_new_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_new_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
 

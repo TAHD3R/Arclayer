@@ -5,6 +5,7 @@ from typing import Literal
 from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
@@ -56,9 +57,9 @@ class SystemBootstrapRequest(BaseSchema):
             raise ValueError("Display name is required.")
         return normalized
 
-    @field_validator("password")
+    @field_validator("password", mode="before")
     @classmethod
-    def validate_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("Password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value

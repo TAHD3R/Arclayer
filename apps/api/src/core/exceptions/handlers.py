@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from typing import Any
 
 from asgi_correlation_id import correlation_id
@@ -71,6 +72,23 @@ def _sanitize_details(details: Any) -> Any:
     if isinstance(details, (list, tuple, set)):
         return [_sanitize_details(value) for value in details]
     return str(details)
+
+
+def _normalize_validation_details(details: Sequence[Any], *, locale: str) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for detail in details:
+        if not isinstance(detail, dict):
+            continue
+        raw_code = _scalar_to_str(detail.get("type")) or "VALIDATION_ERROR"
+        code = raw_code.upper()
+        raw_message = _scalar_to_str(detail.get("msg")) or code
+        loc = detail.get("loc")
+        normalized.append({
+            "code": code,
+            "loc": _sanitize_details(loc) if isinstance(loc, (list, tuple)) else [],
+            "message": localize_message(raw_message, error=code, locale=locale),
+        })
+    return normalized
 
 
 def _scalar_to_str(value: Any) -> str | None:
@@ -283,7 +301,10 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             status_code=422,
             message=message,
             error="VALIDATION_ERROR",
-            details=exc.errors(),
+            details=_normalize_validation_details(
+                exc.errors(),
+                locale=get_request_locale(request),
+            ),
             debug=debug,
             include_details=True,
         )
@@ -299,7 +320,10 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             status_code=422,
             message=message,
             error="VALIDATION_ERROR",
-            details=exc.errors(),
+            details=_normalize_validation_details(
+                exc.errors(),
+                locale=get_request_locale(request),
+            ),
             debug=debug,
             include_details=True,
         )

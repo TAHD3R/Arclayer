@@ -1,12 +1,13 @@
 import warnings
 from pathlib import Path
 
-from fastapi import HTTPException
+from fastapi import Body, HTTPException
 from httpx import ASGITransport, AsyncClient
 
 from src.config import get_settings
 from src.core.exceptions import APIError
 from src.core.registry import create_app
+from src.modules.auth.schema import RegisterRequest
 
 
 def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
@@ -149,6 +150,45 @@ async def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     assert payload["error"] == "VALIDATION_ERROR"
     assert payload["meta"] is not None
     assert isinstance(payload["meta"].get("details"), list)
+
+
+async def test_request_validation_handler_exposes_safe_stable_field_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    app = create_app()
+
+    @app.post("/register-validation")
+    def register_validation(payload: RegisterRequest = Body()) -> None:
+        return None
+
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/register-validation",
+                json={"email": "name@example.com", "password": "short"},
+                headers={"X-Locale": "zh-CN"},
+            )
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["error"] == "VALIDATION_ERROR"
+    assert payload["meta"]["details"] == [
+        {
+            "code": "PASSWORD_INVALID",
+            "loc": ["body", "password"],
+            "message": "密码必须为 8-128 个字符，并同时包含字母和数字。",
+        }
+    ]
+    assert "short" not in response.text
+
+
+def test_register_password_accepts_non_ascii_punctuation() -> None:
+    payload = RegisterRequest(email="name@example.com", password="3224536Asd。")
+
+    assert payload.password == "3224536Asd。"
 
 
 async def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:

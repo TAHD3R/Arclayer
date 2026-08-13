@@ -2,11 +2,43 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { usernameCheck } from "@/api/auth";
+import { getErrorMessage } from "@/lib/error-message";
+import { ApiError } from "@/lib/http";
 
 export const ACCOUNT_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/;
+
+export function resolveAuthFormError(error: unknown, fallback: string): string {
+  const validationMessage = getAuthValidationDetails(error)[0]?.message;
+  if (validationMessage) return validationMessage;
+  return getErrorMessage(error, fallback);
+}
+
+export type AuthValidationDetail = {
+  code: string;
+  field: string;
+  message: string;
+};
+
+export function getAuthValidationDetails(error: unknown): AuthValidationDetail[] {
+  if (!(error instanceof ApiError) || error.error !== "VALIDATION_ERROR") return [];
+  if (!isRecord(error.meta) || !Array.isArray(error.meta.details)) return [];
+
+  return error.meta.details.flatMap((detail) => {
+    if (!isRecord(detail) || !Array.isArray(detail.loc)) return [];
+    const code = typeof detail.code === "string" ? detail.code : "";
+    const message = typeof detail.message === "string" ? detail.message : "";
+    const field = [...detail.loc].reverse().find((part) => typeof part === "string");
+    if (!code || !message || typeof field !== "string") return [];
+    return [{ code, field, message }];
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 export function useDebouncedValue(value: string, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);

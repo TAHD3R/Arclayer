@@ -679,7 +679,7 @@
   "PAGE_ROUTE_NOT_FOUND": "We could not find the page. Refresh and try again.",
   "PASSWORD_ALREADY_SET": "This account already has a password.",
   "PASSWORD_DUPLICATE": "Your new password must be different from your current password.",
-  "PASSWORD_INVALID": "The password does not meet the requirements. Follow the on-screen requirements and try again.",
+  "PASSWORD_INVALID": "Use 8-128 characters with at least one letter and one number.",
   "PERMISSION_CATALOG_CONFLICT": "The permission catalog changed. Review the latest definitions before saving.",
   "PERMISSION_CONDITION_EMPTY": "A permission condition group cannot be empty.",
   "PERMISSION_CONDITION_UNSUPPORTED": "This permission does not support the submitted condition.",

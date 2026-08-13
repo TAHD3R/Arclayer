@@ -1,7 +1,7 @@
 import { KeyRound, Lock } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -10,7 +10,11 @@ import { AuthInputControl, AuthPasswordControl } from "@arclayer/ui/auth-control
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
-import { getPasswordRequirementStates, PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
+import {
+  getPasswordRequirementStates,
+  PASSWORD_PATTERN,
+  resolveAuthFormError,
+} from "@/lib/auth/form-feedback";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
@@ -22,6 +26,7 @@ import {
   AUTH_PILL_INPUT_CLASS,
   AUTH_PILL_INPUT_GROUP_CLASS,
   AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AuthFormFeedback,
   AuthPaneLegal,
 } from "@/pages/login/components/auth-pane-primitives";
 import { AuthEntryHeader } from "@/pages/login/components/login-brand-slogan";
@@ -76,6 +81,7 @@ export function ResetPasswordView({
     show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
   };
   const variants = reducedMotion ? {} : itemVariants;
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const schema = useMemo(() => createResetPasswordSchema(t), [t]);
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(schema),
@@ -83,11 +89,17 @@ export function ResetPasswordView({
     mode: "onSubmit",
   });
   const newPasswordValue = form.watch("newPassword");
+  const resetTokenValue = form.watch("resetToken");
+  const confirmPasswordValue = form.watch("confirmPassword");
   const passwordRequirements = useMemo(
     () => getPasswordRequirementStates(newPasswordValue, t),
     [newPasswordValue, t],
   );
   const showResetTokenField = !initialToken;
+
+  useEffect(() => {
+    setSubmitError(null);
+  }, [confirmPasswordValue, newPasswordValue, resetTokenValue]);
 
   return (
     <motion.div
@@ -104,9 +116,15 @@ export function ResetPasswordView({
           className="grid gap-4"
           autoComplete="on"
           onSubmit={form.handleSubmit(async (values) => {
-            await onSubmit({ resetToken: values.resetToken, newPassword: values.newPassword });
+            setSubmitError(null);
+            try {
+              await onSubmit({ resetToken: values.resetToken, newPassword: values.newPassword });
+            } catch (error) {
+              setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
+            }
           })}
         >
+          <AuthFormFeedback message={submitError} variants={variants} />
           {showResetTokenField ? (
             <ResetPasswordField
               error={

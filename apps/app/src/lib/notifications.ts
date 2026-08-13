@@ -2,6 +2,9 @@ import { message } from "@arclayer/ui/admin-toast";
 
 import { i18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/http";
+import { getErrorMessage } from "@/lib/error-message";
+
+export { getErrorMessage } from "@/lib/error-message";
 
 export function setMessageApi(api: unknown) {
   void api;
@@ -24,25 +27,6 @@ export function resolveRequestId(err: unknown): string | undefined {
   }
 
   return undefined;
-}
-
-function translateErrorCode(errorCode: string): string | null {
-  // i18next returns the key itself when missing; treat that as "not translated".
-  const translated = i18n.t(errorCode, { ns: "errors" });
-  if (!translated || translated === errorCode) return null;
-  return translated;
-}
-
-export function getErrorMessage(err: unknown, fallback?: string): string {
-  const fallbackMessage = fallback ?? i18n.t("REQUEST_FAILED", { ns: "errors" });
-  if (err instanceof ApiError) {
-    if (err.error) return translateErrorCode(err.error) ?? fallbackMessage;
-    return fallbackMessage;
-  }
-
-  if (err instanceof Error) return fallback ?? err.message;
-
-  return fallbackMessage;
 }
 
 export function notifyError(err: unknown) {

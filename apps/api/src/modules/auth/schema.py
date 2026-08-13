@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 from src.common.constants.auth import PASSWORD_REGEX, RESET_TOKEN_REGEX
 from src.common.schemas import BaseOut, BaseSchema
@@ -121,11 +122,11 @@ class RegisterRequest(BaseSchema):
     def validate_display_name(cls, value: str | None) -> str | None:
         return _normalize_display_name(value)
 
-    @field_validator("password")
+    @field_validator("password", mode="before")
     @classmethod
-    def validate_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("Password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
 
@@ -178,11 +179,11 @@ class AcceptInvitationRequest(BaseSchema):
             raise ValueError("Username may only contain letters, numbers, underscore, and CJK characters.")
         return value.lower()
 
-    @field_validator("password")
+    @field_validator("password", mode="before")
     @classmethod
-    def validate_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("Password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
     @field_validator("confirm_password")
@@ -212,11 +213,11 @@ class ChangePasswordRequest(BaseSchema):
     new_password: str = Field(min_length=8, max_length=128, description="New password.")
     mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="before")
     @classmethod
-    def validate_new_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_new_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
 
@@ -226,11 +227,11 @@ class SetMyPasswordRequest(BaseSchema):
     new_password: str = Field(min_length=8, max_length=128, description="New password.")
     mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="before")
     @classmethod
-    def validate_new_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_new_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
 
@@ -253,11 +254,11 @@ class ResetPasswordRequest(BaseSchema):
             raise ValueError("Invalid reset token format.")
         return value
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="before")
     @classmethod
-    def validate_new_password(cls, value: str) -> str:
-        if not re.match(PASSWORD_REGEX, value):
-            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+    def validate_new_password(cls, value: object) -> object:
+        if isinstance(value, str) and not re.match(PASSWORD_REGEX, value):
+            raise PydanticCustomError("PASSWORD_INVALID", "PASSWORD_INVALID")
         return value
 
 

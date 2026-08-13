@@ -285,7 +285,7 @@ describe("LoginView auth pane hierarchy", () => {
     const signInAction = screen.getByText("auth:SIGN_IN");
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
     const legalText = legalCopy.closest("p");
-    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_REGISTER_DIVIDER")).toBeInTheDocument();
     expect(registerIntro).not.toBeNull();
     expect(registerIntro).toHaveClass("text-callout", "text-label-secondary");
     expect(registerIntro).toHaveClass("select-none");
@@ -420,7 +420,7 @@ describe("LoginView auth pane hierarchy", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("shows inline request recovery when auto-requesting an email code fails", async () => {
+  test("shows form-level request recovery without exposing a raw API message", async () => {
     renderLoginView({
       mode: "email-code",
       loginEmailCodeSeed: { email: "demo@example.com", autoRequest: true },
@@ -429,8 +429,11 @@ describe("LoginView auth pane hierarchy", () => {
       },
     });
 
-    expect(await screen.findByText("Too many requests")).toBeInTheDocument();
-    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
+    const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED");
+    expect(alert).not.toHaveTextContent("Too many requests");
+    expect(email).not.toHaveAttribute("aria-invalid");
     expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
     expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
   });

@@ -1,13 +1,13 @@
 import { Lock, Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { FormEvent } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { PasswordRulesPopover } from "@/components/auth/password-rules-popover";
-import type { PasswordRequirementState } from "@/lib/auth/form-feedback";
+import { resolveAuthFormError, type PasswordRequirementState } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
@@ -23,6 +23,7 @@ import {
   AUTH_PILL_INPUT_GROUP_CLASS,
   AUTH_PILL_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
+  AuthFormFeedback,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
 import { AuthEntryHeader } from "./login-brand-slogan";
@@ -58,6 +59,7 @@ type LoginPaneProps = {
 export function LoginPane(props: LoginPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm<LoginPaneValues>({
     resolver: zodResolver(
       z.object({
@@ -106,6 +108,7 @@ export function LoginPane(props: LoginPaneProps) {
   const passwordError = form.formState.errors.password?.message;
   const emailFieldError = emailError ? String(emailError) : null;
   const passwordValue = form.watch("password");
+  const emailValue = form.watch("email");
   const passwordRequirements: PasswordRequirementState[] = [
     {
       key: "length",
@@ -124,13 +127,22 @@ export function LoginPane(props: LoginPaneProps) {
     },
   ];
 
+  useEffect(() => {
+    setSubmitError(null);
+  }, [emailValue, passwordValue]);
+
   const submitLogin = async () => {
     if (isVerificationPending) {
       if (retryAfter > 0 || busy) return;
       const email = verificationEmail || form.getValues("email");
       if (!email) return;
-      const result = await props.onVerificationResend(email);
-      setRetryAfter(result.retryAfter);
+      setSubmitError(null);
+      try {
+        const result = await props.onVerificationResend(email);
+        setRetryAfter(result.retryAfter);
+      } catch (error) {
+        setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
+      }
       return;
     }
 
@@ -150,23 +162,26 @@ export function LoginPane(props: LoginPaneProps) {
     }
 
     const email = form.getValues("email");
-    const lookup = await props.onEmailSubmit(email);
-    if (!lookup.exists) {
-      form.setError("email", {
-        message: t("auth:LOGIN_EMAIL_NOT_REACHABLE"),
-      });
-      return;
-    }
-    if (!lookup.passwordLoginAvailable) {
-      props.onSwitchToEmailCode(email, true, false);
-      return;
-    }
+    setSubmitError(null);
+    try {
+      const lookup = await props.onEmailSubmit(email);
+      if (!lookup.exists) {
+        setSubmitError(t("errors:INVALID_CREDENTIALS"));
+        return;
+      }
+      if (!lookup.passwordLoginAvailable) {
+        props.onSwitchToEmailCode(email, true, false);
+        return;
+      }
 
-    await props.onSubmit({
-      email,
-      password,
-      keepSession: true,
-    });
+      await props.onSubmit({
+        email,
+        password,
+        keepSession: true,
+      });
+    } catch (error) {
+      setSubmitError(resolveAuthFormError(error, t("errors:REQUEST_FAILED")));
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -185,16 +200,24 @@ export function LoginPane(props: LoginPaneProps) {
         variants={variants}
       />
       <div className="grid gap-6">
-        {props.oauthUnavailable ? (
-          <motion.p
-            variants={variants}
-            role="alert"
-            className="text-center text-footnote text-label-secondary"
-          >
-            {t("auth:SSO_UNAVAILABLE")}
-          </motion.p>
-        ) : null}
         <form onSubmit={handleSubmit} className="grid gap-4" autoComplete="on">
+          <AuthFormFeedback
+            message={props.oauthUnavailable ? t("auth:SSO_UNAVAILABLE") : null}
+            tone="neutral"
+            variants={variants}
+          />
+          <AuthFormFeedback
+            message={
+              isVerificationPending
+                ? t("auth:REGISTER_VERIFY_EMAIL_SENT_HINT", {
+                    email: verificationEmail || form.getValues("email"),
+                  })
+                : null
+            }
+            tone="neutral"
+            variants={variants}
+          />
+          <AuthFormFeedback message={submitError} variants={variants} />
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
               <FieldContent className="gap-2">
@@ -211,13 +234,6 @@ export function LoginPane(props: LoginPaneProps) {
                   {...form.register("email")}
                 />
                 <FieldError>{emailFieldError ?? undefined}</FieldError>
-                {isVerificationPending ? (
-                  <div className="text-callout text-label-secondary">
-                    {t("auth:REGISTER_VERIFY_EMAIL_SENT_HINT", {
-                      email: verificationEmail || form.getValues("email"),
-                    })}
-                  </div>
-                ) : null}
               </FieldContent>
             </Field>
           </motion.div>

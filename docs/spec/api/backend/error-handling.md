@@ -41,7 +41,7 @@ This code-spec defines how backend failures become typed exceptions, logs, and c
 | Entity is missing | Raise `NotFound(..., error="<ENTITY>_NOT_FOUND")` |
 | Uniqueness or state conflict occurs | Raise `Conflict(..., error="<DOMAIN>_CONFLICT")` |
 | Rate limit is exceeded | Raise `TooManyRequests(..., error="<SURFACE>_RATE_LIMITED")` |
-| Pydantic or request validation fails | Handler returns HTTP 422 with `VALIDATION_ERROR` and sanitized details |
+| Pydantic or request validation fails | Handler returns HTTP 422 with `VALIDATION_ERROR` and `{ code, loc, message }` details without raw input |
 | Tortoise `OperationalError` escapes | Handler returns HTTP 500 with `DB_OPERATIONAL_ERROR` |
 | Unexpected exception escapes | Handler logs stack and returns `INTERNAL_ERROR` without raw message leakage |
 
@@ -57,7 +57,7 @@ This code-spec defines how backend failures become typed exceptions, logs, and c
 ### 6. Tests Required
 
 - Route or integration tests must assert the HTTP status and `error` code for each new public failure branch.
-- Validation tests must assert 422 and `VALIDATION_ERROR` for malformed request payloads.
+- Validation tests must assert 422, `VALIDATION_ERROR`, stable field detail codes, and absence of raw rejected input.
 - Authz tests must assert permission error codes, not only HTTP 403.
 - Internal-error tests should prove raw exception text does not leak when `debug=False`.
 - Shared frontend contract tests should import generated OpenAPI types instead of duplicating response shapes.
