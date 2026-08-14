@@ -8,6 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/assistant-ui/elements/collapsible";
 import { cn } from "@arclayer/lib/utils";
+import { DotMatrix } from "../dot-matrix";
 import { collapsePanel, mono, SwapLabel } from "./surfaces";
 
 export interface ReasoningStep {
@@ -22,6 +23,7 @@ export interface ReasoningPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   restingLabel: string;
+  activeLabel: string;
   elapsed?: string;
   children?: ReactNode;
   className?: string;
@@ -34,6 +36,7 @@ export function ReasoningPanel({
   open,
   onOpenChange,
   restingLabel,
+  activeLabel,
   elapsed,
   children,
   className,
@@ -48,12 +51,12 @@ export function ReasoningPanel({
         <SwapLabel active={streaming ? 0 : 1} className="text-start">
           <>
             <span className="relative inline-block leading-none">
-              <span>Thinking</span>
+              <span>{activeLabel}</span>
               <span
                 aria-hidden
                 className="shimmer pointer-events-none absolute inset-0 motion-reduce:animate-none"
               >
-                Thinking
+                {activeLabel}
               </span>
             </span>
             {elapsed !== undefined && (
@@ -74,13 +77,14 @@ export function ReasoningPanel({
                   key={step.title}
                   className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both flex gap-3 duration-300"
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "mt-[7px] size-[5px] shrink-0 rounded-full transition-colors duration-300",
-                      active ? "animate-pulse bg-blue-500 dark:bg-blue-400" : "bg-foreground/20",
-                    )}
-                  />
+                  {active ? (
+                    <DotMatrix state="thinking" label={activeLabel} className="mt-0.5 size-3.5" />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="mt-[7px] size-[5px] shrink-0 rounded-full bg-foreground/20"
+                    />
+                  )}
                   <span className="flex flex-col">
                     <p className="text-foreground/90 text-[13.5px] font-medium">{step.title}</p>
                     <p className="text-foreground/50 mt-0.5 text-[13px] leading-relaxed">

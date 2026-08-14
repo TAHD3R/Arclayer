@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ARCLAYER_AGENT_TOOL_NAMES,
   HumanRequestInputTool,
+  ProjectBootstrapTool,
 } from "@/components/ai/arclayer-agent-toolkit";
 import { DesignGenerateTool } from "@/components/ai/design-generate-tool";
 import { StyleGuideGenerateTool } from "@/components/ai/style-guide-generate-tool";
@@ -607,5 +608,33 @@ describe("arclayerAgentToolkit", () => {
 
   it("registers the backend Design Tool with the exact provider-facing name", () => {
     expect(ARCLAYER_AGENT_TOOL_NAMES.has("builder.design.generate")).toBe(true);
+  });
+
+  it("opens the project bootstrap confirmation dialog before submitting approval", async () => {
+    const user = userEvent.setup();
+    const respondToApproval = vi.fn();
+
+    render(
+      <ProjectBootstrapTool
+        {...toolProps(
+          { name: "AI SaaS Builder" },
+          {
+            toolName: "project.bootstrap",
+            approval: { id: "approval-project-bootstrap" },
+            respondToApproval,
+          },
+        )}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "ai:AI_AGENT_APPROVAL_ALLOW_ONCE" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("ai:AI_PLAN_CONFIRM_TITLE")).toBeInTheDocument();
+    expect(screen.queryByText("ai:AI_PLAN_CONFIRM_SCOPE")).not.toBeInTheDocument();
+    expect(respondToApproval).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "ai:AI_PLAN_CONFIRM_EXECUTE" }));
+    expect(respondToApproval).toHaveBeenCalledWith({ approved: true });
   });
 });

@@ -77,7 +77,13 @@ vi.mock("@assistant-ui/react", async () => {
     useAuiState: (selector: (state: unknown) => unknown) =>
       selector({
         composer: { isEmpty: true, text: "" },
-        thread: { isLoading: false, messages: [] },
+        thread: {
+          isEmpty: true,
+          isLoading: false,
+          isRunning: false,
+          messages: [],
+          suggestions: [],
+        },
         threads: { isLoading: false },
         message: {
           role: "assistant",

@@ -1,23 +1,23 @@
 "use client";
 
 import { cn } from "@arclayer/lib/utils";
+import { DotMatrix, type DotMatrixState } from "../dot-matrix";
 import { mono } from "./surfaces";
 
 export function ThinkingIndicator({
   label,
   elapsed,
+  state = "thinking",
   className,
 }: {
   label: string;
   elapsed?: string;
+  state?: DotMatrixState;
   className?: string;
 }) {
   return (
     <div className={cn("text-foreground/55 flex items-center gap-2.5 text-sm", className)}>
-      <span
-        aria-hidden
-        className="size-1.5 shrink-0 animate-pulse rounded-full bg-blue-500 motion-reduce:animate-none dark:bg-blue-400"
-      />
+      <DotMatrix state={state} label={label} />
       <span
         key={label}
         className="fade-in slide-in-from-bottom-1 animate-in relative inline-block leading-none duration-300"

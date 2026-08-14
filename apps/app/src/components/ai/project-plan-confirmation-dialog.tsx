@@ -13,8 +13,8 @@ import {
 
 interface ProjectPlanConfirmationDialogProps {
   readonly open: boolean;
-  readonly onContinuePlanning: () => void;
-  readonly onExecute: () => Promise<void>;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onExecute: () => Promise<void> | void;
 }
 
 export function ProjectPlanConfirmationDialog(props: ProjectPlanConfirmationDialogProps) {
@@ -27,6 +27,7 @@ export function ProjectPlanConfirmationDialog(props: ProjectPlanConfirmationDial
     setFailed(false);
     try {
       await props.onExecute();
+      props.onOpenChange(false);
     } catch {
       setFailed(true);
     } finally {
@@ -35,7 +36,7 @@ export function ProjectPlanConfirmationDialog(props: ProjectPlanConfirmationDial
   };
 
   return (
-    <Dialog open={props.open} onOpenChange={(open) => !open && props.onContinuePlanning()}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent
         className="sm:max-w-lg"
         closeButtonLabel={t("ai:AI_PLAN_CONFIRM_CLOSE")}
@@ -45,9 +46,6 @@ export function ProjectPlanConfirmationDialog(props: ProjectPlanConfirmationDial
           <DialogTitle>{t("ai:AI_PLAN_CONFIRM_TITLE")}</DialogTitle>
           <DialogDescription>{t("ai:AI_PLAN_CONFIRM_DESCRIPTION")}</DialogDescription>
         </DialogHeader>
-        <div className="rounded-lg border border-border/70 bg-muted/40 p-4 text-sm leading-relaxed text-label-secondary">
-          {t("ai:AI_PLAN_CONFIRM_SCOPE")}
-        </div>
         {failed ? (
           <p role="alert" className="text-sm text-destructive">
             {t("ai:AI_PLAN_CONFIRM_FAILED")}
@@ -58,9 +56,9 @@ export function ProjectPlanConfirmationDialog(props: ProjectPlanConfirmationDial
             type="button"
             variant="outline"
             disabled={submitting}
-            onClick={props.onContinuePlanning}
+            onClick={() => props.onOpenChange(false)}
           >
-            {t("ai:AI_PLAN_CONFIRM_CONTINUE")}
+            {t("ai:AI_PLAN_CONFIRM_CANCEL")}
           </Button>
           <Button type="button" disabled={submitting} onClick={() => void execute()}>
             {submitting ? t("ai:AI_PLAN_CONFIRM_EXECUTING") : t("ai:AI_PLAN_CONFIRM_EXECUTE")}

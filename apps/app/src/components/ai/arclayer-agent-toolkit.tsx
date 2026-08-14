@@ -1,10 +1,12 @@
 "use client";
 
 import { defineToolkit, type ToolCallMessagePartProps } from "@assistant-ui/react";
-import { LoaderCircle } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DotMatrix } from "@/components/assistant-ui/dot-matrix";
 import { DesignGenerateTool } from "@/components/ai/design-generate-tool";
+import { ProjectPlanConfirmationDialog } from "@/components/ai/project-plan-confirmation-dialog";
 import { StyleGuideGenerateTool } from "@/components/ai/style-guide-generate-tool";
 import { WireframeGenerateTool } from "@/components/ai/wireframe-generate-tool";
 import { Button } from "@arclayer/ui/button";
@@ -73,48 +75,48 @@ function HumanRequestInputTool(props: ToolCallMessagePartProps) {
 
 function ProjectBootstrapTool(props: ToolCallMessagePartProps) {
   const { t } = useTranslation(["ai"]);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
   const name = typeof props.args.name === "string" ? props.args.name : "";
   if (props.status.type === "running") {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex items-center gap-2 py-2 text-sm text-label-secondary"
-      >
-        <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin" />
+      <div className="flex items-center gap-2 py-2 text-sm text-label-secondary">
+        <DotMatrix state="loading" label={t("ai:AI_PROJECT_BOOTSTRAP_RUNNING", { name })} />
         <span>{t("ai:AI_PROJECT_BOOTSTRAP_RUNNING", { name })}</span>
       </div>
     );
   }
   if (props.approval && props.approval.resolution === undefined) {
     return (
-      <section className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
-        <p className="text-caption font-medium text-label-secondary">
-          {t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY", { name })}
-        </p>
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              props.respondToApproval({
-                approved: false,
-                reason: t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_REJECT_ONCE_DESC"),
-              })
-            }
-          >
-            {t("ai:AI_AGENT_APPROVAL_REJECT_ONCE")}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => props.respondToApproval({ approved: true })}
-          >
-            {t("ai:AI_AGENT_APPROVAL_ALLOW_ONCE")}
-          </Button>
-        </div>
-      </section>
+      <>
+        <section className="rounded-lg border border-border/70 bg-card p-4 shadow-sm">
+          <p className="text-caption font-medium text-label-secondary">
+            {t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_SUMMARY", { name })}
+          </p>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                props.respondToApproval({
+                  approved: false,
+                  reason: t("ai:AI_AGENT_APPROVAL_PROJECT_BOOTSTRAP_REJECT_ONCE_DESC"),
+                })
+              }
+            >
+              {t("ai:AI_AGENT_APPROVAL_REJECT_ONCE")}
+            </Button>
+            <Button type="button" size="sm" onClick={() => setConfirmationOpen(true)}>
+              {t("ai:AI_AGENT_APPROVAL_ALLOW_ONCE")}
+            </Button>
+          </div>
+        </section>
+        <ProjectPlanConfirmationDialog
+          open={confirmationOpen}
+          onOpenChange={setConfirmationOpen}
+          onExecute={() => props.respondToApproval({ approved: true })}
+        />
+      </>
     );
   }
   if (props.status.type === "incomplete") {

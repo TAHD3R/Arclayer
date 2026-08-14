@@ -19,6 +19,7 @@ import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotat
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
+import { ThreadFollowupSuggestions } from "@/components/assistant-ui/follow-up-suggestions";
 import { ThinkingIndicator } from "@/components/assistant-ui/elements/thinking-indicator";
 import { ErrorState } from "@/components/assistant-ui/elements/error-state";
 import { InlineCitation } from "@/components/assistant-ui/elements/inline-citation";
@@ -201,6 +202,7 @@ const ThreadRoot: FC<{
           >
             <ThreadScrollToBottom />
             {composerAccessory}
+            <ThreadFollowupSuggestions />
             <Composer />
             {!isSidebar ? (
               <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
@@ -290,12 +292,8 @@ const ThreadSuggestions: FC = () => {
 const ThreadLoadingState: FC = () => {
   const { t } = useTranslation(["ai"]);
   return (
-    <div
-      className="flex min-h-24 items-center justify-center py-8"
-      role="status"
-      aria-live="polite"
-    >
-      <ThinkingIndicator label={t("ai:AI_CHAT_THREAD_PREPARING")} />
+    <div className="flex min-h-24 items-center justify-center py-8">
+      <ThinkingIndicator label={t("ai:AI_CHAT_THREAD_PREPARING")} state="loading" />
     </div>
   );
 };
@@ -483,7 +481,7 @@ const AssistantMessage: FC = () => {
                 return <MessagePartPrimitive.Image />;
               case "indicator":
                 return isRunningToolOnly ? null : (
-                  <ThinkingIndicator label={t("ai:AI_CHAT_PREPARING_CONTENT")} />
+                  <ThinkingIndicator label={t("ai:AI_CHAT_PREPARING_CONTENT")} state="thinking" />
                 );
               default:
                 return null;
@@ -576,6 +574,7 @@ const AssistantReasoningPanel: FC<PropsWithChildren<{ group: ThreadGroupPart }>>
       open={open}
       onOpenChange={setOpen}
       restingLabel={t("ai:AI_CHAT_REASONING_TITLE")}
+      activeLabel={t("ai:AI_CHAT_REASONING_ACTIVE")}
     >
       <div className="px-1 py-2" aria-busy={streaming}>
         <ReasoningText>{children}</ReasoningText>

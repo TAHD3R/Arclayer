@@ -2,6 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import { cn } from "@arclayer/lib/utils";
+import { DotMatrix } from "../dot-matrix";
 
 export interface Segment {
   text: string;
@@ -33,12 +34,7 @@ export function StreamingText({
     return (
       <div className={cn("relative", className)} data-streaming={streaming || undefined}>
         {children}
-        {streaming && (
-          <span
-            aria-hidden
-            className="ms-1 inline-block h-4 w-0.5 animate-pulse rounded-full bg-blue-500 align-middle dark:bg-blue-400"
-          />
-        )}
+        {streaming && <DotMatrix state="streaming" className="ms-1 size-3.5 align-middle" />}
       </div>
     );
   }
@@ -67,10 +63,7 @@ export function StreamingText({
         );
       })}
       {streaming && visibleCount > 0 && (
-        <span
-          aria-hidden
-          className="-mb-0.5 ml-0.5 inline-block h-4 w-0.5 animate-pulse rounded-full bg-blue-500 dark:bg-blue-400"
-        />
+        <DotMatrix state="streaming" className="-mb-0.5 ml-0.5 size-3.5 align-middle" />
       )}
     </p>
   );

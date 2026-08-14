@@ -2,6 +2,7 @@
 
 import { CheckIcon, PauseIcon, RotateCcwIcon } from "lucide-react";
 import { cn } from "@arclayer/lib/utils";
+import { DotMatrix } from "../dot-matrix";
 import { ghostButton, mono, paper } from "./surfaces";
 
 export type AgentState = "working" | "waiting" | "done";
@@ -37,15 +38,7 @@ export function AgentStatus({
       {state === "done" ? (
         <CheckIcon aria-hidden className="size-3 shrink-0 text-emerald-500" />
       ) : (
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 shrink-0 rounded-full motion-reduce:animate-none",
-            state === "working"
-              ? "animate-pulse bg-blue-500 dark:bg-blue-400"
-              : "bg-foreground/25 animate-pulse",
-          )}
-        />
+        <DotMatrix state={state === "working" ? "loading" : "waiting"} label={label} />
       )}
       <span
         key={label}

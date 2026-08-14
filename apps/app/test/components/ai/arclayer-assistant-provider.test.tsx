@@ -1,4 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -87,8 +87,6 @@ describe("ArclayerAssistantProvider", () => {
       directivesByScope: { thread: [], home: [] },
     });
     useAIRunTransitionStore.setState({
-      pendingPlanConfirmation: null,
-      approvedProjectBootstrap: null,
       pendingThreadContinuation: null,
     });
     apiMocks.getAgentThread.mockResolvedValue({
@@ -194,6 +192,53 @@ describe("ArclayerAssistantProvider", () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it("keeps the completed plan visible and exposes follow-up suggestions without opening a dialog", async () => {
+    apiMocks.getAgentRunSnapshot.mockResolvedValueOnce({
+      ...runSnapshot,
+      run: { status: "queued", executionMode: "plan", projectId: null, interrupt: null },
+    });
+    apiMocks.consumeAgentRunStream.mockImplementationOnce(
+      async ({ initialProjection, onProjection }) => {
+        const terminal = {
+          ...initialProjection,
+          runStatus: "completed",
+          terminalType: "run.completed",
+          run: { status: "completed", executionMode: "plan", projectId: null },
+        };
+        onProjection(terminal);
+        return terminal;
+      },
+    );
+
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId={null}
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    const onNew = runtimeCapture.external?.onNew as
+      | ((message: { content: readonly { type: "text"; text: string }[] }) => Promise<void>)
+      | undefined;
+    await act(async () => {
+      await onNew?.({ content: [{ type: "text", text: "帮我创建一个企业官网" }] });
+    });
+
+    await waitFor(() => {
+      expect(runtimeCapture.external?.suggestions).toEqual([
+        { prompt: "ai:AI_CHAT_FOLLOW_UP_CONFIRM_PLAN" },
+        { prompt: "ai:AI_CHAT_SUGGESTION_REFINE_PLAN" },
+      ]);
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("sends a confirmed projectless build Run with the completed plan ID", async () => {
