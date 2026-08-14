@@ -16,9 +16,13 @@ export interface SitemapLayoutResult {
   bounds: { x: number; y: number; width: number; height: number };
 }
 
+export function getSitemapSectionCardCount(page: BuilderRevisionPageOut): number {
+  if (page.sectionIntents?.length) return page.sectionIntents.length;
+  return page.wireframe?.sections?.length ?? 0;
+}
+
 export function getSitemapNodeHeight(page: BuilderRevisionPageOut): number {
-  const sectionCount = page.wireframe?.sections?.length ?? 0;
-  return 112 + Math.min(sectionCount, 6) * 36 + (sectionCount > 6 ? 30 : 0);
+  return Math.max(96, 64 + getSitemapSectionCardCount(page) * 48);
 }
 
 export function layoutSitemapPages(pages: BuilderRevisionPageOut[]): SitemapLayoutResult {

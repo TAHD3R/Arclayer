@@ -14,6 +14,7 @@ import {
   Monitor,
   RefreshCw,
   Smartphone,
+  Sparkles,
   Tablet,
   type LucideIcon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import {
   useCanvasContentBounds,
   useEditorCanvasViewport,
 } from "@/pages/projects/editor/canvas/editor-canvas";
+import type { AiEditorContext } from "@/stores/use-ai-chat-store";
 
 export type DesignViewport = "desktop" | "tablet" | "mobile";
 
@@ -56,6 +58,7 @@ interface DesignCanvasProps {
   controller: ReturnType<typeof useProjectDesignController>;
   componentCatalog: BuilderComponentCatalogOut | null;
   preview: Readonly<{ changeSet: BuilderChangeSetPreviewOut; label: string }> | null;
+  onOpenAI?: (context?: AiEditorContext) => void;
 }
 
 export function DesignCanvas({
@@ -72,6 +75,7 @@ export function DesignCanvas({
   controller,
   componentCatalog,
   preview,
+  onOpenAI,
 }: DesignCanvasProps) {
   const { t } = useTranslation("account");
   const render = controller.renderQuery;
@@ -175,6 +179,31 @@ export function DesignCanvas({
               ? t("CREATION_EDITOR_DESIGN_SOURCE_BLUEPRINT")
               : t("CREATION_EDITOR_DESIGN_SOURCE_WIREFRAME")}
           </BaseTag>
+          {onOpenAI && page && selectedSectionId ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-9 shrink-0"
+              aria-label={t("CREATION_EDITOR_DESIGN_SECTION_ASK_AI")}
+              title={t("CREATION_EDITOR_DESIGN_SECTION_ASK_AI")}
+              onClick={() => {
+                const section = page.wireframe?.sections?.find(
+                  (candidate) => candidate.id === selectedSectionId,
+                );
+                onOpenAI({
+                  stage: "design",
+                  pageId: page.itemId,
+                  pageLabel: page.title,
+                  targetKind: "section",
+                  targetId: selectedSectionId,
+                  label: section?.label ?? selectedSectionId,
+                });
+              }}
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+            </Button>
+          ) : null}
         </div>
       </div>
 

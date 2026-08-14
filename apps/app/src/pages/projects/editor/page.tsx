@@ -1,22 +1,37 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BuilderGenerationTargetV1 } from "@arclayer/openapi";
+import type {
+  BuilderGenerationTargetV1,
+  BuilderRevisionGlobalSectionOut,
+  BuilderSectionIntentV1,
+} from "@arclayer/openapi";
 
-import { AddPageDialog } from "@/pages/projects/editor/add-page-dialog";
 import { EditorSidebar } from "@/layouts/creation-layout";
 import { CompositionSagaReview } from "@/pages/projects/editor/composition-saga-review";
 import { DesignStage } from "@/pages/projects/editor/design-stage";
 import { EditorBoundary, EditorLoadingState } from "@/pages/projects/editor/editor-boundaries";
 import { EditorConflictSurface } from "@/pages/projects/editor/editor-conflict-surface";
 import { EditorToolbar, type EditorStage } from "@/pages/projects/editor/editor-toolbar";
-import { SitemapCanvas } from "@/pages/projects/editor/sitemap-canvas";
+import {
+  SitemapCanvas,
+  type SitemapAddPagePlacement,
+} from "@/pages/projects/editor/sitemap-canvas";
+import {
+  SitemapAddSectionPanel,
+  type SitemapSectionInsert,
+} from "@/pages/projects/editor/sitemap-add-section";
+import {
+  SitemapPagePromptPanel,
+  type SitemapPagePromptTarget,
+} from "@/pages/projects/editor/sitemap-page-prompt-panel";
 import { SitemapChangeReview } from "@/pages/projects/editor/sitemap-change-review";
-import { SitemapIntentEditor } from "@/pages/projects/editor/sitemap-intent-editor";
-import { SharedSectionManagerDialog } from "@/pages/projects/editor/shared-section-manager-dialog";
+import { SitemapStageInspector } from "@/pages/projects/editor/sitemap-stage-inspector";
+import { SharedSectionManagerPanel } from "@/pages/projects/editor/shared-section-manager-dialog";
 import { StyleGuideStage } from "@/pages/projects/editor/style-guide-stage";
 import { useProjectEditorController } from "@/pages/projects/editor/use-project-editor-controller";
+import { useSitemapInstantPageCreate } from "@/pages/projects/editor/use-sitemap-page-create";
 import { useProjectDesignController } from "@/pages/projects/editor/use-project-design-controller";
 import { useProjectStyleGuideController } from "@/pages/projects/editor/use-project-style-guide-controller";
 import { WireframeCanvas } from "@/pages/projects/editor/wireframe-canvas";
@@ -53,7 +68,22 @@ export function ProjectEditorPage({
   const openAiDrawer = useAiChatStore((state) => state.openDrawer);
   const [stage, setStage] = useState<EditorStage>(initialStage);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [sitemapSectionId, setSitemapSectionId] = useState<string | null>(null);
+  const [sitemapInspectorOpen, setSitemapInspectorOpen] = useState(true);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [addSectionAnchor, setAddSectionAnchor] = useState<HTMLElement | null>(null);
+  const [addSectionTarget, setAddSectionTarget] = useState<{
+    pageId: string;
+    insertIndex: number;
+  } | null>(null);
+  const [pagePromptOpen, setPagePromptOpen] = useState(false);
+  const [pagePromptAnchor, setPagePromptAnchor] = useState<HTMLElement | null>(null);
+  const [pagePromptTarget, setPagePromptTarget] = useState<SitemapPagePromptTarget | null>(null);
+  const [pagePromptPlacement, setPagePromptPlacement] = useState<SitemapAddPagePlacement | null>(
+    null,
+  );
   const [sharedSectionsOpen, setSharedSectionsOpen] = useState(false);
+  const [sharedSectionsAnchor, setSharedSectionsAnchor] = useState<HTMLElement | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const currentRevision = editor.revisionQuery.data ?? null;
   const currentPage =
@@ -127,6 +157,131 @@ export function ProjectEditorPage({
     onDraftAutosave: editor.queueDraftAutosave,
     onDraftDiscard: editor.discardDraftCheckpoint,
   });
+  const sitemapRevision = editor.revisionQuery.data ?? null;
+  const globalInstanceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const reference of sitemapRevision?.globalSectionGraph?.references ?? []) {
+      counts.set(reference.targetItemId, (counts.get(reference.targetItemId) ?? 0) + 1);
+    }
+    return counts;
+  }, [sitemapRevision?.globalSectionGraph?.references]);
+
+  const placementForSibling = useCallback(
+    (placement: SitemapAddPagePlacement) => {
+      const pages = sitemapRevision?.pages ?? [];
+      const target = pages.find((page) => page.itemId === placement.pageId);
+      if (!target) {
+        return {
+          parentItemId: null,
+          sortOrder: pages.filter((page) => !page.parentItemId).length,
+        };
+      }
+      const parentItemId = target.parentItemId ?? null;
+      const siblings = pages
+        .filter((page) => (page.parentItemId ?? null) === parentItemId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      const index = siblings.findIndex((page) => page.itemId === placement.pageId);
+      return {
+        parentItemId,
+        sortOrder: placement.position === "before" ? Math.max(0, index) : index + 1,
+      };
+    },
+    [sitemapRevision?.pages],
+  );
+
+  const instantPageCreate = useSitemapInstantPageCreate({
+    projectId,
+    revision: sitemapRevision,
+    onDraftAutosave: editor.queueDraftAutosave,
+    onDraftDiscard: editor.discardDraftCheckpoint,
+    invalidateBuilder: editor.invalidateBuilder,
+    onCreated: (created) => {
+      const createdPage = editor.revisionQuery.data?.pages.find(
+        (page) => page.title === created.title,
+      );
+      if (createdPage) {
+        editor.setSelectedPageId(createdPage.itemId);
+        setSitemapSectionId(null);
+      }
+      setSitemapInspectorOpen(true);
+    },
+  });
+
+  const applySectionIntents = useCallback(
+    (
+      pageId: string,
+      transform: (intents: BuilderSectionIntentV1[]) => BuilderSectionIntentV1[],
+    ) => {
+      const page = sitemapRevision?.pages.find((item) => item.itemId === pageId);
+      if (!page?.sectionIntents?.length) return;
+      editor.previewSitemapPlanning.mutate({
+        itemId: pageId,
+        purpose: page.purpose?.trim() || t("CREATION_EDITOR_SITEMAP_DEFAULT_PURPOSE"),
+        sectionIntents: transform(page.sectionIntents),
+      });
+    },
+    [sitemapRevision?.pages, t],
+  );
+
+  const insertSectionIntent = useCallback(
+    (insert: SitemapSectionInsert) => {
+      const target = addSectionTarget;
+      if (!target) return;
+      const page = sitemapRevision?.pages.find((item) => item.itemId === target.pageId);
+      if (!page) return;
+      const current = page.sectionIntents ?? [];
+      const index = target.insertIndex < 0 ? current.length : target.insertIndex;
+      const next = [...current];
+      next.splice(Math.max(0, Math.min(index, next.length)), 0, {
+        id: `intent.${globalThis.crypto.randomUUID()}`,
+        label: insert.label,
+        goal: insert.goal,
+      });
+      editor.previewSitemapPlanning.mutate({
+        itemId: page.itemId,
+        purpose: page.purpose?.trim() || t("CREATION_EDITOR_SITEMAP_DEFAULT_PURPOSE"),
+        sectionIntents: next,
+      });
+    },
+    [addSectionTarget, sitemapRevision?.pages, t],
+  );
+
+  const insertGlobalSection = useCallback(
+    (section: BuilderRevisionGlobalSectionOut) => {
+      const target = addSectionTarget;
+      if (!target) return;
+      const page = sitemapRevision?.pages.find((item) => item.itemId === target.pageId);
+      if (!page) return;
+      const current = page.sectionIntents ?? [];
+      const index = target.insertIndex < 0 ? current.length : target.insertIndex;
+      const copied: BuilderSectionIntentV1[] = (section.sectionIntents ?? []).map((intent) => ({
+        ...intent,
+        id: `intent.${globalThis.crypto.randomUUID()}`,
+      }));
+      const inserted =
+        copied.length > 0
+          ? copied
+          : [
+              {
+                id: `intent.${globalThis.crypto.randomUUID()}`,
+                label: section.title,
+                goal:
+                  section.purpose ??
+                  section.summary ??
+                  t("CREATION_EDITOR_SITEMAP_DEFAULT_PURPOSE"),
+              },
+            ];
+      const next = [...current];
+      next.splice(Math.max(0, Math.min(index, next.length)), 0, ...inserted);
+      editor.previewSitemapPlanning.mutate({
+        itemId: page.itemId,
+        purpose: page.purpose?.trim() || t("CREATION_EDITOR_SITEMAP_DEFAULT_PURPOSE"),
+        sectionIntents: next,
+      });
+    },
+    [addSectionTarget, sitemapRevision?.pages, t],
+  );
+
   const backToProject = () => void navigate({ to: `/projects/${projectId}` as never });
   const retryBuilderBootstrap = () => {
     void editor.builderQuery.refetch();
@@ -194,6 +349,14 @@ export function ProjectEditorPage({
 
   const revision = editor.revisionQuery.data;
   const selectedPage = revision.pages.find((page) => page.itemId === editor.selectedPageId) ?? null;
+  const wireframeDisabledReason = revision.pages.length
+    ? undefined
+    : t("CREATION_EDITOR_WIREFRAME_PAGE_REQUIRED_SHORT");
+  const hasAnyWireframe = revision.pages.some((page) => page.wireframe && page.wireframeChecksum);
+  const styleGuideDisabledReason = hasAnyWireframe
+    ? undefined
+    : t("CREATION_EDITOR_STYLE_GUIDE_WIREFRAME_REQUIRED_SHORT");
+  const designSystemAssigned = Boolean(revision.siteRevision.designSystemVersionId);
   const designDisabledReason = editor.componentCatalogQuery.isPending
     ? t("CREATION_EDITOR_DESIGN_CONTRACT_LOADING")
     : editor.componentCatalogQuery.error
@@ -204,7 +367,9 @@ export function ProjectEditorPage({
           ? t("CREATION_EDITOR_DESIGN_WIREFRAME_REQUIRED_SHORT")
           : !(selectedPage.routes ?? []).some((route) => route.isActive)
             ? t("CREATION_EDITOR_DESIGN_ROUTE_REQUIRED_SHORT")
-            : undefined;
+            : !designSystemAssigned
+              ? t("CREATION_EDITOR_DESIGN_STYLE_GUIDE_REQUIRED_SHORT")
+              : undefined;
   const previewLocales = (selectedPage?.routes ?? [])
     .filter((route) => route.isActive)
     .map((route) => route.locale);
@@ -244,6 +409,17 @@ export function ProjectEditorPage({
       : editor.historyQuery.data?.redoTargetRevisionId
         ? undefined
         : t("CREATION_EDITOR_REDO_EMPTY");
+
+  const addSectionTargetPage =
+    revision.pages.find((page) => page.itemId === addSectionTarget?.pageId) ?? null;
+  const addSectionInsertLabel = !addSectionTarget
+    ? null
+    : addSectionTarget.insertIndex < 0
+      ? t("CREATION_EDITOR_SITEMAP_ADD_SECTION_POSITION_END")
+      : t("CREATION_EDITOR_SITEMAP_ADD_SECTION_POSITION_AT", {
+          index: addSectionTarget.insertIndex + 1,
+        });
+
   return (
     <main
       className="relative flex h-full min-h-0 flex-col overflow-hidden bg-transparent"
@@ -267,6 +443,8 @@ export function ProjectEditorPage({
             : t("CREATION_EDITOR_PREVIEW_PAGE_REQUIRED")
         }
         designDisabledReason={designDisabledReason}
+        wireframeDisabledReason={wireframeDisabledReason}
+        styleGuideDisabledReason={styleGuideDisabledReason}
         undoDisabledReason={undoDisabledReason}
         redoDisabledReason={redoDisabledReason}
         onUndo={() => editor.previewRestore.mutate(undefined)}
@@ -283,14 +461,41 @@ export function ProjectEditorPage({
               <SitemapCanvas
                 projectName={projectName}
                 pages={revision.pages}
+                globalSections={revision.globalSections ?? []}
                 selectedPageId={editor.selectedPageId}
-                onSelectPage={(pageId) => {
+                selectedSectionId={sitemapSectionId}
+                onSelectSection={(pageId, sectionId) => {
                   editor.discardSitemapPlanningPreview();
                   editor.setSelectedPageId(pageId);
+                  setSitemapSectionId(sectionId);
                 }}
                 onOpenAI={openAiDrawer}
-                onAddPage={() => editor.setAddPageOpen(true)}
-                onManageSharedSections={() => setSharedSectionsOpen(true)}
+                onAddPage={(placement, anchor) => {
+                  const neighbor = revision.pages.find((page) => page.itemId === placement.pageId);
+                  setPagePromptPlacement(placement);
+                  setPagePromptTarget({
+                    placement: placement.position,
+                    neighborLabel: neighbor?.title ?? null,
+                    neighborId: placement.pageId,
+                  });
+                  setPagePromptAnchor(anchor);
+                  setPagePromptOpen(true);
+                }}
+                onAddPageAtRoot={(anchor) => {
+                  setPagePromptPlacement(null);
+                  setPagePromptTarget({ placement: "root", neighborLabel: null, neighborId: null });
+                  setPagePromptAnchor(anchor);
+                  setPagePromptOpen(true);
+                }}
+                onAddSection={(pageId, insertIndex, anchor) => {
+                  setAddSectionTarget({ pageId, insertIndex });
+                  setAddSectionAnchor(anchor);
+                  setAddSectionOpen(true);
+                }}
+                onManageSharedSections={(anchor) => {
+                  setSharedSectionsAnchor(anchor);
+                  setSharedSectionsOpen(true);
+                }}
                 onReorderPage={(pageId, sortOrder) =>
                   editor.previewSitemapChange.mutate([
                     {
@@ -301,6 +506,59 @@ export function ProjectEditorPage({
                     },
                   ])
                 }
+                onRenamePage={(pageId, title) => {
+                  const page = revision.pages.find((item) => item.itemId === pageId);
+                  if (!page) return;
+                  editor.previewSitemapChange.mutate([
+                    {
+                      type: "page.rename",
+                      operationId: globalThis.crypto.randomUUID(),
+                      itemId: pageId,
+                      title,
+                      expectedDraftVersion: page.versionNumber,
+                    },
+                  ]);
+                }}
+                onDeletePage={(pageId) => {
+                  const page = revision.pages.find((item) => item.itemId === pageId);
+                  if (!page) return;
+                  setSitemapSectionId(null);
+                  editor.previewSitemapChange.mutate([
+                    {
+                      type: "page.delete",
+                      operationId: globalThis.crypto.randomUUID(),
+                      itemId: pageId,
+                      expectedDraftVersion: page.versionNumber,
+                    },
+                  ]);
+                }}
+                onRenameSection={(pageId, sectionId, label) =>
+                  applySectionIntents(pageId, (intents) =>
+                    intents.map((intent) =>
+                      intent.id === sectionId ? { ...intent, label } : intent,
+                    ),
+                  )
+                }
+                onDeleteSection={(pageId, sectionId) =>
+                  applySectionIntents(pageId, (intents) =>
+                    intents.filter((intent) => intent.id !== sectionId),
+                  )
+                }
+                onReorderSection={(pageId, sectionId, targetIndex) =>
+                  applySectionIntents(pageId, (intents) => {
+                    const fromIndex = intents.findIndex((intent) => intent.id === sectionId);
+                    if (fromIndex < 0) return intents;
+                    const next = [...intents];
+                    const [moved] = next.splice(fromIndex, 1);
+                    next.splice(Math.max(0, Math.min(targetIndex, next.length)), 0, moved);
+                    return next;
+                  })
+                }
+                onFindInWireframe={(pageId) => {
+                  editor.setSelectedPageId(pageId);
+                  setSelectedSectionId(null);
+                  setStage("wireframe");
+                }}
                 reviewPanel={
                   editor.restorePreview ? (
                     <SitemapChangeReview
@@ -316,6 +574,13 @@ export function ProjectEditorPage({
                       onApply={() => editor.applySitemapChange.mutate()}
                       onDiscard={editor.discardSitemapStructurePreview}
                     />
+                  ) : editor.sitemapPlanningPreview ? (
+                    <SitemapChangeReview
+                      preview={editor.sitemapPlanningPreview}
+                      applying={editor.applySitemapPlanning.isPending}
+                      onApply={() => editor.applySitemapPlanning.mutate()}
+                      onDiscard={editor.discardSitemapPlanningPreview}
+                    />
                   ) : undefined
                 }
                 canEdit={editor.canWrite}
@@ -326,68 +591,63 @@ export function ProjectEditorPage({
                 }
                 canOpenAI
                 openAIDisabledReason=""
-                pageDetails={
-                  selectedPage ? (
-                    <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-caption font-semibold tracking-wide text-label-secondary uppercase">
-                            {t("CREATION_EDITOR_PAGE_TYPE")}
-                          </p>
-                          <h2 className="mt-1 truncate text-title-3 font-semibold text-label-primary">
-                            {selectedPage.title}
-                          </h2>
-                          <p className="mt-1 truncate font-mono text-caption text-label-secondary">
-                            {selectedPage.routes?.find((route) => route.isActive)?.path ??
-                              selectedPage.routes?.[0]?.path ??
-                              "—"}
-                          </p>
-                        </div>
-                        <span className="shrink-0 rounded-md border border-border px-2 py-1 font-mono text-caption text-label-secondary">
-                          v{selectedPage.versionNumber}
-                        </span>
-                      </div>
-                      {selectedPage.summary ? (
-                        <p className="mt-3 break-words text-footnote leading-5 text-label-secondary">
-                          {selectedPage.summary}
-                        </p>
-                      ) : null}
-                      <SitemapIntentEditor
-                        page={selectedPage}
-                        canWrite={editor.canWrite}
-                        preview={editor.sitemapPlanningPreview}
-                        previewing={editor.previewSitemapPlanning.isPending}
-                        applying={editor.applySitemapPlanning.isPending}
-                        error={
-                          editor.sitemapPlanningError
-                            ? getErrorMessage(editor.sitemapPlanningError)
-                            : null
-                        }
-                        onPreview={(draft) => editor.previewSitemapPlanning.mutate(draft)}
-                        onApply={() => editor.applySitemapPlanning.mutate()}
-                        onDiscard={editor.discardSitemapPlanningPreview}
-                        onSyncWireframe={() => {
-                          setSelectedSectionId(null);
-                          setStage("wireframe");
-                        }}
-                      />
-                    </div>
-                  ) : undefined
-                }
               />
-              <AddPageDialog
-                open={editor.addPageOpen}
-                onOpenChange={editor.setAddPageOpen}
-                projectId={projectId}
-                revision={revision}
-                onApplied={async () => {
-                  await editor.discardDraftCheckpoint();
-                  await editor.invalidateBuilder();
+              {sitemapInspectorOpen ? (
+                <SitemapStageInspector
+                  page={selectedPage}
+                  selectedSectionId={sitemapSectionId}
+                  globalSections={revision.globalSections ?? []}
+                  globalInstanceCounts={globalInstanceCounts}
+                  canEdit={editor.canWrite}
+                  onRenamePage={(pageId, title) => {
+                    const page = revision.pages.find((item) => item.itemId === pageId);
+                    if (!page) return;
+                    editor.previewSitemapChange.mutate([
+                      {
+                        type: "page.rename",
+                        operationId: globalThis.crypto.randomUUID(),
+                        itemId: pageId,
+                        title,
+                        expectedDraftVersion: page.versionNumber,
+                      },
+                    ]);
+                  }}
+                  onClearSection={() => setSitemapSectionId(null)}
+                  onClose={() => setSitemapInspectorOpen(false)}
+                  onOpenAI={openAiDrawer}
+                />
+              ) : null}
+              <SitemapPagePromptPanel
+                open={pagePromptOpen}
+                anchor={pagePromptAnchor}
+                onOpenChange={setPagePromptOpen}
+                target={pagePromptTarget}
+                blankCreatePending={instantPageCreate.isPending}
+                onBlankCreate={() => {
+                  if (pagePromptPlacement) {
+                    instantPageCreate.mutate(placementForSibling(pagePromptPlacement));
+                  } else {
+                    instantPageCreate.mutate({
+                      parentItemId: null,
+                      sortOrder: revision.pages.filter((page) => !page.parentItemId).length,
+                    });
+                  }
                 }}
-                onDraftAutosave={editor.queueDraftAutosave}
               />
-              <SharedSectionManagerDialog
+              <SitemapAddSectionPanel
+                open={addSectionOpen}
+                anchor={addSectionAnchor}
+                onOpenChange={setAddSectionOpen}
+                pageTitle={addSectionTargetPage?.title ?? null}
+                insertLabel={addSectionInsertLabel}
+                globalSections={revision.globalSections ?? []}
+                globalInstanceCounts={globalInstanceCounts}
+                onInsertPreset={(insert) => insertSectionIntent(insert)}
+                onInsertGlobal={(section) => insertGlobalSection(section)}
+              />
+              <SharedSectionManagerPanel
                 open={sharedSectionsOpen}
+                anchor={sharedSectionsAnchor}
                 onOpenChange={setSharedSectionsOpen}
                 projectId={projectId}
                 revision={revision}
@@ -429,6 +689,37 @@ export function ProjectEditorPage({
                     },
                   ]);
                 }}
+                onDuplicateSection={(sectionId) => {
+                  if (!selectedPage) return;
+                  const sections = selectedPage.wireframe?.sections ?? [];
+                  const sourceIndex = sections.findIndex((section) => section.id === sectionId);
+                  if (sourceIndex < 0) return;
+                  editor.previewWireframeChange.mutate([
+                    {
+                      type: "wireframe.section.duplicate",
+                      operationId: globalThis.crypto.randomUUID(),
+                      itemId: selectedPage.itemId,
+                      expectedDraftVersion: selectedPage.versionNumber,
+                      sectionId,
+                      index: sourceIndex + 1,
+                      newSectionId: globalThis.crypto.randomUUID(),
+                      newIntentId: globalThis.crypto.randomUUID(),
+                    },
+                  ]);
+                }}
+                onRemoveSection={(sectionId) => {
+                  if (!selectedPage) return;
+                  editor.previewWireframeChange.mutate([
+                    {
+                      type: "wireframe.section.remove",
+                      operationId: globalThis.crypto.randomUUID(),
+                      itemId: selectedPage.itemId,
+                      expectedDraftVersion: selectedPage.versionNumber,
+                      sectionId,
+                    },
+                  ]);
+                }}
+                onOpenAI={openAiDrawer}
                 reviewPanel={
                   editor.wireframePreview ? (
                     <WireframeChangeReview
@@ -553,6 +844,7 @@ export function ProjectEditorPage({
               controller={design}
               onDraftAutosave={editor.queueDraftAutosave}
               onDraftDiscard={editor.discardDraftCheckpoint}
+              onOpenAI={openAiDrawer}
             />
           )}
         </div>

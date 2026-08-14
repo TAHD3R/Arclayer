@@ -1,9 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { WorkspaceDesignSystemsView } from "@/pages/workspaces/settings/workspace/design-systems/workspace-design-systems-view";
+import {
+  DesignSystemHeaderDescription,
+  DesignSystemHeaderTitle,
+  WorkspaceDesignSystemsHeaderActions,
+  WorkspaceDesignSystemsView,
+} from "@/pages/workspaces/settings/workspace/design-systems/workspace-design-systems-view";
+import type { WorkspaceDesignSystemsController } from "@/pages/workspaces/settings/workspace/design-systems/use-workspace-design-systems-controller";
 
 const findingTranslation =
   "Renderer, asset rights, compilation, and publication compatibility have not been evaluated.";
@@ -19,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   listComponentCatalogs: vi.fn(),
   validate: vi.fn(),
   setDefault: vi.fn(),
+  createSystem: vi.fn(),
+  createVersion: vi.fn(),
   notifySuccess: vi.fn(),
 }));
 
@@ -26,7 +35,8 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => {
     const translate = (key: string, values?: { count?: number }) => {
       if (key === "errors:DESIGN_SYSTEM_RENDERER_NOT_EVALUATED") return findingTranslation;
-      return values?.count === undefined ? key : `${key}:${values.count}`;
+      if (values?.count === undefined) return key;
+      return `${key}:${values.count}`;
     };
     return {
       t: translate,
@@ -54,21 +64,13 @@ vi.mock("@/api/workspace-design-systems", () => ({
     mocks.listComponentCatalogs(...args),
   validateWorkspaceDesignSystemVersion: (...args: unknown[]) => mocks.validate(...args),
   setWorkspaceDesignSystemDefault: (...args: unknown[]) => mocks.setDefault(...args),
-  createWorkspaceDesignSystem: vi.fn(),
-  createWorkspaceDesignSystemVersion: vi.fn(),
+  createWorkspaceDesignSystem: (...args: unknown[]) => mocks.createSystem(...args),
+  createWorkspaceDesignSystemVersion: (...args: unknown[]) => mocks.createVersion(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
   notifySuccessText: (...args: unknown[]) => mocks.notifySuccess(...args),
 }));
-
-vi.mock(
-  "@/pages/workspaces/settings/workspace/design-systems/workspace-design-system-dialogs",
-  () => ({
-    WorkspaceDesignSystemCreateDialog: () => null,
-    WorkspaceDesignSystemVersionDialog: () => null,
-  }),
-);
 
 const checksum = `sha256:${"a".repeat(64)}`;
 const findingHash = `sha256:${"b".repeat(64)}`;
@@ -145,15 +147,37 @@ const validation = {
   createdAt: "2026-07-20T00:01:00Z",
 };
 
-function renderView() {
-  const queryClient = new QueryClient({
+function makeQueryClient() {
+  return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <WorkspaceDesignSystemsView workspaceId="workspace-1" />
-    </QueryClientProvider>,
+}
+
+// Mirrors CustomizationPage: the view lifts its controller and the page-level
+// header actions re-render from that lifted controller.
+function PageHarness(props: { queryClient: QueryClient }) {
+  const [controller, setController] = useState<WorkspaceDesignSystemsController | null>(null);
+  const detailActive = controller?.viewMode === "detail" && Boolean(controller.draft);
+  return (
+    <QueryClientProvider client={props.queryClient}>
+      <WorkspaceDesignSystemsView workspaceId="workspace-1" onControllerChange={setController} />
+      {controller && detailActive ? (
+        <>
+          <DesignSystemHeaderTitle controller={controller} />
+          <DesignSystemHeaderDescription controller={controller} />
+        </>
+      ) : null}
+      {controller ? <WorkspaceDesignSystemsHeaderActions controller={controller} /> : null}
+    </QueryClientProvider>
   );
+}
+
+async function openEditor() {
+  const queryClient = makeQueryClient();
+  const utilities = render(<PageHarness queryClient={queryClient} />);
+  const user = userEvent.setup();
+  await user.click((await screen.findAllByText("Editorial Contrast"))[0]!);
+  return { ...utilities, user, queryClient };
 }
 
 describe("WorkspaceDesignSystemsView", () => {
@@ -174,7 +198,21 @@ describe("WorkspaceDesignSystemsView", () => {
     });
     mocks.listSystems.mockResolvedValue({ items: [system], nextCursor: null });
     mocks.getDefault.mockResolvedValue(null);
-    mocks.listComponentCatalogs.mockResolvedValue([]);
+    mocks.listComponentCatalogs.mockResolvedValue([
+      {
+        catalogVersion: "catalog-v1",
+        checksum: `sha256:${"d".repeat(64)}`,
+        compilerVersion: "1.0.0",
+        components: [],
+        descriptionByLocale: { "en-US": "Foundation components" },
+        nameByLocale: { "en-US": "Foundation components" },
+        rendererProfile: "html",
+        rendererVersion: "1.0.0",
+        schemaVersion: 1 as const,
+        source: "official" as const,
+        sourceVersion: "1.0.0",
+      },
+    ]);
     mocks.getSystem.mockResolvedValue({ ...system, latestVersion: version });
     mocks.listVersions.mockResolvedValue({ items: [version], nextCursor: null });
     mocks.getVersion.mockResolvedValue({ ...version, manifest, provenance: { source: "manual" } });
@@ -192,42 +230,154 @@ describe("WorkspaceDesignSystemsView", () => {
     });
   });
 
-  it("shows a real visual preview without exposing internal revision evidence", async () => {
-    renderView();
+  it("opens a system card into the editor with live sections and no revision evidence", async () => {
+    await openEditor();
 
-    expect(await screen.findByRole("heading", { name: "Editorial Contrast" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Editorial Contrast" })).toBeInTheDocument();
     expect(
-      await screen.findByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_HEADING"),
+      (await screen.findAllByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_HEADING")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_COLORS_TITLE")).toBeInTheDocument();
+    expect(
+      screen.getByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_TYPOGRAPHY_TITLE"),
     ).toBeInTheDocument();
-    expect(await screen.findByText(findingTranslation)).toBeInTheDocument();
+    expect(
+      screen.getByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_COMPONENTS_TITLE"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_TITLE")).toBeInTheDocument();
     expect(screen.queryByText(validation.findings[0].message)).not.toBeInTheDocument();
     expect(screen.queryByText(checksum)).not.toBeInTheDocument();
-    expect(screen.queryByText(checksum.slice(7, 19))).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /publish/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SET_DEFAULT_ACTION" }),
-    ).toBeEnabled();
   });
 
-  it("sends validation and exact-default commands from accessible actions", async () => {
-    const user = userEvent.setup();
-    renderView();
+  it("marks the draft dirty through inline title editing and saves a new version", async () => {
+    const { user } = await openEditor();
+    await screen.findByRole("button", { name: "Editorial Contrast" });
 
-    await user.click(
-      await screen.findByRole("button", {
-        name: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_VALIDATE_ACTION",
-      }),
-    );
+    const save = screen.getByRole("button", {
+      name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SAVE_ACTION",
+    });
+    expect(save).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Editorial Contrast" }));
+    const titleInput = screen.getByRole("textbox", {
+      name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_TITLE_EDIT_LABEL",
+    });
+    await user.clear(titleInput);
+    await user.type(titleInput, "Editorial Contrast v2");
+    await user.tab();
+
+    await waitFor(() => expect(save).toBeEnabled());
+    const version2 = { ...version, id: "version-2", versionNumber: 2 };
+    mocks.createVersion.mockResolvedValue(version2);
+    await user.click(save);
+    await waitFor(() => expect(mocks.createVersion).toHaveBeenCalled());
+    expect(mocks.createVersion.mock.calls[0]?.[0]).toBe("workspace-1");
+    expect(mocks.createVersion.mock.calls[0]?.[1]).toBe("system-1");
     await waitFor(() => expect(mocks.validate).toHaveBeenCalled());
     expect(mocks.validate.mock.calls[0]?.slice(0, 3)).toEqual([
       "workspace-1",
       "system-1",
-      "version-1",
+      "version-2",
     ]);
+  });
+
+  it("starts an untitled draft editor from the header create action without a dialog", async () => {
+    const user = userEvent.setup();
+    render(<PageHarness queryClient={makeQueryClient()} />);
+    await screen.findAllByText("Editorial Contrast");
 
     await user.click(
       screen.getByRole("button", {
-        name: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SET_DEFAULT_ACTION",
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_CREATE_ACTION",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_UNTITLED",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SAVE_ACTION",
+      }),
+    ).toBeDisabled();
+  });
+
+  it("creates the system and its first version when saving an untitled draft", async () => {
+    const user = userEvent.setup();
+    render(<PageHarness queryClient={makeQueryClient()} />);
+    await screen.findAllByText("Editorial Contrast");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_CREATE_ACTION",
+      }),
+    );
+    await screen.findByRole("button", {
+      name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_UNTITLED",
+    });
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_UNTITLED",
+      }),
+    );
+    const titleInput = screen.getByRole("textbox", {
+      name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_TITLE_EDIT_LABEL",
+    });
+    await user.type(titleInput, "Fresh Foundation");
+    await user.tab();
+
+    const save = screen.getByRole("button", {
+      name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SAVE_ACTION",
+    });
+    await waitFor(() => expect(save).toBeEnabled());
+
+    const createdSystem = { ...system, id: "system-2", name: "Fresh Foundation" };
+    mocks.createSystem.mockResolvedValue(createdSystem);
+    mocks.createVersion.mockResolvedValue({
+      ...version,
+      id: "version-3",
+      designSystemId: "system-2",
+    });
+    await user.click(save);
+
+    await waitFor(() => expect(mocks.createSystem).toHaveBeenCalled());
+    expect(mocks.createSystem.mock.calls[0]?.[1]).toEqual({
+      name: "Fresh Foundation",
+      description: null,
+    });
+    await waitFor(() => expect(mocks.createVersion).toHaveBeenCalled());
+    expect(mocks.createVersion.mock.calls[0]?.[1]).toBe("system-2");
+  });
+
+  it("surfaces invalid updates as a status banner with localized findings", async () => {
+    mocks.listVersions.mockResolvedValue({
+      items: [{ ...version, validationStatus: "invalid" }],
+      nextCursor: null,
+    });
+    await openEditor();
+
+    expect(
+      await screen.findByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_INVALID_ALERT_TITLE"),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(findingTranslation)).toBeInTheDocument();
+  });
+
+  it("sends the exact-default command from the save menu", async () => {
+    const { user } = await openEditor();
+    await screen.findByRole("button", { name: "Editorial Contrast" });
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SAVE_OPTIONS",
+      }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", {
+        name: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SET_DEFAULT_ACTION",
       }),
     );
     await waitFor(() => expect(mocks.setDefault).toHaveBeenCalled());

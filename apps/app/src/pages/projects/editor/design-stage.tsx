@@ -15,6 +15,7 @@ import { AlertTriangle, File, Layers3, RefreshCw } from "lucide-react";
 
 import { BaseTag } from "@/components/ui/tags";
 import { getErrorMessage } from "@/lib/notifications";
+import type { AiEditorContext } from "@/stores/use-ai-chat-store";
 import { DesignCanvas, type DesignViewport } from "@/pages/projects/editor/design-canvas";
 import { DesignChangeReview } from "@/pages/projects/editor/design-change-review";
 import { DesignGenerationPanel } from "@/pages/projects/editor/design-generation-panel";
@@ -37,6 +38,7 @@ interface DesignStageProps {
   controller: ReturnType<typeof useProjectDesignController>;
   onDraftAutosave: (operations: BuilderChangeSetPreviewRequest["operations"]) => Promise<unknown>;
   onDraftDiscard: () => Promise<void>;
+  onOpenAI?: (context?: AiEditorContext) => void;
 }
 
 export function DesignStage({
@@ -54,6 +56,7 @@ export function DesignStage({
   controller,
   onDraftAutosave,
   onDraftDiscard,
+  onOpenAI,
 }: DesignStageProps) {
   const { t } = useTranslation("account");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -166,6 +169,7 @@ export function DesignStage({
         controller={controller}
         componentCatalog={componentCatalog}
         preview={activePreview}
+        onOpenAI={onOpenAI}
       />
       <DesignInspector
         page={page}

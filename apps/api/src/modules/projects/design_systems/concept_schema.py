@@ -49,6 +49,14 @@ class DesignSystemConceptGenerationFailureOut(BaseSchema):
     meta: JsonObject = Field(default_factory=dict)
 
 
+class DesignSystemConceptFeedbackEntryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    comment: str = Field(min_length=1, max_length=2000)
+    actor_user_id: PublicUUID
+    created_at: datetime
+
+
 class DesignSystemConceptGenerationCandidateOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
@@ -56,6 +64,7 @@ class DesignSystemConceptGenerationCandidateOut(BaseSchema):
     summary: str = Field(min_length=1, max_length=1000)
     version: DesignSystemVersionDetailOut
     validation: DesignSystemValidationResultOut
+    feedback: tuple[DesignSystemConceptFeedbackEntryOut, ...] = ()
 
 
 class DesignSystemConceptGenerationOut(BaseSchema):
@@ -93,6 +102,19 @@ class DesignSystemConceptGenerationCancelRequest(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
     reason: str | None = Field(default=None, max_length=512)
+
+
+class DesignSystemConceptGenerationFeedbackRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    concept_index: int = Field(ge=0)
+    comment: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_feedback(self) -> Self:
+        if not self.comment.strip():
+            raise ValueError("comment must contain non-whitespace characters")
+        return self
 
 
 class AgentDesignSystemConceptVersionCreate(BaseSchema):

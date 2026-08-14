@@ -614,6 +614,7 @@
   "AI_CHAT_ERROR_NO_DETAILS": "没有更多错误详情。",
   "AI_CHAT_ERROR_DETAILS_AVAILABLE": "可展开查看诊断详情。",
   "AI_CHAT_ERROR_GENERIC": "当前工作空间的 AI 暂时不可用。请稍后重试；如果问题持续存在，请联系支持。",
+  "AI_CHAT_EDITOR_CONTEXT_CLEAR": "移除编辑器上下文",
   "AI_CHAT_ERROR_AUTH_NO_KEY": "当前工作空间的 AI 暂时不可用。请稍后重试；如果问题持续存在，请联系支持。",
   "AI_CHAT_ERROR_AUTH_NOT_WORKSPACE_MEMBER": "当前工作空间的 AI 暂时不可用。请重新进入工作空间后重试；如果问题持续存在，请联系支持。",
   "AI_CHAT_ERROR_AGENT_PROJECT_CONTEXT_REQUIRED": "请先打开要处理的项目，然后再继续。",

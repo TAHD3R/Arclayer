@@ -11,6 +11,7 @@ import {
   AIComposerDirectiveChips,
   AIComposerDirectiveSync,
 } from "@/components/ai/ai-composer-directive-chips";
+import { AIComposerEditorContextChips } from "@/components/ai/ai-composer-editor-context-chips";
 import {
   AIComposerDirectiveInsertionProvider,
   AIComposerRichInput,
@@ -336,6 +337,7 @@ const Composer: FC = () => {
           >
             <AIComposerDirectiveSync scope="thread" />
             <AIComposerDirectiveChips scope="thread" />
+            <AIComposerEditorContextChips />
             <div className="relative min-w-0 flex-1">
               <AIComposerRichInput
                 className={cn(

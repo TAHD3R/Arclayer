@@ -12,6 +12,12 @@ import {
   type WorkspaceSkillCreateAction,
 } from "@/pages/workspaces/settings/workspace/skills/page";
 import { WorkspaceSkillsHeaderActions } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
+import {
+  DesignSystemHeaderDescription,
+  DesignSystemHeaderTitle,
+  WorkspaceDesignSystemsHeaderActions,
+} from "@/pages/workspaces/settings/workspace/design-systems/workspace-design-systems-view";
+import type { WorkspaceDesignSystemsController } from "@/pages/workspaces/settings/workspace/design-systems/use-workspace-design-systems-controller";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 
@@ -46,6 +52,8 @@ export function CustomizationPage(props: {
   const [focusRequestId, setFocusRequestId] = useState(0);
   const [knowledgeController, setKnowledgeController] =
     useState<WorkspaceGuidanceController | null>(null);
+  const [designSystemsController, setDesignSystemsController] =
+    useState<WorkspaceDesignSystemsController | null>(null);
 
   useEffect(() => {
     if (!props.requestedAction) return;
@@ -55,6 +63,9 @@ export function CustomizationPage(props: {
 
   useEffect(() => {
     if (props.section !== "knowledge" || !workspaceId) setKnowledgeController(null);
+  }, [props.section, workspaceId]);
+  useEffect(() => {
+    if (props.section !== "design-systems" || !workspaceId) setDesignSystemsController(null);
   }, [props.section, workspaceId]);
 
   const requestSkillAction = (action: WorkspaceSkillCreateAction) => {
@@ -66,12 +77,32 @@ export function CustomizationPage(props: {
       <WorkspaceKnowledgeHeaderActions controller={knowledgeController} />
     ) : props.section === "skills" && workspaceId ? (
       <WorkspaceSkillsHeaderActions workspaceId={workspaceId} onSelect={requestSkillAction} />
+    ) : props.section === "design-systems" && workspaceId && designSystemsController ? (
+      <WorkspaceDesignSystemsHeaderActions controller={designSystemsController} />
     ) : null;
+
+  // 详情态把设计系统的名称/描述编辑器提升为页头，替代静态板块文案。
+  const designDetailActive =
+    props.section === "design-systems" &&
+    designSystemsController?.viewMode === "detail" &&
+    Boolean(designSystemsController.draft);
+  const pageTitle =
+    designDetailActive && designSystemsController ? (
+      <DesignSystemHeaderTitle controller={designSystemsController} />
+    ) : (
+      t(copy.titleKey)
+    );
+  const pageDescription =
+    designDetailActive && designSystemsController ? (
+      <DesignSystemHeaderDescription controller={designSystemsController} />
+    ) : (
+      t(copy.descriptionKey)
+    );
 
   return (
     <DefaultPage
-      title={t(copy.titleKey)}
-      description={t(copy.descriptionKey)}
+      title={pageTitle}
+      description={pageDescription}
       showFavoriteToggle={false}
       action={pageAction}
     >
@@ -88,7 +119,10 @@ export function CustomizationPage(props: {
             focusRequestId={focusRequestId}
           />
         ) : (
-          <WorkspaceDesignSystemsPage workspaceId={workspaceId} />
+          <WorkspaceDesignSystemsPage
+            workspaceId={workspaceId}
+            onControllerChange={setDesignSystemsController}
+          />
         )
       ) : (
         <Empty className="min-h-80 border border-dashed">

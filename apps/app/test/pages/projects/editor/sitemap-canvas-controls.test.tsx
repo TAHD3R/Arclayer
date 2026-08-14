@@ -22,6 +22,7 @@ function renderTools() {
     <SidebarProvider open={false}>
       <SitemapCanvasTools
         onAddPage={vi.fn()}
+        onAddSection={vi.fn()}
         onManageSharedSections={vi.fn()}
         onOpenAI={vi.fn()}
         canEdit
@@ -45,6 +46,7 @@ describe("SitemapCanvasTools", () => {
       <SidebarProvider open={false}>
         <SitemapCanvasTools
           onAddPage={vi.fn()}
+          onAddSection={vi.fn()}
           onManageSharedSections={vi.fn()}
           onOpenAI={vi.fn()}
           canEdit
@@ -55,7 +57,7 @@ describe("SitemapCanvasTools", () => {
       </SidebarProvider>,
     );
 
-    expect(slot.querySelectorAll('[data-sidebar="menu-button"]')).toHaveLength(4);
+    expect(slot.querySelectorAll('[data-sidebar="menu-button"]')).toHaveLength(5);
     slot.remove();
   });
 });

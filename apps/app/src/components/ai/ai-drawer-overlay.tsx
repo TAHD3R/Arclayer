@@ -18,6 +18,11 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
+import {
+  AI_EDITOR_CONTEXT_ATTACHMENT_TYPE,
+  formatAiEditorContextName,
+  formatAiEditorContextPrefix,
+} from "@/components/ai/ai-editor-context";
 import type { ArclayerAssistantState } from "@/components/ai/arclayer-assistant-scope";
 import { Thread } from "@/components/assistant-ui/thread";
 import { FeedbackComposer } from "@/components/feedback/feedback-dialog";
@@ -94,6 +99,36 @@ function useAIEntryDispatcher() {
   return startNewThread;
 }
 
+function useAIEditorContextAttachment() {
+  const { t } = useTranslation(["ai", "account"]);
+  const aui = useAui();
+  const pendingEditorContext = useAiChatStore((state) => state.pendingEditorContext);
+  const consumePendingEditorContext = useAiChatStore((state) => state.consumePendingEditorContext);
+  const drawerOpen = useAiChatStore((state) => state.drawerOpen);
+
+  useEffect(() => {
+    if (!drawerOpen || !pendingEditorContext) return;
+    const context = pendingEditorContext;
+    consumePendingEditorContext();
+    const stageLabel = t(
+      `account:CREATION_EDITOR_STAGE_${
+        context.stage === "styleGuide" ? "STYLE_GUIDE" : context.stage.toUpperCase()
+      }`,
+    );
+    void aui
+      .composer()
+      .addAttachment({
+        id: `${AI_EDITOR_CONTEXT_ATTACHMENT_TYPE}:${
+          context.targetId ?? context.pageId ?? context.stage
+        }`,
+        type: AI_EDITOR_CONTEXT_ATTACHMENT_TYPE,
+        name: formatAiEditorContextName(context, stageLabel),
+        content: [{ type: "text", text: formatAiEditorContextPrefix(context) }],
+      })
+      .catch(() => undefined);
+  }, [aui, consumePendingEditorContext, drawerOpen, pendingEditorContext, t]);
+}
+
 function AssistantDrawerThread(props: {
   readonly welcomeName: string;
   readonly leadAgent: Extract<ArclayerAssistantState, { status: "ready" }>["leadAgent"];
@@ -105,6 +140,7 @@ function AssistantDrawerThread(props: {
   const threadId = useAuiState((state) => state.threadListItem.id);
   const remoteThreadId = useAuiState((state) => state.threadListItem.remoteId);
   const startNewThread = useAIEntryDispatcher();
+  useAIEditorContextAttachment();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(title || t("ai:AI_CHAT_NEW_CONVERSATION"));

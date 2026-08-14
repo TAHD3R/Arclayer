@@ -1,6 +1,7 @@
 import type {
   DesignSystemConceptGenerationCancelRequest,
   DesignSystemConceptGenerationCreateRequest,
+  DesignSystemConceptGenerationFeedbackRequest,
   DesignSystemConceptGenerationOut,
   DesignSystemConceptGenerationRecoveryOut,
   DesignSystemValidationResultOut,
@@ -225,6 +226,18 @@ export function cancelProjectDesignSystemConceptGeneration(
 ): Promise<DesignSystemConceptGenerationOut> {
   return api.post<DesignSystemConceptGenerationOut>(
     `${conceptGenerationPath(projectId, systemId, generationId)}/cancel`,
+    payload,
+  );
+}
+
+export function submitProjectDesignSystemConceptFeedback(
+  projectId: string,
+  systemId: string,
+  generationId: string,
+  payload: DesignSystemConceptGenerationFeedbackRequest,
+): Promise<DesignSystemConceptGenerationOut> {
+  return api.post<DesignSystemConceptGenerationOut>(
+    `${conceptGenerationPath(projectId, systemId, generationId)}/feedback`,
     payload,
   );
 }

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { BuilderChangeSetPreviewOut, BuilderRevisionOut } from "@arclayer/openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SharedSectionManagerDialog } from "@/pages/projects/editor/shared-section-manager-dialog";
+import { SharedSectionManagerPanel } from "@/pages/projects/editor/shared-section-manager-dialog";
 
 const previewProjectBuilderChangeSetMock = vi.fn();
 const applyProjectBuilderChangeSetMock = vi.fn();
@@ -187,8 +187,9 @@ function renderDialog({
   const onDraftDiscard = vi.fn().mockResolvedValue(undefined);
   render(
     <QueryClientProvider client={queryClient}>
-      <SharedSectionManagerDialog
+      <SharedSectionManagerPanel
         open
+        anchor={document.body}
         onOpenChange={onOpenChange}
         projectId="project-1"
         revision={revision}

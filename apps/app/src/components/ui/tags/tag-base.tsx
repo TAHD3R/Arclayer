@@ -4,13 +4,17 @@ import { X, type LucideIcon } from "lucide-react";
 import { cn } from "@arclayer/lib/utils";
 
 const TAG_ICON_SIZE_PX = 12;
+/**
+ * Tags default to the compact 12px step — one size below `text-caption` — so they never
+ * inflate inside large-type contexts. `textStyle="footnote"` opts back into 14px.
+ */
 const TAG_TEXT_STYLE_CLASSNAMES = {
-  caption: "text-caption",
+  caption: "text-[12px]",
   footnote: "text-footnote",
 } as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex min-w-0 max-w-full shrink items-center overflow-hidden rounded-sm border border-border px-2 py-1 font-semibold whitespace-nowrap ";
+  "inline-flex min-w-0 max-w-full shrink items-center overflow-hidden rounded-sm border border-border px-1.5 py-0.5 font-semibold leading-4 whitespace-nowrap ";
 
 type TagSemanticClassNames = {
   root?: string;

@@ -11073,6 +11073,24 @@ export type DesignMotionRoleV1 = {
 };
 
 /**
+ * DesignSystemConceptFeedbackEntryOut
+ */
+export type DesignSystemConceptFeedbackEntryOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Comment
+     */
+    comment: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+};
+
+/**
  * DesignSystemConceptGenerationCancelRequest
  */
 export type DesignSystemConceptGenerationCancelRequest = {
@@ -11090,6 +11108,10 @@ export type DesignSystemConceptGenerationCandidateOut = {
      * Candidateindex
      */
     candidateIndex: number;
+    /**
+     * Feedback
+     */
+    feedback?: Array<DesignSystemConceptFeedbackEntryOut>;
     /**
      * Summary
      */
@@ -11162,6 +11184,20 @@ export type DesignSystemConceptGenerationFailureOut = {
     meta?: {
         [key: string]: JsonValueOutput;
     };
+};
+
+/**
+ * DesignSystemConceptGenerationFeedbackRequest
+ */
+export type DesignSystemConceptGenerationFeedbackRequest = {
+    /**
+     * Comment
+     */
+    comment: string;
+    /**
+     * Conceptindex
+     */
+    conceptIndex: number;
 };
 
 /**
@@ -43834,6 +43870,46 @@ export type DomainProjectsCancelProjectDesignSystemConceptGenerationResponses = 
 };
 
 export type DomainProjectsCancelProjectDesignSystemConceptGenerationResponse = DomainProjectsCancelProjectDesignSystemConceptGenerationResponses[keyof DomainProjectsCancelProjectDesignSystemConceptGenerationResponses];
+
+export type DomainProjectsSubmitProjectDesignSystemConceptFeedbackData = {
+    body: DesignSystemConceptGenerationFeedbackRequest;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Generation Id
+         */
+        generation_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/concept-generations/{generation_id}/feedback';
+};
+
+export type DomainProjectsSubmitProjectDesignSystemConceptFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSubmitProjectDesignSystemConceptFeedbackError = DomainProjectsSubmitProjectDesignSystemConceptFeedbackErrors[keyof DomainProjectsSubmitProjectDesignSystemConceptFeedbackErrors];
+
+export type DomainProjectsSubmitProjectDesignSystemConceptFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemConceptGenerationOut;
+};
+
+export type DomainProjectsSubmitProjectDesignSystemConceptFeedbackResponse = DomainProjectsSubmitProjectDesignSystemConceptFeedbackResponses[keyof DomainProjectsSubmitProjectDesignSystemConceptFeedbackResponses];
 
 export type DomainProjectsPreviewProjectDesignSystemImpactData = {
     body: ProjectDesignSystemImpactPreviewRequest;

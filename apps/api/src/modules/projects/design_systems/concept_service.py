@@ -45,10 +45,12 @@ from src.modules.projects.design_systems.concept_repository import (
     DesignSystemConceptGenerationRepository,
 )
 from src.modules.projects.design_systems.concept_schema import (
+    DesignSystemConceptFeedbackEntryOut,
     DesignSystemConceptGenerationCancelRequest,
     DesignSystemConceptGenerationCandidateOut,
     DesignSystemConceptGenerationCreateRequest,
     DesignSystemConceptGenerationFailureOut,
+    DesignSystemConceptGenerationFeedbackRequest,
     DesignSystemConceptGenerationOut,
     DesignSystemConceptGenerationRecoveryOut,
 )
@@ -231,6 +233,54 @@ class DesignSystemConceptGenerationService(BaseService):
                 design_system_id=design_system_id,
                 actor_user_id=actor_user_id,
                 generation_id=generation_id,
+                conn=conn,
+            )
+            return await self._project(record=record, actor_user_id=actor_user_id, conn=conn)
+
+    async def submit_feedback(
+        self,
+        *,
+        project_id: UUID,
+        design_system_id: UUID,
+        actor_user_id: UUID,
+        generation_id: UUID,
+        payload: DesignSystemConceptGenerationFeedbackRequest,
+    ) -> DesignSystemConceptGenerationOut:
+        comment = payload.comment.strip()
+        if not comment:
+            _raise_conflict("DESIGN_SYSTEM_CONCEPT_FEEDBACK_INVALID")
+        async with self.tx() as conn:
+            record = await self._require_owned(
+                project_id=project_id,
+                design_system_id=design_system_id,
+                actor_user_id=actor_user_id,
+                generation_id=generation_id,
+                conn=conn,
+                for_update=True,
+            )
+            candidates = record.candidates if isinstance(record.candidates, list) else []
+            target: dict | None = None
+            for raw in candidates:
+                if isinstance(raw, dict) and raw.get("candidateIndex") == payload.concept_index:
+                    target = raw
+                    break
+            if target is None:
+                _raise_not_found("DESIGN_SYSTEM_CONCEPT_GENERATION_CANDIDATE_NOT_FOUND")
+            entries = target.get("feedback")
+            if not isinstance(entries, list):
+                entries = []
+            entries = [
+                *entries,
+                {
+                    "comment": comment,
+                    "actorUserId": str(actor_user_id),
+                    "createdAt": datetime.now(UTC).isoformat(),
+                },
+            ]
+            target["feedback"] = entries
+            await self._repository.update_generation(
+                record=record,
+                values={"candidates": candidates},
                 conn=conn,
             )
             return await self._project(record=record, actor_user_id=actor_user_id, conn=conn)
@@ -718,9 +768,32 @@ class DesignSystemConceptGenerationService(BaseService):
                     summary=summary,
                     version=project_version_detail(version, validation=validation, lifecycle_state=state),
                     validation=project_validation(validation),
+                    feedback=_project_feedback(raw.get("feedback")),
                 )
             )
         return tuple(projected)
+
+
+def _project_feedback(value: object) -> tuple[DesignSystemConceptFeedbackEntryOut, ...]:
+    if not isinstance(value, list):
+        return ()
+    projected: list[DesignSystemConceptFeedbackEntryOut] = []
+    for item in value:
+        if not isinstance(item, dict):
+            _raise_conflict("DESIGN_SYSTEM_CONCEPT_GENERATION_RESULT_INVALID")
+        comment = item.get("comment")
+        actor_user_id = item.get("actorUserId")
+        created_at = item.get("createdAt")
+        if not isinstance(comment, str) or not isinstance(actor_user_id, str) or not isinstance(created_at, str):
+            _raise_conflict("DESIGN_SYSTEM_CONCEPT_GENERATION_RESULT_INVALID")
+        projected.append(
+            DesignSystemConceptFeedbackEntryOut(
+                comment=comment,
+                actor_user_id=UUID(actor_user_id),
+                created_at=datetime.fromisoformat(created_at),
+            )
+        )
+    return tuple(projected)
 
 
 _TERMINAL_JOB_STATUSES = frozenset({

@@ -13,12 +13,11 @@ export type EditorStage = "sitemap" | "wireframe" | "styleGuide" | "design";
 const STAGES: ReadonlyArray<{
   id: EditorStage;
   translationKey: "SITEMAP" | "WIREFRAME" | "STYLE_GUIDE" | "DESIGN";
-  available: boolean;
 }> = [
-  { id: "sitemap", translationKey: "SITEMAP", available: true },
-  { id: "wireframe", translationKey: "WIREFRAME", available: true },
-  { id: "design", translationKey: "DESIGN", available: true },
-  { id: "styleGuide", translationKey: "STYLE_GUIDE", available: true },
+  { id: "sitemap", translationKey: "SITEMAP" },
+  { id: "wireframe", translationKey: "WIREFRAME" },
+  { id: "styleGuide", translationKey: "STYLE_GUIDE" },
+  { id: "design", translationKey: "DESIGN" },
 ];
 
 interface EditorToolbarProps {
@@ -28,6 +27,8 @@ interface EditorToolbarProps {
   onProjectNameChange?: (name: string) => void;
   onPreview: () => void;
   previewDisabledReason?: string;
+  wireframeDisabledReason?: string;
+  styleGuideDisabledReason?: string;
   designDisabledReason?: string;
   undoDisabledReason?: string;
   redoDisabledReason?: string;
@@ -42,6 +43,8 @@ export function EditorToolbar({
   onProjectNameChange,
   onPreview,
   previewDisabledReason,
+  wireframeDisabledReason,
+  styleGuideDisabledReason,
   designDisabledReason,
   undoDisabledReason,
   redoDisabledReason,
@@ -109,21 +112,22 @@ export function EditorToolbar({
           {STAGES.map((item) => {
             const active = item.id === stage;
             const label = t(`CREATION_EDITOR_STAGE_${item.translationKey}`);
-            const disabledReason =
-              item.id === "design"
-                ? designDisabledReason
-                : item.available
-                  ? undefined
-                  : t("CREATION_EDITOR_STAGE_PENDING");
-            const available = item.available && !disabledReason;
+            const stageDisabledReason =
+              item.id === "wireframe"
+                ? wireframeDisabledReason
+                : item.id === "styleGuide"
+                  ? styleGuideDisabledReason
+                  : item.id === "design"
+                    ? designDisabledReason
+                    : undefined;
             return (
               <Tooltip key={item.id}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
                     aria-current={active ? "page" : undefined}
-                    aria-disabled={!available}
-                    disabled={!available}
+                    aria-disabled={Boolean(stageDisabledReason)}
+                    disabled={Boolean(stageDisabledReason)}
                     onClick={() => onStageChange(item.id)}
                     className={cn(
                       "min-h-11 shrink-0 rounded-md px-3 text-footnote font-medium transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border/70 motion-reduce:transition-none lg:min-h-8",
@@ -135,7 +139,9 @@ export function EditorToolbar({
                     {label}
                   </button>
                 </TooltipTrigger>
-                {disabledReason ? <TooltipContent>{disabledReason}</TooltipContent> : null}
+                {stageDisabledReason ? (
+                  <TooltipContent>{stageDisabledReason}</TooltipContent>
+                ) : null}
               </Tooltip>
             );
           })}

@@ -16,6 +16,8 @@ import { SettingsScreenProvider } from "@/components/layout/settings-screen-prov
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { siteRenderDocumentFixture } from "../../fixtures/site-render-document";
 import { ApiError } from "@/lib/http";
+import { useAIEntryStore } from "@/stores/use-ai-entry-store";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 
 const navigateMock = vi.fn();
 const getProjectDetailMock = vi.fn();
@@ -1444,8 +1446,8 @@ describe("ProjectEditorPage", () => {
     ).toEqual([
       "CREATION_EDITOR_STAGE_SITEMAP",
       "CREATION_EDITOR_STAGE_WIREFRAME",
-      "CREATION_EDITOR_STAGE_DESIGN",
       "CREATION_EDITOR_STAGE_STYLE_GUIDE",
+      "CREATION_EDITOR_STAGE_DESIGN",
     ]);
     expect(within(stageNavigation).getAllByRole("button")[0]).toHaveClass(
       "bg-background",
@@ -1485,24 +1487,27 @@ describe("ProjectEditorPage", () => {
     const sitemapRoot = document.querySelector("[data-sitemap-root]");
     expect(sitemapRoot).toBeInTheDocument();
     expect(within(sitemapRoot as HTMLElement).getByText("Northstar")).toBeVisible();
-    const homeNode = screen.getByRole("button", { name: /^Home/ });
+    const pageTriggers = screen.getAllByRole("button", {
+      name: "CREATION_EDITOR_SITEMAP_PAGE_RENAME_TRIGGER",
+    });
+    const homeNode = pageTriggers[0];
     expect(homeNode).toBeVisible();
-    expect(within(homeNode).getByText("landing.hero")).toBeVisible();
-    expect(screen.getByRole("button", { name: /^About/ })).toBeVisible();
+    expect(screen.getByText("Establish the primary value proposition")).toBeVisible();
+    const aboutNode = pageTriggers[1];
+    expect(aboutNode).toBeVisible();
     await user.hover(homeNode);
-    expect(homeNode.querySelector("[data-sitemap-node-arrows]")).toBeInTheDocument();
+    expect(
+      document.querySelector("[data-sitemap-node] [data-sitemap-node-actions]"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_WIREFRAME" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_STYLE_GUIDE" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_DESIGN" })).toBeEnabled();
     expect(screen.queryByRole("iframe")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /^About/ }));
-    const pageDetails = document.querySelector("[data-sitemap-page-details]");
-    expect(pageDetails).toBeInTheDocument();
-    expect(
-      within(pageDetails as HTMLElement).getByRole("heading", { name: "About" }),
-    ).toBeVisible();
-    expect(within(pageDetails as HTMLElement).getByText("/about")).toBeVisible();
+    await user.click(aboutNode);
+    const inspector = await screen.findByTestId("sitemap-stage-inspector");
+    expect(within(inspector).getByDisplayValue("About")).toBeVisible();
+    expect(within(inspector).getByText("/about")).toBeVisible();
     expect(getProjectBuilderRevisionMock).toHaveBeenCalledWith(
       "project-1",
       "revision-1",
@@ -2061,7 +2066,10 @@ describe("ProjectEditorPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: /^Home/ }));
+    const previewTriggers = await screen.findAllByRole("button", {
+      name: "CREATION_EDITOR_SITEMAP_PAGE_RENAME_TRIGGER",
+    });
+    await user.click(previewTriggers[0]);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "CREATION_EDITOR_PREVIEW" })).toBeEnabled(),
     );
@@ -2080,7 +2088,7 @@ describe("ProjectEditorPage", () => {
     );
   });
 
-  it("previews and applies an exact page planning ChangeSet from the Sitemap inspector", async () => {
+  it("previews and applies an exact page planning ChangeSet from the Sitemap canvas", async () => {
     const user = userEvent.setup();
     previewProjectBuilderChangeSetMock.mockResolvedValueOnce({
       changeSetId: "planning-change-set-1",
@@ -2119,21 +2127,14 @@ describe("ProjectEditorPage", () => {
     renderPage();
     await screen.findByTestId("creation-editor");
 
-    const purpose = screen.getByLabelText("CREATION_EDITOR_SITEMAP_PURPOSE_LABEL");
-    expect(purpose).toHaveValue("Turn product interest into a clear next step");
-    expect(screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_LABEL")).toHaveValue("Hero");
-    expect(screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_GOAL")).toHaveValue(
-      "Establish the primary value proposition",
+    await user.click(
+      screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_SECTION_RENAME_TRIGGER" }),
     );
-    expect(screen.getByText("intent.hero")).toHaveClass("min-w-0", "flex-1", "truncate");
-    await user.clear(purpose);
-    await user.type(purpose, "Help operations leaders choose the product");
-    await user.clear(screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_GOAL"));
-    await user.type(
-      screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_GOAL"),
-      "Make the value and audience immediately clear",
-    );
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_PREVIEW" }));
+    const labelInput = screen.getByLabelText("CREATION_EDITOR_SITEMAP_SECTION_RENAME_INPUT");
+    expect(labelInput).toHaveValue("Hero");
+    await user.clear(labelInput);
+    await user.type(labelInput, "Hero proof");
+    await user.keyboard("{Enter}");
 
     await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
     expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledWith(
@@ -2147,12 +2148,12 @@ describe("ProjectEditorPage", () => {
             type: "page.intent.replace",
             operationId: "plan-home-page",
             itemId: "home-page",
-            purpose: "Help operations leaders choose the product",
+            purpose: "Turn product interest into a clear next step",
             sectionIntents: [
               {
                 id: "intent.hero",
-                label: "Hero",
-                goal: "Make the value and audience immediately clear",
+                label: "Hero proof",
+                goal: "Establish the primary value proposition",
                 generationGuidance: "Lead with concrete proof",
               },
             ],
@@ -2161,10 +2162,13 @@ describe("ProjectEditorPage", () => {
       },
       expect.stringContaining("sitemap-planning-preview:"),
     );
-    expect(
-      await screen.findByText("BUILDER_SECTION_INTENT_REMOVE_REQUIRES_APPROVAL"),
-    ).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_APPLY" }));
+    const review = await screen.findByRole("region", {
+      name: "CREATION_EDITOR_SITEMAP_REVIEW_LABEL",
+    });
+    expect(review).toBeVisible();
+    await user.click(
+      within(review).getByRole("button", { name: "CREATION_EDITOR_WIREFRAME_APPLY_PREVIEW" }),
+    );
     await waitFor(() => expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
     expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
       "project-1",
@@ -2181,7 +2185,7 @@ describe("ProjectEditorPage", () => {
     );
   });
 
-  it("requires explicit planning details before adopting a historical Wireframe structure", async () => {
+  it("renders a historical Wireframe page as read-only rows and migrates it through Add Section", async () => {
     const user = userEvent.setup();
     const historical = structuredClone(revisionProjection) as unknown as BuilderRevisionOut;
     historical.pages[0] = {
@@ -2198,24 +2202,60 @@ describe("ProjectEditorPage", () => {
     renderPage();
     await screen.findByTestId("creation-editor");
 
+    // 无 intents 的页面回退展示 wireframe 分区标签，行不可编辑
+    expect(screen.getByText("1. Hero")).toBeVisible();
     await user.click(
-      screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_ADOPT_WIREFRAME" }),
+      screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_SECTION_RENAME_TRIGGER" }),
     );
-    expect(screen.getByText("intent.hero")).toBeVisible();
-    expect(screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_LABEL")).toHaveValue("Hero");
-    expect(screen.getByLabelText("CREATION_EDITOR_SITEMAP_INTENT_GOAL")).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_PREVIEW" }));
-    expect(previewProjectBuilderChangeSetMock).not.toHaveBeenCalled();
-    expect(screen.getByText("CREATION_EDITOR_SITEMAP_REQUIRED_FIELDS")).toBeVisible();
+    expect(
+      screen.queryByLabelText("CREATION_EDITOR_SITEMAP_SECTION_RENAME_INPUT"),
+    ).not.toBeInTheDocument();
+
+    // 通过行内 + 打开分区库，插入预设即开启规划迁移
+    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_INSERT_BELOW" }));
+    const sheet = await screen.findByRole("dialog");
+    await user.click(
+      within(sheet).getByRole("option", { name: "CREATION_EDITOR_SITEMAP_PRESET_CTA" }),
+    );
+
+    await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
+    expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({
+        operations: [
+          expect.objectContaining({
+            type: "page.intent.replace",
+            itemId: "home-page",
+            purpose: "CREATION_EDITOR_SITEMAP_DEFAULT_PURPOSE",
+            sectionIntents: [
+              expect.objectContaining({ label: "CREATION_EDITOR_SITEMAP_PRESET_CTA" }),
+            ],
+          }),
+        ],
+      }),
+      expect.stringContaining("sitemap-planning-preview:"),
+    );
   });
 
-  it("keeps page planning read-only without the Builder write action", async () => {
+  it("keeps the Sitemap canvas read-only without the Builder write action", async () => {
+    const user = userEvent.setup();
     hasProjectActionMock.mockReturnValue(false);
     renderPage();
     await screen.findByTestId("creation-editor");
 
-    expect(screen.getByLabelText("CREATION_EDITOR_SITEMAP_PURPOSE_LABEL")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_PREVIEW" })).toBeDisabled();
+    await user.click(
+      screen.getAllByRole("button", { name: "CREATION_EDITOR_SITEMAP_PAGE_RENAME_TRIGGER" })[0],
+    );
+    expect(
+      screen.queryByLabelText("CREATION_EDITOR_SITEMAP_NODE_RENAME_INPUT"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "CREATION_EDITOR_SITEMAP_INSERT_BELOW" })[0],
+    ).toBeDisabled();
+    const inspector = screen.getByTestId("sitemap-stage-inspector");
+    expect(
+      within(inspector).getByLabelText("CREATION_EDITOR_SITEMAP_INSPECTOR_NAME"),
+    ).toBeDisabled();
     expect(previewProjectBuilderChangeSetMock).not.toHaveBeenCalled();
   });
 
@@ -3085,7 +3125,7 @@ describe("ProjectEditorPage", () => {
     );
 
     const candidate = await screen.findByRole("button", {
-      name: /account:CREATION_EDITOR_STYLE_AI_CANDIDATE/,
+      name: /account:CREATION_EDITOR_STYLE_AI_REVIEW/,
     });
     expect(screen.getByText("ai:AI_CHAT_STYLE_GUIDE_TOOL_STATUS_SUCCEEDED")).toBeVisible();
     expect(
@@ -3123,7 +3163,7 @@ describe("ProjectEditorPage", () => {
       .setup()
       .click(screen.getByRole("button", { name: "CREATION_EDITOR_STAGE_STYLE_GUIDE" }));
 
-    expect(await screen.findByRole("button", { name: /Editorial restraint/ })).toBeVisible();
+    expect(await screen.findByText(/Editorial restraint/)).toBeVisible();
     expect(createProjectDesignSystemConceptGenerationMock).not.toHaveBeenCalled();
     expect(recoverProjectDesignSystemConceptGenerationsMock).toHaveBeenCalledWith(
       "project-1",
@@ -3147,7 +3187,7 @@ describe("ProjectEditorPage", () => {
     expect(
       await screen.findByRole("button", { name: "account:CREATION_EDITOR_STYLE_AI_CANCEL" }),
     ).toBeVisible();
-    expect(screen.queryByRole("button", { name: /Editorial restraint/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Editorial restraint/)).not.toBeInTheDocument();
   });
 
   it("keeps an invalid Agent Style Guide concept inspectable but impossible to accept", async () => {
@@ -3180,7 +3220,7 @@ describe("ProjectEditorPage", () => {
     );
     await user.click(
       await screen.findByRole("button", {
-        name: /account:CREATION_EDITOR_STYLE_AI_CANDIDATE/,
+        name: /account:CREATION_EDITOR_STYLE_AI_REVIEW/,
       }),
     );
 
@@ -3950,17 +3990,36 @@ describe("ProjectEditorPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("previews a manual page ChangeSet before creating the page", async () => {
+  it("creates a sibling page instantly through preview and auto-apply", async () => {
     const user = userEvent.setup();
+    previewProjectBuilderChangeSetMock.mockResolvedValueOnce({
+      changeSetId: "instant-change-set-1",
+      previewToken: "instant-preview-token",
+      previewRef: "/projects/project-1/builder/change-sets/instant-change-set-1",
+      baseRevisionId: "revision-1",
+      baseEtag: siteRevision.manifestHash,
+      status: "previewed",
+      approvalClass: "none",
+      approval: null,
+      operationsHash: `sha256:${"5".repeat(64)}`,
+      expiresAt: "2026-07-22T00:00:00Z",
+      summaryKey: "BUILDER_CHANGE_SET_SUMMARY",
+      summaryParams: {},
+      requiredPermissions: ["project:content:site-builder:write"],
+      affectedTargets: [{ kind: "page", targetId: "new-page", operationIds: ["op-1"] }],
+      issues: [],
+      operations: [],
+      wireframeCandidates: [],
+    });
     renderPage();
     await screen.findByTestId("creation-editor");
 
-    await user.click(screen.getByRole("button", { name: "CREATION_EDITOR_TOOL_ADD_PAGE" }));
-    const dialog = screen.getByRole("dialog", { name: "CREATION_EDITOR_ADD_PAGE_TITLE" });
-    await user.type(within(dialog).getByLabelText("CREATION_EDITOR_ADD_PAGE_NAME"), "Pricing");
-    await user.type(within(dialog).getByLabelText("CREATION_EDITOR_ADD_PAGE_PATH"), "/pricing");
     await user.click(
-      within(dialog).getByRole("button", { name: "CREATION_EDITOR_ADD_PAGE_PREVIEW" }),
+      screen.getAllByRole("button", { name: "CREATION_EDITOR_SITEMAP_ADD_PAGE_AFTER" })[0],
+    );
+    await screen.findByRole("dialog", { name: "CREATION_EDITOR_SITEMAP_PAGE_PROMPT_TITLE" });
+    await user.click(
+      screen.getByRole("button", { name: "CREATION_EDITOR_SITEMAP_PAGE_PROMPT_BLANK" }),
     );
 
     await waitFor(() => expect(previewProjectBuilderChangeSetMock).toHaveBeenCalledTimes(1));
@@ -3973,25 +4032,54 @@ describe("ProjectEditorPage", () => {
         operations: [
           expect.objectContaining({
             type: "page.create",
-            title: "Pricing",
-            slug: "pricing",
-            path: "/pricing",
+            parentItemId: null,
+            sortOrder: 1,
           }),
         ],
       }),
-      expect.stringContaining("page-create-preview:"),
-    );
-    await user.click(
-      await within(dialog).findByRole("button", { name: "CREATION_EDITOR_ADD_PAGE_APPLY" }),
+      expect.stringContaining("sitemap-page-create-preview:"),
     );
     await waitFor(() =>
       expect(applyProjectBuilderChangeSetMock).toHaveBeenCalledWith(
         "project-1",
-        "manual-change-set-1",
-        { previewToken: "manual-preview-token", approval: undefined },
-        expect.stringContaining("page-create-apply:"),
+        "instant-change-set-1",
+        { previewToken: "instant-preview-token", approval: undefined },
+        expect.stringContaining("sitemap-page-create-apply:"),
       ),
     );
+  });
+
+  it("routes the new-page prompt to the AI assistant with placement context", async () => {
+    const user = userEvent.setup();
+    const entrySubmit = vi.spyOn(useAIEntryStore.getState(), "submit");
+    const openDrawer = vi.spyOn(useAiChatStore.getState(), "openDrawer");
+    renderPage();
+    await screen.findByTestId("creation-editor");
+
+    await user.click(
+      screen.getAllByRole("button", { name: "CREATION_EDITOR_SITEMAP_ADD_PAGE_AFTER" })[0],
+    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "CREATION_EDITOR_SITEMAP_PAGE_PROMPT_TITLE",
+    });
+    const textarea = within(dialog).getByLabelText("CREATION_EDITOR_SITEMAP_PAGE_PROMPT_FIELD");
+    await user.type(textarea, "企业客户定价页，含套餐对比与联系方式");
+
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "CREATION_EDITOR_SITEMAP_PAGE_PROMPT_AI_ACTION",
+      }),
+    );
+
+    expect(entrySubmit).toHaveBeenCalledTimes(1);
+    // The unit i18n mock returns keys verbatim; the interpolation template and
+    // real copy are covered by the browser acceptance flow.
+    expect(entrySubmit.mock.calls[0]?.[0]).toBe("CREATION_EDITOR_SITEMAP_PAGE_PROMPT_AI_AT");
+    expect(openDrawer).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: "sitemap", targetKind: "page" }),
+    );
+    entrySubmit.mockRestore();
+    openDrawer.mockRestore();
   });
 
   it("opens the revision-pinned shared section workbench from the Sitemap canvas", async () => {

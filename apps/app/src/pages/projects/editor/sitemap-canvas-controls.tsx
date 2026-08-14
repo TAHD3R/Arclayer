@@ -1,15 +1,23 @@
 import { Highlight } from "@arclayer/ui/highlight";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@arclayer/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
-import { MousePointer2, PanelsTopLeft, Plus, Sparkles, type LucideIcon } from "lucide-react";
+import {
+  LayoutTemplate,
+  MousePointer2,
+  PanelsTopLeft,
+  Plus,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 
 import { useCreationSidebarToolsSlot } from "@/layouts/creation-layout";
 
 interface SitemapCanvasToolsProps {
-  onAddPage: () => void;
-  onManageSharedSections: () => void;
+  onAddPage: (anchor: HTMLElement) => void;
+  onAddSection: (anchor: HTMLElement) => void;
+  onManageSharedSections: (anchor: HTMLElement) => void;
   onOpenAI: () => void;
   canEdit: boolean;
   editDisabledReason: string;
@@ -19,6 +27,7 @@ interface SitemapCanvasToolsProps {
 
 export function SitemapCanvasTools({
   onAddPage,
+  onAddSection,
   onManageSharedSections,
   onOpenAI,
   canEdit,
@@ -37,6 +46,13 @@ export function SitemapCanvasTools({
             icon={Plus}
             label={t("CREATION_EDITOR_TOOL_ADD_PAGE")}
             onClick={onAddPage}
+            disabled={!canEdit}
+            disabledReason={editDisabledReason}
+          />
+          <CanvasTool
+            icon={LayoutTemplate}
+            label={t("CREATION_EDITOR_TOOL_ADD_SECTION")}
+            onClick={onAddSection}
             disabled={!canEdit}
             disabledReason={editDisabledReason}
           />
@@ -73,7 +89,7 @@ function CanvasTool({
   active?: boolean;
   disabled?: boolean;
   disabledReason?: string;
-  onClick?: () => void;
+  onClick?: (anchor: HTMLElement) => void;
 }) {
   return (
     <SidebarMenuItem className="group/nav-item">
@@ -85,7 +101,7 @@ function CanvasTool({
             className="h-10 justify-center !px-1.5 !py-1.5 text-callout"
             aria-label={label}
             disabled={disabled}
-            onClick={onClick}
+            onClick={(event) => onClick?.(event.currentTarget)}
           >
             <span
               aria-hidden="true"

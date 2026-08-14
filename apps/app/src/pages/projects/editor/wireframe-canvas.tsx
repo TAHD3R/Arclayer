@@ -2,11 +2,15 @@ import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import type { BuilderRevisionPageOut, WireframeSectionV1Output } from "@arclayer/openapi";
 import {
+  Copy,
   GripVertical,
   Monitor,
   PanelsTopLeft,
+  Settings2,
   Smartphone,
+  Sparkles,
   Tablet,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -21,6 +25,7 @@ import {
   useEditorCanvasViewport,
 } from "@/pages/projects/editor/canvas/editor-canvas";
 import { WireframePageRail } from "@/pages/projects/editor/wireframe-page-rail";
+import type { AiEditorContext } from "@/stores/use-ai-chat-store";
 
 type WireframeViewport = "desktop" | "tablet" | "mobile";
 
@@ -40,6 +45,9 @@ interface WireframeCanvasProps {
   candidateActive?: boolean;
   canEdit?: boolean;
   onReorderSection?: (sectionId: string, index: number) => void;
+  onDuplicateSection?: (sectionId: string) => void;
+  onRemoveSection?: (sectionId: string) => void;
+  onOpenAI?: (context?: AiEditorContext) => void;
 }
 
 export function WireframeCanvas({
@@ -52,6 +60,9 @@ export function WireframeCanvas({
   candidateActive = false,
   canEdit = false,
   onReorderSection,
+  onDuplicateSection,
+  onRemoveSection,
+  onOpenAI,
 }: WireframeCanvasProps) {
   const { t } = useTranslation("account");
   const [viewport, setViewport] = useState<WireframeViewport>("desktop");
@@ -159,6 +170,24 @@ export function WireframeCanvas({
                       selected={selectedSectionId === section.id}
                       draggable={canEdit && Boolean(onReorderSection)}
                       dropTarget={dropTargetSectionId === section.id}
+                      canEdit={canEdit}
+                      onDuplicate={
+                        onDuplicateSection ? () => onDuplicateSection(section.id) : undefined
+                      }
+                      onRemove={onRemoveSection ? () => onRemoveSection(section.id) : undefined}
+                      onAskAI={
+                        onOpenAI
+                          ? () =>
+                              onOpenAI({
+                                stage: "wireframe",
+                                pageId: page.itemId,
+                                pageLabel: page.title,
+                                targetKind: "section",
+                                targetId: section.id,
+                                label: section.label,
+                              })
+                          : undefined
+                      }
                       onDragStart={() => setDraggedSectionId(section.id)}
                       onDragOver={(event) => {
                         if (!draggedSectionId || draggedSectionId === section.id) return;
@@ -234,6 +263,10 @@ function WireframeSection({
   selected,
   draggable,
   dropTarget,
+  canEdit,
+  onDuplicate,
+  onRemove,
+  onAskAI,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -246,6 +279,10 @@ function WireframeSection({
   selected: boolean;
   draggable: boolean;
   dropTarget: boolean;
+  canEdit: boolean;
+  onDuplicate?: () => void;
+  onRemove?: () => void;
+  onAskAI?: () => void;
   onDragStart: () => void;
   onDragOver: (event: ReactDragEvent<HTMLLIElement>) => void;
   onDragLeave: () => void;
@@ -256,9 +293,10 @@ function WireframeSection({
   const { t } = useTranslation("account");
   const bindings = section.bindings ?? [];
   const missingCount = bindings.filter((binding) => binding.kind === "missing").length;
+  const showActions = selected || Boolean(onDuplicate) || Boolean(onRemove) || Boolean(onAskAI);
   return (
     <li
-      className={cn("relative pl-8", dropTarget && "rounded-lg bg-primary/5")}
+      className={cn("group/section relative pl-8", dropTarget && "rounded-lg bg-primary/5")}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -266,6 +304,46 @@ function WireframeSection({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
+      {showActions ? (
+        <div
+          data-wireframe-section-actions=""
+          className={cn(
+            "absolute top-3 right-3 z-10 flex items-center gap-0.5 rounded-md border border-border bg-background/95 p-0.5 shadow-sm transition-opacity",
+            selected
+              ? "opacity-100"
+              : "opacity-0 group-hover/section:opacity-100 focus-within:opacity-100",
+          )}
+        >
+          <SectionActionButton
+            label={t("CREATION_EDITOR_WIREFRAME_SECTION_CONFIGURE")}
+            icon={Settings2}
+            onClick={onSelect}
+          />
+          {canEdit && onDuplicate ? (
+            <SectionActionButton
+              label={t("CREATION_EDITOR_WIREFRAME_SECTION_DUPLICATE")}
+              icon={Copy}
+              onClick={onDuplicate}
+            />
+          ) : null}
+          {onAskAI ? (
+            <SectionActionButton
+              label={t("CREATION_EDITOR_WIREFRAME_SECTION_ASK_AI")}
+              icon={Sparkles}
+              onClick={onAskAI}
+              accent
+            />
+          ) : null}
+          {canEdit && onRemove ? (
+            <SectionActionButton
+              label={t("CREATION_EDITOR_WIREFRAME_SECTION_REMOVE")}
+              icon={Trash2}
+              destructive
+              onClick={onRemove}
+            />
+          ) : null}
+        </div>
+      ) : null}
       <span
         className={cn(
           "absolute top-5 left-0 z-10 flex size-6 items-center justify-center rounded-full border bg-background font-mono text-caption tabular-nums",
@@ -336,6 +414,42 @@ function WireframeSection({
         </div>
       </button>
     </li>
+  );
+}
+
+function SectionActionButton({
+  label,
+  icon: Icon,
+  onClick,
+  destructive,
+  accent,
+}: {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  destructive?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "flex size-7 items-center justify-center rounded-md text-label-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        destructive
+          ? "hover:bg-destructive/10 hover:text-destructive"
+          : accent
+            ? "hover:bg-accent hover:text-primary"
+            : "hover:bg-accent hover:text-label-primary",
+      )}
+    >
+      <Icon className="size-4" aria-hidden="true" />
+    </button>
   );
 }
 

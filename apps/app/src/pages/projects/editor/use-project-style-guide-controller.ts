@@ -341,6 +341,7 @@ export function useProjectStyleGuideController(input: ProjectStyleGuideControlle
 
   return {
     online,
+    projectId: input.projectId,
     assignment,
     assignmentMatchesRevision,
     sourceVersion: sourceVersionQuery.data ?? null,

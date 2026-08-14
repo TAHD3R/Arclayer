@@ -12,6 +12,8 @@ wheels/
 # MCP files
 .serena/
 .omc/
+.mimosa/
+.drawio-tmp/
 
 # Virtual environments
 .venv
@@ -75,6 +77,7 @@ htmlcov/
 # Added by code-review-graph
 .code-review-graph/
 .codex-tasks/
+.playwright-cli/
 .playwright-mcp/
 .gitnexus
 .worktrees/

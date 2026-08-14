@@ -48,6 +48,7 @@ import {
   skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
+import { AI_EDITOR_CONTEXT_ATTACHMENT_TYPE } from "@/components/ai/ai-editor-context";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAIRunTransitionStore } from "@/stores/use-ai-run-transition-store";
 
@@ -117,6 +118,33 @@ function isPlanConfirmationMessage(value: string): boolean {
   return /^(确认(?:计划)?|开始(?:构建|创建)|confirm(?:\s+plan)?|build\s+it)[。.!！]?$/i.test(
     value.trim(),
   );
+}
+
+/**
+ * Editor-context chips live as assistant-ui composer attachments; their text parts are
+ * merged ahead of the user's message when a run starts.
+ */
+function readEditorContextAttachmentText(aui: ReturnType<typeof useAui>): string | null {
+  try {
+    const attachments = aui.composer().getState().attachments ?? [];
+    const texts = attachments
+      .filter(
+        (attachment) =>
+          attachment.type === AI_EDITOR_CONTEXT_ATTACHMENT_TYPE &&
+          attachment.status.type === "complete" &&
+          Array.isArray(attachment.content),
+      )
+      .map((attachment) =>
+        (attachment.content ?? [])
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("\n"),
+      )
+      .filter(Boolean);
+    return texts.length ? texts.join("\n") : null;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveProjectlessRunExecution(input: {
@@ -673,6 +701,10 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         }
         if (!threadId) throw new AgentRuntimeProtocolError("AGENT_THREAD_NOT_INITIALIZED");
         const composerText = readComposerText(message);
+        const editorContextPrefix = readEditorContextAttachmentText(aui);
+        const agentMessage = editorContextPrefix
+          ? `${editorContextPrefix}\n\n${composerText}`
+          : composerText;
         if (isHumanInputInterrupted(projectionRef.current)) {
           const toolCallId = readString(
             projectionRef.current.run?.toolCallId,
@@ -703,7 +735,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
             executionMode: resolvedExecution.executionMode,
             confirmedPlanRunId: resolvedExecution.confirmedPlanRunId,
             siteRevisionId: null,
-            message: composerText,
+            message: agentMessage,
             idempotencyKey: commandKey(),
           },
           { signal: controller.signal },

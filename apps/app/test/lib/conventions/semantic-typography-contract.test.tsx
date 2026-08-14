@@ -27,13 +27,14 @@ describe("semantic typography contract", () => {
     expect(className).not.toContain("font-medium");
   });
 
-  it("keeps BaseTag on caption typography by default", () => {
+  it("keeps BaseTag on the compact 12px step by default", () => {
     render(<BaseTag>Draft</BaseTag>);
 
-    expect(screen.getByText("Draft").closest("span")?.parentElement).toHaveClass(
-      "text-caption",
-      "font-semibold!",
-    );
+    const label = screen.getByText("Draft").closest("span");
+    const content = label?.parentElement;
+    const root = content?.parentElement;
+    expect(content).toHaveClass("text-[12px]", "font-semibold!");
+    expect(root).toHaveClass("px-1.5", "py-0.5", "leading-4");
   });
 
   it("keeps BaseTag text truncatable without shrinking its icon", () => {

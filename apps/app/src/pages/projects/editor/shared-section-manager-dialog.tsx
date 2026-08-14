@@ -7,9 +7,9 @@ import type {
   BuilderRevisionOut,
 } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import { getErrorMessage } from "@/lib/notifications";
+import { EditorFloatingCard } from "@/pages/projects/editor/editor-floating-card";
 import { SharedSectionCatalog } from "@/pages/projects/editor/shared-section-manager-catalog";
 import { SharedSectionCreateForm } from "@/pages/projects/editor/shared-section-manager-create";
 import { SharedSectionNotice } from "@/pages/projects/editor/shared-section-manager-elements";
@@ -19,8 +19,9 @@ import {
   type SharedSectionManagerFlow,
 } from "@/pages/projects/editor/use-shared-section-manager";
 
-interface SharedSectionManagerDialogProps {
+interface SharedSectionManagerPanelProps {
   open: boolean;
+  anchor: HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   revision: BuilderRevisionOut;
@@ -31,8 +32,9 @@ interface SharedSectionManagerDialogProps {
   onDraftDiscard: () => Promise<void>;
 }
 
-export function SharedSectionManagerDialog({
+export function SharedSectionManagerPanel({
   open,
+  anchor,
   onOpenChange,
   projectId,
   revision,
@@ -41,7 +43,7 @@ export function SharedSectionManagerDialog({
   onApplied,
   onDraftAutosave,
   onDraftDiscard,
-}: SharedSectionManagerDialogProps) {
+}: SharedSectionManagerPanelProps) {
   const { t } = useTranslation("account");
   const manager = useSharedSectionManager({
     projectId,
@@ -55,15 +57,14 @@ export function SharedSectionManagerDialog({
   const titleKey = resolveDialogCopyKey(state.flow, "title");
   const descriptionKey = resolveDialogCopyKey(state.flow, "description");
   return (
-    <SettingDialog
+    <EditorFloatingCard
       open={open}
+      anchor={anchor}
       onOpenChange={actions.handleOpenChange}
       title={t(titleKey)}
       description={t(descriptionKey)}
-      preventInitialFocus={false}
-      closeButtonLabel={t("CREATION_EDITOR_SHARED_SECTIONS_CLOSE")}
-      contentClassName="sm:max-w-4xl"
-      bodyClassName="px-0 py-0"
+      widthClass="w-[min(56rem,calc(100vw-2rem))]"
+      bodyClassName="min-h-[18rem]"
       footer={
         <ManagerFooter
           flow={state.flow}
@@ -118,7 +119,7 @@ export function SharedSectionManagerDialog({
           previewing={state.previewing}
         />
       )}
-    </SettingDialog>
+    </EditorFloatingCard>
   );
 }
 

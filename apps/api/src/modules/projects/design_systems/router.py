@@ -15,6 +15,7 @@ from src.modules.projects.design_systems.concept_repository import (
 from src.modules.projects.design_systems.concept_schema import (
     DesignSystemConceptGenerationCancelRequest,
     DesignSystemConceptGenerationCreateRequest,
+    DesignSystemConceptGenerationFeedbackRequest,
     DesignSystemConceptGenerationOut,
     DesignSystemConceptGenerationRecoveryOut,
 )
@@ -420,6 +421,30 @@ async def cancel_project_design_system_concept_generation(
     service: ConceptGenerationService,
 ) -> ResponseModel[DesignSystemConceptGenerationOut]:
     data = await service.cancel(
+        project_id=ctx.project_id,
+        design_system_id=UUID(str(system_id)),
+        actor_user_id=actor_user_id,
+        generation_id=UUID(str(generation_id)),
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/{system_id}/concept-generations/{generation_id}/feedback",
+    response_model=ResponseModel[DesignSystemConceptGenerationOut],
+    dependencies=[require_project_permission("project:content:site-builder:write")],
+    summary="Attach reviewer feedback to one Agent Style Guide concept candidate",
+)
+async def submit_project_design_system_concept_feedback(
+    system_id: PublicUUID,
+    generation_id: PublicUUID,
+    payload: DesignSystemConceptGenerationFeedbackRequest,
+    ctx: ProjectContext,
+    actor_user_id: ActorUserId,
+    service: ConceptGenerationService,
+) -> ResponseModel[DesignSystemConceptGenerationOut]:
+    data = await service.submit_feedback(
         project_id=ctx.project_id,
         design_system_id=UUID(str(system_id)),
         actor_user_id=actor_user_id,

@@ -614,6 +614,7 @@
   "AI_CHAT_ERROR_NO_DETAILS": "No additional error details.",
   "AI_CHAT_ERROR_DETAILS_AVAILABLE": "Diagnostic details are available below.",
   "AI_CHAT_ERROR_GENERIC": "AI is currently unavailable in this workspace. Try again later, or contact support if the problem continues.",
+  "AI_CHAT_EDITOR_CONTEXT_CLEAR": "Remove editor context",
   "AI_CHAT_ERROR_AUTH_NO_KEY": "AI is currently unavailable in this workspace. Try again later, or contact support if the problem continues.",
   "AI_CHAT_ERROR_AUTH_NOT_WORKSPACE_MEMBER": "AI is currently unavailable in this workspace. Reopen the workspace and try again; contact support if the problem continues.",
   "AI_CHAT_ERROR_AGENT_PROJECT_CONTEXT_REQUIRED": "Open the project you want to work on, then continue.",

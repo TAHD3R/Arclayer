@@ -11,14 +11,17 @@ import { Button } from "./button";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
-type ColorPickerProps = {
+type ColorPickerContentProps = {
   color: string;
   onChange: (color: string) => void;
   ariaLabel: string;
-  className?: string;
   contentClassName?: string;
   presets?: readonly string[];
   textInputLabel?: string;
+};
+
+type ColorPickerProps = ColorPickerContentProps & {
+  className?: string;
   variant?: "button" | "swatch";
 };
 
@@ -107,16 +110,18 @@ function hslToHex(hue: number, saturation: number, lightness: number) {
   return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
 }
 
-export function ColorPicker({
+/**
+ * The interactive picker panel (saturation field, hue slider, hex input, presets).
+ * Use it directly inside your own Popover when a custom trigger is required.
+ */
+export function ColorPickerContent({
   color,
   onChange,
   ariaLabel,
-  className,
   contentClassName,
   presets = DEFAULT_PRESETS,
   textInputLabel,
-  variant = "button",
-}: ColorPickerProps) {
+}: ColorPickerContentProps) {
   const [draftColor, setDraftColor] = useState(normalizeHexColor(color) ?? "#337ea9");
   const [hsl, setHsl] = useState<[number, number, number]>(hexToHsl(draftColor));
   const saturationRef = useRef<HTMLDivElement | null>(null);
@@ -159,6 +164,120 @@ export function ColorPicker({
     commitHsl([hsl[0], saturation, lightness]);
   };
 
+  return (
+    <div
+      className={cn(
+        "w-70 rounded-xl border border-border/70 bg-popover text-popover-foreground p-3 shadow-lg",
+        contentClassName,
+      )}
+    >
+      <div className="space-y-3">
+        <div
+          ref={saturationRef}
+          className="relative h-38 w-full cursor-crosshair overflow-hidden rounded-lg border border-border/60"
+          style={{
+            background: `
+              linear-gradient(to top, rgba(0, 0, 0, 1), transparent),
+              linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0)),
+              hsl(${hsl[0]} 100% 50%)
+            `,
+          }}
+          onPointerDown={(event) => {
+            updateFromPointerEvent(event.clientX, event.clientY);
+            const move = (nextEvent: PointerEvent) =>
+              updateFromPointerEvent(nextEvent.clientX, nextEvent.clientY);
+            const up = () => {
+              window.removeEventListener("pointermove", move);
+              window.removeEventListener("pointerup", up);
+            };
+            window.addEventListener("pointermove", move);
+            window.addEventListener("pointerup", up);
+          }}
+        >
+          <div
+            className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md"
+            style={{
+              left: `${hsl[1]}%`,
+              top: `${100 - hsl[2]}%`,
+              backgroundColor: normalizedDraftColor,
+            }}
+          />
+        </div>
+
+        <input
+          type="range"
+          min={0}
+          max={360}
+          value={hsl[0]}
+          onChange={(event) => commitHsl([Number(event.target.value), hsl[1], hsl[2]])}
+          aria-label={ariaLabel}
+          className="h-3 w-full cursor-pointer appearance-none rounded-full"
+          style={{
+            background:
+              "linear-gradient(to right, hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%), hsl(180 100% 50%), hsl(240 100% 50%), hsl(300 100% 50%), hsl(360 100% 50%))",
+          }}
+        />
+
+        <div className="flex items-center gap-2">
+          <Input
+            value={draftColor}
+            aria-label={textInputLabel || ariaLabel}
+            placeholder="#337EA9"
+            className="h-9 flex-1"
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setDraftColor(nextValue);
+              const normalized = normalizeHexColor(nextValue);
+              if (normalized) {
+                setHsl(hexToHsl(normalized));
+                onChange(normalized);
+              }
+            }}
+            onBlur={() => setDraftColor(normalizedDraftColor)}
+          />
+          <div
+            className="size-9 rounded-md border border-border/70 shadow-inner"
+            style={{ backgroundColor: normalizedDraftColor }}
+          />
+        </div>
+
+        <div className="grid grid-cols-6 gap-2">
+          {presets.map((preset) => {
+            const normalizedPreset = normalizeHexColor(preset) ?? preset;
+            const selected = normalizedDraftColor === normalizedPreset;
+
+            return (
+              <button
+                key={preset}
+                type="button"
+                aria-label={normalizedPreset}
+                aria-pressed={selected}
+                className="relative size-8 rounded-full border border-border/50 transition-transform hover:scale-105"
+                style={{ backgroundColor: normalizedPreset }}
+                onClick={() => commitHex(normalizedPreset)}
+              >
+                {selected ? <Check className="absolute inset-0 m-auto size-4 text-white" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ColorPicker({
+  color,
+  onChange,
+  ariaLabel,
+  className,
+  contentClassName,
+  presets,
+  textInputLabel,
+  variant = "button",
+}: ColorPickerProps) {
+  const normalizedDraftColor = normalizeHexColor(color) ?? "#337ea9";
+
   const trigger =
     variant === "swatch" ? (
       <button
@@ -191,107 +310,20 @@ export function ColorPicker({
   return (
     <Popover>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className={cn("z-[2400] w-70 rounded-xl border border-border/70 p-3", contentClassName)}
-      >
+      <PopoverContent align="start" className="w-auto border-0 bg-transparent p-0 shadow-none">
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.16 }}
-          className="space-y-3"
         >
-          <div
-            ref={saturationRef}
-            className="relative h-38 w-full cursor-crosshair overflow-hidden rounded-lg border border-border/60"
-            style={{
-              background: `
-                linear-gradient(to top, rgba(0, 0, 0, 1), transparent),
-                linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0)),
-                hsl(${hsl[0]} 100% 50%)
-              `,
-            }}
-            onPointerDown={(event) => {
-              updateFromPointerEvent(event.clientX, event.clientY);
-              const move = (nextEvent: PointerEvent) =>
-                updateFromPointerEvent(nextEvent.clientX, nextEvent.clientY);
-              const up = () => {
-                window.removeEventListener("pointermove", move);
-                window.removeEventListener("pointerup", up);
-              };
-              window.addEventListener("pointermove", move);
-              window.addEventListener("pointerup", up);
-            }}
-          >
-            <motion.div
-              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md"
-              style={{
-                left: `${hsl[1]}%`,
-                top: `${100 - hsl[2]}%`,
-                backgroundColor: normalizedDraftColor,
-              }}
-            />
-          </div>
-
-          <input
-            type="range"
-            min={0}
-            max={360}
-            value={hsl[0]}
-            onChange={(event) => commitHsl([Number(event.target.value), hsl[1], hsl[2]])}
-            aria-label={ariaLabel}
-            className="h-3 w-full cursor-pointer appearance-none rounded-full"
-            style={{
-              background:
-                "linear-gradient(to right, hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%), hsl(180 100% 50%), hsl(240 100% 50%), hsl(300 100% 50%), hsl(360 100% 50%))",
-            }}
+          <ColorPickerContent
+            color={color}
+            onChange={onChange}
+            ariaLabel={ariaLabel}
+            contentClassName={contentClassName}
+            presets={presets}
+            textInputLabel={textInputLabel}
           />
-
-          <div className="flex items-center gap-2">
-            <Input
-              value={draftColor}
-              aria-label={textInputLabel || ariaLabel}
-              placeholder="#337EA9"
-              className="h-9 flex-1"
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setDraftColor(nextValue);
-                const normalized = normalizeHexColor(nextValue);
-                if (normalized) {
-                  setHsl(hexToHsl(normalized));
-                  onChange(normalized);
-                }
-              }}
-              onBlur={() => setDraftColor(normalizedDraftColor)}
-            />
-            <div
-              className="size-9 rounded-md border border-border/70 shadow-inner"
-              style={{ backgroundColor: normalizedDraftColor }}
-            />
-          </div>
-
-          <div className="grid grid-cols-6 gap-2">
-            {presets.map((preset) => {
-              const normalizedPreset = normalizeHexColor(preset) ?? preset;
-              const selected = normalizedDraftColor === normalizedPreset;
-
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  aria-label={normalizedPreset}
-                  aria-pressed={selected}
-                  className="relative size-8 rounded-full border border-border/50 transition-transform hover:scale-105"
-                  style={{ backgroundColor: normalizedPreset }}
-                  onClick={() => commitHex(normalizedPreset)}
-                >
-                  {selected ? (
-                    <Check className="absolute inset-0 m-auto size-4 text-white" />
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
         </motion.div>
       </PopoverContent>
     </Popover>

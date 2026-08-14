@@ -229,6 +229,8 @@ interface FloatingPanelContentProps {
   titleClassName?: string;
   descriptionClassName?: string;
   matchTriggerWidth?: boolean;
+  /** Overrides the built-in title element for aria-labelledby when the caller renders its own header. */
+  labelledBy?: string;
 }
 
 type FloatingPanelPlacement = "auto" | "top" | "bottom" | "right-start";
@@ -324,6 +326,7 @@ export function FloatingPanelContent({
   titleClassName,
   descriptionClassName,
   matchTriggerWidth = false,
+  labelledBy,
 }: FloatingPanelContentProps) {
   const { isOpen, closeFloatingPanel, uniqueId, triggerRect, triggerEl, title } =
     useFloatingPanel();
@@ -460,7 +463,7 @@ export function FloatingPanelContent({
             variants={variants}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={`floating-panel-title-${uniqueId}`}
+            aria-labelledby={labelledBy ?? `floating-panel-title-${uniqueId}`}
             aria-describedby={description ? `floating-panel-desc-${uniqueId}` : undefined}
             id={`floating-panel-content-${uniqueId}`}
             tabIndex={-1}

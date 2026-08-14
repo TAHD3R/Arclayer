@@ -7,6 +7,18 @@ export type AIComposerMode = "build" | "plan";
 export type AIReasoningEffort = "low" | "medium" | "high";
 export type AIPreferenceSource = "default" | "user";
 
+export type AiEditorContextStage = "sitemap" | "wireframe" | "styleGuide" | "design";
+export type AiEditorContextTargetKind = "page" | "section" | "styleGuide";
+
+export interface AiEditorContext {
+  stage: AiEditorContextStage;
+  pageId?: string;
+  pageLabel?: string;
+  targetKind?: AiEditorContextTargetKind;
+  targetId?: string;
+  label: string;
+}
+
 export interface AIChatState {
   selectedModel: string;
   selectedModelSource: AIPreferenceSource;
@@ -17,6 +29,11 @@ export interface AIChatState {
   selectedAgentId: string | null;
   webSearchEnabled: boolean;
   drawerOpen: boolean;
+  /**
+   * One-shot editor context set by `openDrawer(context)`. The drawer consumes it by attaching
+   * it to the composer as an assistant-ui editor-context attachment.
+   */
+  pendingEditorContext: AiEditorContext | null;
 
   setSelectedModel: (model: string, source?: AIPreferenceSource) => void;
   setComposerMode: (mode: AIComposerMode, source?: AIPreferenceSource) => void;
@@ -27,9 +44,10 @@ export interface AIChatState {
     composerMode?: AIComposerMode;
   }) => void;
   setSelectedAgentId: (agentId: string | null) => void;
-  openDrawer: () => void;
+  openDrawer: (context?: AiEditorContext) => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
+  consumePendingEditorContext: () => AiEditorContext | null;
 }
 
 export const AUTO_AI_CHAT_MODEL = "__auto__";
@@ -45,7 +63,7 @@ export function resolveAIRequestModel(model: string): string | undefined {
 
 export const useAiChatStore = create<AIChatState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       selectedModel: AUTO_AI_CHAT_MODEL,
       selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
@@ -55,6 +73,7 @@ export const useAiChatStore = create<AIChatState>()(
       selectedAgentId: DEFAULT_AI_AGENT_ID,
       webSearchEnabled: false,
       drawerOpen: false,
+      pendingEditorContext: null,
 
       setSelectedModel: (model, source = "user") => {
         const next = model.trim();
@@ -89,9 +108,14 @@ export const useAiChatStore = create<AIChatState>()(
           return Object.keys(patch).length > 0 ? patch : state;
         }),
       setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
-      openDrawer: () => set({ drawerOpen: true }),
-      closeDrawer: () => set({ drawerOpen: false }),
+      openDrawer: (context) => set({ drawerOpen: true, pendingEditorContext: context ?? null }),
+      closeDrawer: () => set({ drawerOpen: false, pendingEditorContext: null }),
       toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
+      consumePendingEditorContext: () => {
+        const context = get().pendingEditorContext;
+        if (context) set({ pendingEditorContext: null });
+        return context;
+      },
     }),
     {
       name: STORAGE_KEYS.aiChat,

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { cn } from "@arclayer/lib/utils";
 import type { DesignSystemManifestV1 } from "@arclayer/openapi";
 
 const PALETTE_PATHS = [
@@ -16,9 +17,11 @@ const PALETTE_PATHS = [
 export function StyleGuideFoundationPreview({
   manifest,
   candidate,
+  compact = false,
 }: {
   manifest: DesignSystemManifestV1;
   candidate: boolean;
+  compact?: boolean;
 }) {
   const { t } = useTranslation("account");
   const palette = useMemo(
@@ -33,33 +36,40 @@ export function StyleGuideFoundationPreview({
   const size = tokenString(manifest, "primitive.font.size.body");
   const motion = tokenString(manifest, "primitive.motion.duration.standard");
   return (
-    <div className="pt-7">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-title3 font-semibold text-label-primary">
-            {t("CREATION_EDITOR_STYLE_PALETTE_TITLE")}
-          </h2>
-          <p className="mt-1 text-footnote text-label-secondary">
+    <div className={compact ? "" : "pt-7"}>
+      {!compact ? (
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-title3 font-semibold text-label-primary">
+              {t("CREATION_EDITOR_STYLE_PALETTE_TITLE")}
+            </h2>
+            <p className="mt-1 text-footnote text-label-secondary">
+              {candidate
+                ? t("CREATION_EDITOR_STYLE_CANDIDATE_CANVAS_DESC")
+                : t("CREATION_EDITOR_STYLE_CURRENT_CANVAS_DESC")}
+            </p>
+          </div>
+          <span className="text-caption font-medium text-primary">
             {candidate
-              ? t("CREATION_EDITOR_STYLE_CANDIDATE_CANVAS_DESC")
-              : t("CREATION_EDITOR_STYLE_CURRENT_CANVAS_DESC")}
-          </p>
+              ? t("CREATION_EDITOR_STYLE_SERVER_CANDIDATE")
+              : t("CREATION_EDITOR_STYLE_CURRENT_VERSION")}
+          </span>
         </div>
-        <span className="text-caption font-medium text-primary">
-          {candidate
-            ? t("CREATION_EDITOR_STYLE_SERVER_CANDIDATE")
-            : t("CREATION_EDITOR_STYLE_CURRENT_VERSION")}
-        </span>
-      </div>
+      ) : null}
       {palette.length ? (
-        <div className="mt-4 grid overflow-hidden rounded-lg border border-border sm:grid-cols-7">
+        <div
+          className={cn(
+            "grid overflow-hidden rounded-lg border border-border",
+            compact ? "grid-cols-7" : "mt-4 sm:grid-cols-7",
+          )}
+        >
           {palette.map((token) => (
             <div key={token.path} className="min-w-0 bg-card">
               <div
-                className="h-24 border-b border-border"
+                className={cn("border-b border-border", compact ? "h-10" : "h-24")}
                 style={{ backgroundColor: token.value }}
               />
-              <div className="px-3 py-2">
+              <div className={compact ? "px-1.5 py-1" : "px-3 py-2"}>
                 <p className="truncate font-mono text-caption text-label-secondary">
                   {token.path.split(".").at(-1)}
                 </p>
@@ -77,25 +87,40 @@ export function StyleGuideFoundationPreview({
           </p>
         </div>
       )}
-      <div className="mt-8 grid gap-8 border-t border-border pt-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(16rem,0.8fr)]">
+      <div
+        className={cn(
+          "grid gap-8 border-t border-border pt-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(16rem,0.8fr)]",
+          compact && "mt-5 gap-5 pt-5 lg:grid-cols-1",
+        )}
+      >
         <div>
-          <h2 className="text-title3 font-semibold text-label-primary">
-            {t("CREATION_EDITOR_STYLE_TYPE_TITLE")}
-          </h2>
+          {!compact ? (
+            <h2 className="text-title3 font-semibold text-label-primary">
+              {t("CREATION_EDITOR_STYLE_TYPE_TITLE")}
+            </h2>
+          ) : null}
           <p
-            className="mt-4 text-title1 font-semibold tracking-tight text-label-primary"
+            className={cn(
+              "font-semibold tracking-tight text-label-primary",
+              compact ? "mt-0 text-title2" : "mt-4 text-title1",
+            )}
             style={font ? { fontFamily: font } : undefined}
           >
             {t("CREATION_EDITOR_STYLE_TYPE_SAMPLE")}
           </p>
           <p
-            className="mt-3 max-w-2xl text-body text-label-secondary"
+            className={cn("text-body text-label-secondary", !compact && "mt-3 max-w-2xl")}
             style={font ? { fontFamily: font } : undefined}
           >
             {t("CREATION_EDITOR_STYLE_TYPE_BODY_SAMPLE")}
           </p>
         </div>
-        <dl className="grid content-start gap-3 border-l border-border pl-5 text-footnote">
+        <dl
+          className={cn(
+            "grid content-start gap-3 border-l border-border pl-5 text-footnote",
+            compact && "border-l-0 pl-0",
+          )}
+        >
           <TokenEvidence label={t("CREATION_EDITOR_STYLE_FONT_FAMILY")} value={font} />
           <TokenEvidence label={t("CREATION_EDITOR_STYLE_BASE_SIZE")} value={size} />
           <TokenEvidence label={t("CREATION_EDITOR_STYLE_MOTION")} value={motion} />
