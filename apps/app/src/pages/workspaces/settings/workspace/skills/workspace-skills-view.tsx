@@ -8,7 +8,7 @@ import {
   Search,
   Upload,
 } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { unstable_defaultDirectiveFormatter } from "@assistant-ui/react";
@@ -22,12 +22,14 @@ import {
 import { useEnabledAIComposerSkills } from "@/components/ai/ai-composer-skill-menu";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
+import { ButtonGroup, ButtonGroupSeparator } from "@arclayer/ui/button-group";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 
@@ -39,10 +41,12 @@ import {
 } from "./workspace-skill-authoring-dialog";
 import { WorkspaceSkillCatalogView } from "./workspace-skill-catalog-view";
 import { WorkspaceSkillDetail } from "./workspace-skill-detail";
-import { WorkspaceSkillGitHubImportDialog } from "./workspace-skill-github-dialog";
 import { WorkspaceSkillGitHubStatus } from "./workspace-skill-github-status";
+import {
+  WorkspaceSkillImportDialog,
+  type WorkspaceSkillImportMode,
+} from "./workspace-skill-import-dialog";
 import { WorkspaceSkillInstallDialog } from "./workspace-skill-install-dialog";
-import { WorkspaceSkillZipImportDialog } from "./workspace-skill-zip-dialog";
 import { WorkspaceOfficialSkillsCatalog } from "./workspace-official-skills-catalog";
 
 export function WorkspaceSkillsView({
@@ -55,12 +59,8 @@ export function WorkspaceSkillsView({
   focusRequestId?: number;
 }) {
   const { t } = useTranslation(["settings", "common"]);
-  const navigate = useNavigate();
   const controller = useWorkspaceSkillsController(workspaceId);
-  const creatorSkillsQuery = useEnabledAIComposerSkills({ workspaceId });
-  const skillCreator = creatorSkillsQuery.skills.find(
-    (skill) => skill.command === AI_COMPOSER_SKILL_CREATOR_COMMAND,
-  );
+  const [importMode, setImportMode] = useState<WorkspaceSkillImportMode>("github");
   const {
     capabilitiesQuery,
     packagesQuery,
@@ -87,8 +87,10 @@ export function WorkspaceSkillsView({
 
   useEffect(() => {
     if (requestedAction === "manual") setDialog("manual");
-    if (requestedAction === "github") setDialog("github");
-    if (requestedAction === "zip") setDialog("zip");
+    if (requestedAction === "github" || requestedAction === "zip") {
+      setImportMode(requestedAction);
+      setDialog("import");
+    }
   }, [focusRequestId, requestedAction, setDialog]);
 
   return (
@@ -102,34 +104,14 @@ export function WorkspaceSkillsView({
           <div className="space-y-1">
             <h2
               id="workspace-skills-section-title"
-              className="text-title3 font-semibold text-label-primary"
+              className="text-title2 font-bold text-label-primary"
             >
               {t("settings:SETTINGS_WORKSPACE_SKILLS_TAB_WORKSPACE")}
             </h2>
-            <p className="max-w-3xl text-footnote leading-6 text-label-secondary">
+            <p className="max-w-3xl text-body text-label-secondary">
               {t("settings:SETTINGS_WORKSPACE_SKILLS_TAB_WORKSPACE_DESC")}
             </p>
           </div>
-          <WorkspaceSkillCreateMenu
-            buildDisabled={creatorSkillsQuery.isLoading || !skillCreator}
-            onBuild={() => {
-              if (!skillCreator) throw new Error("AI_COMPOSER_SKILL_CREATOR_UNAVAILABLE");
-              const directive = {
-                type: "skill" as const,
-                id: skillCreator.id,
-                label: skillCreator.label,
-                command: AI_COMPOSER_SKILL_CREATOR_COMMAND,
-              };
-              useAIComposerDirectiveStore.getState().addDirectives("home", [directive]);
-              void navigate({
-                to: "/",
-                search: {
-                  prompt: `${unstable_defaultDirectiveFormatter.serialize(directive)} `,
-                } as never,
-              });
-            }}
-            onSelect={setDialog}
-          />
         </header>
 
         <PageExtraToolbar
@@ -187,11 +169,11 @@ export function WorkspaceSkillsView({
         <header className="space-y-1">
           <h2
             id="official-skills-section-title"
-            className="text-title3 font-semibold text-label-primary"
+            className="text-title2 font-bold text-label-primary"
           >
             {t("settings:SETTINGS_WORKSPACE_SKILLS_TAB_OFFICIAL")}
           </h2>
-          <p className="max-w-3xl text-footnote leading-6 text-label-secondary">
+          <p className="max-w-3xl text-body text-label-secondary">
             {t("settings:SETTINGS_WORKSPACE_SKILLS_TAB_OFFICIAL_DESC")}
           </p>
         </header>
@@ -204,17 +186,16 @@ export function WorkspaceSkillsView({
         open={dialog === "manual"}
         pending={createPackageMutation.isPending}
       />
-      <WorkspaceSkillGitHubImportDialog
-        onOpenChange={(open) => setDialog(open ? "github" : null)}
-        onSubmit={(payload) => githubImportMutation.mutateAsync(payload).then(() => undefined)}
-        open={dialog === "github"}
-        pending={githubImportMutation.isPending}
-      />
-      <WorkspaceSkillZipImportDialog
-        onOpenChange={(open) => setDialog(open ? "zip" : null)}
-        onSubmit={(file) => zipImportMutation.mutateAsync(file).then(() => undefined)}
-        open={dialog === "zip"}
-        pending={zipImportMutation.isPending}
+      <WorkspaceSkillImportDialog
+        githubPending={githubImportMutation.isPending}
+        initialMode={importMode}
+        onGitHubSubmit={(payload) =>
+          githubImportMutation.mutateAsync(payload).then(() => undefined)
+        }
+        onOpenChange={(open) => setDialog(open ? "import" : null)}
+        onZipSubmit={(file) => zipImportMutation.mutateAsync(file).then(() => undefined)}
+        open={dialog === "import"}
+        zipPending={zipImportMutation.isPending}
       />
       <WorkspaceSkillVersionCreateDialog
         onOpenChange={(open) => setDialog(open ? "version" : null)}
@@ -239,6 +220,43 @@ export function WorkspaceSkillsView({
   );
 }
 
+export function WorkspaceSkillsHeaderActions({
+  workspaceId,
+  onSelect,
+}: Readonly<{
+  workspaceId: string;
+  onSelect: (action: WorkspaceSkillCreateAction) => void;
+}>) {
+  const navigate = useNavigate();
+  const creatorSkillsQuery = useEnabledAIComposerSkills({ workspaceId });
+  const skillCreator = creatorSkillsQuery.skills.find(
+    (skill) => skill.command === AI_COMPOSER_SKILL_CREATOR_COMMAND,
+  );
+
+  return (
+    <WorkspaceSkillCreateMenu
+      buildDisabled={creatorSkillsQuery.isLoading || !skillCreator}
+      onBuild={() => {
+        if (!skillCreator) throw new Error("AI_COMPOSER_SKILL_CREATOR_UNAVAILABLE");
+        const directive = {
+          type: "skill" as const,
+          id: skillCreator.id,
+          label: skillCreator.label,
+          command: AI_COMPOSER_SKILL_CREATOR_COMMAND,
+        };
+        useAIComposerDirectiveStore.getState().addDirectives("home", [directive]);
+        void navigate({
+          to: "/",
+          search: {
+            prompt: `${unstable_defaultDirectiveFormatter.serialize(directive)} `,
+          } as never,
+        });
+      }}
+      onSelect={onSelect}
+    />
+  );
+}
+
 function WorkspaceSkillCreateMenu({
   buildDisabled,
   onBuild,
@@ -250,37 +268,47 @@ function WorkspaceSkillCreateMenu({
 }>) {
   const { t } = useTranslation("settings");
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button>
-          {t("SETTINGS_WORKSPACE_SKILLS_ADD_ACTION")}
-          <ChevronDown data-icon="inline-end" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <SkillCreateMenuItem
-          icon={<Bot className="size-4" />}
-          label={t("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER")}
-          disabled={buildDisabled}
-          onSelect={onBuild}
-        />
-        <SkillCreateMenuItem
-          icon={<FileCode2 className="size-4" />}
-          label={t("SETTINGS_WORKSPACE_SKILLS_WRITE_MANUALLY")}
-          onSelect={() => onSelect("manual")}
-        />
-        <SkillCreateMenuItem
-          icon={<Github className="size-4" />}
-          label={t("SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB")}
-          onSelect={() => onSelect("github")}
-        />
-        <SkillCreateMenuItem
-          icon={<Upload className="size-4" />}
-          label={t("SETTINGS_WORKSPACE_SKILLS_UPLOAD_ZIP")}
-          onSelect={() => onSelect("zip")}
-        />
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ButtonGroup>
+      <Button className="h-10" onClick={() => onSelect("manual")}>
+        {t("SETTINGS_WORKSPACE_SKILLS_ADD_ACTION")}
+      </Button>
+      <ButtonGroupSeparator />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={t("SETTINGS_WORKSPACE_SKILLS_ADD_OPTIONS")}
+            className="size-10"
+            size="icon"
+          >
+            <ChevronDown />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <SkillCreateMenuItem
+            icon={<Bot className="size-4" />}
+            label={t("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER")}
+            disabled={buildDisabled}
+            onSelect={onBuild}
+          />
+          <DropdownMenuSeparator />
+          <SkillCreateMenuItem
+            icon={<FileCode2 className="size-4" />}
+            label={t("SETTINGS_WORKSPACE_SKILLS_WRITE_MANUALLY")}
+            onSelect={() => onSelect("manual")}
+          />
+          <SkillCreateMenuItem
+            icon={<Github className="size-4" />}
+            label={t("SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB")}
+            onSelect={() => onSelect("github")}
+          />
+          <SkillCreateMenuItem
+            icon={<Upload className="size-4" />}
+            label={t("SETTINGS_WORKSPACE_SKILLS_UPLOAD_ZIP")}
+            onSelect={() => onSelect("zip")}
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </ButtonGroup>
   );
 }
 

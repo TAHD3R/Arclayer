@@ -29452,29 +29452,9 @@ export type SkillGitHubImportAcceptedOut = {
  */
 export type SkillGitHubImportCreateRequest = {
     /**
-     * Description
-     */
-    description: string;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    /**
      * Repositoryurl
      */
     repositoryUrl: string;
-    /**
-     * Requestedref
-     */
-    requestedRef: string;
-    /**
-     * Slug
-     */
-    slug: string;
-    /**
-     * Subpath
-     */
-    subpath?: string;
 };
 
 /**

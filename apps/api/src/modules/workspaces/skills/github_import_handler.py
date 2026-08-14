@@ -31,8 +31,6 @@ class GitHubSkillSnapshotFetcher(Protocol):
         self,
         *,
         repository_url: str,
-        requested_ref: str,
-        subpath: str,
     ) -> GitHubSkillSnapshot: ...
 
 
@@ -95,8 +93,6 @@ class SkillGitHubImportJobHandler:
         try:
             snapshot = await self._fetcher.fetch(
                 repository_url=context.input_reference.repository_url,
-                requested_ref=context.input_reference.requested_ref,
-                subpath=context.input_reference.subpath,
             )
         except GitHubSourceError as exc:
             if exc.transient:
@@ -113,9 +109,6 @@ class SkillGitHubImportJobHandler:
         await context.report_progress(_progress(phase="verifying", completed=2))
         authored = build_github_skill_version(
             workspace_id=context.target.workspace_id,
-            slug=context.input_reference.slug,
-            display_name=context.input_reference.display_name,
-            description=context.input_reference.description,
             snapshot=snapshot,
         )
         await context.report_progress(_progress(phase="persisting", completed=3))
@@ -128,9 +121,6 @@ class SkillGitHubImportJobHandler:
                     import_id=context.target.import_id,
                     package_id=context.target.package_id,
                     operation=context.input_reference.operation,
-                    slug=context.input_reference.slug,
-                    display_name=context.input_reference.display_name,
-                    description=context.input_reference.description,
                     snapshot=snapshot,
                     authored=authored,
                 )

@@ -12,8 +12,7 @@ import {
 } from "@arclayer/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
-
-import { WorkspaceGuidancePlatePreview } from "./workspace-guidance-plate-editor";
+import { MarkdownPlatePreview } from "@/components/editor/markdown-plate-editor";
 
 type PendingPreview =
   | Readonly<{
@@ -97,7 +96,7 @@ export function WorkspaceGuidanceImpactDialog(props: {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {props.pendingPreview?.kind === "restore" ? (
-          <WorkspaceGuidancePlatePreview
+          <MarkdownPlatePreview
             ariaLabel={t("HISTORY_PREVIEW_CONTENT_LABEL")}
             value={props.pendingPreview.revision.content}
           />

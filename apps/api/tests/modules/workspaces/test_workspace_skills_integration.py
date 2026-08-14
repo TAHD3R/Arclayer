@@ -62,6 +62,7 @@ from src.modules.workspaces.skills.github_source import (
 from src.modules.workspaces.skills.official_catalog_repository import OfficialSkillCatalogRepository
 from src.modules.workspaces.skills.official_catalog_source import PackagedOfficialSkillCatalogSource
 from src.modules.workspaces.skills.official_catalog_sync import OfficialSkillCatalogSyncService
+from src.modules.workspaces.skills.package_metadata import SkillPackageMetadata
 from src.modules.workspaces.skills.repository import WorkspaceSkillsRepository
 from src.modules.workspaces.skills.schema import SkillPackageCreateRequest
 from src.modules.workspaces.skills.service import WorkspaceSkillsService
@@ -69,12 +70,29 @@ from src.platform.jobs.composition.execution import build_job_execution_runtime
 
 pytestmark = pytest.mark.integration
 
+_CSRF_ORIGIN = "http://testserver"
+
+
+class _AllowCommercialPolicy:
+    async def authorize(self, **_kwargs: object) -> None:
+        return None
+
+
+def _csrf_headers(client: AsyncClient) -> dict[str, str]:
+    csrf_token = client.cookies.get("csrf_token")
+    assert csrf_token is not None
+    return {"Origin": _CSRF_ORIGIN, "X-CSRF-Token": csrf_token}
+
+
+def _mutation_headers(client: AsyncClient, idempotency_key: str) -> dict[str, str]:
+    return {**_csrf_headers(client), "Idempotency-Key": idempotency_key}
+
 
 class _AcceptedSkillGitHubTransport:
     async def dispatch(self, *, task_name: str, envelope: JobDispatchEnvelope) -> str:
         assert task_name in {
-            "jobs:connector:skill-github-import:v1",
-            "jobs:connector:skill-github-refresh:v1",
+            "jobs:connector:skill-github-import:v2",
+            "jobs:connector:skill-github-refresh:v2",
         }
         return f"skill-github-dispatch:{envelope.job_id}"
 
@@ -82,16 +100,14 @@ class _AcceptedSkillGitHubTransport:
 class _DeterministicSkillGitHubFetcher:
     def __init__(self, outcomes: list[GitHubSkillSnapshot | GitHubSourceError]) -> None:
         self._outcomes = outcomes
-        self.calls: list[tuple[str, str, str]] = []
+        self.calls: list[str] = []
 
     async def fetch(
         self,
         *,
         repository_url: str,
-        requested_ref: str,
-        subpath: str,
     ) -> GitHubSkillSnapshot:
-        self.calls.append((repository_url, requested_ref, subpath))
+        self.calls.append(repository_url)
         outcome = self._outcomes.pop(0)
         if isinstance(outcome, GitHubSourceError):
             raise outcome
@@ -102,14 +118,25 @@ def _git_blob_sha(content: bytes) -> str:
     return hashlib.sha1(f"blob {len(content)}\0".encode() + content, usedforsecurity=False).hexdigest()
 
 
-def _github_snapshot(*, revision: str, instructions: str) -> GitHubSkillSnapshot:
+def _github_snapshot(
+    *,
+    revision: str,
+    instructions: str,
+    requested_ref: str = "main",
+    subpath: str = "skills/site-planner",
+) -> GitHubSkillSnapshot:
     content = instructions.encode()
     return GitHubSkillSnapshot(
         repository_url="https://github.com/acme/site-planner",
-        requested_ref="main",
-        subpath="skills/site-planner",
+        requested_ref=requested_ref,
+        subpath=subpath,
         resolved_commit=revision * 40,
         resolved_tree=("f" if revision != "f" else "e") * 40,
+        metadata=SkillPackageMetadata(
+            slug="site-planner",
+            display_name="Site Planner",
+            description="Plans a reviewable sitemap and wireframe.",
+        ),
         resources=(
             GitHubTreeResource(
                 path="SKILL.md",
@@ -554,9 +581,18 @@ async def test_workspace_skills_inline_authority_is_versioned_tenant_safe_and_au
 
 async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and_tenant_safe(
     prepared_db,
+    monkeypatch,
 ) -> None:
     _ = prepared_db
     settings = get_settings()
+    monkeypatch.setattr(
+        "src.modules.workspaces.authz.http.service.build_restricted_recovery_command_policy",
+        _AllowCommercialPolicy,
+    )
+    monkeypatch.setattr(
+        "src.platform.jobs.composition.execution.build_commercial_access_job_authorizer",
+        _AllowCommercialPolicy,
+    )
     app = create_app()
     transport = ASGITransport(app=app, raise_app_exceptions=False)
 
@@ -583,21 +619,21 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
         base_url = f"/api/v1/workspaces/{workspace_id}/skills"
         payload = {
             "repositoryUrl": "https://github.com/Acme/Site-Planner.git",
-            "requestedRef": "main",
-            "subpath": "skills/site-planner",
-            "slug": "site-planner",
-            "displayName": "Site Planner",
-            "description": "Plans a reviewable sitemap and wireframe.",
         }
 
         try:
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                missing_key = await client.post(f"{base_url}/imports", json=payload)
+            async with AsyncClient(transport=transport, base_url=_CSRF_ORIGIN) as client:
+                await client.get("/api/v1/runtime")
+                missing_key = await client.post(
+                    f"{base_url}/imports",
+                    headers=_csrf_headers(client),
+                    json=payload,
+                )
                 assert missing_key.status_code == 422, missing_key.text
 
                 created = await client.post(
                     f"{base_url}/imports",
-                    headers={"Idempotency-Key": "github-site-planner-initial"},
+                    headers=_mutation_headers(client, "github-site-planner-initial"),
                     json=payload,
                 )
                 assert created.status_code == 202, created.text
@@ -609,7 +645,7 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
 
                 replay = await client.post(
                     f"{base_url}/imports",
-                    headers={"Idempotency-Key": "github-site-planner-initial"},
+                    headers=_mutation_headers(client, "github-site-planner-initial"),
                     json=payload,
                 )
                 assert replay.status_code == 202, replay.text
@@ -617,8 +653,8 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
 
                 conflict = await client.post(
                     f"{base_url}/imports",
-                    headers={"Idempotency-Key": "github-site-planner-initial"},
-                    json={**payload, "requestedRef": "release"},
+                    headers=_mutation_headers(client, "github-site-planner-initial"),
+                    json={"repositoryUrl": "https://github.com/acme/other-skill"},
                 )
                 assert conflict.status_code == 409, conflict.text
                 assert conflict.json()["error"] == "SKILL_IDEMPOTENCY_CONFLICT"
@@ -641,7 +677,7 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
                 assert initial_job.input_reference["repositoryUrl"] == "https://github.com/acme/site-planner"
                 assert "token" not in initial_job.input_reference
                 assert "resources" not in initial_job.input_reference
-                assert initial_dispatch.task_name == "jobs:connector:skill-github-import:v1"
+                assert initial_dispatch.task_name == "jobs:connector:skill-github-import:v2"
 
                 fetcher = _DeterministicSkillGitHubFetcher([
                     _github_snapshot(
@@ -674,7 +710,7 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
 
                 refresh = await client.post(
                     f"{base_url}/packages/{package_id}/refreshes",
-                    headers={"Idempotency-Key": "github-site-planner-refresh-1"},
+                    headers=_mutation_headers(client, "github-site-planner-refresh-1"),
                 )
                 assert refresh.status_code == 202, refresh.text
                 refresh_accepted = refresh.json()["data"]
@@ -701,9 +737,42 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
                 assert refreshed_package["latestVersion"]["versionNumber"] == 2
                 assert refreshed_package["latestValidVersionId"] is None
 
+                relocated_refresh = await client.post(
+                    f"{base_url}/packages/{package_id}/refreshes",
+                    headers=_mutation_headers(client, "github-site-planner-refresh-relocated"),
+                )
+                assert relocated_refresh.status_code == 202, relocated_refresh.text
+                relocated_job_id = decode_public_id(relocated_refresh.json()["data"]["jobId"])
+                relocated_fetcher = _DeterministicSkillGitHubFetcher([
+                    _github_snapshot(
+                        revision="4",
+                        requested_ref="trunk",
+                        subpath="packages/site-planner",
+                        instructions="# Site Planner\n\nCreate a sitemap, wireframe, and review checklist.\n",
+                    )
+                ])
+                relocated_outcome = await _execute_skill_github_job(
+                    job_id=relocated_job_id,
+                    fetcher=relocated_fetcher,
+                )
+                assert relocated_outcome.terminal is not None
+                assert relocated_outcome.terminal.internal_status == JobInternalStatus.SUCCEEDED
+                relocated_result = (await BackgroundJobRecord.get(id=relocated_job_id)).result_reference
+                assert relocated_result is not None
+                assert relocated_result["versionId"] != refresh_result["versionId"]
+                relocated_package = (await client.get(f"{base_url}/packages/{package_id}")).json()["data"]
+                assert relocated_package["versionCount"] == 3
+                relocated_version_response = await client.get(
+                    f"{base_url}/packages/{package_id}/versions/{relocated_result['versionId']}"
+                )
+                assert relocated_version_response.status_code == 200, relocated_version_response.text
+                relocated_version = relocated_version_response.json()["data"]
+                assert relocated_version["sourceProvenance"]["requestedRef"] == "trunk"
+                assert relocated_version["sourceProvenance"]["subpath"] == "packages/site-planner"
+
                 failed_refresh = await client.post(
                     f"{base_url}/packages/{package_id}/refreshes",
-                    headers={"Idempotency-Key": "github-site-planner-refresh-failed"},
+                    headers=_mutation_headers(client, "github-site-planner-refresh-failed"),
                 )
                 assert failed_refresh.status_code == 202, failed_refresh.text
                 failed_job_id = decode_public_id(failed_refresh.json()["data"]["jobId"])
@@ -726,8 +795,8 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
                 assert failed_state.json()["data"]["status"] == "failed"
                 assert failed_state.json()["data"]["safeErrorCode"] == SKILL_GITHUB_SOURCE_INVALID
                 preserved_package = (await client.get(f"{base_url}/packages/{package_id}")).json()["data"]
-                assert preserved_package["versionCount"] == 2
-                assert preserved_package["latestVersion"]["versionNumber"] == 2
+                assert preserved_package["versionCount"] == 3
+                assert preserved_package["latestVersion"]["versionNumber"] == 3
 
                 context = await bind_workspace_tenant_context(
                     workspace_id=workspace.id,
@@ -735,7 +804,7 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
                 )
                 repository = WorkspaceSkillsRepository(context)
                 async with repository.connection() as conn:
-                    assert await SkillGitHubImportRecord.filter(workspace_id=workspace.id).using_db(conn).count() == 3
+                    assert await SkillGitHubImportRecord.filter(workspace_id=workspace.id).using_db(conn).count() == 4
                     assert await SkillPackageRecord.filter(workspace_id=workspace.id).using_db(conn).count() == 1
                     assert not await SkillInstallationRecord.filter(workspace_id=workspace.id).using_db(conn).exists()
 
@@ -744,14 +813,14 @@ async def test_workspace_skill_github_import_refresh_and_failure_are_durable_and
                         workspace_id=workspace.id,
                         event_name="workspace.skill.github.import.requested",
                     ).count()
-                    == 3
+                    == 4
                 )
                 assert (
                     await AuditEvent.filter(
                         workspace_id=workspace.id,
                         event_name="workspace.skill.github.import.succeeded",
                     ).count()
-                    == 2
+                    == 3
                 )
         finally:
             app.dependency_overrides.clear()

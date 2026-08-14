@@ -11,6 +11,7 @@ import {
   WorkspaceSkillsPage,
   type WorkspaceSkillCreateAction,
 } from "@/pages/workspaces/settings/workspace/skills/page";
+import { WorkspaceSkillsHeaderActions } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 
@@ -56,9 +57,15 @@ export function CustomizationPage(props: {
     if (props.section !== "knowledge" || !workspaceId) setKnowledgeController(null);
   }, [props.section, workspaceId]);
 
+  const requestSkillAction = (action: WorkspaceSkillCreateAction) => {
+    setRequestedAction(action);
+    setFocusRequestId((current) => current + 1);
+  };
   const pageAction =
     props.section === "knowledge" && workspaceId && knowledgeController ? (
       <WorkspaceKnowledgeHeaderActions controller={knowledgeController} />
+    ) : props.section === "skills" && workspaceId ? (
+      <WorkspaceSkillsHeaderActions workspaceId={workspaceId} onSelect={requestSkillAction} />
     ) : null;
 
   return (

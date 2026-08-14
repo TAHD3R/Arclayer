@@ -29,7 +29,8 @@ command, or permission grant.
   - `inline`: workspace-authored declarative instructions/resources;
   - `archive`: workspace-uploaded ZIP package resolved to immutable inline
     resources with the original archive checksum retained as provenance;
-  - `github`: repository/ref/subpath imported at an immutable commit.
+  - `github`: a public repository whose current default branch contains exactly
+    one discoverable Skill root, imported at an immutable commit.
 
 Archive import accepts one bounded multipart ZIP with root `skill.json`, root
 `SKILL.md`, and optional UTF-8 Markdown, plain-text, or JSON references. Archive
@@ -49,7 +50,8 @@ The target hard cut:
   normalized tenant data;
 - separates Skill instructions from Agent identity, Tool grants, execution
   mode, approval policy, and Connector capabilities;
-- resolves GitHub refs to immutable commits before importing bytes;
+- resolves a repository's default branch to an immutable commit before
+  importing bytes;
 - validates and pins exact Skill versions before an Agent Run can use them;
 - removes locator text, `npx`, static catalog authority, and product-facing
   enable/allowlist settings after migration review.
@@ -147,7 +149,9 @@ Required fields:
 - source identity:
   - official catalog key for `builtin`;
   - workspace authoring identity for `inline`;
-  - normalized repository URL, requested ref, and subpath for `github`.
+  - normalized repository URL for Workspace `github` imports. The resolved
+    default branch and discovered Skill root are retained as source evidence,
+    not user-authored package identity.
 
 Slug uniqueness is enforced within `(scope, publisher, workspace)` after
 normalization. Source kind and package scope are immutable. Renaming metadata
@@ -214,8 +218,8 @@ Every authoring/import operation creates an immutable version candidate with:
   - official catalog release/build identity;
   - inline parent version and author;
   - ZIP archive checksum, uploaded filename, and actor;
-  - Git repository URL, requested ref, resolved full commit, subpath, tree hash,
-    and fetch timestamp;
+  - Git repository URL, resolved default branch, resolved full commit,
+    discovered Skill root, tree hash, and fetch timestamp;
 - compatibility snapshot and declared Tool/permission/data-egress sets;
 - validation-policy version, provenance actor/Job/correlation ID, and timestamps.
 
@@ -288,9 +292,9 @@ The domain router excludes `/api/v1` and uses tag
 | `POST /packages/{packageId}/versions` | Create an inline version candidate from strict manifest/resources. |
 | `GET /packages/{packageId}/versions/{versionId}` | Return immutable manifest, provenance, validation, and safe resources. |
 | `POST /imports/zip` | Idempotently import one bounded ZIP containing `skill.json`, `SKILL.md`, and optional supported text references into a package and first immutable candidate version. |
-| `POST /imports` | Create a durable GitHub import that resolves a commit and returns a candidate package/version. |
+| `POST /imports` | Accept only a public GitHub repository URL, discover its default-branch Skill package, and create a durable import that returns a candidate package/version. |
 | `GET /imports/{importId}` | Return durable queued/fetching/persisting/succeeded/failed/cancelled import evidence. |
-| `POST /packages/{packageId}/refreshes` | Queue a refresh of the package's fixed GitHub source locator without changing existing versions or installations. |
+| `POST /packages/{packageId}/refreshes` | Queue a refresh from the package's GitHub repository authority, rediscovering the current default branch and unique Skill root without changing existing versions or installations. |
 | `POST /packages/{packageId}/versions/{versionId}/validations` | Create a durable full validation attempt. |
 | `GET /packages/{packageId}/versions/{versionId}/validation-results` | List immutable validation attempts/findings. |
 | `GET /installations` | Cursor-paginated workspace installations with Agent usage and update state. |
@@ -348,10 +352,13 @@ hash changes cannot reuse a prior validation result.
 #### 6.2 GitHub import
 
 ```text
-requested repository/ref/subpath
-→ normalize and authorize source
-→ resolve ref to full immutable commit
+requested public repository URL
+→ normalize and authorize repository identity
+→ read and validate the repository default branch
+→ resolve the default branch to a full immutable commit/tree
+→ require exactly one directory containing root `skill.json` and `SKILL.md`
 → fetch bounded tree/object data
+→ parse package name, description, declarations, and stable slug from `skill.json`
 → reject escaping path/symlink/submodule behavior
 → persist resource digests and candidate version
 → validate without executing repository content
@@ -361,7 +368,7 @@ requested repository/ref/subpath
 Private repositories require an authorized GitHub Connector installation and
 remain gated until that authority exists. Public repository fetching uses a
 fixed `api.github.com` boundary with public-IP DNS pinning and forbids redirects.
-It resolves the requested ref to a full commit/tree first and then fetches each
+It resolves the current default branch to a full commit/tree first and then fetches each
 exact blob SHA through the Git object API. A moving branch cannot change bytes
 after resolution because every blob is verified against Git's canonical object
 SHA-1 identity before persistence.
@@ -434,24 +441,28 @@ secrets.
 
 Required Job types:
 
-- `skill.github.import` version `1`, task
-  `jobs:connector:skill-github-import:v1`, on workload `connector`;
-- `skill.github.refresh` version `1`, task
-  `jobs:connector:skill-github-refresh:v1`, on workload `connector`;
+- `skill.github.import` version `2`, task
+  `jobs:connector:skill-github-import:v2`, on workload `connector`;
+- `skill.github.refresh` version `2`, task
+  `jobs:connector:skill-github-refresh:v2`, on workload `connector`;
 - `skill.version.validate.v1` on workload `connector`;
 - `skill.package.purge.v1` on workload `maintenance`.
 
 GitHub Job targets contain only workspace/import IDs and the optional refresh
-package ID. Their strict input reference contains the normalized public
-repository URL, requested ref, subpath, authored identity, and request revision;
-the exact commit/tree/blob evidence exists only after fetch and is persisted in
-the domain result/version provenance. Jobs never contain repository tokens,
-package bytes, instruction text, or secrets.
+package ID. Their strict input reference contains the operation, normalized
+public repository URL, and request revision. The resolved default branch,
+discovered root, parsed package identity, and exact commit/tree/blob evidence
+exist only after fetch and are persisted in the domain result/version
+provenance. Jobs never contain repository tokens, package bytes, instruction
+text, or secrets. Non-terminal version-1 Jobs and matching import records are
+explicitly failed during migration and must be requested again.
 
-Request idempotency fingerprints the operation, repository identity, requested
-ref, subpath, slug, display name, and description. Version persistence binds
-the resolved commit/tree and package checksum; the same exact outcome is
-reconciled on redelivery without creating duplicate versions or resources.
+Request idempotency fingerprints the operation, repository identity, and
+optional refresh package identity. Version persistence binds the resolved
+default branch, discovered root, commit/tree, and package checksum; the same
+exact outcome is reconciled on redelivery without creating duplicate versions
+or resources. A changed branch name or Skill root creates new immutable
+provenance even when the resolved bytes are unchanged.
 Validation idempotency includes version checksum and validator-policy version.
 
 Only transient provider/network/rate-limit failures retry. Invalid manifests,
@@ -579,6 +590,10 @@ but every Tool/Connector/permission decision is still revalidated when used.
 | Manifest/resource/checksum mismatch | `SKILL_CHECKSUM_MISMATCH` |
 | Entrypoint/path/MIME is invalid | `SKILL_RESOURCE_INVALID` |
 | Git source/ref/subpath is invalid or forbidden | `SKILL_GITHUB_SOURCE_INVALID` |
+| Repository has no usable default branch | `SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE` |
+| Repository contains no discoverable Skill root | `SKILL_GITHUB_SKILL_ROOT_NOT_FOUND` |
+| Repository contains more than one discoverable Skill root | `SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS` |
+| Discovered `skill.json` does not satisfy the package metadata contract | `SKILL_GITHUB_METADATA_INVALID` |
 | Git object changed after resolved commit fingerprint | `SKILL_GITHUB_SOURCE_CONFLICT` |
 | Version is invalid or quarantined | `SKILL_VERSION_NOT_INSTALLABLE` |
 | Tool/Arclayer/Agent protocol compatibility fails | `SKILL_VERSION_INCOMPATIBLE` |
@@ -611,9 +626,11 @@ Required tests:
 - route tests for typed envelopes, `PublicUUID`, auth/CSRF, permission mapping,
   cursor pagination, filters, cross-workspace not-found behavior, and stable
   errors.
-- GitHub security tests for ref-to-commit pinning, moving refs, redirect/SSRF,
-  traversal, escaping symlinks, submodules, case collision, MIME mismatch,
-  archive/decompression/resource limits, token redaction, and no execution.
+- GitHub security tests for default-branch resolution, unique Skill-root
+  discovery, metadata parsing, ref-to-commit pinning, moving refs,
+  redirect/SSRF, traversal, escaping symlinks, submodules, case collision, MIME
+  mismatch, archive/decompression/resource limits, token redaction, and no
+  execution.
 - Job integration tests for import/refresh/validate redelivery, transient retry,
   permanent failure, cancellation, outbox failure, and real tenant context.
 - update tests for every diff/risk category, stale preview, changed validation,

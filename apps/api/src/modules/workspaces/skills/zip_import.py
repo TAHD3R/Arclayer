@@ -9,14 +9,12 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Literal
 
-from pydantic import ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
-from src.common.schemas import BaseSchema
 from src.modules.workspaces.skills.authoring import MAX_INLINE_PACKAGE_BYTES
-from src.modules.workspaces.skills.manifest import (
-    SkillDataEgressDeclarationV1,
-    SkillPermissionDeclarationV1,
-    SkillToolRequirementV1,
+from src.modules.workspaces.skills.package_metadata import (
+    SkillPackageMetadata,
+    parse_skill_package_metadata,
 )
 from src.modules.workspaces.skills.schema import (
     SkillInlineReferenceInput,
@@ -42,19 +40,6 @@ class SkillZipImportError(ValueError):
         super().__init__(safe_message)
         self.code = code
         self.safe_message = safe_message
-
-
-class SkillZipMetadata(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    slug: str = Field(min_length=1, max_length=96)
-    display_name: str = Field(min_length=1, max_length=128)
-    description: str = Field(min_length=1, max_length=1000)
-    semantic_version: str | None = Field(default=None, min_length=1, max_length=64)
-    required_tools: tuple[SkillToolRequirementV1, ...] = Field(default_factory=tuple, max_length=128)
-    permissions: tuple[SkillPermissionDeclarationV1, ...] = Field(default_factory=tuple, max_length=128)
-    data_egress: tuple[SkillDataEgressDeclarationV1, ...] = Field(default_factory=tuple, max_length=128)
-    capability_tags: tuple[str, ...] = Field(default_factory=tuple, max_length=128)
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,10 +159,10 @@ def _validated_member_path(member: zipfile.ZipInfo) -> str:
     return path.as_posix().rstrip("/")
 
 
-def _parse_metadata(content: bytes) -> SkillZipMetadata:
+def _parse_metadata(content: bytes) -> SkillPackageMetadata:
     try:
-        return SkillZipMetadata.model_validate_json(content)
-    except ValidationError as exc:
+        return parse_skill_package_metadata(content)
+    except ValueError as exc:
         raise SkillZipImportError(
             "SKILL_ZIP_METADATA_INVALID",
             "skill.json does not satisfy the Skill ZIP metadata contract",

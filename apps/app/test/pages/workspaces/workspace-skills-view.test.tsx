@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
-import { WorkspaceSkillsView } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
+import {
+  WorkspaceSkillsHeaderActions,
+  WorkspaceSkillsView,
+} from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
 
 const mocks = vi.hoisted(() => ({
   capabilities: vi.fn(),
@@ -283,8 +286,7 @@ describe("WorkspaceSkillsView", () => {
     });
   });
 
-  it("shows workspace and Arclayer Skills together with a compact add menu", async () => {
-    const user = userEvent.setup();
+  it("shows workspace and Arclayer Skills with the knowledge-page heading hierarchy", async () => {
     renderView();
 
     expect(
@@ -298,13 +300,23 @@ describe("WorkspaceSkillsView", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("official-skills-table")).toBeInTheDocument();
+  });
+
+  it("renders a Header split button whose primary action writes manually", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<WorkspaceSkillsHeaderActions workspaceId="workspace-1" onSelect={onSelect} />);
 
     await user.click(screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_ADD_ACTION" }));
+    expect(onSelect).toHaveBeenCalledWith("manual");
+
+    await user.click(screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_ADD_OPTIONS" }));
     expect(
       await screen.findByRole("menuitem", {
         name: "SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER",
       }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole("separator").length).toBeGreaterThan(0);
     expect(
       screen.queryByText("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER_DESC"),
     ).not.toBeInTheDocument();

@@ -147,11 +147,6 @@ describe("api/workspace skills contracts", () => {
       "workspace/alpha",
       {
         repositoryUrl: "https://github.com/acme/site-skill",
-        requestedRef: "main",
-        subpath: "skills/site",
-        slug: "site-skill",
-        displayName: "Site Skill",
-        description: "Plans a site.",
       },
       "github-import-command",
     );

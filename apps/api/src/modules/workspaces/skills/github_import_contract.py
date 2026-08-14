@@ -27,16 +27,20 @@ from src.settings.env_models import BackgroundJobExecutionSettings
 
 SKILL_GITHUB_IMPORT_JOB_TYPE: Final = "skill.github.import"
 SKILL_GITHUB_REFRESH_JOB_TYPE: Final = "skill.github.refresh"
-SKILL_GITHUB_JOB_TYPE_VERSION: Final = 1
-SKILL_GITHUB_IMPORT_TASK_NAME: Final = "jobs:connector:skill-github-import:v1"
-SKILL_GITHUB_REFRESH_TASK_NAME: Final = "jobs:connector:skill-github-refresh:v1"
+SKILL_GITHUB_JOB_TYPE_VERSION: Final = 2
+SKILL_GITHUB_IMPORT_TASK_NAME: Final = "jobs:connector:skill-github-import:v2"
+SKILL_GITHUB_REFRESH_TASK_NAME: Final = "jobs:connector:skill-github-refresh:v2"
 
 SKILL_GITHUB_CONFIGURATION_INVALID: Final = "SKILL_GITHUB_CONFIGURATION_INVALID"
+SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE: Final = "SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE"
 SKILL_GITHUB_LIMIT_EXCEEDED: Final = "SKILL_GITHUB_LIMIT_EXCEEDED"
+SKILL_GITHUB_METADATA_INVALID: Final = "SKILL_GITHUB_METADATA_INVALID"
 SKILL_GITHUB_RESPONSE_INVALID: Final = "SKILL_GITHUB_RESPONSE_INVALID"
 SKILL_GITHUB_SLUG_CONFLICT: Final = "SKILL_GITHUB_SLUG_CONFLICT"
 SKILL_GITHUB_SOURCE_CONFLICT: Final = "SKILL_GITHUB_SOURCE_CONFLICT"
 SKILL_GITHUB_SOURCE_INVALID: Final = "SKILL_GITHUB_SOURCE_INVALID"
+SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS: Final = "SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS"
+SKILL_GITHUB_SKILL_ROOT_NOT_FOUND: Final = "SKILL_GITHUB_SKILL_ROOT_NOT_FOUND"
 SKILL_GITHUB_TARGET_NOT_FOUND: Final = "SKILL_GITHUB_TARGET_NOT_FOUND"
 SKILL_GITHUB_TEMPORARILY_UNAVAILABLE: Final = "SKILL_GITHUB_TEMPORARILY_UNAVAILABLE"
 
@@ -56,11 +60,15 @@ SKILL_GITHUB_TERMINAL_ERROR_CONTRACTS: Final = tuple(
                 JobTerminalErrorContract(code=code, metadata_schema=None)
                 for code in (
                     SKILL_GITHUB_CONFIGURATION_INVALID,
+                    SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE,
                     SKILL_GITHUB_LIMIT_EXCEEDED,
+                    SKILL_GITHUB_METADATA_INVALID,
                     SKILL_GITHUB_RESPONSE_INVALID,
                     SKILL_GITHUB_SLUG_CONFLICT,
                     SKILL_GITHUB_SOURCE_CONFLICT,
                     SKILL_GITHUB_SOURCE_INVALID,
+                    SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS,
+                    SKILL_GITHUB_SKILL_ROOT_NOT_FOUND,
                     SKILL_GITHUB_TARGET_NOT_FOUND,
                     SKILL_GITHUB_TEMPORARILY_UNAVAILABLE,
                 )
@@ -90,11 +98,6 @@ class SkillGitHubImportJobInput(BaseSchema):
 
     operation: Literal["initial", "refresh"]
     repository_url: str = Field(min_length=1, max_length=2048)
-    requested_ref: str = Field(min_length=1, max_length=256)
-    subpath: str = Field(max_length=512)
-    slug: str = Field(min_length=1, max_length=96)
-    display_name: str = Field(min_length=1, max_length=128)
-    description: str = Field(min_length=1, max_length=1000)
     request_revision: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
 

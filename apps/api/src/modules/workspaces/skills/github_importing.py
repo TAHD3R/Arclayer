@@ -30,8 +30,5 @@ class SkillGitHubImportWrite(BaseModel):
     import_id: UUID
     package_id: UUID | None
     operation: Literal["initial", "refresh"]
-    slug: str
-    display_name: str
-    description: str
     snapshot: GitHubSkillSnapshot
     authored: InlineSkillVersion

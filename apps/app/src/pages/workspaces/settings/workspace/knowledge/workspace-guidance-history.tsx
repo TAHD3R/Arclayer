@@ -31,9 +31,9 @@ import {
 } from "@arclayer/ui/alert-dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { cn } from "@arclayer/lib/utils";
+import { MarkdownPlatePreview } from "@/components/editor/markdown-plate-editor";
 
 import type { WorkspaceGuidanceController } from "./use-workspace-guidance-controller";
-import { WorkspaceGuidancePlatePreview } from "./workspace-guidance-plate-editor";
 
 export function GuidanceHistory({ controller }: { controller: WorkspaceGuidanceController }) {
   const { t } = useTranslation("knowledge");
@@ -316,7 +316,7 @@ export function WorkspaceGuidanceRevisionDialog(props: {
           <AlertDialogDescription>{t("HISTORY_PREVIEW_DESCRIPTION")}</AlertDialogDescription>
         </AlertDialogHeader>
         {props.revision ? (
-          <WorkspaceGuidancePlatePreview
+          <MarkdownPlatePreview
             ariaLabel={t("HISTORY_PREVIEW_CONTENT_LABEL")}
             value={props.revision.content}
           />

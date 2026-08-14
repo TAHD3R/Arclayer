@@ -15,6 +15,7 @@ type SettingDialogProps = {
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
   description?: ReactNode;
+  headerContent?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   contentClassName?: string;
@@ -36,6 +37,7 @@ export function SettingDialog({
   onOpenChange,
   title,
   description,
+  headerContent,
   children,
   footer,
   contentClassName,
@@ -77,7 +79,12 @@ export function SettingDialog({
             : undefined
         }
       >
-        <DialogHeader className="min-w-0 px-6 py-5 text-left border-b">
+        <DialogHeader
+          className={cn(
+            "min-w-0 px-6 py-5 text-left",
+            headerContent ? "pb-0" : "border-b",
+          )}
+        >
           <DialogTitle
             className={cn("text-title3 font-semibold text-label-primary", titleClassName)}
           >
@@ -87,6 +94,14 @@ export function SettingDialog({
             <DialogDescription asChild>
               <div className="mb-0 text-body text-label-secondary">{displayDescription}</div>
             </DialogDescription>
+          ) : null}
+          {headerContent ? (
+            <div
+              data-slot="setting-dialog-header-content"
+              className="-mx-6 mt-1 min-w-0 shrink-0 border-b"
+            >
+              {headerContent}
+            </div>
           ) : null}
         </DialogHeader>
 

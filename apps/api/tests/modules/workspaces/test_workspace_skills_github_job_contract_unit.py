@@ -34,11 +34,6 @@ def _input(operation: Literal["initial", "refresh"]) -> SkillGitHubImportJobInpu
     return SkillGitHubImportJobInput(
         operation=operation,
         repository_url="https://github.com/acme/site-skill",
-        requested_ref="main",
-        subpath="skills/site",
-        slug="site-skill",
-        display_name="Site Skill",
-        description="Plans and reviews a site.",
         request_revision=_REVISION,
     )
 
@@ -70,7 +65,7 @@ def test_github_skill_job_definitions_use_actor_revalidated_connector_authority(
     definition = builder(execution_policy=getattr(settings.background_jobs, policy_name))
 
     assert definition.job_type == job_type
-    assert definition.job_type_version == SKILL_GITHUB_JOB_TYPE_VERSION == 1
+    assert definition.job_type_version == SKILL_GITHUB_JOB_TYPE_VERSION == 2
     assert definition.task_name == task_name
     assert definition.workload_class == JobWorkloadClass.CONNECTOR
     assert definition.target_scope == JobTargetScope.WORKSPACE

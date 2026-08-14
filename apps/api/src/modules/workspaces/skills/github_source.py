@@ -10,6 +10,7 @@ import orjson
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.modules.workspaces.skills.manifest import normalize_skill_resource_path
+from src.modules.workspaces.skills.package_metadata import SkillPackageMetadata
 
 _REPOSITORY_SEGMENT = re.compile(r"^[A-Za-z0-9_.-]+$")
 _GIT_SHA = r"^[0-9a-f]{40}$"
@@ -60,6 +61,7 @@ class GitHubSkillSnapshot(BaseModel):
     subpath: str
     resolved_commit: str = Field(pattern=_GIT_SHA)
     resolved_tree: str = Field(pattern=_GIT_SHA)
+    metadata: SkillPackageMetadata | None = None
     resources: tuple[GitHubTreeResource, ...] = Field(min_length=1)
 
 
@@ -138,22 +140,25 @@ def build_github_request_revision(
     *,
     operation: str,
     repository_url: str,
-    requested_ref: str,
-    subpath: str,
-    slug: str,
-    display_name: str,
-    description: str,
+    requested_ref: str | None = None,
+    subpath: str | None = None,
+    slug: str | None = None,
+    display_name: str | None = None,
+    description: str | None = None,
+    package_id: str | None = None,
 ) -> str:
+    values = {
+        "operation": operation,
+        "repositoryUrl": repository_url,
+        "requestedRef": requested_ref,
+        "subpath": subpath,
+        "slug": slug,
+        "displayName": display_name,
+        "description": description,
+        "packageId": package_id,
+    }
     payload = orjson.dumps(
-        {
-            "operation": operation,
-            "repositoryUrl": repository_url,
-            "requestedRef": requested_ref,
-            "subpath": subpath,
-            "slug": slug,
-            "displayName": display_name,
-            "description": description,
-        },
+        {key: value for key, value in values.items() if value is not None},
         option=orjson.OPT_SORT_KEYS,
     )
     return f"sha256:{hashlib.sha256(payload).hexdigest()}"

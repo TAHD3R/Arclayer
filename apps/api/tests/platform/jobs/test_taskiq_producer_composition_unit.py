@@ -52,10 +52,10 @@ def test_producer_runtime_registers_global_manifest_on_exact_workload_brokers(tm
     assert set(runtime.brokers.select(JobWorkloadClass.CONNECTOR).local_task_registry) == {
         "jobs:connector:billing-event-process:v1",
         "jobs:connector:knowledge-source-ingest:v1",
-        "jobs:connector:skill-github-import:v1",
-        "jobs:connector:skill-github-refresh:v1",
+        "jobs:connector:skill-github-import:v2",
+        "jobs:connector:skill-github-refresh:v2",
     }
-    assert len(runtime.registry.manifest) == 16
+    assert len(runtime.registry.manifest) == 17
     assert runtime.transport.registry is runtime.registry
 
     with pytest.raises(ValidationError) as extra:

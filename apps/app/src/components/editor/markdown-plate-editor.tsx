@@ -154,7 +154,7 @@ function deserializeMarkdown(editor: MarkdownEditor, source: string): Value {
   return source.trim() ? normalizeNodeId(getMarkdownApi(editor).deserialize(source)) : EMPTY_VALUE;
 }
 
-export function WorkspaceGuidancePlatePreview(props: { ariaLabel: string; value: string }) {
+export function MarkdownPlatePreview(props: { ariaLabel: string; value: string }) {
   const plugins = React.useMemo(
     () => [
       MarkdownPlugin,
@@ -220,11 +220,19 @@ function ListToolbarButton(props: {
   );
 }
 
-export function WorkspaceGuidancePlateEditor(props: {
+export function MarkdownPlateEditor(props: {
   ariaLabel: string;
+  ariaDescribedBy?: string;
+  ariaInvalid?: boolean;
+  compact?: boolean;
   disabled?: boolean;
+  editorRef?: React.RefObject<HTMLDivElement | null>;
+  exportFilename?: string;
+  id?: string;
+  onBlur?: () => void;
   onChange: (value: string) => void;
   placeholder: string;
+  toolbarAriaLabel?: string;
   value: string;
 }) {
   const { t } = useTranslation("knowledge");
@@ -269,10 +277,10 @@ export function WorkspaceGuidancePlateEditor(props: {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "workspace-knowledge.md";
+    anchor.download = props.exportFilename ?? "content.md";
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }, [editor]);
+  }, [editor, props.exportFilename]);
 
   React.useEffect(() => {
     if (!editor || appliedExternalValueRef.current === props.value) return;
@@ -296,14 +304,18 @@ export function WorkspaceGuidancePlateEditor(props: {
         }}
       >
         <EditorContainer
+          aria-disabled={props.disabled || undefined}
           className={cn(
-            "min-h-[24rem] w-full overflow-hidden rounded-md border border-input bg-card focus-within:border-border focus-within:ring-1 focus-within:ring-border/50 focus-within:ring-offset-0",
+            "w-full overflow-hidden rounded-md border border-input bg-card focus-within:border-border focus-within:ring-1 focus-within:ring-border/50 focus-within:ring-offset-0",
+            props.compact ? "min-h-[18rem]" : "min-h-[24rem]",
             props.disabled && "cursor-not-allowed opacity-50",
           )}
         >
           <Toolbar
-            aria-label={t("EDITOR_TOOLBAR_LABEL")}
+            aria-disabled={props.disabled || undefined}
+            aria-label={props.toolbarAriaLabel ?? t("EDITOR_TOOLBAR_LABEL")}
             className="border-b border-input px-2 py-1 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150 motion-reduce:animate-none"
+            inert={props.disabled || undefined}
           >
             <TurnIntoToolbarButton allowedValues={WORKSPACE_TURN_INTO_VALUES} />
             <ToolbarSeparator />
@@ -392,11 +404,19 @@ export function WorkspaceGuidancePlateEditor(props: {
             />
           </Toolbar>
           <Editor
+            id={props.id}
+            ref={props.editorRef}
+            aria-describedby={props.ariaDescribedBy}
+            aria-invalid={props.ariaInvalid || undefined}
             aria-label={props.ariaLabel}
             disabled={props.disabled}
+            onBlur={props.onBlur}
             placeholder={props.placeholder}
             variant="none"
-            className="min-h-[calc(24rem-3rem)] w-full rounded-none px-4 py-3 text-body leading-7"
+            className={cn(
+              "w-full rounded-none px-4 py-3 text-body leading-7",
+              props.compact ? "min-h-[calc(18rem-3rem)]" : "min-h-[calc(24rem-3rem)]",
+            )}
           />
         </EditorContainer>
       </Plate>

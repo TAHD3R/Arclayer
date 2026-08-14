@@ -910,4 +910,25 @@ ALTER TABLE {schema}.design_systems
             """.strip(),
         ),
     ),
+    TenantMigration.create(
+        version=33,
+        name="terminate_workspace_skill_github_v1_imports",
+        sql=(
+            """
+UPDATE {schema}.skill_github_imports AS skill_import
+SET status = 'failed',
+    safe_error_code = 'SKILL_GITHUB_JOB_VERSION_UNSUPPORTED',
+    safe_error_message = 'This GitHub Skill operation used an obsolete Job version. Import or refresh the Skill again.',
+    updated_at = NOW()
+WHERE skill_import.status IN ('queued', 'fetching', 'persisting')
+  AND skill_import.job_id IN (
+      SELECT job.id
+      FROM public.background_jobs AS job
+      WHERE job.job_type IN ('skill.github.import', 'skill.github.refresh')
+        AND job.job_type_version = 1
+        AND job.error_code = 'SKILL_GITHUB_JOB_VERSION_UNSUPPORTED'
+  )
+            """.strip(),
+        ),
+    ),
 )

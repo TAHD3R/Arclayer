@@ -36,7 +36,7 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 
-export type WorkspaceSkillDialog = "manual" | "github" | "zip" | "version" | "install" | null;
+export type WorkspaceSkillDialog = "manual" | "import" | "version" | "install" | null;
 
 function latestValidation(results: readonly SkillValidationResultOut[]) {
   return [...results].sort(

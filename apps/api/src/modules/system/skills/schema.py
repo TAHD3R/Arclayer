@@ -9,7 +9,6 @@ from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.modules.workspaces.skills.manifest import SkillManifestV1
 from src.modules.workspaces.skills.schema import (
-    SkillGitHubImportCreateRequest,
     SkillPackageCreateRequest,
     SkillResourceOut,
     SkillValidationFindingOut,
@@ -47,8 +46,17 @@ class PlatformSkillPackageReplaceRequest(SkillVersionCreateRequest):
     description: str = Field(min_length=1, max_length=1000)
 
 
-class PlatformSkillGitHubImportRequest(SkillGitHubImportCreateRequest):
+class PlatformSkillGitHubImportRequest(BaseSchema):
     """Synchronously import one bounded public GitHub Skill snapshot."""
+
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    repository_url: str = Field(min_length=1, max_length=2048)
+    requested_ref: str = Field(min_length=1, max_length=256)
+    subpath: str = Field(default="", max_length=512)
+    slug: str = Field(min_length=1, max_length=96)
+    display_name: str = Field(min_length=1, max_length=128)
+    description: str = Field(min_length=1, max_length=1000)
 
 
 class PlatformSkillCatalogOptionOut(BaseSchema):

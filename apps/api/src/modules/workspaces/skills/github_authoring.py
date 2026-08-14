@@ -18,11 +18,11 @@ from src.modules.workspaces.skills.manifest import (
 def build_github_skill_version(
     *,
     workspace_id: UUID,
-    slug: str,
-    display_name: str,
-    description: str,
     snapshot: GitHubSkillSnapshot,
 ) -> InlineSkillVersion:
+    metadata = snapshot.metadata
+    if metadata is None:
+        raise ValueError("GitHub Skill snapshot is missing parsed package metadata")
     repository = normalize_github_repository_url(snapshot.repository_url)
     resources = tuple(
         InlineSkillResource(
@@ -37,9 +37,9 @@ def build_github_skill_version(
     )
     publisher_id = f"github:{repository.owner}/{repository.repository}"
     manifest = SkillManifestV1(
-        skill_id=f"workspace:{workspace_id}:github:{slug}",
-        name=display_name,
-        description=description,
+        skill_id=f"workspace:{workspace_id}:github:{metadata.slug}",
+        name=metadata.display_name,
+        description=metadata.description,
         publisher=SkillPublisherV1(
             id=publisher_id,
             name=f"{repository.owner}/{repository.repository}",
@@ -57,6 +57,10 @@ def build_github_skill_version(
             )
             for resource in resources
         ),
+        required_tools=metadata.required_tools,
+        permissions=metadata.permissions,
+        data_egress=metadata.data_egress,
+        capability_tags=metadata.capability_tags,
         checksum="sha256:" + ("0" * 64),
     )
     manifest = manifest.model_copy(update={"checksum": compute_skill_package_checksum(manifest)})

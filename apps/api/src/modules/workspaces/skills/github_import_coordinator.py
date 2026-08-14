@@ -38,6 +38,7 @@ from src.modules.workspaces.skills.github_importing import (
     SkillGitHubImportWrite,
 )
 from src.modules.workspaces.skills.github_source import GitHubPackageSourceDescriptor
+from src.modules.workspaces.skills.package_metadata import SkillPackageMetadata
 from src.modules.workspaces.skills.repository import WorkspaceSkillsRepository
 
 ActivityWriter = Callable[..., Awaitable[object]]
@@ -160,6 +161,7 @@ class TenantSkillGitHubImportCoordinator(BaseService):
         write: SkillGitHubImportWrite,
         conn: BaseDBAsyncClient,
     ) -> SkillPackageRecord:
+        metadata = _metadata(write)
         descriptor = _source_descriptor(write)
         if write.package_id is not None:
             package = await self._packages.get_package_for_update(
@@ -175,24 +177,30 @@ class TenantSkillGitHubImportCoordinator(BaseService):
                     safe_message="GitHub Skill package is archived",
                 )
             existing = GitHubPackageSourceDescriptor.model_validate(package.source_descriptor)
-            if (
-                existing.repository_url != write.snapshot.repository_url
-                or existing.requested_ref != write.snapshot.requested_ref
-                or existing.subpath != write.snapshot.subpath
-            ):
+            if existing.repository_url != write.snapshot.repository_url:
                 _raise_source_conflict("GitHub Skill refresh source differs from its package authority")
+            if package.slug != metadata.slug:
+                _raise_source_conflict("GitHub Skill metadata changed its stable package identifier")
             package.source_descriptor = descriptor.model_dump(mode="json", by_alias=True)
+            package.display_name = metadata.display_name
+            package.description = metadata.description
             package.metadata_revision += 1
             package.updated_by_user_id = write.actor_user_id
             await self._packages.save_package(
                 package=package,
-                update_fields=("source_descriptor", "metadata_revision", "updated_by_user_id"),
+                update_fields=(
+                    "source_descriptor",
+                    "display_name",
+                    "description",
+                    "metadata_revision",
+                    "updated_by_user_id",
+                ),
                 conn=conn,
             )
             return package
         duplicate = await self._packages.get_package_by_slug(
             workspace_id=write.workspace_id,
-            normalized_slug=write.slug,
+            normalized_slug=metadata.slug,
             conn=conn,
         )
         if duplicate is not None:
@@ -207,10 +215,10 @@ class TenantSkillGitHubImportCoordinator(BaseService):
                 "stable_key": _stable_key(write),
                 "scope": SkillPackageScope.WORKSPACE,
                 "source_kind": SkillSourceKind.GITHUB,
-                "slug": write.slug,
-                "normalized_slug": write.slug,
-                "display_name": write.display_name,
-                "description": write.description,
+                "slug": metadata.slug,
+                "normalized_slug": metadata.slug,
+                "display_name": metadata.display_name,
+                "description": metadata.description,
                 "publisher_id": manifest.publisher.id,
                 "publisher_name": manifest.publisher.name,
                 "trust_level": SkillTrustLevel.IMPORTED_UNVERIFIED,
@@ -242,6 +250,9 @@ class TenantSkillGitHubImportCoordinator(BaseService):
         if (
             latest is not None
             and provenance.get("resolvedCommit") == write.snapshot.resolved_commit
+            and provenance.get("resolvedTree") == write.snapshot.resolved_tree
+            and provenance.get("requestedRef") == write.snapshot.requested_ref
+            and provenance.get("subpath") == write.snapshot.subpath
             and latest.package_checksum == write.authored.manifest.checksum
         ):
             return latest
@@ -251,7 +262,7 @@ class TenantSkillGitHubImportCoordinator(BaseService):
                 "package_id": package.id,
                 "workspace_id": write.workspace_id,
                 "version_number": await self._packages.next_version_number(package_id=package.id, conn=conn),
-                "semantic_version": None,
+                "semantic_version": _metadata(write).semantic_version,
                 "manifest_version": manifest.manifest_version,
                 "manifest": manifest.model_dump(mode="json", by_alias=True),
                 "package_checksum": manifest.checksum,
@@ -265,10 +276,10 @@ class TenantSkillGitHubImportCoordinator(BaseService):
                     "importId": str(write.import_id),
                 },
                 "compatibility": manifest.compatibility.model_dump(mode="json", by_alias=True),
-                "required_tools": [],
-                "permissions": [],
-                "data_egress": [],
-                "capability_tags": [],
+                "required_tools": [item.model_dump(mode="json", by_alias=True) for item in manifest.required_tools],
+                "permissions": [item.model_dump(mode="json", by_alias=True) for item in manifest.permissions],
+                "data_egress": [item.model_dump(mode="json", by_alias=True) for item in manifest.data_egress],
+                "capability_tags": list(manifest.capability_tags),
                 "validation_policy_version": VALIDATION_POLICY_VERSION,
                 "status": SkillVersionStatus.CANDIDATE,
                 "provenance_actor_user_id": write.actor_user_id,
@@ -308,6 +319,8 @@ class TenantSkillGitHubImportCoordinator(BaseService):
     ) -> None:
         record.package_id = package.id
         record.version_id = version.id
+        record.requested_ref = write.snapshot.requested_ref
+        record.subpath = write.snapshot.subpath
         record.resolved_commit = write.snapshot.resolved_commit
         record.resolved_tree = write.snapshot.resolved_tree
         record.status = SkillGitHubImportStatus.SUCCEEDED
@@ -318,6 +331,8 @@ class TenantSkillGitHubImportCoordinator(BaseService):
             update_fields=(
                 "package_id",
                 "version_id",
+                "requested_ref",
+                "subpath",
                 "resolved_commit",
                 "resolved_tree",
                 "status",
@@ -402,8 +417,14 @@ def _source_descriptor(write: SkillGitHubImportWrite) -> GitHubPackageSourceDesc
 
 
 def _stable_key(write: SkillGitHubImportWrite) -> str:
-    identity = f"{write.snapshot.repository_url}:{write.snapshot.subpath}".encode()
+    identity = write.snapshot.repository_url.encode()
     return f"workspace:{write.workspace_id}:github:{hashlib.sha256(identity).hexdigest()}"
+
+
+def _metadata(write: SkillGitHubImportWrite) -> SkillPackageMetadata:
+    if write.snapshot.metadata is None:
+        _raise_source_conflict("GitHub Skill snapshot is missing package metadata")
+    return write.snapshot.metadata
 
 
 def _version_fingerprint(write: SkillGitHubImportWrite) -> str:

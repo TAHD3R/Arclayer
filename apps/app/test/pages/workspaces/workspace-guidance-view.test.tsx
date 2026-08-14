@@ -40,8 +40,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-plate-editor", () => ({
-  WorkspaceGuidancePlateEditor: (props: {
+vi.mock("@/components/editor/markdown-plate-editor", () => ({
+  MarkdownPlateEditor: (props: {
     ariaLabel: string;
     disabled?: boolean;
     onChange: (value: string) => void;
@@ -56,7 +56,7 @@ vi.mock("@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-plat
       onChange={(event) => props.onChange(event.target.value)}
     />
   ),
-  WorkspaceGuidancePlatePreview: (props: { ariaLabel: string; value: string }) => (
+  MarkdownPlatePreview: (props: { ariaLabel: string; value: string }) => (
     <div aria-label={props.ariaLabel}>{props.value}</div>
   ),
 }));

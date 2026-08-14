@@ -135,11 +135,6 @@ class SkillGitHubImportCreateRequest(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     repository_url: str = Field(min_length=1, max_length=2048)
-    requested_ref: str = Field(min_length=1, max_length=256)
-    subpath: str = Field(default="", max_length=512)
-    slug: str = Field(min_length=1, max_length=96)
-    display_name: str = Field(min_length=1, max_length=128)
-    description: str = Field(min_length=1, max_length=1000)
 
 
 class SkillGitHubImportAcceptedOut(BaseSchema):

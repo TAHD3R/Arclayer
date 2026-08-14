@@ -12,7 +12,11 @@ from src.config import SkillGitHubFetchSettings
 from src.modules.workspaces.skills.github_authoring import build_github_skill_version
 from src.modules.workspaces.skills.github_fetcher import PublicGitHubSkillFetcher
 from src.modules.workspaces.skills.github_import_contract import (
+    SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE,
+    SKILL_GITHUB_METADATA_INVALID,
     SKILL_GITHUB_RESPONSE_INVALID,
+    SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS,
+    SKILL_GITHUB_SKILL_ROOT_NOT_FOUND,
     SKILL_GITHUB_SOURCE_CONFLICT,
     SKILL_GITHUB_SOURCE_INVALID,
     SKILL_GITHUB_TEMPORARILY_UNAVAILABLE,
@@ -24,6 +28,7 @@ from src.modules.workspaces.skills.github_source import (
     normalize_github_subpath,
 )
 from src.modules.workspaces.skills.manifest import validate_skill_package_checksum
+from src.modules.workspaces.skills.package_metadata import SkillPackageMetadata
 
 _COMMIT_SHA = "1" * 40
 _TREE_SHA = "2" * 40
@@ -61,12 +66,18 @@ def _transport(
     *,
     tree_sha: str = _TREE_SHA,
     truncated: bool = False,
+    repository_payload: object | None = None,
 ) -> tuple[httpx.MockTransport, list[str]]:
     requests: list[str] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         requests.append(url)
+        if request.url.path == "/repos/acme/site-skill/":
+            return httpx.Response(
+                200,
+                json={"default_branch": "main"} if repository_payload is None else repository_payload,
+            )
         if "/commits/" in url:
             return httpx.Response(200, json={"sha": _COMMIT_SHA, "commit": {"tree": {"sha": _TREE_SHA}}})
         if "/git/trees/" in url:
@@ -106,6 +117,88 @@ def test_github_source_normalization_is_canonical_and_rejects_escaping_values() 
             normalize_github_ref(invalid_ref)
     with pytest.raises(ValueError):
         normalize_github_subpath("skills/../private")
+
+
+@pytest.mark.asyncio
+async def test_fetcher_discovers_one_skill_on_the_default_branch_and_parses_metadata() -> None:
+    metadata = b'{"slug":"site-planner","displayName":"Site Planner","description":"Plan a site."}'
+    instructions = b"# Site Planner\n\nBuild a sitemap.\n"
+    entries = [
+        _entry("skills/site/skill.json", metadata),
+        _entry("skills/site/SKILL.md", instructions),
+    ]
+    contents = {_blob_sha(metadata): metadata, _blob_sha(instructions): instructions}
+    transport, requests = _transport(entries, contents)
+    fetcher = PublicGitHubSkillFetcher(policy=SkillGitHubFetchSettings(), transport=transport)
+
+    snapshot = await fetcher.fetch(repository_url="https://github.com/acme/site-skill")
+
+    assert snapshot.requested_ref == "main"
+    assert snapshot.subpath == "skills/site"
+    assert snapshot.metadata is not None
+    assert snapshot.metadata.slug == "site-planner"
+    assert [resource.path for resource in snapshot.resources] == ["SKILL.md"]
+    assert requests[0].endswith("/repos/acme/site-skill/")
+
+
+@pytest.mark.asyncio
+async def test_fetcher_rejects_more_than_one_discoverable_skill_root() -> None:
+    metadata = b'{"slug":"site-planner","displayName":"Site Planner","description":"Plan a site."}'
+    instructions = b"# Skill\n"
+    entries = [
+        _entry("one/skill.json", metadata),
+        _entry("one/SKILL.md", instructions),
+        _entry("two/skill.json", metadata),
+        _entry("two/SKILL.md", instructions),
+    ]
+    transport, _ = _transport(
+        entries,
+        {_blob_sha(metadata): metadata, _blob_sha(instructions): instructions},
+    )
+    fetcher = PublicGitHubSkillFetcher(policy=SkillGitHubFetchSettings(), transport=transport)
+
+    with pytest.raises(GitHubSourceError) as raised:
+        await fetcher.fetch(repository_url="https://github.com/acme/site-skill")
+
+    assert raised.value.code == SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS
+
+
+@pytest.mark.parametrize("repository_payload", ({}, {"default_branch": None}, {"default_branch": ""}))
+@pytest.mark.asyncio
+async def test_fetcher_reports_an_unavailable_default_branch(repository_payload: object) -> None:
+    transport, _ = _transport([], {}, repository_payload=repository_payload)
+    fetcher = PublicGitHubSkillFetcher(policy=SkillGitHubFetchSettings(), transport=transport)
+
+    with pytest.raises(GitHubSourceError) as raised:
+        await fetcher.fetch(repository_url="https://github.com/acme/site-skill")
+
+    assert raised.value.code == SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE
+
+
+@pytest.mark.asyncio
+async def test_fetcher_requires_one_discoverable_skill_root() -> None:
+    transport, _ = _transport([_entry("README.md", b"# Repository\n")], {})
+    fetcher = PublicGitHubSkillFetcher(policy=SkillGitHubFetchSettings(), transport=transport)
+
+    with pytest.raises(GitHubSourceError) as raised:
+        await fetcher.fetch(repository_url="https://github.com/acme/site-skill")
+
+    assert raised.value.code == SKILL_GITHUB_SKILL_ROOT_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_fetcher_rejects_invalid_skill_package_metadata() -> None:
+    metadata = b'{"slug":"Site Planner","displayName":"Site Planner","description":"Plan a site."}'
+    instructions = b"# Site Planner\n"
+    entries = [_entry("skill.json", metadata), _entry("SKILL.md", instructions)]
+    contents = {_blob_sha(metadata): metadata, _blob_sha(instructions): instructions}
+    transport, _ = _transport(entries, contents)
+    fetcher = PublicGitHubSkillFetcher(policy=SkillGitHubFetchSettings(), transport=transport)
+
+    with pytest.raises(GitHubSourceError) as raised:
+        await fetcher.fetch(repository_url="https://github.com/acme/site-skill")
+
+    assert raised.value.code == SKILL_GITHUB_METADATA_INVALID
 
 
 @pytest.mark.asyncio
@@ -152,10 +245,15 @@ async def test_fetcher_pins_commit_tree_and_exact_blob_evidence_without_executin
 
     authored = build_github_skill_version(
         workspace_id=uuid4(),
-        slug="site-designer",
-        display_name="Site Designer",
-        description="Plans a site from verified repository instructions.",
-        snapshot=snapshot,
+        snapshot=snapshot.model_copy(
+            update={
+                "metadata": SkillPackageMetadata(
+                    slug="site-designer",
+                    display_name="Site Designer",
+                    description="Plans a site from verified repository instructions.",
+                )
+            }
+        ),
     )
     validate_skill_package_checksum(authored.manifest)
     assert authored.manifest.publisher.id == "github:acme/site-skill"

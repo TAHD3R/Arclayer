@@ -14,8 +14,12 @@ from src.modules.workspaces.knowledge.untrusted_http_transport import VettedAsyn
 from src.modules.workspaces.knowledge.untrusted_url import PublicAddressResolver, SystemPublicAddressResolver
 from src.modules.workspaces.skills.github_import_contract import (
     SKILL_GITHUB_CONFIGURATION_INVALID,
+    SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE,
     SKILL_GITHUB_LIMIT_EXCEEDED,
+    SKILL_GITHUB_METADATA_INVALID,
     SKILL_GITHUB_RESPONSE_INVALID,
+    SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS,
+    SKILL_GITHUB_SKILL_ROOT_NOT_FOUND,
     SKILL_GITHUB_SOURCE_CONFLICT,
     SKILL_GITHUB_SOURCE_INVALID,
     SKILL_GITHUB_TEMPORARILY_UNAVAILABLE,
@@ -25,14 +29,22 @@ from src.modules.workspaces.skills.github_source import (
     GitHubSkillSnapshot,
     GitHubSourceError,
     GitHubTreeResource,
+    normalize_github_ref,
     normalize_github_repository_url,
     normalize_github_subpath,
 )
 from src.modules.workspaces.skills.manifest import normalize_skill_resource_path
+from src.modules.workspaces.skills.package_metadata import parse_skill_package_metadata
 
 _TRANSIENT_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _COMMIT_RESPONSE_LIMIT = 256 * 1024
+
+
+class _GitHubRepositoryResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    default_branch: str | None = Field(default=None, max_length=256)
 
 
 class _GitTreePointer(BaseModel):
@@ -99,8 +111,8 @@ class PublicGitHubSkillFetcher:
         self,
         *,
         repository_url: str,
-        requested_ref: str,
-        subpath: str,
+        requested_ref: str | None = None,
+        subpath: str | None = None,
     ) -> GitHubSkillSnapshot:
         if not self._policy.enabled:
             raise GitHubSourceError(
@@ -110,7 +122,10 @@ class PublicGitHubSkillFetcher:
             )
         try:
             repository = normalize_github_repository_url(repository_url)
-            normalized_subpath = normalize_github_subpath(subpath)
+            exact_locator = requested_ref is not None or subpath is not None
+            if exact_locator != (requested_ref is not None and subpath is not None):
+                raise ValueError("GitHub ref and subpath must be provided together")
+            normalized_subpath = normalize_github_subpath(subpath) if exact_locator else ""
         except ValueError as exc:
             raise GitHubSourceError(
                 code=SKILL_GITHUB_SOURCE_INVALID,
@@ -130,11 +145,29 @@ class PublicGitHubSkillFetcher:
             follow_redirects=False,
             trust_env=False,
         ) as client:
+            resolved_ref = requested_ref
+            if resolved_ref is None:
+                repository_metadata = _validate_response(
+                    _GitHubRepositoryResponse,
+                    await self._request_json(
+                        client=client,
+                        url=repository.api_url(""),
+                        byte_limit=_COMMIT_RESPONSE_LIMIT,
+                    ),
+                )
+                try:
+                    resolved_ref = normalize_github_ref(repository_metadata.default_branch or "")
+                except ValueError as exc:
+                    raise GitHubSourceError(
+                        code=SKILL_GITHUB_DEFAULT_BRANCH_UNAVAILABLE,
+                        safe_message="GitHub repository does not expose a usable default branch",
+                        transient=False,
+                    ) from exc
             commit = _validate_response(
                 _GitCommitResponse,
                 await self._request_json(
                     client=client,
-                    url=repository.api_url(f"commits/{quote(requested_ref, safe='')}"),
+                    url=repository.api_url(f"commits/{quote(resolved_ref, safe='')}"),
                     byte_limit=_COMMIT_RESPONSE_LIMIT,
                 ),
             )
@@ -146,6 +179,8 @@ class PublicGitHubSkillFetcher:
                     byte_limit=self._policy.max_tree_response_bytes,
                 ),
             )
+            if not exact_locator:
+                normalized_subpath = self._discover_skill_root(tree=tree, expected_tree=commit.commit.tree.sha)
             entries = self._select_entries(tree=tree, expected_tree=commit.commit.tree.sha, subpath=normalized_subpath)
             resources: list[GitHubTreeResource] = []
             for entry, relative_path in entries:
@@ -157,14 +192,47 @@ class PublicGitHubSkillFetcher:
                         relative_path=relative_path,
                     )
                 )
+        metadata = None
+        if not exact_locator:
+            metadata_resource = next((resource for resource in resources if resource.path == "skill.json"), None)
+            if metadata_resource is None:
+                self._raise(SKILL_GITHUB_METADATA_INVALID, "GitHub Skill package metadata is missing")
+            try:
+                metadata = parse_skill_package_metadata(metadata_resource.content.encode("utf-8"))
+            except ValueError:
+                self._raise(SKILL_GITHUB_METADATA_INVALID, "GitHub Skill metadata is invalid")
+            resources = [resource for resource in resources if resource.path != "skill.json"]
         return GitHubSkillSnapshot(
             repository_url=repository.repository_url,
-            requested_ref=requested_ref,
+            requested_ref=resolved_ref,
             subpath=normalized_subpath,
             resolved_commit=commit.sha,
             resolved_tree=tree.sha,
+            metadata=metadata,
             resources=tuple(resources),
         )
+
+    def _discover_skill_root(self, *, tree: _GitTreeResponse, expected_tree: str) -> str:
+        if tree.sha != expected_tree or tree.truncated:
+            self._raise(SKILL_GITHUB_SOURCE_CONFLICT, "GitHub returned an incomplete or conflicting repository tree")
+        files = {entry.path for entry in tree.tree if entry.type == "blob"}
+        roots = {
+            path.removesuffix("/skill.json") if path != "skill.json" else ""
+            for path in files
+            if path == "skill.json" or path.endswith("/skill.json")
+        }
+        roots = {root for root in roots if (f"{root}/SKILL.md" if root else "SKILL.md") in files}
+        if not roots:
+            self._raise(
+                SKILL_GITHUB_SKILL_ROOT_NOT_FOUND,
+                "GitHub repository does not contain a Skill package with skill.json and SKILL.md",
+            )
+        if len(roots) > 1:
+            self._raise(
+                SKILL_GITHUB_SKILL_ROOT_AMBIGUOUS,
+                "GitHub repository contains more than one Skill package",
+            )
+        return next(iter(roots))
 
     def _select_entries(
         self,

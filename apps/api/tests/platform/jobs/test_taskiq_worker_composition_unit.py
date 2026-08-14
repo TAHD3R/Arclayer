@@ -111,8 +111,8 @@ def test_connector_worker_registers_billing_knowledge_and_github_skill_workloads
     assert set(runtime.broker.local_task_registry) == {
         "jobs:connector:billing-event-process:v1",
         "jobs:connector:knowledge-source-ingest:v1",
-        "jobs:connector:skill-github-import:v1",
-        "jobs:connector:skill-github-refresh:v1",
+        "jobs:connector:skill-github-import:v2",
+        "jobs:connector:skill-github-refresh:v2",
     }
     assert len(runtime.worker_registry.manifest) == 4
     assert runtime.extension_manager is not None

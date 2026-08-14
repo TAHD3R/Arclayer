@@ -20,10 +20,10 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Textarea } from "@arclayer/ui/textarea";
+import { MarkdownPlateEditor } from "@/components/editor/markdown-plate-editor";
 
 import type { WorkspaceGuidanceController } from "./use-workspace-guidance-controller";
 import { RevisionStatusBadge, WorkspaceKnowledgeHistoryDrawer } from "./workspace-guidance-history";
-import { WorkspaceGuidancePlateEditor } from "./workspace-guidance-plate-editor";
 
 const FAQ_ITEMS = [
   {
@@ -195,10 +195,11 @@ export function WorkspaceKnowledgeEditor({
       {layer.removedAt ? <RemovedGuidanceAlert isProject={false} /> : null}
 
       <div className="mt-6" aria-describedby="workspace-knowledge-description">
-        <WorkspaceGuidancePlateEditor
+        <MarkdownPlateEditor
           ariaLabel={t("EDITOR_FIELD_LABEL")}
           disabled={controller.saveDraftMutation.isPending || controller.publishMutation.isPending}
           onChange={controller.setDraft}
+          exportFilename="workspace-knowledge.md"
           placeholder={t("EDITOR_PLACEHOLDER")}
           value={controller.draft}
         />

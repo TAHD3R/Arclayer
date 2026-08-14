@@ -33,11 +33,8 @@ from src.modules.workspaces.skills.github_import_repository import WorkspaceSkil
 from src.modules.workspaces.skills.github_source import (
     GitHubPackageSourceDescriptor,
     build_github_request_revision,
-    normalize_github_ref,
     normalize_github_repository_url,
-    normalize_github_subpath,
 )
-from src.modules.workspaces.skills.manifest import normalize_skill_slug
 from src.modules.workspaces.skills.projection import project_github_import
 from src.modules.workspaces.skills.repository import WorkspaceSkillsRepository
 from src.modules.workspaces.skills.schema import (
@@ -81,9 +78,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
             )
         try:
             repository_url = normalize_github_repository_url(payload.repository_url).repository_url
-            requested_ref = normalize_github_ref(payload.requested_ref)
-            subpath = normalize_github_subpath(payload.subpath)
-            slug = normalize_skill_slug(payload.slug)
         except ValueError as exc:
             raise BadRequest(
                 t("errors", "SKILL_GITHUB_SOURCE_INVALID"),
@@ -97,11 +91,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
             operation="initial",
             package_id=None,
             repository_url=repository_url,
-            requested_ref=requested_ref,
-            subpath=subpath,
-            slug=slug,
-            display_name=payload.display_name.strip(),
-            description=payload.description.strip(),
         )
 
     async def create_refresh(
@@ -130,11 +119,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
             operation="refresh",
             package_id=package.id,
             repository_url=descriptor.repository_url,
-            requested_ref=descriptor.requested_ref,
-            subpath=descriptor.subpath,
-            slug=package.slug,
-            display_name=package.display_name,
-            description=package.description,
         )
 
     async def get_import(self, *, workspace_id: UUID, import_id: UUID) -> SkillGitHubImportOut:
@@ -153,20 +137,11 @@ class WorkspaceSkillGitHubImportService(BaseService):
         operation: Literal["initial", "refresh"],
         package_id: UUID | None,
         repository_url: str,
-        requested_ref: str,
-        subpath: str,
-        slug: str,
-        display_name: str,
-        description: str,
     ) -> SkillGitHubImportAcceptedOut:
         revision = build_github_request_revision(
             operation=operation,
             repository_url=repository_url,
-            requested_ref=requested_ref,
-            subpath=subpath,
-            slug=slug,
-            display_name=display_name,
-            description=description,
+            package_id=str(package_id) if package_id is not None else None,
         )
         fingerprint = revision.removeprefix("sha256:")
         job_result: BackgroundJobCreateResult | None = None
@@ -190,12 +165,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
                         _raise_not_found()
                     if str(package.status) != SkillPackageStatus.ACTIVE.value:
                         _raise_archived()
-                if operation == "initial" and await self._packages.get_package_by_slug(
-                    workspace_id=workspace_id,
-                    normalized_slug=slug,
-                    conn=conn,
-                ):
-                    raise Conflict(t("errors", "SKILL_SLUG_EXISTS"), error="SKILL_SLUG_EXISTS")
                 record = await self._imports.create_import(
                     values={
                         "workspace_id": workspace_id,
@@ -203,8 +172,8 @@ class WorkspaceSkillGitHubImportService(BaseService):
                         "operation": SkillGitHubImportOperation(operation),
                         "status": SkillGitHubImportStatus.QUEUED,
                         "repository_url": repository_url,
-                        "requested_ref": requested_ref,
-                        "subpath": subpath,
+                        "requested_ref": "",
+                        "subpath": "",
                         "request_revision": revision,
                         "actor_user_id": actor_user_id,
                         "request_idempotency_key": idempotency_key,
@@ -217,9 +186,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
                     workspace_id=workspace_id,
                     actor_user_id=actor_user_id,
                     operation=operation,
-                    slug=slug,
-                    display_name=display_name,
-                    description=description,
                     conn=conn,
                 )
                 record.job_id = job_result.job.id
@@ -251,9 +217,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
         workspace_id: UUID,
         actor_user_id: UUID,
         operation: Literal["initial", "refresh"],
-        slug: str,
-        display_name: str,
-        description: str,
         conn: BaseDBAsyncClient,
     ) -> BackgroundJobCreateResult:
         job_type = SKILL_GITHUB_IMPORT_JOB_TYPE if operation == "initial" else SKILL_GITHUB_REFRESH_JOB_TYPE
@@ -270,11 +233,6 @@ class WorkspaceSkillGitHubImportService(BaseService):
         input_reference = SkillGitHubImportJobInput(
             operation=operation,
             repository_url=record.repository_url,
-            requested_ref=record.requested_ref,
-            subpath=record.subpath,
-            slug=slug,
-            display_name=display_name,
-            description=description,
             request_revision=record.request_revision,
         )
         actor_context = self.resolve_actor_context(
@@ -293,7 +251,7 @@ class WorkspaceSkillGitHubImportService(BaseService):
                 actor_user_id=actor_user_id,
                 target_descriptor=target.model_dump(mode="json", by_alias=True),
                 input_reference=input_reference.model_dump(mode="json", by_alias=True),
-                idempotency_key=f"skill-github:{record.id}:{operation}:v1",
+                idempotency_key=f"skill-github:{record.id}:{operation}:v2",
                 source_revision=record.request_revision,
                 correlation_id=actor_context.trace_id or f"skill-github-import:{record.id}",
                 trace_id=actor_context.trace_id,
