@@ -255,6 +255,36 @@ describe("content-library-editor-primitives", () => {
     ).toBe(false);
   });
 
+  it("reserves the paragraph placeholder for empty blocks after existing content", () => {
+    const emptyDocumentEditor = {
+      children: [{ children: [{ text: "" }], type: "p" }],
+    };
+    const documentWithContentEditor = {
+      children: [
+        { children: [{ text: "Existing content" }], type: "p" },
+        { children: [{ text: "" }], type: "p" },
+      ],
+    };
+    const emptyParagraph = { children: [{ text: "" }], type: "p" };
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: emptyDocumentEditor as never,
+        element: emptyParagraph,
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: documentWithContentEditor as never,
+        element: emptyParagraph,
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(true);
+  });
+
   it("falls back to a stable line-height option set when Plate does not inject values", () => {
     expect(resolveLineHeightOptions(undefined, "1.5")).toEqual(["1", "1.25", "1.5", "2"]);
     expect(resolveLineHeightOptions([], "1.75")).toEqual(["1", "1.25", "1.5", "2", "1.75"]);

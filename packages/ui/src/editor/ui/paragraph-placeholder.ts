@@ -60,6 +60,14 @@ export function shouldShowParagraphPlaceholder(params: {
       : false);
 
   if (!params.focused || !params.selected) return false;
+  if (
+    params.editor &&
+    Array.isArray(params.editor.children) &&
+    params.editor.children.length === 1 &&
+    NodeApi.string(params.editor.children[0] as never).length === 0
+  ) {
+    return false;
+  }
   if (hasExpandedSelection || isSelectingBlocks) {
     return false;
   }

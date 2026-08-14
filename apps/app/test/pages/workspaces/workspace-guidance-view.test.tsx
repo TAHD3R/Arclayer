@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -55,6 +55,9 @@ vi.mock("@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-plat
       value={props.value}
       onChange={(event) => props.onChange(event.target.value)}
     />
+  ),
+  WorkspaceGuidancePlatePreview: (props: { ariaLabel: string; value: string }) => (
+    <div aria-label={props.ariaLabel}>{props.value}</div>
   ),
 }));
 
@@ -433,6 +436,11 @@ describe("WorkspaceGuidanceView", () => {
     await waitFor(() => expect(historyButton).toBeEnabled());
     fireEvent.click(historyButton);
 
+    const drawerTitle = await screen.findByRole("heading", { name: "HISTORY_DRAWER_TITLE" });
+    expect(drawerTitle.parentElement).toContainElement(
+      screen.getByRole("button", { name: "common:CLOSE" }),
+    );
+
     const switchActions = await screen.findAllByRole("button", { name: "HISTORY_SWITCH_ACTION" });
     expect(switchActions[0]).toBeDisabled();
     expect(switchActions[1]).toBeEnabled();
@@ -441,6 +449,7 @@ describe("WorkspaceGuidanceView", () => {
     expect(screen.getByRole("button", { name: "HISTORY_VERSION_OPTIONS:2" })).toBeEnabled();
 
     fireEvent.click(currentOptions);
+    expect(screen.queryByText("HISTORY_VERSION_OPTIONS:1")).not.toBeInTheDocument();
     expect(await screen.findByRole("menuitem", { name: "ENABLE_ACTION" })).toHaveAttribute(
       "aria-disabled",
       "true",
@@ -454,9 +463,90 @@ describe("WorkspaceGuidanceView", () => {
     const currentRow = screen.getByText("REVISION_CURRENT").closest("[aria-current='true']");
     expect(currentRow).toContainElement(screen.getByText("REVISION_DETAIL:1"));
     const currentBadge = screen.getByText("REVISION_CURRENT");
-    expect(screen.getByText("REVISION_DETAIL:1").parentElement).not.toContainElement(currentBadge);
+    expect(screen.getByText("REVISION_DETAIL:1").parentElement).toContainElement(currentBadge);
     expect(currentBadge.closest("[aria-current='true']")).toBe(currentRow);
     expect(currentRow).toHaveClass("bg-accent/60");
+  });
+
+  it("renders the Drawer load-more action as a full-width ghost button", async () => {
+    mocks.listHistory.mockResolvedValue({
+      items: [publishedRevision],
+      nextCursor: "next-page",
+    });
+    renderView();
+
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+
+    const loadMoreButton = await screen.findByRole("button", { name: "HISTORY_LOAD_MORE" });
+    expect(loadMoreButton).toHaveClass("w-full");
+    expect(loadMoreButton).toHaveAttribute("data-variant", "ghost");
+  });
+
+  it("keeps history open when a restoration confirmation is canceled", async () => {
+    mocks.listHistory.mockResolvedValue({
+      items: [publishedRevision, supersededRevision],
+      nextCursor: null,
+    });
+    renderView();
+
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+    const switchActions = await screen.findAllByRole("button", { name: "HISTORY_SWITCH_ACTION" });
+    fireEvent.click(switchActions[1]);
+
+    expect(await screen.findByRole("heading", { name: "RESTORE_PREVIEW_TITLE" })).toBeVisible();
+    expect(screen.getByLabelText("HISTORY_PREVIEW_CONTENT_LABEL")).toHaveTextContent(
+      supersededRevision.content,
+    );
+    expect(screen.queryByText("RESTORE_PREVIEW_EYEBROW")).not.toBeInTheDocument();
+    expect(screen.queryByText("IMPACT_SECTION_TITLE")).not.toBeInTheDocument();
+    const cancelButton = screen.getByRole("button", { name: "REMOVE_CANCEL" });
+    fireEvent.pointerDown(cancelButton);
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "RESTORE_PREVIEW_TITLE" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("heading", { name: "HISTORY_DRAWER_TITLE" })).toBeVisible();
+  });
+
+  it("opens a read-only revision detail from the history menu and keeps the drawer open", async () => {
+    mocks.listHistory.mockResolvedValue({
+      items: [publishedRevision, supersededRevision],
+      nextCursor: null,
+    });
+    renderView();
+
+    const historyButton = await screen.findByRole("button", { name: "HISTORY_ACTION" });
+    await waitFor(() => expect(historyButton).toBeEnabled());
+    fireEvent.click(historyButton);
+    fireEvent.click(screen.getByRole("button", { name: "HISTORY_VERSION_OPTIONS:2" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "HISTORY_VIEW_ACTION" }));
+
+    const detailHeading = await screen.findByRole("heading", { name: "REVISION_DETAIL:2" });
+    await waitFor(() => expect(detailHeading).toBeVisible());
+    expect(screen.getByLabelText("HISTORY_PREVIEW_CONTENT_LABEL")).toHaveTextContent(
+      supersededRevision.content,
+    );
+    const detailDialog = screen
+      .getByRole("heading", { name: "REVISION_DETAIL:2" })
+      .closest("[data-slot='alert-dialog-content']");
+    expect(detailDialog).not.toBeNull();
+    const closeButton = within(detailDialog as HTMLElement).getByRole("button", {
+      name: "Close",
+    });
+    fireEvent.pointerDown(closeButton);
+    fireEvent.click(closeButton);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "REVISION_DETAIL:2" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("heading", { name: "HISTORY_DRAWER_TITLE" })).toBeVisible();
   });
 
   it("keeps a historical revision active while its action menu is open", async () => {
@@ -480,7 +570,7 @@ describe("WorkspaceGuidanceView", () => {
     expect(historicalOptions.closest("[data-menu-open='true']")).toHaveClass("bg-accent/60");
   });
 
-  it("explains removal impact before deactivating workspace knowledge", async () => {
+  it("confirms deactivation without unrelated impact details and keeps history open on cancel", async () => {
     mocks.createRemovePreview.mockResolvedValueOnce({
       ...restorePreview,
       id: "remove-preview-with-impact",
@@ -500,13 +590,31 @@ describe("WorkspaceGuidanceView", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "HISTORY_REMOVE_CURRENT_ACTION" }));
 
     expect(await screen.findByRole("heading", { name: "REMOVE_PREVIEW_TITLE" })).toBeVisible();
-    expect(screen.getByText("REMOVE_SCOPE_CHANGE_TITLE")).toBeVisible();
-    expect(screen.getByText("REMOVE_CONNECTED_CONTEXT_TITLE")).toBeVisible();
-    expect(screen.getByText("REMOVE_RETAINED_TITLE")).toBeVisible();
-    for (const value of ["2", "5", "3", "12"]) {
-      expect(screen.getByText(value)).toBeVisible();
-    }
+    const removeDialog = screen
+      .getByRole("heading", { name: "REMOVE_PREVIEW_TITLE" })
+      .closest("[data-slot='alert-dialog-content']");
+    expect(removeDialog).not.toBeNull();
+    expect(removeDialog?.querySelector("[data-slot='alert-dialog-header']")).not.toHaveClass(
+      "border-b",
+    );
+    expect(removeDialog?.querySelector("[data-slot='alert-dialog-footer']")).not.toHaveClass(
+      "border-t",
+    );
+    expect(screen.queryByText("REMOVE_PREVIEW_EYEBROW")).not.toBeInTheDocument();
+    expect(screen.queryByText("REMOVE_SCOPE_CHANGE_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("REMOVE_CONNECTED_CONTEXT_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("REMOVE_RETAINED_TITLE")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "REMOVE_APPLY" })).toBeEnabled();
+
+    const cancelButton = screen.getByRole("button", { name: "REMOVE_CANCEL" });
+    fireEvent.pointerDown(cancelButton);
+    fireEvent.click(cancelButton);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "REMOVE_PREVIEW_TITLE" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("heading", { name: "HISTORY_DRAWER_TITLE" })).toBeVisible();
   });
 
   it("edits project guidance in its own scope with an explicit precedence mode", async () => {

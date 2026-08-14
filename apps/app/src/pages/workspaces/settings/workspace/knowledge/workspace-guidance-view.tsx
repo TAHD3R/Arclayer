@@ -9,7 +9,7 @@ import {
 } from "./use-workspace-guidance-controller";
 import { WorkspaceGuidanceImpactDialog } from "./workspace-guidance-impact-dialog";
 import { GuidanceEditor, WorkspaceKnowledgeEditor } from "./workspace-guidance-authoring";
-import { GuidanceHistory } from "./workspace-guidance-history";
+import { GuidanceHistory, WorkspaceGuidanceRevisionDialog } from "./workspace-guidance-history";
 import { EffectivePreview, GuidanceReferences } from "./workspace-guidance-context";
 
 export function WorkspaceGuidanceView(props: {
@@ -88,6 +88,10 @@ function GuidanceLayerView(props: {
           onApply={() => void controller.applyPendingPreview()}
         />
       ) : null}
+      <WorkspaceGuidanceRevisionDialog
+        revision={controller.detailRevision}
+        onOpenChange={controller.setDetailRevision}
+      />
     </div>
   );
 }

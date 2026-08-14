@@ -150,6 +150,41 @@ function resetEditorHistory(editor: MarkdownEditor) {
   editor.history.undos = [];
 }
 
+function deserializeMarkdown(editor: MarkdownEditor, source: string): Value {
+  return source.trim() ? normalizeNodeId(getMarkdownApi(editor).deserialize(source)) : EMPTY_VALUE;
+}
+
+export function WorkspaceGuidancePlatePreview(props: { ariaLabel: string; value: string }) {
+  const plugins = React.useMemo(
+    () => [
+      MarkdownPlugin,
+      ...WORKSPACE_BASIC_BLOCKS_KIT,
+      ...WORKSPACE_BASIC_MARKS_KIT,
+      ...WORKSPACE_STRUCTURED_CONTENT_KIT,
+    ],
+    [],
+  );
+  const editor = usePlateEditor({ plugins, value: EMPTY_VALUE }, []);
+
+  React.useEffect(() => {
+    editor.tf.setValue(deserializeMarkdown(editor, props.value));
+    resetEditorHistory(editor);
+  }, [editor, props.value]);
+
+  return (
+    <Plate editor={editor} readOnly>
+      <EditorContainer className="max-h-[min(50vh,28rem)] overflow-y-auto rounded-md border border-input bg-muted/20">
+        <Editor
+          aria-label={props.ariaLabel}
+          readOnly
+          variant="none"
+          className="min-h-40 w-full px-4 py-3 text-body leading-7"
+        />
+      </EditorContainer>
+    </Plate>
+  );
+}
+
 function ListToolbarButton(props: {
   disabled?: boolean;
   icon: React.ReactNode;
@@ -218,9 +253,7 @@ export function WorkspaceGuidancePlateEditor(props: {
     async (file: File) => {
       const source = await file.text();
       applyingExternalValueRef.current = true;
-      editor.tf.setValue(
-        source.trim() ? normalizeNodeId(getMarkdownApi(editor).deserialize(source)) : EMPTY_VALUE,
-      );
+      editor.tf.setValue(deserializeMarkdown(editor, source));
       resetEditorHistory(editor);
       const nextValue = getMarkdownApi(editor).serialize();
       appliedExternalValueRef.current = nextValue;
@@ -244,11 +277,7 @@ export function WorkspaceGuidancePlateEditor(props: {
   React.useEffect(() => {
     if (!editor || appliedExternalValueRef.current === props.value) return;
     applyingExternalValueRef.current = true;
-    editor.tf.setValue(
-      props.value.trim()
-        ? normalizeNodeId(getMarkdownApi(editor).deserialize(props.value))
-        : EMPTY_VALUE,
-    );
+    editor.tf.setValue(deserializeMarkdown(editor, props.value));
     resetEditorHistory(editor);
     appliedExternalValueRef.current = getMarkdownApi(editor).serialize();
     applyingExternalValueRef.current = false;

@@ -6,6 +6,7 @@ import type {
   KnowledgeGuidanceDraftSaveRequest,
   KnowledgeGuidanceLayerOut,
   KnowledgeGuidancePreviewOut,
+  KnowledgeGuidanceRevisionOut,
 } from "@arclayer/openapi";
 import {
   WORKSPACE_GUIDANCE_QUERY_KEY,
@@ -28,10 +29,16 @@ import { notifySuccessText } from "@/lib/notifications";
 const HISTORY_PAGE_SIZE = 25;
 type ProjectGuidanceMode = NonNullable<KnowledgeGuidanceDraftSaveRequest["projectMode"]>;
 
-type PendingPreview = Readonly<{
-  kind: "restore" | "remove";
-  preview: KnowledgeGuidancePreviewOut;
-}>;
+type PendingPreview =
+  | Readonly<{
+      kind: "restore";
+      preview: KnowledgeGuidancePreviewOut;
+      revision: KnowledgeGuidanceRevisionOut;
+    }>
+  | Readonly<{
+      kind: "remove";
+      preview: KnowledgeGuidancePreviewOut;
+    }>;
 
 type SaveDraftCommand = Readonly<{
   request: KnowledgeGuidanceDraftSaveRequest;
@@ -73,6 +80,7 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   const [projectMode, setProjectMode] = useState<ProjectGuidanceMode>("supplement");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingPreview, setPendingPreview] = useState<PendingPreview | null>(null);
+  const [detailRevision, setDetailRevision] = useState<KnowledgeGuidanceRevisionOut | null>(null);
   const scope = useMemo(() => ({ workspaceId, projectId }), [projectId, workspaceId]);
   const layerQueryKey = useMemo(
     () => [...guidanceQueryKey(workspaceId, projectId), "layer"] as const,
@@ -89,6 +97,7 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     setDraftValue("");
     setProjectMode("supplement");
     setHasUnsavedChanges(false);
+    setDetailRevision(null);
   }, [projectId, workspaceId]);
   useEffect(() => {
     if (hasUnsavedChanges) return;
@@ -192,9 +201,14 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     },
   });
   const restorePreviewMutation = useMutation({
-    mutationFn: (input: { expectedRevision: number; sourceRevisionId: string }) =>
-      createGuidanceRestorePreview(scope, input, crypto.randomUUID()),
-    onSuccess: (preview) => setPendingPreview({ kind: "restore", preview }),
+    mutationFn: (input: { expectedRevision: number; revision: KnowledgeGuidanceRevisionOut }) =>
+      createGuidanceRestorePreview(
+        scope,
+        { expectedRevision: input.expectedRevision, sourceRevisionId: input.revision.id },
+        crypto.randomUUID(),
+      ),
+    onSuccess: (preview, input) =>
+      setPendingPreview({ kind: "restore", preview, revision: input.revision }),
   });
   const removePreviewMutation = useMutation({
     mutationFn: (input: { expectedRevision: number }) =>
@@ -270,6 +284,8 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     history,
     pendingPreview,
     setPendingPreview,
+    detailRevision,
+    setDetailRevision,
     guidanceQuery,
     effectiveQuery,
     historyQuery,
@@ -305,11 +321,11 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
         },
       });
     },
-    previewRestore: (sourceRevisionId: string) => {
+    previewRestore: (revision: KnowledgeGuidanceRevisionOut) => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
       restorePreviewMutation.mutate({
         expectedRevision: layer.metadataRevision,
-        sourceRevisionId,
+        revision,
       });
     },
     previewRemoval: () => {

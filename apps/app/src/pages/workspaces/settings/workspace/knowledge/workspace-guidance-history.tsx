@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Ellipsis, History, Power, RotateCcw, Trash2 } from "lucide-react";
+import { Ellipsis, Eye, History, Power, RotateCcw, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { KnowledgeGuidanceRevisionOut } from "@arclayer/openapi";
@@ -7,7 +7,6 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -15,6 +14,7 @@ import {
 import {
   Drawer,
   DrawerBody,
+  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerHeader,
@@ -22,10 +22,18 @@ import {
 } from "@arclayer/ui/drawer";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@arclayer/ui/alert-dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { cn } from "@arclayer/lib/utils";
 
 import type { WorkspaceGuidanceController } from "./use-workspace-guidance-controller";
+import { WorkspaceGuidancePlatePreview } from "./workspace-guidance-plate-editor";
 
 export function GuidanceHistory({ controller }: { controller: WorkspaceGuidanceController }) {
   const { t } = useTranslation("knowledge");
@@ -42,7 +50,12 @@ export function GuidanceHistory({ controller }: { controller: WorkspaceGuidanceC
       <p className="mt-1 max-w-2xl text-footnote text-label-secondary">
         {t("HISTORY_DESCRIPTION")}
       </p>
-      <RevisionHistoryContent controller={controller} date={date} showRestore />
+      <RevisionHistoryContent
+        controller={controller}
+        date={date}
+        showRestore
+        onView={controller.setDetailRevision}
+      />
       <LoadMoreHistory controller={controller} />
     </section>
   );
@@ -64,14 +77,26 @@ export function WorkspaceKnowledgeHistoryDrawer(props: {
         showCloseButton={false}
       >
         <DrawerHeader className="max-w-none px-6 py-5">
-          <DrawerTitle unstyled className="font-bold text-headline">
-            {t("HISTORY_DRAWER_TITLE")}
-          </DrawerTitle>
+          <div className="flex min-w-0 items-center gap-3">
+            <DrawerTitle unstyled className="min-w-0 flex-1 font-bold text-headline">
+              {t("HISTORY_DRAWER_TITLE")}
+            </DrawerTitle>
+            <DrawerClose asChild>
+              <Button size="icon-sm" variant="ghost" aria-label={t("common:CLOSE")}>
+                <X />
+              </Button>
+            </DrawerClose>
+          </div>
           <DrawerDescription>{t("HISTORY_DRAWER_DESCRIPTION")}</DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="max-w-none overflow-y-auto p-2">
-          <RevisionHistoryContent controller={props.controller} date={date} showRestore />
-          <LoadMoreHistory controller={props.controller} />
+          <RevisionHistoryContent
+            controller={props.controller}
+            date={date}
+            showRestore
+            onView={props.controller.setDetailRevision}
+          />
+          <LoadMoreHistory controller={props.controller} inDrawer />
         </DrawerBody>
       </DrawerContent>
     </Drawer>
@@ -82,6 +107,7 @@ function RevisionHistoryContent(props: {
   controller: WorkspaceGuidanceController;
   date: Intl.DateTimeFormat;
   showRestore?: boolean;
+  onView?: (revision: KnowledgeGuidanceRevisionOut) => void;
 }) {
   const { t } = useTranslation("knowledge");
 
@@ -105,7 +131,8 @@ function RevisionHistoryContent(props: {
               showRestore={props.showRestore ?? false}
               currentRevisionId={props.controller.layer?.currentPublished?.id}
               removedAt={props.controller.layer?.removedAt}
-              onRestore={() => void props.controller.previewRestore(revision.id)}
+              onView={() => props.onView?.(revision)}
+              onRestore={() => void props.controller.previewRestore(revision)}
               onRemove={() => void props.controller.previewRemoval()}
             />
           ))}
@@ -125,16 +152,16 @@ function RevisionHistoryContent(props: {
   );
 }
 
-function LoadMoreHistory({ controller }: { controller: WorkspaceGuidanceController }) {
+function LoadMoreHistory(props: { controller: WorkspaceGuidanceController; inDrawer?: boolean }) {
   const { t } = useTranslation("knowledge");
-  if (!controller.historyQuery.hasNextPage) return null;
+  if (!props.controller.historyQuery.hasNextPage) return null;
 
   return (
     <Button
-      className="mt-4"
-      variant="outline"
-      loading={controller.historyQuery.isFetchingNextPage}
-      onClick={() => void controller.historyQuery.fetchNextPage()}
+      className={cn("mt-4", props.inDrawer && "w-full")}
+      variant={props.inDrawer ? "ghost" : "outline"}
+      loading={props.controller.historyQuery.isFetchingNextPage}
+      onClick={() => void props.controller.historyQuery.fetchNextPage()}
     >
       {t("HISTORY_LOAD_MORE")}
     </Button>
@@ -159,6 +186,7 @@ function RevisionRow(props: {
   removePending: boolean;
   onRestore: () => void;
   onRemove: () => void;
+  onView: () => void;
 }) {
   const { t } = useTranslation("knowledge");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -184,6 +212,11 @@ function RevisionRow(props: {
           <span className="min-w-0 flex-1 truncate text-headline font-semibold text-label-primary">
             {t("REVISION_DETAIL", { revision: props.revision.revisionNumber })}
           </span>
+          {isCurrent ? (
+            <Badge variant="default" className="shrink-0 px-2.5 py-1 text-caption leading-4">
+              {t("REVISION_CURRENT")}
+            </Badge>
+          ) : null}
         </div>
         <p className="mt-1 line-clamp-2 break-words overflow-hidden whitespace-pre-wrap text-footnote leading-5 text-label-secondary">
           {props.revision.content}
@@ -191,11 +224,6 @@ function RevisionRow(props: {
         <div className="mt-2 flex min-w-0 items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2 text-footnote text-label-secondary">
             <span className="truncate">{createdAt}</span>
-            {isCurrent ? (
-              <Badge variant="default" className="shrink-0 px-2.5 py-1 text-caption leading-4">
-                {t("REVISION_CURRENT")}
-              </Badge>
-            ) : null}
           </div>
           {props.showRestore ? (
             <div
@@ -232,11 +260,11 @@ function RevisionRow(props: {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>
-                    {t("HISTORY_VERSION_OPTIONS", {
-                      revision: props.revision.revisionNumber,
-                    })}
-                  </DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={props.onView}>
+                    <Eye data-icon="inline-start" />
+                    {t("HISTORY_VIEW_ACTION")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     disabled={!canSwitch || props.restorePending || props.removePending}
                     onSelect={props.onRestore}
@@ -264,6 +292,37 @@ function RevisionRow(props: {
         </div>
       </div>
     </div>
+  );
+}
+
+export function WorkspaceGuidanceRevisionDialog(props: {
+  revision: KnowledgeGuidanceRevisionOut | null;
+  onOpenChange: (revision: KnowledgeGuidanceRevisionOut | null) => void;
+}) {
+  const { t } = useTranslation("knowledge");
+
+  return (
+    <AlertDialog
+      open={Boolean(props.revision)}
+      onOpenChange={(open) => {
+        if (!open) props.onOpenChange(null);
+      }}
+    >
+      <AlertDialogContent className="sm:max-w-2xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {t("REVISION_DETAIL", { revision: props.revision?.revisionNumber ?? 0 })}
+          </AlertDialogTitle>
+          <AlertDialogDescription>{t("HISTORY_PREVIEW_DESCRIPTION")}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {props.revision ? (
+          <WorkspaceGuidancePlatePreview
+            ariaLabel={t("HISTORY_PREVIEW_CONTENT_LABEL")}
+            value={props.revision.content}
+          />
+        ) : null}
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

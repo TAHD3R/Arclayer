@@ -6,6 +6,27 @@ import { cn } from "@arclayer/lib/utils";
 import { OverlayCloseButton } from "./overlay-close-button";
 import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
 
+const HIGHER_OVERLAY_SELECTOR = [
+  "[data-slot=dialog-content]",
+  "[data-slot=dialog-overlay]",
+  "[data-overlay-root=dialog]",
+  "[data-slot=alert-dialog-content]",
+  "[data-slot=alert-dialog-overlay]",
+].join(", ");
+
+function resolveOutsideInteractionTarget(event: {
+  target: EventTarget | null;
+  detail?: { originalEvent?: Event };
+}): EventTarget | null {
+  return event.detail?.originalEvent?.target ?? event.target;
+}
+
+function isHigherOverlayInteractionTarget(target: EventTarget | null): boolean {
+  const element =
+    target instanceof HTMLElement ? target : target instanceof Node ? target.parentElement : null;
+  return element?.closest(HIGHER_OVERLAY_SELECTOR) instanceof HTMLElement;
+}
+
 function Drawer({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
   return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
@@ -44,11 +65,25 @@ function DrawerContent({
   children,
   showCloseButton = true,
   overlayClassName,
+  onPointerDownOutside,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   showCloseButton?: boolean;
   overlayClassName?: string;
 }) {
+  const handlePointerDownOutside = React.useCallback(
+    (event: Parameters<
+      NonNullable<React.ComponentProps<typeof DrawerPrimitive.Content>["onPointerDownOutside"]>
+    >[0]) => {
+      if (isHigherOverlayInteractionTarget(resolveOutsideInteractionTarget(event))) {
+        event.preventDefault();
+        return;
+      }
+      onPointerDownOutside?.(event);
+    },
+    [onPointerDownOutside],
+  );
+
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay className={overlayClassName} />
@@ -62,6 +97,7 @@ function DrawerContent({
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className,
         )}
+        onPointerDownOutside={handlePointerDownOutside}
         {...props}
       >
         <div className="bg-muted mx-auto my-2 hidden h-2 w-24 shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
