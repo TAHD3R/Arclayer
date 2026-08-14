@@ -41,6 +41,7 @@ import {
   ARCLAYER_AGENT_TOOL_NAMES,
   arclayerAgentToolkit,
 } from "@/components/ai/arclayer-agent-toolkit";
+import { ProjectPlanConfirmationDialog } from "@/components/ai/project-plan-confirmation-dialog";
 import {
   agentIdsForComposerScope,
   consumeAIComposerDirectives,
@@ -48,6 +49,8 @@ import {
   skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { useAIRunTransitionStore } from "@/stores/use-ai-run-transition-store";
 
 interface ArclayerThreadRuntimeOptions {
   readonly workspaceId: string;
@@ -115,6 +118,34 @@ function isPlanConfirmationMessage(value: string): boolean {
   return /^(确认(?:计划)?|开始(?:构建|创建)|confirm(?:\s+plan)?|build\s+it)[。.!！]?$/i.test(
     value.trim(),
   );
+}
+
+export function resolveProjectlessRunExecution(input: {
+  readonly projectId: string | null;
+  readonly executionMode: AgentExecutionModeV1;
+  readonly latestCompletedPlanRunId: string | null;
+  readonly message: string;
+}): Readonly<{
+  executionMode: AgentExecutionModeV1;
+  confirmedPlanRunId: string | null;
+}> {
+  const isProjectless = input.projectId === null;
+  const hasCompletedPlan = input.latestCompletedPlanRunId !== null;
+  const confirmsPlan =
+    isProjectless && hasCompletedPlan && isPlanConfirmationMessage(input.message);
+
+  if (confirmsPlan) {
+    return {
+      executionMode: "build",
+      confirmedPlanRunId: input.latestCompletedPlanRunId,
+    };
+  }
+
+  if (isProjectless && input.executionMode === "build") {
+    return { executionMode: "plan", confirmedPlanRunId: null };
+  }
+
+  return { executionMode: input.executionMode, confirmedPlanRunId: null };
 }
 
 function isRunActive(projection: AgentRunProjectionV1): boolean {
@@ -301,10 +332,47 @@ function readBootstrapProjectId(projection: AgentRunProjectionV1): string | null
   return null;
 }
 
+function isCompletedProjectlessPlan(projection: AgentRunProjectionV1): boolean {
+  const executionMode = projection.run?.executionMode ?? projection.run?.execution_mode;
+  return (
+    projection.terminalType === "run.completed" &&
+    projection.runStatus === "completed" &&
+    executionMode === "plan" &&
+    projection.run?.projectId == null &&
+    projection.run?.project_id == null
+  );
+}
+
+function readPendingProjectBootstrapApprovalId(projection: AgentRunProjectionV1): string | null {
+  for (const message of Object.values(projection.messages).reverse()) {
+    for (const part of [...message.parts].reverse()) {
+      if (part.type !== "tool-call" || part.toolName !== "project.bootstrap") continue;
+      if (part.approval == null || typeof part.approval !== "object") continue;
+      const approval = part.approval as Record<string, unknown>;
+      if (approval.resolution !== undefined) continue;
+      const approvalId = approval.approvalId;
+      if (typeof approvalId === "string" && approvalId.length > 0) return approvalId;
+    }
+  }
+  return null;
+}
+
 function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const aui = useAui();
   const navigate = useNavigate();
   const remoteThreadId = useAuiState((state) => state.threadListItem.remoteId);
+  const pendingThreadContinuation = useAIRunTransitionStore(
+    (state) => state.pendingThreadContinuation,
+  );
+  const consumePendingThreadContinuation = useAIRunTransitionStore(
+    (state) => state.consumePendingThreadContinuation,
+  );
+  const approvedProjectBootstrap = useAIRunTransitionStore(
+    (state) => state.approvedProjectBootstrap,
+  );
+  const consumeApprovedProjectBootstrap = useAIRunTransitionStore(
+    (state) => state.consumeApprovedProjectBootstrap,
+  );
   const [projection, setProjection] = useState<AgentRunProjectionV1>(() =>
     createAgentRunProjection({ runId: "thread-history", threadId: "new" }),
   );
@@ -331,7 +399,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const continueRun = useCallback(
     async (runId: string, initial: AgentRunProjectionV1, controller: AbortController) => {
       try {
-        await consumeAgentRunStream({
+        const streamed = await consumeAgentRunStream({
           workspaceId: options.workspaceId,
           runId,
           initialProjection: initial,
@@ -339,12 +407,39 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
           preserveThreadMessages: true,
           onProjection: publishProjection,
         });
+        if (!isRunActive(streamed)) return;
+        const snapshot = await getAgentRunSnapshot(options.workspaceId, runId, {
+          signal: controller.signal,
+        });
+        const recovered = replaceAgentRunProjectionFromSnapshot(projectionRef.current, snapshot, {
+          preserveThreadMessages: true,
+        });
+        publishProjection(recovered);
+        if (isRunActive(recovered)) {
+          throw new AgentRuntimeProtocolError("AGENT_STREAM_ENDED_BEFORE_TERMINAL");
+        }
       } catch (error) {
         if (!controller.signal.aborted) throw error;
       }
     },
     [options.workspaceId, publishProjection],
   );
+
+  useEffect(() => {
+    if (
+      pendingThreadContinuation?.projectId !== options.projectId ||
+      pendingThreadContinuation.remoteThreadId !== remoteThreadId ||
+      options.projectId === null
+    ) {
+      return;
+    }
+    consumePendingThreadContinuation(options.projectId, remoteThreadId);
+  }, [
+    consumePendingThreadContinuation,
+    options.projectId,
+    pendingThreadContinuation,
+    remoteThreadId,
+  ]);
 
   useEffect(() => {
     if (!remoteThreadId) return;
@@ -409,47 +504,55 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
     const projectId = readBootstrapProjectId(projection);
     if (projectId === null || navigatedBootstrapRunIdRef.current === projection.runId) return;
     navigatedBootstrapRunIdRef.current = projection.runId;
+    if (remoteThreadId) {
+      useAIRunTransitionStore.getState().setPendingThreadContinuation({
+        projectId,
+        remoteThreadId,
+      });
+    }
+    useAiChatStore.getState().openDrawer();
     void navigate({
       to: "/projects/$projectId/editor",
       params: { projectId },
       search: { stage: "sitemap" },
     });
-  }, [navigate, projection]);
+  }, [navigate, projection, remoteThreadId]);
 
-  const resumeRecordedResponse = async (
-    response: AgentToolResponseV1,
-    controller: AbortController,
-  ) => {
-    const runId = activeRunIdRef.current;
-    if (runId === null) throw new AgentRuntimeProtocolError("AGENT_RUN_NOT_ACTIVE");
-    const resumed = await resumeAgentRun(
-      options.workspaceId,
-      runId,
-      {
-        responseId: response.responseId,
-        checkpointId: response.checkpointId,
-        expectedSequence: response.expectedSequence,
-        idempotencyKey: `resume:${response.responseId}`,
-      },
-      { signal: controller.signal },
-    );
-    const snapshot = await getAgentRunSnapshot(options.workspaceId, runId, {
-      signal: controller.signal,
-    });
-    if (
-      snapshot.lastSequence < resumed.lastSequence ||
-      (snapshot.lastSequence === resumed.lastSequence && snapshot.lastCursor !== resumed.lastCursor)
-    ) {
-      throw new AgentRuntimeProtocolError("AGENT_RUN_RESUME_SNAPSHOT_STALE");
-    }
-    const resumedProjection = replaceAgentRunProjectionFromSnapshot(
-      projectionRef.current,
-      snapshot,
-      { preserveThreadMessages: true },
-    );
-    publishProjection(resumedProjection);
-    await continueRun(runId, resumedProjection, controller);
-  };
+  const resumeRecordedResponse = useCallback(
+    async (response: AgentToolResponseV1, controller: AbortController) => {
+      const runId = activeRunIdRef.current;
+      if (runId === null) throw new AgentRuntimeProtocolError("AGENT_RUN_NOT_ACTIVE");
+      const resumed = await resumeAgentRun(
+        options.workspaceId,
+        runId,
+        {
+          responseId: response.responseId,
+          checkpointId: response.checkpointId,
+          expectedSequence: response.expectedSequence,
+          idempotencyKey: `resume:${response.responseId}`,
+        },
+        { signal: controller.signal },
+      );
+      const snapshot = await getAgentRunSnapshot(options.workspaceId, runId, {
+        signal: controller.signal,
+      });
+      if (
+        snapshot.lastSequence < resumed.lastSequence ||
+        (snapshot.lastSequence === resumed.lastSequence &&
+          snapshot.lastCursor !== resumed.lastCursor)
+      ) {
+        throw new AgentRuntimeProtocolError("AGENT_RUN_RESUME_SNAPSHOT_STALE");
+      }
+      const resumedProjection = replaceAgentRunProjectionFromSnapshot(
+        projectionRef.current,
+        snapshot,
+        { preserveThreadMessages: true },
+      );
+      publishProjection(resumedProjection);
+      await continueRun(runId, resumedProjection, controller);
+    },
+    [continueRun, options.workspaceId, publishProjection],
+  );
 
   const respondWithHumanResult = async (toolCallId: string, result: unknown) => {
     if (humanResponseInFlightRef.current === toolCallId) return;
@@ -486,8 +589,12 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
       const resumedProjection = projectionRef.current;
       const resumedExecutionMode =
         resumedProjection.run?.executionMode ?? resumedProjection.run?.execution_mode;
-      if (resumedExecutionMode === "plan" && resumedProjection.runStatus === "completed") {
+      if (resumedExecutionMode === "plan" && isCompletedProjectlessPlan(resumedProjection)) {
         latestCompletedPlanRunIdRef.current = resumedProjection.runId;
+        useAIRunTransitionStore.getState().setPendingPlanConfirmation({
+          threadId: resumedProjection.threadId,
+          planRunId: resumedProjection.runId,
+        });
       }
     } finally {
       if (humanResponseInFlightRef.current === toolCallId) {
@@ -509,6 +616,61 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   );
   const messages =
     runtimeErrorMessage !== null ? [...projectedMessages, runtimeErrorMessage] : projectedMessages;
+
+  const respondToToolApproval = useCallback(
+    async ({
+      approvalId,
+      approved,
+      optionId,
+      reason,
+    }: {
+      readonly approvalId: string;
+      readonly approved: boolean;
+      readonly optionId?: string;
+      readonly reason?: string;
+    }) => {
+      const command = approvalCommand(projectionRef.current, approvalId);
+      if (!Number.isInteger(command.approvalVersion) || command.approvalVersion < 1) {
+        throw new AgentRuntimeProtocolError("AGENT_APPROVAL_INVALID");
+      }
+      const controller = new AbortController();
+      streamControllerRef.current?.abort();
+      streamControllerRef.current = controller;
+      const response = await respondToAgentToolCall(
+        options.workspaceId,
+        command.toolCallId,
+        {
+          kind: "approval",
+          approvalId,
+          approvalVersion: command.approvalVersion,
+          approved,
+          checkpointId: command.checkpointId,
+          idempotencyKey: commandKey(),
+          ...(optionId === undefined ? {} : { optionId }),
+          ...(reason === undefined ? {} : { reason }),
+        },
+        { signal: controller.signal },
+      );
+      await resumeRecordedResponse(response, controller);
+    },
+    [options.workspaceId, resumeRecordedResponse],
+  );
+
+  useEffect(() => {
+    if (approvedProjectBootstrap?.buildRunId !== projection.runId) return;
+    const approvalId = readPendingProjectBootstrapApprovalId(projection);
+    if (approvalId === null) return;
+    consumeApprovedProjectBootstrap(projection.runId);
+    void respondToToolApproval({ approvalId, approved: true }).catch((error: unknown) => {
+      setRuntimeError(toUserFacingRuntimeError(error, options.localize));
+    });
+  }, [
+    approvedProjectBootstrap,
+    consumeApprovedProjectBootstrap,
+    options.localize,
+    projection,
+    respondToToolApproval,
+  ]);
 
   const runAgentMessage = useCallback(
     async (message: AppendMessage) => {
@@ -539,14 +701,12 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         }
         const mentionedAgentIds = readMentionedAgentIds(message);
         const selectedSkillInstallationIds = readSelectedSkillInstallationIds(message);
-        const isBuildConfirmation =
-          options.projectId === null &&
-          options.executionMode === "plan" &&
-          latestCompletedPlanRunIdRef.current !== null &&
-          isPlanConfirmationMessage(composerText);
-        const executionMode: AgentExecutionModeV1 = isBuildConfirmation
-          ? "build"
-          : options.executionMode;
+        const resolvedExecution = resolveProjectlessRunExecution({
+          projectId: options.projectId,
+          executionMode: options.executionMode,
+          latestCompletedPlanRunId: latestCompletedPlanRunIdRef.current,
+          message: composerText,
+        });
         const controller = new AbortController();
         streamControllerRef.current?.abort();
         streamControllerRef.current = controller;
@@ -558,14 +718,25 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
             leadAgentId: options.leadAgentId,
             mentionedAgentIds,
             selectedSkillInstallationIds,
-            executionMode,
-            confirmedPlanRunId: isBuildConfirmation ? latestCompletedPlanRunIdRef.current : null,
+            executionMode: resolvedExecution.executionMode,
+            confirmedPlanRunId: resolvedExecution.confirmedPlanRunId,
             siteRevisionId: null,
             message: composerText,
             idempotencyKey: commandKey(),
           },
           { signal: controller.signal },
         );
+        if (resolvedExecution.confirmedPlanRunId !== null) {
+          const approvedBootstrap = useAIRunTransitionStore.getState().approvedProjectBootstrap;
+          if (
+            approvedBootstrap?.threadId === threadId &&
+            approvedBootstrap.planRunId === resolvedExecution.confirmedPlanRunId
+          ) {
+            useAIRunTransitionStore
+              .getState()
+              .bindApprovedProjectBootstrapRun(resolvedExecution.confirmedPlanRunId, created.runId);
+          }
+        }
         consumeAIComposerDirectives("thread", mentionedAgentIds, selectedSkillInstallationIds);
         activeRunIdRef.current = created.runId;
         const snapshot = await getAgentRunSnapshot(options.workspaceId, created.runId, {
@@ -583,8 +754,15 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         publishProjection(initial);
         try {
           await continueRun(created.runId, initial, controller);
-          if (executionMode === "plan" && projectionRef.current.runStatus === "completed") {
+          if (
+            resolvedExecution.executionMode === "plan" &&
+            isCompletedProjectlessPlan(projectionRef.current)
+          ) {
             latestCompletedPlanRunIdRef.current = created.runId;
+            useAIRunTransitionStore.getState().setPendingPlanConfirmation({
+              threadId,
+              planRunId: created.runId,
+            });
           }
         } finally {
           if (
@@ -671,31 +849,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         setRuntimeError(toUserFacingRuntimeError(error, options.localize));
       });
     },
-    onRespondToToolApproval: async ({ approvalId, approved, optionId, reason }) => {
-      const command = approvalCommand(projectionRef.current, approvalId);
-      if (!Number.isInteger(command.approvalVersion) || command.approvalVersion < 1) {
-        throw new AgentRuntimeProtocolError("AGENT_APPROVAL_INVALID");
-      }
-      const controller = new AbortController();
-      streamControllerRef.current?.abort();
-      streamControllerRef.current = controller;
-      const response = await respondToAgentToolCall(
-        options.workspaceId,
-        command.toolCallId,
-        {
-          kind: "approval",
-          approvalId,
-          approvalVersion: command.approvalVersion,
-          approved,
-          checkpointId: command.checkpointId,
-          idempotencyKey: commandKey(),
-          ...(optionId === undefined ? {} : { optionId }),
-          ...(reason === undefined ? {} : { reason }),
-        },
-        { signal: controller.signal },
-      );
-      await resumeRecordedResponse(response, controller);
-    },
+    onRespondToToolApproval: respondToToolApproval,
   });
 
   return runtime;
@@ -707,6 +861,9 @@ export function ArclayerAssistantProvider({
   ...runtimeOptions
 }: ArclayerAssistantProviderProps) {
   const aui = useAui({ tools: Tools({ toolkit: arclayerAgentToolkit }) });
+  const pendingThreadContinuation = useAIRunTransitionStore(
+    (state) => state.pendingThreadContinuation,
+  );
   const adapter = useMemo(
     () =>
       createAgentThreadListAdapter({
@@ -729,10 +886,57 @@ export function ArclayerAssistantProvider({
     return useArclayerThreadRuntime({ ...runtimeOptions, initialTitle });
   }
 
-  const runtime = useRemoteThreadListRuntime({ adapter, runtimeHook: useThreadRuntime });
+  const initialThreadId =
+    pendingThreadContinuation?.projectId === runtimeOptions.projectId
+      ? pendingThreadContinuation.remoteThreadId
+      : undefined;
+  const runtime = useRemoteThreadListRuntime({
+    adapter,
+    runtimeHook: useThreadRuntime,
+    initialThreadId,
+  });
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
       {children}
+      <ProjectPlanConfirmationBridge projectId={runtimeOptions.projectId} />
     </AssistantRuntimeProvider>
+  );
+}
+
+function ProjectPlanConfirmationBridge(props: { readonly projectId: string | null }) {
+  const aui = useAui();
+  const remoteThreadId = useAuiState((state) => state.threadListItem.remoteId);
+  const pendingPlanConfirmation = useAIRunTransitionStore((state) => state.pendingPlanConfirmation);
+  const clearPendingPlanConfirmation = useAIRunTransitionStore(
+    (state) => state.clearPendingPlanConfirmation,
+  );
+  const approveProjectBootstrap = useAIRunTransitionStore((state) => state.approveProjectBootstrap);
+
+  const confirmation =
+    props.projectId === null && pendingPlanConfirmation?.threadId === remoteThreadId
+      ? pendingPlanConfirmation
+      : null;
+
+  return (
+    <ProjectPlanConfirmationDialog
+      open={confirmation !== null}
+      onContinuePlanning={() => {
+        if (confirmation) clearPendingPlanConfirmation(confirmation.planRunId);
+      }}
+      onExecute={async () => {
+        if (confirmation === null) return;
+        approveProjectBootstrap(confirmation);
+        try {
+          await aui.thread().append({
+            role: "user",
+            content: [{ type: "text", text: "确认计划" }],
+          });
+        } catch (error) {
+          useAIRunTransitionStore.getState().clearApprovedProjectBootstrap(confirmation.planRunId);
+          useAIRunTransitionStore.getState().setPendingPlanConfirmation(confirmation);
+          throw error;
+        }
+      }}
+    />
   );
 }

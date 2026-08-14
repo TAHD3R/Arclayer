@@ -1,0 +1,144 @@
+meta:
+  title: AI 体系分层
+  theme: tech-blue
+  profile: engineering-review
+  source: generated
+  canvas: 1240x600
+
+nodes:
+  - id: drawer
+    label: "AI 对话抽屉\nassistant-ui 流式对话"
+    type: service
+    module: interact
+    bounds: { x: 60, y: 70, width: 160, height: 48 }
+
+  - id: editor
+    label: "创建编辑器\n内嵌 AI"
+    type: service
+    module: interact
+    bounds: { x: 360, y: 70, width: 160, height: 48 }
+
+  - id: ops
+    label: "平台 AI 运营"
+    type: service
+    module: interact
+    bounds: { x: 660, y: 70, width: 160, height: 48 }
+
+  - id: run
+    label: "运行 / 会话 / 流式\n事件持久化"
+    type: service
+    module: runtime
+    bounds: { x: 60, y: 210, width: 160, height: 48 }
+
+  - id: approval
+    label: "审批协议\n取消与恢复"
+    type: service
+    module: runtime
+    bounds: { x: 360, y: 210, width: 160, height: 48 }
+
+  - id: settle
+    label: "用量结算"
+    type: service
+    module: runtime
+    bounds: { x: 660, y: 210, width: 160, height: 48 }
+
+  - id: engine
+    label: "AgentRunEngine"
+    type: service
+    module: engine-tier
+    bounds: { x: 40, y: 350, width: 160, height: 48 }
+
+  - id: graph
+    label: "LangGraph 状态图"
+    type: service
+    module: engine-tier
+    bounds: { x: 340, y: 350, width: 160, height: 48 }
+
+  - id: ckpt
+    label: "Checkpoint\nmemory / Postgres"
+    type: service
+    module: engine-tier
+    bounds: { x: 640, y: 350, width: 160, height: 48 }
+
+  - id: tools
+    label: "工具注册表\n7 类工具"
+    type: service
+    module: engine-tier
+    bounds: { x: 920, y: 350, width: 160, height: 48 }
+
+  - id: llm
+    label: "LLM 接入 · src/llm\nLiteLLM · 预算 · 限流"
+    type: service
+    module: base
+    bounds: { x: 60, y: 520, width: 160, height: 48 }
+
+  - id: ctx
+    label: "上下文组装\n知识库 · 设计系统 · 技能"
+    type: service
+    module: base
+    bounds: { x: 350, y: 520, width: 170, height: 48 }
+
+  - id: jobs
+    label: "持久化执行\n后台任务 · 快照投影"
+    type: queue
+    module: base
+    bounds: { x: 660, y: 520, width: 160, height: 48 }
+
+edges:
+  - from: drawer
+    to: run
+    type: primary
+  - from: editor
+    to: run
+    label: HTTP / SSE
+    type: primary
+  - from: ops
+    to: run
+    type: primary
+  - from: run
+    to: engine
+    type: primary
+    waypoints:
+      - { x: 120, y: 280 }
+  - from: approval
+    to: graph
+    type: primary
+    waypoints:
+      - { x: 420, y: 280 }
+  - from: settle
+    to: tools
+    type: dependency
+    waypoints:
+      - { x: 1000, y: 280 }
+  - from: graph
+    to: ckpt
+    label: checkpoint 持久化
+    type: bidirectional
+  - from: engine
+    to: llm
+    type: dependency
+    waypoints:
+      - { x: 120, y: 435 }
+      - { x: 140, y: 435 }
+  - from: graph
+    to: ctx
+    type: dependency
+    waypoints:
+      - { x: 420, y: 435 }
+      - { x: 435, y: 435 }
+  - from: tools
+    to: jobs
+    type: dependency
+    waypoints:
+      - { x: 1000, y: 435 }
+      - { x: 740, y: 435 }
+
+modules:
+  - id: interact
+    label: 交互层
+  - id: runtime
+    label: "运行时编排 · modules/ai"
+  - id: engine-tier
+    label: "Agent 引擎 · src/agents"
+  - id: base
+    label: 基础层

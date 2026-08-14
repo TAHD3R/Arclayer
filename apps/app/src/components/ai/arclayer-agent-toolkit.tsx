@@ -1,6 +1,7 @@
 "use client";
 
 import { defineToolkit, type ToolCallMessagePartProps } from "@assistant-ui/react";
+import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { DesignGenerateTool } from "@/components/ai/design-generate-tool";
@@ -73,7 +74,18 @@ function HumanRequestInputTool(props: ToolCallMessagePartProps) {
 function ProjectBootstrapTool(props: ToolCallMessagePartProps) {
   const { t } = useTranslation(["ai"]);
   const name = typeof props.args.name === "string" ? props.args.name : "";
-  if (props.status.type === "running") return null;
+  if (props.status.type === "running") {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex items-center gap-2 py-2 text-sm text-label-secondary"
+      >
+        <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin" />
+        <span>{t("ai:AI_PROJECT_BOOTSTRAP_RUNNING", { name })}</span>
+      </div>
+    );
+  }
   if (props.approval && props.approval.resolution === undefined) {
     return (
       <section className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
@@ -135,4 +147,4 @@ export const arclayerAgentToolkit = defineToolkit({
 });
 
 export const ARCLAYER_AGENT_TOOL_NAMES = new Set(Object.keys(arclayerAgentToolkit));
-export { HumanRequestInputTool };
+export { HumanRequestInputTool, ProjectBootstrapTool };

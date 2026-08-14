@@ -1,0 +1,128 @@
+meta:
+  title: Arclayer 系统架构
+  theme: tech-blue
+  profile: engineering-review
+  source: generated
+  canvas: 1240x680
+
+nodes:
+  - id: app
+    label: "产品应用\napps/app · React 19 + Vite 7"
+    type: service
+    bounds: { x: 130, y: 40, width: 230, height: 64 }
+
+  - id: platform
+    label: "平台控制台\napps/platform"
+    type: service
+    bounds: { x: 550, y: 40, width: 180, height: 64 }
+
+  - id: ai-rt
+    label: "AI 运行时\nLangGraph + LiteLLM"
+    type: service
+    module: api-core
+    bounds: { x: 170, y: 240, width: 180, height: 64 }
+
+  - id: api
+    label: "Arclayer API\nFastAPI · REST + GraphQL\n28 业务模块"
+    type: service
+    module: api-core
+    bounds: { x: 500, y: 240, width: 200, height: 64 }
+
+  - id: jobs
+    label: "后台任务\nTaskiq · outbox 派发"
+    type: queue
+    module: api-core
+    bounds: { x: 820, y: 240, width: 160, height: 64 }
+
+  - id: litellm
+    label: "LiteLLM 网关\n多模型路由"
+    type: service
+    bounds: { x: 175, y: 500, width: 170, height: 72 }
+
+  - id: pg
+    label: "PostgreSQL 16\n+ pgvector"
+    type: database
+    bounds: { x: 380, y: 500, width: 170, height: 72 }
+
+  - id: valkey
+    label: "Valkey 8\n缓存 · 队列 · 限流"
+    type: database
+    bounds: { x: 620, y: 500, width: 170, height: 72 }
+
+  - id: meili
+    label: "Meilisearch\n全文搜索"
+    type: database
+    bounds: { x: 860, y: 500, width: 170, height: 72 }
+
+  - id: rustfs
+    label: "rustfs\nS3 兼容存储"
+    type: database
+    bounds: { x: 1070, y: 500, width: 150, height: 72 }
+
+  - id: legend-service
+    label: Service
+    type: service
+    position: { x: 430, y: 640 }
+    size: small
+
+  - id: legend-db
+    label: Database
+    type: database
+    position: { x: 540, y: 640 }
+    size: small
+
+  - id: legend-queue
+    label: "队列 / 任务"
+    type: queue
+    position: { x: 650, y: 640 }
+    size: small
+
+edges:
+  - from: app
+    to: api
+    label: OpenAPI 类型化客户端
+    type: primary
+    labelOffset: { x: 0, y: -16 }
+    waypoints:
+      - { x: 245, y: 150 }
+      - { x: 560, y: 150 }
+  - from: platform
+    to: api
+    label: 平台 API
+    type: primary
+    labelOffset: { x: 44, y: 0 }
+  - from: ai-rt
+    to: litellm
+    label: LLM 调用
+    type: data
+    labelOffset: { x: -52, y: 0 }
+  - from: api
+    to: pg
+    type: data
+    waypoints:
+      - { x: 510, y: 355 }
+      - { x: 465, y: 355 }
+  - from: api
+    to: valkey
+    type: data
+    waypoints:
+      - { x: 630, y: 385 }
+      - { x: 705, y: 385 }
+  - from: api
+    to: meili
+    type: data
+    waypoints:
+      - { x: 700, y: 272 }
+      - { x: 740, y: 272 }
+      - { x: 740, y: 410 }
+      - { x: 945, y: 410 }
+  - from: api
+    to: rustfs
+    type: data
+    waypoints:
+      - { x: 580, y: 440 }
+      - { x: 1145, y: 440 }
+
+modules:
+  - id: api-core
+    label: apps/api · Product / Platform 双组合

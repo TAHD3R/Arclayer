@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "title": "AI 审批流程（Human-in-the-Loop）",
+  "type": "engineering-diagram",
+  "source": "generated",
+  "profile": "engineering-review",
+  "theme": "tech-blue",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 6,
+    "edges": 6,
+    "modules": 0
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "用户消息\n绑定工作区上下文与权限",
+      "type": "user"
+    },
+    {
+      "id": "model",
+      "label": "模型步骤\nLiteLLM 路由模型\n预算与限流检查",
+      "type": "llm"
+    },
+    {
+      "id": "tool",
+      "label": "工具步骤\n写入工具被拦截\n生成审批请求",
+      "type": "process"
+    },
+    {
+      "id": "approval",
+      "label": "审批中断\nLangGraph interrupt\ncheckpoint 持久化",
+      "type": "decision"
+    },
+    {
+      "id": "exec",
+      "label": "执行与结算\n流式推送 · 用量结算",
+      "type": "service"
+    },
+    {
+      "id": "deny",
+      "label": "用户拒绝\n按拒绝分支结束\n不产生写入",
+      "type": "terminal"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "user",
+      "to": "model",
+      "type": "primary"
+    },
+    {
+      "id": "edge-2",
+      "from": "model",
+      "to": "tool",
+      "type": "primary"
+    },
+    {
+      "id": "edge-3",
+      "from": "tool",
+      "to": "approval",
+      "type": "control",
+      "label": "写入意图"
+    },
+    {
+      "id": "edge-4",
+      "from": "approval",
+      "to": "exec",
+      "type": "primary",
+      "label": "批准 · Command 注入"
+    },
+    {
+      "id": "edge-5",
+      "from": "approval",
+      "to": "deny",
+      "type": "optional",
+      "label": "拒绝"
+    },
+    {
+      "id": "edge-6",
+      "from": "exec",
+      "to": "model",
+      "type": "feedback",
+      "label": "多步骤任务继续"
+    }
+  ],
+  "modules": []
+}

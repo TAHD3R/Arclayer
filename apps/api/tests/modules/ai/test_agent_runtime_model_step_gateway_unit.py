@@ -82,6 +82,22 @@ class _ChatGateway:
         }
 
 
+class _StaticChatGateway:
+    def __init__(self, payload: JsonObject) -> None:
+        self.payload = payload
+
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        context: LLMRequestContext,
+        model: str | None = None,
+        provider_params: dict[str, object] | None = None,
+    ) -> JsonObject:
+        _ = messages, context, model, provider_params
+        return self.payload
+
+
 class _StyleGuideChatGateway:
     def __init__(self) -> None:
         self.calls: list[tuple[list[dict[str, str]], dict[str, object] | None]] = []
@@ -316,13 +332,17 @@ async def test_project_bootstrap_requires_approval_and_forces_the_real_tool() ->
     assert interrupted.approval.policy_version == "project-bootstrap-v1"
     provider_params = chat.calls[0][1]
     assert provider_params is not None
-    assert [
-        tool["function"]["name"]
-        for tool in provider_params["tools"]
-        if isinstance(tool, dict)
-        and isinstance(tool.get("function"), dict)
-        and isinstance(tool["function"].get("name"), str)
-    ] == ["project_bootstrap"]
+    tools = provider_params["tools"]
+    assert isinstance(tools, list)
+    tool_names: list[str] = []
+    for tool in tools:
+        assert isinstance(tool, dict)
+        function = tool.get("function")
+        assert isinstance(function, dict)
+        name = function.get("name")
+        assert isinstance(name, str)
+        tool_names.append(name)
+    assert tool_names == ["project_bootstrap"]
     assert provider_params["tool_choice"] == "required"
 
     completed = await gateway.resume(
@@ -344,6 +364,10 @@ async def test_project_bootstrap_requires_approval_and_forces_the_real_tool() ->
     editor_path = result["editorPath"]
     assert isinstance(editor_path, str)
     assert editor_path.endswith("/editor?stage=sitemap")
+    continuation_messages = chat.calls[1][0]
+    assert any(
+        message["role"] == "system" and "Do not emit XML" in message["content"] for message in continuation_messages
+    )
 
 
 @pytest.mark.asyncio
@@ -397,6 +421,49 @@ async def test_model_step_turns_function_call_into_human_interrupt_and_consumes_
     assert '"audience":"Design teams"' in resumed_messages[-1]["content"]
     assert "without asking that question again" in resumed_messages[-1]["content"]
     assert all("tool_calls" not in message for message in resumed_messages)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "id": "completion-malformed-tool-markup",
+            "model": "deepseek-v4-pro",
+            "content": '<tool_calls><invoke name="TodoWrite"></invoke></tool_calls>',
+            "tool_calls": [],
+            "usage": {"prompt_tokens": 8, "completion_tokens": 4},
+            "finish_reason": "stop",
+        },
+        {
+            "id": "completion-missing-structured-tool-call",
+            "model": "deepseek-v4-pro",
+            "content": "",
+            "tool_calls": [],
+            "usage": {"prompt_tokens": 8, "completion_tokens": 4},
+            "finish_reason": "tool_calls",
+        },
+    ],
+)
+async def test_model_step_rejects_malformed_provider_tool_protocol(payload: JsonObject) -> None:
+    gateway = ModelToolAgentRunExecutionGateway(chat_service=_StaticChatGateway(payload))
+    request = AgentRunExecutionRequest(
+        messages=({"role": "user", "content": "Build a homepage."},),
+        context=LLMRequestContext(
+            workspace_id=uuid4(),
+            capability_key="ai.agents",
+            project_id=uuid4(),
+            agent_run_id=uuid4(),
+            user_id=uuid4(),
+            source="agent",
+        ),
+        execution_mode="build",
+        tool_grants=(HUMAN_REQUEST_INPUT_TOOL,),
+        model="deepseek-v4-pro",
+    )
+
+    with pytest.raises(ValueError, match="malformed Tool protocol"):
+        await gateway.execute(request=request)
 
 
 @pytest.mark.asyncio

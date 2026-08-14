@@ -1,5 +1,18 @@
+import { useClientPlatform } from "@arclayer/hooks/use-client-platform";
 import { Button } from "@arclayer/ui/button";
-import { Focus, Minus, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
+import { Kbd, KbdGroup } from "@arclayer/ui/kbd";
+import { ChevronUp } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -21,14 +34,49 @@ import {
 } from "@/pages/projects/editor/canvas/canvas-engine";
 
 const DEFAULT_MIN_ZOOM = 0.45;
-const DEFAULT_MAX_ZOOM = 1.65;
+const DEFAULT_MAX_ZOOM = 2;
 const DEFAULT_FIT_MAX_ZOOM = 1;
 const DEFAULT_FIT_PADDING = 64;
+const CANVAS_ZOOM_STEP = 0.1;
+const CANVAS_ZOOM_PRESETS = [2, 1, 0.5] as const;
+
+type ZoomShortcutKey = "mod" | "shift" | "+" | "−" | "0" | "1";
 
 interface CanvasPointerDrag {
   pointerId: number;
   x: number;
   y: number;
+}
+
+function isTextInputTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
+function resolveZoomShortcutKey(
+  key: ZoomShortcutKey,
+  platform: ReturnType<typeof useClientPlatform>,
+): string {
+  if (key === "mod") return platform === "mac" ? "⌘" : "Ctrl";
+  if (key === "shift") return platform === "mac" ? "⇧" : "Shift";
+  return key;
+}
+
+function ZoomMenuShortcut(props: {
+  keys: readonly ZoomShortcutKey[];
+  platform: ReturnType<typeof useClientPlatform>;
+}) {
+  return (
+    <DropdownMenuShortcut>
+      <KbdGroup className="gap-1">
+        {props.keys.map((key, index) => (
+          <Kbd key={`${key}-${index}`}>{resolveZoomShortcutKey(key, props.platform)}</Kbd>
+        ))}
+      </KbdGroup>
+    </DropdownMenuShortcut>
+  );
 }
 
 export function useEditorCanvasViewport(options?: {
@@ -91,6 +139,7 @@ export function useEditorCanvasViewport(options?: {
     (event: ReactWheelEvent<HTMLDivElement>) => {
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
+        if (event.deltaY === 0) return;
         const rect = event.currentTarget.getBoundingClientRect();
         setZoom(viewport.zoom * (event.deltaY > 0 ? 0.92 : 1.08), {
           x: event.clientX - rect.left,
@@ -98,7 +147,12 @@ export function useEditorCanvasViewport(options?: {
         });
         return;
       }
-      setViewport((current) => panCanvasViewport(current, { x: -event.deltaX, y: -event.deltaY }));
+      if (event.shiftKey) {
+        const horizontalDelta = event.deltaX || event.deltaY;
+        setViewport((current) => panCanvasViewport(current, { x: -horizontalDelta, y: 0 }));
+        return;
+      }
+      setViewport((current) => panCanvasViewport(current, { x: 0, y: -event.deltaY }));
     },
     [setZoom, viewport.zoom],
   );
@@ -224,41 +278,98 @@ export function EditorCanvasZoomControls({
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onFit: () => void;
-  labels: { zoomOut: string; zoomIn: string; fit: string };
+  labels: { zoom: string; zoomOut: string; zoomIn: string; fit: string };
 }) {
+  const platform = useClientPlatform();
+  const percentage = `${Math.round(zoom * 100)}%`;
+  const changeZoomBy = useCallback(
+    (delta: number) => onZoomChange(Math.round((zoom + delta) * 100) / 100),
+    [onZoomChange, zoom],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isTextInputTarget(event.target)) return;
+
+      const hasModifier = event.metaKey || event.ctrlKey;
+      if (!event.altKey && hasModifier) {
+        if (event.key === "+" || event.key === "=") {
+          event.preventDefault();
+          changeZoomBy(CANVAS_ZOOM_STEP);
+          return;
+        }
+        if (event.key === "-" || event.key === "−") {
+          event.preventDefault();
+          changeZoomBy(-CANVAS_ZOOM_STEP);
+          return;
+        }
+        if (event.key === "0") {
+          event.preventDefault();
+          onZoomChange(1);
+          return;
+        }
+      }
+
+      if (!hasModifier && !event.altKey && event.shiftKey && event.code === "Digit1") {
+        event.preventDefault();
+        onFit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [changeZoomBy, onFit, onZoomChange]);
+
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={labels.zoomOut}
-        onClick={() => onZoomChange(zoom - 0.1)}
-      >
-        <Minus className="size-4" />
-      </Button>
-      <span className="w-14 text-center font-mono text-caption text-label-secondary tabular-nums">
-        {Math.round(zoom * 100)}%
-      </span>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={labels.zoomIn}
-        onClick={() => onZoomChange(zoom + 0.1)}
-      >
-        <Plus className="size-4" />
-      </Button>
-      <span className="mx-1 h-5 w-px bg-border" />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={labels.fit}
-        onClick={onFit}
-      >
-        <Focus className="size-4" />
-      </Button>
+    <div className="pointer-events-none absolute right-4 bottom-4 z-20">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="pointer-events-auto h-10 min-w-24 justify-between rounded-lg bg-background px-3 font-mono font-medium text-label-secondary shadow-sm tabular-nums"
+            aria-label={`${labels.zoom}: ${percentage}`}
+          >
+            <span>{percentage}</span>
+            <ChevronUp className="size-4" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-56 p-2">
+          <DropdownMenuGroup className="space-y-1">
+            <DropdownMenuItem onSelect={() => changeZoomBy(CANVAS_ZOOM_STEP)}>
+              <span>{labels.zoomIn}</span>
+              <ZoomMenuShortcut keys={["mod", "+"]} platform={platform} />
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => changeZoomBy(-CANVAS_ZOOM_STEP)}>
+              <span>{labels.zoomOut}</span>
+              <ZoomMenuShortcut keys={["mod", "−"]} platform={platform} />
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onFit}>
+              <span>{labels.fit}</span>
+              <ZoomMenuShortcut keys={["shift", "1"]} platform={platform} />
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator className="my-2" />
+          <DropdownMenuRadioGroup
+            value={String(zoom)}
+            onValueChange={(value) => onZoomChange(Number(value))}
+            className="space-y-1"
+          >
+            {CANVAS_ZOOM_PRESETS.map((preset) => (
+              <DropdownMenuRadioItem
+                key={preset}
+                value={String(preset)}
+                hideIndicator
+                className="justify-between data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+              >
+                <span>{Math.round(preset * 100)}%</span>
+                {preset === 1 ? <ZoomMenuShortcut keys={["mod", "0"]} platform={platform} /> : null}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

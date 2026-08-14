@@ -52,9 +52,13 @@ vi.mock("@/lib/ai/agent-run-stream-controller", () => ({
   consumeAgentRunStream: apiMocks.consumeAgentRunStream,
 }));
 
-import { ArclayerAssistantProvider } from "@/components/ai/arclayer-assistant-provider";
+import {
+  ArclayerAssistantProvider,
+  resolveProjectlessRunExecution,
+} from "@/components/ai/arclayer-assistant-provider";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
 import type { AgentToolResponseV1 } from "@/lib/ai/agent-run-api";
+import { useAIRunTransitionStore } from "@/stores/use-ai-run-transition-store";
 
 const runSnapshot = {
   snapshotVersion: 1,
@@ -81,6 +85,11 @@ describe("ArclayerAssistantProvider", () => {
     for (const mock of Object.values(apiMocks)) mock.mockReset();
     useAIComposerDirectiveStore.setState({
       directivesByScope: { thread: [], home: [] },
+    });
+    useAIRunTransitionStore.setState({
+      pendingPlanConfirmation: null,
+      approvedProjectBootstrap: null,
+      pendingThreadContinuation: null,
     });
     apiMocks.getAgentThread.mockResolvedValue({
       threadId: "thread-1",
@@ -110,7 +119,119 @@ describe("ArclayerAssistantProvider", () => {
       lastCursor: "cursor-6",
     });
     apiMocks.consumeAgentRunStream.mockImplementation(
-      async ({ initialProjection }) => initialProjection,
+      async ({ initialProjection, onProjection }) => {
+        const terminal = {
+          ...initialProjection,
+          runStatus: "completed",
+          terminalType: "run.completed",
+          run: { ...initialProjection.run, status: "completed" },
+        };
+        onProjection(terminal);
+        return terminal;
+      },
+    );
+  });
+
+  it("plans a projectless build request before project bootstrap", () => {
+    expect(
+      resolveProjectlessRunExecution({
+        projectId: null,
+        executionMode: "build",
+        latestCompletedPlanRunId: null,
+        message: "帮我创建一个 AI SaaS 建站工具企业官网",
+      }),
+    ).toEqual({ executionMode: "plan", confirmedPlanRunId: null });
+  });
+
+  it("only starts project bootstrap after an explicit plan confirmation", () => {
+    expect(
+      resolveProjectlessRunExecution({
+        projectId: null,
+        executionMode: "build",
+        latestCompletedPlanRunId: "plan-run-1",
+        message: "确认计划",
+      }),
+    ).toEqual({ executionMode: "build", confirmedPlanRunId: "plan-run-1" });
+  });
+
+  it("keeps project-scoped build requests unchanged", () => {
+    expect(
+      resolveProjectlessRunExecution({
+        projectId: "project-1",
+        executionMode: "build",
+        latestCompletedPlanRunId: null,
+        message: "Build the homepage",
+      }),
+    ).toEqual({ executionMode: "build", confirmedPlanRunId: null });
+  });
+
+  it("sends the first projectless build prompt as a plan Run", async () => {
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId={null}
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    const onNew = runtimeCapture.external?.onNew as
+      | ((message: { content: readonly { type: "text"; text: string }[] }) => Promise<void>)
+      | undefined;
+    await act(async () => {
+      await onNew?.({ content: [{ type: "text", text: "帮我创建一个企业官网" }] });
+    });
+
+    expect(apiMocks.createAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: null,
+        executionMode: "plan",
+        confirmedPlanRunId: null,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("sends a confirmed projectless build Run with the completed plan ID", async () => {
+    apiMocks.getAgentThread.mockResolvedValueOnce({
+      threadId: "thread-1",
+      activeRunId: null,
+      messages: [],
+      title: "New collaboration",
+      latestCompletedPlanRunId: "plan-run-1",
+    });
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId={null}
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    await waitFor(() => expect(apiMocks.getAgentThread).toHaveBeenCalledTimes(1));
+    const onNew = runtimeCapture.external?.onNew as
+      | ((message: { content: readonly { type: "text"; text: string }[] }) => Promise<void>)
+      | undefined;
+    await act(async () => {
+      await onNew?.({ content: [{ type: "text", text: "确认计划" }] });
+    });
+
+    expect(apiMocks.createAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: null,
+        executionMode: "build",
+        confirmedPlanRunId: "plan-run-1",
+      }),
+      expect.any(Object),
     );
   });
 
@@ -730,5 +851,53 @@ describe("ArclayerAssistantProvider", () => {
       ]),
     );
     expect(messages.some((message) => message.id.startsWith("human-result:"))).toBe(false);
+  });
+
+  it("reconciles a non-terminal stream EOF instead of silently leaving the Run active", async () => {
+    apiMocks.consumeAgentRunStream.mockImplementationOnce(
+      async ({ initialProjection }) => initialProjection,
+    );
+    apiMocks.getAgentRunSnapshot
+      .mockResolvedValueOnce({
+        ...runSnapshot,
+        run: { status: "running", executionMode: "build", interrupt: null },
+        lastSequence: 3,
+        lastCursor: "cursor-3",
+      })
+      .mockResolvedValueOnce({
+        ...runSnapshot,
+        run: { status: "running", executionMode: "build", interrupt: null },
+        lastSequence: 3,
+        lastCursor: "cursor-3",
+      });
+
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId="project-1"
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    await waitFor(() => expect(runtimeCapture.external?.onNew).toBeTypeOf("function"));
+    const onNew = runtimeCapture.external?.onNew;
+    if (typeof onNew !== "function") throw new Error("onNew runtime callback is unavailable");
+
+    await act(async () => {
+      await expect(
+        onNew({
+          role: "user",
+          content: [{ type: "text", text: "Build the homepage" }],
+          runConfig: { custom: {} },
+        }),
+      ).rejects.toThrow("errors:AGENT_RUN_FAILED");
+    });
+
+    expect(apiMocks.getAgentRunSnapshot).toHaveBeenCalledTimes(2);
   });
 });

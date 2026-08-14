@@ -233,6 +233,28 @@ describe("GlobalLayout", () => {
     expect(useWorkspaceStore.getState().lastProjectId).toBe("project-alpha");
   });
 
+  it("clears project context when navigating between global routes", async () => {
+    const view = renderWithQueryClient(<GlobalLayout />);
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
+    });
+
+    useWorkspaceStore.setState({ currentProjectId: "project-beta" });
+    mockPathname = "/";
+    view.rerender(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <GlobalLayout />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
+    });
+  });
+
   it("keeps global navigation limited to Product entries", () => {
     renderWithQueryClient(<GlobalLayout />);
 

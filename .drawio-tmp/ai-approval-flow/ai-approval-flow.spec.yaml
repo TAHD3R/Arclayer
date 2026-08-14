@@ -1,0 +1,89 @@
+meta:
+  title: AI 审批流程（Human-in-the-Loop）
+  theme: tech-blue
+  profile: engineering-review
+  source: generated
+  layout: horizontal
+  canvas: 1240x560
+nodes:
+  - id: user
+    label: |-
+      用户消息
+      绑定工作区上下文与权限
+    type: user
+    position:
+      x: 100
+      'y': 220
+  - id: model
+    label: |-
+      模型步骤
+      LiteLLM 路由模型
+      预算与限流检查
+    type: llm
+    position:
+      x: 330
+      'y': 220
+  - id: tool
+    label: |-
+      工具步骤
+      写入工具被拦截
+      生成审批请求
+    type: process
+    position:
+      x: 580
+      'y': 220
+  - id: approval
+    label: |-
+      审批中断
+      LangGraph interrupt
+      checkpoint 持久化
+    type: decision
+    position:
+      x: 850
+      'y': 220
+  - id: exec
+    label: |-
+      执行与结算
+      流式推送 · 用量结算
+    type: service
+    position:
+      x: 1100
+      'y': 220
+  - id: deny
+    label: |-
+      用户拒绝
+      按拒绝分支结束
+      不产生写入
+    type: terminal
+    position:
+      x: 1100
+      'y': 440
+edges:
+  - from: user
+    to: model
+    type: primary
+  - from: model
+    to: tool
+    type: primary
+  - from: tool
+    to: approval
+    label: 写入意图
+    type: control
+  - from: approval
+    to: exec
+    label: 批准 · Command 注入
+    type: primary
+  - from: approval
+    to: deny
+    label: 拒绝
+    type: optional
+  - from: exec
+    to: model
+    label: 多步骤任务继续
+    type: feedback
+    waypoints:
+      - x: 1210
+        'y': 90
+      - x: 360
+        'y': 90
+modules: []

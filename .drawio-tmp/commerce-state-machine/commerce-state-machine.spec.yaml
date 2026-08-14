@@ -1,0 +1,98 @@
+meta:
+  title: 商业化状态机
+  theme: tech-blue
+  profile: engineering-review
+  source: generated
+  canvas: 1100x520
+nodes:
+  - id: active
+    label: |-
+      Active
+      订阅正常
+    type: service
+    position:
+      x: 220
+      'y': 140
+    size: large
+  - id: dunning
+    label: |-
+      Dunning
+      支付失败 · 催收
+    type: process
+    position:
+      x: 520
+      'y': 140
+    size: large
+  - id: grace
+    label: |-
+      Payment Grace
+      宽限期 · 可恢复
+    type: process
+    position:
+      x: 820
+      'y': 140
+    size: large
+  - id: restricted
+    label: |-
+      Payment Restricted
+      数据保留 · 只读可导出
+    type: terminal
+    position:
+      x: 820
+      'y': 380
+    size: large
+  - id: note
+    label: |-
+      受限恢复模式（Restricted Recovery Mode）：受限期间保留认证读取、导出与恢复能力
+      自动充值（auto-refill）：额度低于阈值时按策略自动补充 Credits
+    type: text
+    position:
+      x: 420
+      'y': 470
+edges:
+  - from: active
+    to: dunning
+    label: 续费失败
+    type: control
+  - from: dunning
+    to: grace
+    label: 催收未果
+    type: data
+  - from: grace
+    to: restricted
+    label: 恢复窗口耗尽
+    type: data
+  - from: dunning
+    to: active
+    label: 支付成功
+    type: primary
+    waypoints:
+      - x: 540
+        'y': 70
+      - x: 130
+        'y': 70
+      - x: 130
+        'y': 140
+  - from: grace
+    to: active
+    label: 支付成功
+    type: primary
+    waypoints:
+      - x: 820
+        'y': 40
+      - x: 130
+        'y': 40
+      - x: 130
+        'y': 122
+  - from: restricted
+    to: active
+    label: 支付纠正 · 恢复
+    type: primary
+    waypoints:
+      - x: 820
+        'y': 450
+      - x: 200
+        'y': 450
+      - x: 200
+        'y': 164
+modules: []

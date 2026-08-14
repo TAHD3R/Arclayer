@@ -1230,6 +1230,7 @@
   "CREATION_EDITOR_WIREFRAME_VIEWPORT_DESKTOP": "Desktop structure view",
   "CREATION_EDITOR_WIREFRAME_VIEWPORT_MOBILE": "Mobile structure view",
   "CREATION_EDITOR_WIREFRAME_VIEWPORT_TABLET": "Tablet structure view",
+  "CREATION_EDITOR_ZOOM": "Zoom",
   "CREATION_EDITOR_ZOOM_IN": "Zoom in",
   "CREATION_EDITOR_ZOOM_OUT": "Zoom out",
   "PROJECT_SEO_AUDIT_DESC": "Review page metadata, indexability, and publication readiness for this website.",

@@ -35,6 +35,12 @@ const ANALYST_ID = "A1b2C3d4E5f6G7h8I9j0K1";
 const ARCHITECT_ID = "B1c2D3e4F5g6H7i8J9k0L1";
 const COORDINATOR_ID = "C1d2E3f4G5h6I7j8K9l0M1";
 const STALE_AGENT_ID = "D1e2F3g4H5i6J7k8L9m0N1";
+let projectRoutePathname = "/";
+
+vi.mock("@tanstack/react-router", () => ({
+  useRouterState: ({ select }: { select: (state: unknown) => unknown }) =>
+    select({ location: { pathname: projectRoutePathname } }),
+}));
 
 function catalogAgent(input: {
   agentId: string;
@@ -96,6 +102,8 @@ vi.mock("react-i18next", () => ({
         "ai:AI_AGENT_CONTENT_MODEL_ADVISOR": "Model Advisor",
         "ai:AI_AGENT_CONTENT_MODEL_ADVISOR_DESC": "Review models",
         "ai:AI_CHAT_PROJECT_SELECT": "Select project",
+        "ai:AI_CHAT_PROJECT_NONE": "No project",
+        "ai:AI_CHAT_PROJECT_NONE_DESC": "Use AI across the workspace",
         "ai:AI_CHAT_PROJECT_LOADING": "Loading projects",
         "ai:AI_CHAT_PROJECT_EMPTY": "No projects",
       };
@@ -321,6 +329,7 @@ describe("AIAgentSelector", () => {
 describe("AIProjectSelector", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    projectRoutePathname = "/";
     useWorkspaceStore.setState({
       currentWorkspaceId: "workspace-1",
       lastWorkspaceId: "workspace-1",
@@ -376,5 +385,29 @@ describe("AIProjectSelector", () => {
     expect(avatars).toHaveLength(2);
     expect(avatars[1]).toHaveAttribute("data-icon-mode", "emoji");
     expect(avatars[1]).toHaveAttribute("data-icon-emoji", "🪐");
+  });
+
+  it("allows clearing the project on global routes", async () => {
+    const user = userEvent.setup();
+    renderProjectSelector();
+
+    const trigger = await screen.findByRole("button", { name: "Select project" });
+    await waitFor(() => expect(trigger).toHaveTextContent("Aurora Store"));
+    await user.click(trigger);
+    await user.click(await screen.findByRole("option", { name: /No project/ }));
+
+    expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
+  });
+
+  it("keeps the project context fixed on a concrete project route", async () => {
+    projectRoutePathname = "/projects/project-1/editor";
+    const user = userEvent.setup();
+    renderProjectSelector();
+
+    const trigger = await screen.findByRole("button", { name: "Select project" });
+    await waitFor(() => expect(trigger).toHaveTextContent("Aurora Store"));
+    await user.click(trigger);
+
+    expect(screen.queryByRole("option", { name: /No project/ })).not.toBeInTheDocument();
   });
 });

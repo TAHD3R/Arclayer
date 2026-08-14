@@ -1,0 +1,121 @@
+meta:
+  title: 上下文组装管线
+  theme: tech-blue
+  profile: engineering-review
+  source: generated
+  layout: horizontal
+  canvas: 1240x460
+
+nodes:
+  - id: manual
+    label: 手动输入 manual
+    type: document
+    module: sources
+    bounds: { x: 90, y: 60, width: 150, height: 40 }
+
+  - id: file
+    label: 文件上传 file
+    type: document
+    module: sources
+    bounds: { x: 90, y: 140, width: 150, height: 40 }
+
+  - id: url
+    label: 网页抓取 url
+    type: document
+    module: sources
+    bounds: { x: 90, y: 220, width: 150, height: 40 }
+
+  - id: connector
+    label: 外部连接器 connector
+    type: document
+    module: sources
+    bounds: { x: 90, y: 300, width: 150, height: 40 }
+
+  - id: content
+    label: 平台内容引用 content
+    type: document
+    module: sources
+    bounds: { x: 90, y: 380, width: 150, height: 40 }
+
+  - id: ingest
+    label: "摄入管线\n抓取 · 解析 · 索引\n（后台任务）"
+    type: process
+    bounds: { x: 300, y: 200, width: 170, height: 56 }
+
+  - id: storage
+    label: "知识存储\n租户记录（权威）\npgvector 向量"
+    type: database
+    bounds: { x: 530, y: 200, width: 170, height: 56 }
+
+  - id: retrieval
+    label: "检索\nACL 授权校验\n引用溯源 · 隔离"
+    type: service
+    bounds: { x: 760, y: 200, width: 170, height: 56 }
+
+  - id: assembly
+    label: "上下文组装\n系统提示 + 知识片段\n技能授权 + 设计系统 + 历史"
+    type: service
+    bounds: { x: 1020, y: 110, width: 180, height: 56 }
+
+  - id: redact
+    label: "上下文脱敏\n敏感字段 → [REDACTED]"
+    type: process
+    bounds: { x: 1020, y: 200, width: 180, height: 56 }
+
+  - id: llm
+    label: "LLM\nLiteLLM 网关"
+    type: llm
+    bounds: { x: 1020, y: 290, width: 180, height: 56 }
+
+edges:
+  - from: manual
+    to: ingest
+    type: data
+    waypoints:
+      - { x: 270, y: 80 }
+      - { x: 270, y: 228 }
+  - from: file
+    to: ingest
+    type: data
+    waypoints:
+      - { x: 270, y: 160 }
+      - { x: 270, y: 228 }
+  - from: url
+    to: ingest
+    type: data
+    waypoints:
+      - { x: 270, y: 240 }
+      - { x: 270, y: 228 }
+  - from: connector
+    to: ingest
+    type: data
+    waypoints:
+      - { x: 270, y: 320 }
+      - { x: 270, y: 228 }
+  - from: content
+    to: ingest
+    type: data
+    waypoints:
+      - { x: 270, y: 400 }
+      - { x: 270, y: 228 }
+  - from: ingest
+    to: storage
+    type: primary
+  - from: storage
+    to: retrieval
+    type: primary
+  - from: retrieval
+    to: assembly
+    type: primary
+    waypoints:
+      - { x: 980, y: 138 }
+  - from: assembly
+    to: redact
+    type: primary
+  - from: redact
+    to: llm
+    type: primary
+
+modules:
+  - id: sources
+    label: 知识源（五类）

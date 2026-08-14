@@ -421,7 +421,7 @@ class TestMockLLMIntegration:
 
             assert mock_runtime.chat.await_args.kwargs["provider_params"] == expected
 
-    async def test_deepseek_named_function_tool_choice_uses_non_thinking_auto_mode(self) -> None:
+    async def test_deepseek_named_function_tool_choice_stays_forced_in_non_thinking_mode(self) -> None:
         settings = get_settings()
         mock_runtime = AsyncMock(spec=LLMRuntime)
         mock_runtime.chat.return_value = ChatResult(
@@ -462,12 +462,11 @@ class TestMockLLMIntegration:
 
         assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
             **forced_tool_params,
-            "tool_choice": "auto",
             "thinking": {"type": "disabled"},
         }
         assert mock_runtime.chat.await_args.kwargs["max_tokens"] == 8192
 
-    async def test_deepseek_required_tool_choice_uses_non_thinking_auto_mode(self) -> None:
+    async def test_deepseek_required_tool_choice_stays_forced_in_non_thinking_mode(self) -> None:
         settings = get_settings()
         mock_runtime = AsyncMock(spec=LLMRuntime)
         mock_runtime.chat.return_value = ChatResult(
@@ -505,7 +504,6 @@ class TestMockLLMIntegration:
 
         assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
             **required_tool_params,
-            "tool_choice": "auto",
             "thinking": {"type": "disabled"},
         }
 

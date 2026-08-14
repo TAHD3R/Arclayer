@@ -584,19 +584,38 @@ const AssistantReasoningPanel: FC<PropsWithChildren<{ group: ThreadGroupPart }>>
   );
 };
 
-const AssistantToolTimeline: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
+export const AssistantToolTimeline: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
   group,
   children,
 }) => {
   const { t } = useTranslation(["ai"]);
   const [open, setOpen] = useState(false);
-  const isHumanInput = useAuiState((s) =>
-    group.indices.some((index) => {
-      const part = s.message.parts[index];
-      return part?.type === "tool-call" && part.toolName === "human.request_input";
-    }),
-  );
+  const messageParts = useAuiState((s) => s.message.parts);
+  const toolParts = group.indices.flatMap((index) => {
+    const part = messageParts[index];
+    return part?.type === "tool-call" ? [part] : [];
+  });
+  const isHumanInput = toolParts.some((part) => part.toolName === "human.request_input");
+  const isProjectBootstrap = toolParts.some((part) => part.toolName === "project.bootstrap");
+  const toolLabel = (toolName: string, index: number) =>
+    ({
+      "human.request_input": t("ai:AI_CHAT_HUMAN_TOOL_LABEL"),
+      "project.bootstrap": t("ai:AI_CHAT_PROJECT_BOOTSTRAP_TOOL_TITLE"),
+      "builder.style_guide.generate": t("ai:AI_CHAT_STYLE_GUIDE_TOOL_TITLE"),
+      "builder.wireframe.generate": t("ai:AI_CHAT_WIREFRAME_TOOL_TITLE"),
+      "builder.design.generate": t("ai:AI_CHAT_DESIGN_TOOL_TITLE"),
+    })[toolName] ?? t("ai:AI_CHAT_TOOL_STEP", { index: index + 1 });
+
+  const steps = toolParts.map((part, index) => ({
+    verb: toolLabel(part.toolName, index),
+    chip: String(index + 1),
+    icon: WrenchIcon,
+  }));
+
   const streaming = group.status.type === "running";
+  if (streaming && isProjectBootstrap) {
+    return <div className="pt-1">{children}</div>;
+  }
   if (streaming) return null;
   if (isHumanInput) {
     return <div className="pt-1">{children}</div>;
@@ -606,21 +625,15 @@ const AssistantToolTimeline: FC<PropsWithChildren<{ group: ThreadGroupPart }>> =
   }
   return (
     <ToolTimeline
-      steps={group.indices.map((index) => ({
-        verb: t("ai:AI_CHAT_TOOL_STEP", { index: index + 1 }),
-        chip: String(index + 1),
-        icon: WrenchIcon,
-      }))}
-      visibleSteps={group.indices.length}
+      steps={steps}
+      visibleSteps={steps.length}
       streaming={streaming}
       open={open}
       onOpenChange={setOpen}
-      restingLabel={t("ai:AI_CHAT_TOOL_CALLS_TITLE", { count: group.indices.length })}
-      activeLabel={t("ai:AI_CHAT_TOOL_CALLS_ACTIVE", { count: group.indices.length })}
+      restingLabel={t("ai:AI_CHAT_TOOL_CALLS_TITLE", { count: steps.length })}
+      activeLabel={t("ai:AI_CHAT_TOOL_CALLS_ACTIVE", { count: steps.length })}
       stats={[]}
-    >
-      {children}
-    </ToolTimeline>
+    />
   );
 };
 

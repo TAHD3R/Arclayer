@@ -600,19 +600,17 @@ def _chat_provider_params(
     forced_tool_name = _forced_function_tool_name(params)
     if detect_provider(model) == "deepseek" and forced_tool_name is not None:
         logger.info(
-            "Using DeepSeek-compatible non-thinking automatic Tool selection for a named function",
+            "Using DeepSeek-compatible non-thinking forced Tool selection for a named function",
             model=model,
             tool_name=forced_tool_name,
         )
-        params["tool_choice"] = "auto"
         params["thinking"] = {"type": "disabled"}
         params.pop("reasoning_effort", None)
     elif detect_provider(model) == "deepseek" and params.get("tool_choice") == "required":
         logger.info(
-            "Using DeepSeek-compatible non-thinking automatic Tool selection",
+            "Using DeepSeek-compatible non-thinking forced Tool selection",
             model=model,
         )
-        params["tool_choice"] = "auto"
         params["thinking"] = {"type": "disabled"}
         params.pop("reasoning_effort", None)
     return params

@@ -31,7 +31,7 @@ function EditorLogoMenuTrigger() {
       aria-label="Arclayer"
       disableLayoutId
       className={cn(
-        "group/panel-trigger flex h-8 items-center gap-1.5 rounded-md border border-transparent bg-transparent px-1",
+        "group/panel-trigger flex h-8 items-center gap-1.5 rounded-md border border-transparent bg-transparent px-0",
         "text-label-secondary transition-[background-color,color,border-color] duration-200",
         "hover:bg-accent hover:text-label-primary",
         "data-[state=open]:bg-accent data-[state=open]:text-label-primary",

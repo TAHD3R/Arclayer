@@ -28,6 +28,11 @@ type SceneKey = ReturnType<typeof resolveSceneKey>;
 
 const ADMIN_SHELL_SCENES = new Set<SceneKey>(["global", "admin"]);
 
+function projectContextForRoute(pathname: string, currentProjectId: string | null): string | null {
+  const routeProjectId = pathname.match(/^\/projects\/([^/]+)(?:\/|$)/)?.[1] ?? null;
+  return routeProjectId !== null && routeProjectId === currentProjectId ? currentProjectId : null;
+}
+
 export function shouldUseSceneLoadingOverlay(previousScene: SceneKey, nextScene: SceneKey) {
   if (ADMIN_SHELL_SCENES.has(previousScene) && ADMIN_SHELL_SCENES.has(nextScene)) return false;
   return true;
@@ -144,7 +149,7 @@ export const Route = createRootRoute({
       });
       workspaceState.setCurrentContext({
         workspaceId: decision.workspaceId,
-        projectId: decision.projectId,
+        projectId: projectContextForRoute(location.pathname, workspaceState.currentProjectId),
       });
       if (decision.onboardingRequired) {
         if (!isWelcome) {
@@ -173,7 +178,7 @@ export const Route = createRootRoute({
       });
       workspaceState.setCurrentContext({
         workspaceId: decision.workspaceId,
-        projectId: decision.projectId,
+        projectId: projectContextForRoute(location.pathname, workspaceState.currentProjectId),
       });
       if (decision.onboardingRequired) {
         const safeRedirect =

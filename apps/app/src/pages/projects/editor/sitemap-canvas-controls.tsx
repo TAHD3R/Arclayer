@@ -1,16 +1,7 @@
-import { Button } from "@arclayer/ui/button";
 import { Highlight } from "@arclayer/ui/highlight";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@arclayer/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
-import {
-  Focus,
-  Minus,
-  MousePointer2,
-  PanelsTopLeft,
-  Plus,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import { MousePointer2, PanelsTopLeft, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 
@@ -67,53 +58,6 @@ export function SitemapCanvasTools({
   );
 
   return slot ? createPortal(menu, slot) : menu;
-}
-
-export function SitemapZoomControls({
-  zoom,
-  onZoomChange,
-  onFit,
-}: {
-  zoom: number;
-  onZoomChange: (zoom: number) => void;
-  onFit: () => void;
-}) {
-  const { t } = useTranslation("account");
-  return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={t("CREATION_EDITOR_ZOOM_OUT")}
-        onClick={() => onZoomChange(zoom - 0.1)}
-      >
-        <Minus className="size-4" />
-      </Button>
-      <span className="w-14 text-center font-mono text-caption text-label-secondary tabular-nums">
-        {Math.round(zoom * 100)}%
-      </span>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={t("CREATION_EDITOR_ZOOM_IN")}
-        onClick={() => onZoomChange(zoom + 0.1)}
-      >
-        <Plus className="size-4" />
-      </Button>
-      <span className="mx-1 h-5 w-px bg-border" />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="pointer-events-auto"
-        aria-label={t("CREATION_EDITOR_FIT_CANVAS")}
-        onClick={onFit}
-      >
-        <Focus className="size-4" />
-      </Button>
-    </div>
-  );
 }
 
 function CanvasTool({

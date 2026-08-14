@@ -96,9 +96,9 @@ export function CreationLayout({ children }: PropsWithChildren) {
               </div>
               <div
                 className={cn(
-                  "relative z-10 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                  "relative z-10 flex min-h-0 min-w-0 flex-1 self-stretch flex-col overflow-hidden",
                   drawerOpen &&
-                    "min-[769px]:mx-6 min-[769px]:my-4 min-[769px]:rounded-3xl min-[769px]:border min-[769px]:border-border min-[769px]:bg-background",
+                    "min-[769px]:m-4 min-[769px]:rounded-2xl min-[769px]:border min-[769px]:border-border min-[769px]:bg-background",
                 )}
               >
                 {children}

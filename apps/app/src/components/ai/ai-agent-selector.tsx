@@ -8,11 +8,13 @@ import {
   SearchIcon,
   RouteIcon,
   TriangleAlertIcon,
+  Globe2Icon,
   type LucideIcon,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useRouterState } from "@tanstack/react-router";
 
 import { listAIWorkspaceAgents, type AIWorkspaceAgentCatalogItem } from "@/api/ai";
 import { getProjectDetail, listProjects } from "@/api/projects";
@@ -75,6 +77,8 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isConcreteProjectRoute = /^\/projects\/[^/]+(?:\/|$)/.test(pathname);
   const { data: projectsData, isLoading: projectsLoading } = useQuery({
     queryKey: ["ai", "project-selector", workspaceId],
     queryFn: () =>
@@ -124,7 +128,7 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
           iconUrl: currentProject.project.iconUrl,
         }
       : null);
-  const buttonLabel = selected?.label ?? t("ai:AI_CHAT_PROJECT_SELECT");
+  const buttonLabel = selected?.label ?? t("ai:AI_CHAT_PROJECT_NONE");
   const disabled = !workspaceId;
 
   return (
@@ -167,6 +171,33 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
         <Command className="w-full rounded-none">
           <CommandList className="max-h-80 w-full p-0">
             <CommandGroup className="w-full p-0">
+              {!isConcreteProjectRoute ? (
+                <CommandItem
+                  value="__workspace_scope__"
+                  onSelect={() => {
+                    setCurrentProjectId(null);
+                    setOpen(false);
+                  }}
+                  className="w-full cursor-pointer items-start gap-3"
+                >
+                  <Globe2Icon className="mt-0.5 size-5 text-label-secondary" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-callout font-semibold text-label-primary">
+                      {t("ai:AI_CHAT_PROJECT_NONE")}
+                    </span>
+                    <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                      {t("ai:AI_CHAT_PROJECT_NONE_DESC")}
+                    </span>
+                  </span>
+                  <CheckIcon
+                    className={cn(
+                      "mt-1 size-4 text-label-secondary",
+                      projectId === null ? "opacity-100" : "opacity-0",
+                    )}
+                    aria-hidden="true"
+                  />
+                </CommandItem>
+              ) : null}
               {options.map((project) => {
                 const active = projectId === project.value;
                 return (

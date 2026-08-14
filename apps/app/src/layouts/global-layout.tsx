@@ -47,7 +47,7 @@ export function GlobalLayout() {
 
   useEffect(() => {
     setCurrentProjectId(null);
-  }, [setCurrentProjectId]);
+  }, [pathname, setCurrentProjectId]);
 
   const projectsQuery = useQuery({
     queryKey: ["global-nav", "projects", workspaceId, sessionVersion],

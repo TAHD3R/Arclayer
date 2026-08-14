@@ -216,6 +216,7 @@ export function WireframeCanvas({
           onZoomChange={canvas.setZoom}
           onFit={() => canvas.fit(contentBounds)}
           labels={{
+            zoom: t("CREATION_EDITOR_ZOOM"),
             zoomOut: t("CREATION_EDITOR_WIREFRAME_ZOOM_OUT"),
             zoomIn: t("CREATION_EDITOR_WIREFRAME_ZOOM_IN"),
             fit: t("CREATION_EDITOR_FIT_CANVAS"),

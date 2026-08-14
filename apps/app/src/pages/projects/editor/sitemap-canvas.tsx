@@ -15,12 +15,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 
-import {
-  SitemapCanvasTools,
-  SitemapZoomControls,
-} from "@/pages/projects/editor/sitemap-canvas-controls";
+import { SitemapCanvasTools } from "@/pages/projects/editor/sitemap-canvas-controls";
 import {
   EditorCanvasSurface,
+  EditorCanvasZoomControls,
   useEditorCanvasViewport,
 } from "@/pages/projects/editor/canvas/editor-canvas";
 import {
@@ -319,10 +317,16 @@ export function SitemapCanvas({
         </div>
       ) : null}
 
-      <SitemapZoomControls
+      <EditorCanvasZoomControls
         zoom={canvas.viewport.zoom}
         onZoomChange={canvas.setZoom}
         onFit={fitCanvas}
+        labels={{
+          zoom: t("CREATION_EDITOR_ZOOM"),
+          zoomOut: t("CREATION_EDITOR_ZOOM_OUT"),
+          zoomIn: t("CREATION_EDITOR_ZOOM_IN"),
+          fit: t("CREATION_EDITOR_FIT_CANVAS"),
+        }}
       />
       {reviewPanel}
     </div>

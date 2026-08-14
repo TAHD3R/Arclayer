@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "title": "商业化状态机",
+  "type": "engineering-diagram",
+  "source": "generated",
+  "profile": "engineering-review",
+  "theme": "tech-blue",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 5,
+    "edges": 6,
+    "modules": 0
+  },
+  "nodes": [
+    {
+      "id": "active",
+      "label": "Active\n订阅正常",
+      "type": "service",
+      "size": "large"
+    },
+    {
+      "id": "dunning",
+      "label": "Dunning\n支付失败 · 催收",
+      "type": "process",
+      "size": "large"
+    },
+    {
+      "id": "grace",
+      "label": "Payment Grace\n宽限期 · 可恢复",
+      "type": "process",
+      "size": "large"
+    },
+    {
+      "id": "restricted",
+      "label": "Payment Restricted\n数据保留 · 只读可导出",
+      "type": "terminal",
+      "size": "large"
+    },
+    {
+      "id": "note",
+      "label": "受限恢复模式（Restricted Recovery Mode）：受限期间保留认证读取、导出与恢复能力\n自动充值（auto-refill）：额度低于阈值时按策略自动补充 Credits",
+      "type": "text"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "active",
+      "to": "dunning",
+      "type": "control",
+      "label": "续费失败"
+    },
+    {
+      "id": "edge-2",
+      "from": "dunning",
+      "to": "grace",
+      "type": "data",
+      "label": "催收未果"
+    },
+    {
+      "id": "edge-3",
+      "from": "grace",
+      "to": "restricted",
+      "type": "data",
+      "label": "恢复窗口耗尽"
+    },
+    {
+      "id": "edge-4",
+      "from": "dunning",
+      "to": "active",
+      "type": "primary",
+      "label": "支付成功"
+    },
+    {
+      "id": "edge-5",
+      "from": "grace",
+      "to": "active",
+      "type": "primary",
+      "label": "支付成功"
+    },
+    {
+      "id": "edge-6",
+      "from": "restricted",
+      "to": "active",
+      "type": "primary",
+      "label": "支付纠正 · 恢复"
+    }
+  ],
+  "modules": []
+}

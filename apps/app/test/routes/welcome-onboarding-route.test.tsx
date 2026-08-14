@@ -1,23 +1,28 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { redirectMock, resolvePostAuthRouteMock, routeState, setCurrentContextMock } = vi.hoisted(
-  () => ({
-    redirectMock: vi.fn((payload: unknown) => payload),
-    resolvePostAuthRouteMock: vi.fn(async () => ({
-      path: "/welcome",
-      workspaceId: null as string | null,
-      projectId: null as string | null,
-      onboardingRequired: true,
-    })),
-    routeState: {
-      pathname: "/projects",
-      isPagePending: false,
-      matches: [] as Array<{ status: string; error?: unknown }>,
-    },
-    setCurrentContextMock: vi.fn(),
-  }),
-);
+const {
+  redirectMock,
+  resolvePostAuthRouteMock,
+  routeState,
+  setCurrentContextMock,
+  workspaceState,
+} = vi.hoisted(() => ({
+  redirectMock: vi.fn((payload: unknown) => payload),
+  resolvePostAuthRouteMock: vi.fn(async () => ({
+    path: "/welcome",
+    workspaceId: null as string | null,
+    projectId: null as string | null,
+    onboardingRequired: true,
+  })),
+  routeState: {
+    pathname: "/projects",
+    isPagePending: false,
+    matches: [] as Array<{ status: string; error?: unknown }>,
+  },
+  setCurrentContextMock: vi.fn(),
+  workspaceState: { currentProjectId: null as string | null },
+}));
 
 vi.mock("@tanstack/react-router", () => ({
   createRootRoute: (config: unknown) => config,
@@ -73,6 +78,7 @@ vi.mock("@/stores/use-workspace-store", () => ({
   useWorkspaceStore: {
     getState: () => ({
       lastWorkspaceId: null,
+      currentProjectId: workspaceState.currentProjectId,
       setCurrentContext: setCurrentContextMock,
     }),
   },
@@ -107,6 +113,7 @@ describe("welcome onboarding route guard", () => {
       onboardingRequired: true,
     });
     setCurrentContextMock.mockReset();
+    workspaceState.currentProjectId = null;
   });
 
   it("renders /welcome without the Admin scene layout", () => {
@@ -195,6 +202,30 @@ describe("welcome onboarding route guard", () => {
         },
       }),
     ).resolves.toBeUndefined();
+
+    expect(setCurrentContextMock).toHaveBeenCalledWith({
+      workspaceId: "workspace-current",
+      projectId: null,
+    });
+  });
+
+  it("does not replace a matching project route context before the project route loads", async () => {
+    routeState.pathname = "/projects/project-current/editor";
+    workspaceState.currentProjectId = "project-current";
+    resolvePostAuthRouteMock.mockResolvedValueOnce({
+      path: "/",
+      workspaceId: "workspace-current",
+      projectId: "project-default",
+      onboardingRequired: false,
+    });
+
+    await rootRouteConfig.beforeLoad({
+      location: {
+        pathname: routeState.pathname,
+        searchStr: "",
+        search: {},
+      },
+    });
 
     expect(setCurrentContextMock).toHaveBeenCalledWith({
       workspaceId: "workspace-current",
