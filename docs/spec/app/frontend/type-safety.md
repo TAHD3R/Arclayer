@@ -11,7 +11,7 @@ This code-spec defines frontend type ownership and safe TypeScript patterns for 
 
 ### 2. Signatures
 
-- Generated API types: `@arclayer/openapi` and `@arclayer/openapi`
+- Generated API types: `@arclayer/openapi`
 - Product Application UI-only types: `*ViewModel`, `*Row`, `*FormState`, `*UiState`
 - Typed route search/params: TanStack Router `validateSearch`, `Route.useSearch()`, `Route.useParams()`
 - React Query key type pattern: readonly tuple keys or stable object members that include all API-affecting inputs

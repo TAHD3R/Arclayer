@@ -36,7 +36,7 @@ Persist one installation record per plugin identity with:
 - source type and source locator metadata;
 - installed, available, and previous versions;
 - package checksum, signature/provenance verification result, and manifest digest;
-- compatibility range for Arclayer/API/Admin runtime;
+- compatibility range for Arclayer/API/Product Application runtime;
 - lifecycle state: `installing`, `installed`, `update_available`, `upgrading`, `disabling`, `disabled`, `uninstalling`, `failed`, or `rollback_required`;
 - enabled capabilities, permission grants requested/approved, configuration revision, and secret-reference metadata;
 - operation/job id, last success/failure summary, installed/updated actor and timestamps;
@@ -243,7 +243,7 @@ The canonical system surface is:
 
 Recipient read/click/dismiss actions extend the existing `/me/notifications` surface and require the recipient-owned notification/delivery id. Publish enqueues the durable fan-out job; email delivery uses the same delivery ledger rather than a parallel unaudited loop.
 
-The existing `POST /system/notifications/broadcasts` synchronous contract is removed after its Admin caller migrates. It is not retained as a second send path or compatibility fallback.
+The existing `POST /system/notifications/broadcasts` synchronous contract is removed after its Product Application caller migrates. It is not retained as a second send path or compatibility fallback.
 
 Failures are explicit:
 
@@ -279,7 +279,7 @@ The existing `GET /system/mail/templates` becomes the server-paginated aggregate
 | `POST /system/mail/templates/{templateId}/restore-default` | Restore one built-in locale to its shipped version |
 | `GET /system/mail/templates/{templateKey}/history` | Paginate locale-aware version/audit history |
 
-OpenAPI changes hard-cut the old flat-list response after all Admin consumers migrate; Admin does not group the transport response locally.
+OpenAPI changes hard-cut the old flat-list response after all Product Application consumers migrate; the Product Application does not group the transport response locally.
 
 ## 16. Email template DataTable
 

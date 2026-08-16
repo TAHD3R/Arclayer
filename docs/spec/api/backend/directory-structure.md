@@ -52,7 +52,7 @@ This code-spec defines where backend code belongs in `apps/api` and which depend
 ### 5. Good/Base/Bad Cases
 
 - Good: `modules/analytics` keeps router, service, repository, and schema responsibilities separate.
-- Good: `/content-api/v1` delivery routes are mounted from `core/routes.py` because they intentionally bypass the Admin `/api/v1` surface.
+- Good: `/content-api/v1` delivery routes are mounted from `core/routes.py` because they intentionally bypass the Product Application `/api/v1` surface.
 - Good: `/management-api/v1` operational routes are mounted from `core/routes.py` with their own documented management boundary.
 - Base: a small module starts with `router.py`, `service.py`, `repository.py`, and `schema.py`, then splits by subdomain when responsibilities diverge.
 - Bad: a router imports `ProjectRepository` and performs query logic inline.

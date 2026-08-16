@@ -291,7 +291,7 @@ Preview/thumbnail capture uses a short-lived audience-limited preview credential
 
 ## 12. Product API surface
 
-Module-local paths are mounted under the global Admin `/api/v1` prefix by `core/routes.py`.
+Module-local paths are mounted under the global Product Application `/api/v1` prefix by `core/routes.py`.
 
 | Method/path | Contract |
 | --- | --- |
@@ -839,7 +839,7 @@ version.
 Wave 3I implementation is accepted only after the hard request/persistence cut,
 coordinated context and provider scope validation, durable recovery/cancel,
 Editor target selection and review, the explicit multi-family saga, full API
-and Admin gates, changed-scope review, and non-mutating browser evidence. Still
+and Product Application gates, changed-scope review, and non-mutating browser evidence. Still
 gated: Builder-managed global-section create/delete, visitor rendering and
 legacy delivery migration, Design writes, compiler artifacts, publication
 readiness, comments, and server undo/redo.
@@ -927,7 +927,7 @@ This preserves one reusable-content authority and makes retirement impact
 reviewable before visitor rendering depends on it.
 
 Wave 3J is accepted only after schema, Preview graph/blocker, canonical
-transaction, exact pin, replay/drift, Admin review, full quality gates, and
+transaction, exact pin, replay/drift, Product Application review, full quality gates, and
 non-mutating browser evidence pass. Still gated: visitor rendering and legacy
 delivery migration, Design writes, compiler artifacts, publication readiness,
 comments, and server undo/redo.
@@ -966,7 +966,7 @@ The response contains:
 - deterministic `documentHash`, `renderable=true`, and explicit evidence for
   passed versus `not_evaluated` concerns.
 
-The response is private Admin data and uses `Cache-Control: private, no-store`.
+The response is private Product Application data and uses `Cache-Control: private, no-store`.
 
 ### 31.2 Strict input verification
 
@@ -1182,7 +1182,7 @@ theme-resolved value, deprecation state, and replacement path. The projection
 is derived from the exact Design System version/checksum and registered
 component catalog already pinned by the Site Revision. Missing themes, token
 cycles, invalid aliases, or type-invalid resolved values fail explicitly.
-Admin must not maintain a local token catalog or submit arbitrary token paths.
+The Product Application must not maintain a local token catalog or submit arbitrary token paths.
 
 ## 33. Wave 3M revision-pinned AI Design generation contract
 

@@ -20,7 +20,7 @@ This code-spec defines file placement and ownership for `apps/app` and Product A
 - Path/query helpers: `apps/app/src/lib/api/**`
 - Reusable Product Application UI: `apps/app/src/components/**`
 - Layout shells: `apps/app/src/layouts/**`
-- Generated API types: `@arclayer/openapi` and `@arclayer/openapi`
+- Generated API types: `@arclayer/openapi`
 - Shared package surfaces: `@arclayer/ui`, `@arclayer/hooks`, `@arclayer/lib`, `@arclayer/web`
 
 ### 3. Contracts

@@ -25,10 +25,10 @@ mutable style settings blob and not a second copy of page presentation data.
   - Builder `SiteRevisionManifest`, ChangeSets, presentations, and render/build
     artifacts;
   - import, derive, validate, preview, and compile Jobs;
-  - generated Admin clients and Style Guide UI.
+  - generated Product Application clients and Style Guide UI.
 
-This contract does not allow a workspace Design System to theme the Admin
-shell. `DESIGN.md`, `packages/ui/src/tokens.css`, and the Admin product
+This contract does not allow a workspace Design System to theme the Product Application
+shell. `DESIGN.md`, `packages/ui/src/tokens.css`, and the Product Application product
 toolchain remain the source for Arclayer's own interface.
 
 ### 2. Hard-Cut Decision
@@ -57,7 +57,7 @@ Job.
 
 | Capability wave | Activated authority | Required evidence before activation |
 | --- | --- | --- |
-| Wave 1A — workspace foundation | Workspace-owned identity, immutable manual candidate versions, strict manifest/token graph, deterministic synchronous `foundation` validation, and one exact Workspace default assignment | real PostgreSQL tenant migration; strict-schema/token-graph tests; idempotency, tenant isolation, revision conflict, exact default pin, Activity, OpenAPI, and Admin CRUD tests |
+| Wave 1A — workspace foundation | Workspace-owned identity, immutable manual candidate versions, strict manifest/token graph, deterministic synchronous `foundation` validation, and one exact Workspace default assignment | real PostgreSQL tenant migration; strict-schema/token-graph tests; idempotency, tenant isolation, revision conflict, exact default pin, Activity, OpenAPI, and Product Application CRUD tests |
 | Wave 1B1 — project authority | Project exact assignment, project-owned fork, and assignment impact over the live canonical Project authority | project tenant/permission authority, assignment/fork integration tests, exact command replay, and stale-base tests |
 | Wave 1B2 — Agent context | Exact immutable Design System context snapshots for project-scoped Agent Runs | retained Run context records, worker/snapshot projection evidence, assignment-change isolation, and Run replay tests |
 | Wave 2 — renderer readiness | Component-catalog compatibility, Asset/font rights validation, real shared-component preview, deterministic compile artifacts, and publication | deployed render-browser/publish workers, real catalog fixtures, Asset authorization, deterministic artifact and visual/reduced-motion evidence |
@@ -318,7 +318,7 @@ The artifact may contain CSS custom properties, typed JSON, font declarations,
 and component-recipe lookup data. Build/publish consumes the artifact reference,
 not a mutable live settings query. Hash-identical inputs produce the same
 artifact identity. Compiler failure is explicit and does not fall back to a
-different Design System or Admin token sheet.
+different Design System or Product Application token sheet.
 
 During Wave 1A no `DesignSystemArtifact` is created. The optional component
 catalog reference and component recipes remain empty unless a real registered
@@ -573,12 +573,12 @@ derivation and not a Sitemap ChangeSet:
   active release, or publication state. Acceptance remains the existing exact
   assignment command followed by an explicit `design-system.refresh`
   Preview/Apply;
-- candidate name/summary language follows the active Admin/UI locale. Site
+- candidate name/summary language follows the active Product Application/UI locale. Site
   content locale is only a last-resort locale fallback and cannot silently
-  force an English review result in a Chinese Admin session;
+  force an English review result in a Chinese Product Application session;
 - `GET .../concept-generations/recovery` returns the current actor's newest
   active generation and newest terminal generation independently, each ordered
-  by `created_at DESC, id DESC`. Admin prioritizes active, polls while active,
+  by `created_at DESC, id DESC`. The Product Application prioritizes active, polls while active,
   and restores the latest terminal result after reload. It never reconstructs
   generation identity from immutable version history;
 - public migration `0051_auto_20260721_1723` and tenant-control migration v23
@@ -651,7 +651,7 @@ codes, never localized copy.
 1. add source models and generated public migrations, then add tenant-owned
    tables/indexes/constraints to the tenant-control path for every workspace.
 2. define/validate an Arclayer starter manifest from current visual/component
-   contracts without treating Admin `tokens.css` as mutable workspace storage.
+   contracts without treating the Product Application `tokens.css` as mutable workspace storage.
 3. import valid legacy project/site appearance/style values into explicit
    candidate Design System versions with provenance and compatibility findings.
    Missing or ambiguous semantics enter `migration_required`; migration does not
@@ -693,7 +693,7 @@ Required tests:
   content overflow, states, and reduced motion; placeholder-only preview is not
   acceptance evidence.
 - compiler tests for deterministic artifact hash, exact input pinning, CSS/JSON
-  output, Asset references, failure behavior, and no Admin-token fallback.
+  output, Asset references, failure behavior, and no Product Application-token fallback.
 - Builder tests for token reference resolution, typed ChangeSet preview/apply,
   project fork, tracking refresh, Site Revision exact pinning, and unchanged
   active release on candidate failure.
@@ -703,7 +703,7 @@ Required tests:
 - migration tests across new/existing tenants, valid/ambiguous legacy styles,
   `migration_required`, parity evidence, and absence of legacy writes after hard
   cut.
-- OpenAPI generation plus Admin typecheck for every public contract.
+- OpenAPI generation plus Product Application typecheck for every public contract.
 
 Acceptance requires real PostgreSQL tenant migrations, a real component-catalog
 preview, deterministic compile artifact, authenticated assignment/fork flow,
@@ -722,7 +722,7 @@ Wave 1A acceptance is narrower and must not be reported as target completion:
 - identity/version/validation/default commands prove tenant isolation,
   idempotent replay, conflicting-key rejection, revision conflicts, exact hash
   pinning, and required Activity events;
-- the Admin screen proves accessible list, empty/loading/error, create,
+- the Product Application screen proves accessible list, empty/loading/error, create,
   version-authoring, validation findings, and exact-default flows in `zh-CN`
   and `en-US` without raw JSON as the primary authoring experience;
 - every Wave 1B+ capability is absent or explicitly unavailable, and every

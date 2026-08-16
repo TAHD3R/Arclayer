@@ -688,17 +688,19 @@ Advisory locks use a central namespaced registry or a collision-tested stable
 derivation. Hand-authored numeric keys are forbidden. Scanner correctness must
 not depend only on an advisory lock when row-level claim can express ownership.
 
-Current Wave 0 code registers exactly one scheduled control task: the bounded
-Provider Effect orphan scan on the `maintenance` broker. Competing scheduler
-replicas wrap the same `LabelScheduleSource` with a token-owned Valkey lease;
-only the leader exposes schedules, lease renewal is rechecked immediately
-before publish, and a stale former leader is explicitly fenced. The scan uses
-bounded `SKIP LOCKED` discovery and creates durable recovery Jobs/outboxes; it
-does not perform provider cleanup in the scheduler process.
-
-The deleted legacy Taskiq cron registrations were not restored. AI usage
-aggregation, audit/observability/conversation/checkpoint retention, scheduled
-publish, and lease-reaper automation therefore still do not run automatically.
+> **Implementation status note (Wave 0, not a contract requirement):** current
+> code registers exactly one scheduled control task — the bounded Provider
+> Effect orphan scan on the `maintenance` broker. Competing scheduler replicas
+> wrap the same `LabelScheduleSource` with a token-owned Valkey lease; only the
+> leader exposes schedules, lease renewal is rechecked immediately before
+> publish, and a stale former leader is explicitly fenced. The scan uses
+> bounded `SKIP LOCKED` discovery and creates durable recovery Jobs/outboxes;
+> it does not perform provider cleanup in the scheduler process.
+>
+> The deleted legacy Taskiq cron registrations were not restored. AI usage
+> aggregation, audit/observability/conversation/checkpoint retention, scheduled
+> publish, and lease-reaper automation therefore still do not run
+> automatically.
 Each future tick must be an explicit bounded control task that fans out durable
 work; missing automation is not permission to execute legacy business logic
 inline.

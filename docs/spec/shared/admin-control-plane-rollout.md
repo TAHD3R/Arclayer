@@ -35,7 +35,7 @@ All surfaces follow `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `docs
 
 | Contract | Scope |
 |---|---|
-| [Admin feedback and support](./admin-feedback-support.md) | Scope switcher, feedback composer and center, error reporting, ContentGuard |
+| [Platform feedback and support](./admin-feedback-support.md) | Scope switcher, feedback composer and center, error reporting, ContentGuard |
 | [Platform Monitoring & Audit and cross-domain attention](./admin-observability-dashboard.md) | Request/error investigation, performance and usage trends, Audit trail, source conditions, Needs attention projections |
 | [Platform Communications](./admin-communications.md) | Feedback triage and replies, sending issues, announcements and campaigns, templates, email-service readiness |
 | [Platform Extensibility](./admin-extensibility.md) | Extension catalog, installation and trust, compatibility, permissions, updates, rollback, connection-capability inventory |
@@ -53,19 +53,19 @@ These contracts are normative together. A wave is incomplete if its frontend is 
 
 | User requirement | Canonical owner |
 |---|---|
-| 1. Scope switcher width | Admin feedback and support, section 4 |
-| 2, 2.1, 2.2. Feedback entry points, center, error reports | Admin feedback and support, sections 5-9 |
-| 2.3. ContentGuard shared Empty state | Admin feedback and support, section 10 |
-| 3, 3.1-3.4. Audit log and request analysis | Admin observability and cross-domain attention, sections 4-8 |
-| 4. Useful card/table drill-down | Admin observability and cross-domain attention, sections 9-10 |
-| 5. Prioritized source-condition projection | Admin observability and cross-domain attention, section 11 |
-| 6. Bklit-based shared chart capability | Admin observability and cross-domain attention, section 12 |
-| 7. Plugin catalog, install, upgrade, detail, configuration | Admin plugins, notifications, and mail, sections 4-8 |
-| 8. Notification campaigns, transactional lifecycle delivery, and global surfaces | Admin plugins, notifications, and mail, sections 9-14 |
-| 9. Email template DataTable and locale aggregation | Admin plugins, notifications, and mail, sections 15-18 |
-| 10-13. Tenant directory interaction and commercial data | Admin tenant governance, sections 4-9 |
-| Commerce commercial operations control plane | Workspace commercialization, sections 4-10; Admin tenant governance, section 7 |
-| 14. Disabled-state enforcement and blocker | Admin tenant governance, sections 10-14 |
+| 1. Scope switcher width | Platform feedback and support, section 4 |
+| 2, 2.1, 2.2. Feedback entry points, center, error reports | Platform feedback and support, sections 5-9 |
+| 2.3. ContentGuard shared Empty state | Platform feedback and support, section 10 |
+| 3, 3.1-3.4. Audit log and request analysis | Platform observability and cross-domain attention, sections 4-8 |
+| 4. Useful card/table drill-down | Platform observability and cross-domain attention, sections 9-10 |
+| 5. Prioritized source-condition projection | Platform observability and cross-domain attention, section 11 |
+| 6. Bklit-based shared chart capability | Platform observability and cross-domain attention, section 12 |
+| 7. Plugin catalog, install, upgrade, detail, configuration | Platform plugins, notifications, and mail, sections 4-8 |
+| 8. Notification campaigns, transactional lifecycle delivery, and global surfaces | Platform plugins, notifications, and mail, sections 9-14 |
+| 9. Email template DataTable and locale aggregation | Platform plugins, notifications, and mail, sections 15-18 |
+| 10-13. Tenant directory interaction and commercial data | Platform tenant governance, sections 4-9 |
+| Commerce commercial operations control plane | Workspace commercialization, sections 4-10; Platform tenant governance, section 7 |
+| 14. Disabled-state enforcement and blocker | Platform tenant governance, sections 10-14 |
 | 15. Replace legacy overview with evidence-backed Overview and Needs attention | Administration experience redesign, sections 5 and 13; observability sections 13-14 |
 | 16. Invitation flow and three DataTables | Workspace invitation and permission experience, sections 4-9 |
 | 17. Dynamic localized permission page | Workspace invitation and permission experience, sections 10-14 |
@@ -311,7 +311,7 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 - Accepted Domain Policy Exceptions and Domain State Corrections emit role-sensitive Commercial Lifecycle Notifications only after commit. Commerce may notify that delivery restoration is pending; Hosting emits the distinct success/failure result, and no consumer infers Hosting success from Commerce state or job dispatch.
 - Operator-intervention notices attribute customer-facing action to “Arclayer Platform Operations.” Billing contacts receive a stable localized reason category and before/after/time/support context; ordinary members receive effect and time only. Personal operator identity, internal evidence, and Provider diagnostics remain in Platform Audit.
 - Removal of `/system/observability/overview` includes route, navigation, route skeleton, tests, translations, and generated route-tree regeneration.
-- OpenAPI changes are generated from the API schema; Admin does not maintain parallel handwritten transport types.
+- OpenAPI changes are generated from the API schema; the Product Application does not maintain parallel handwritten transport types.
 
 ## 8. Delivery waves
 

@@ -11,7 +11,7 @@ This code-spec defines frontend type safety for generated API contracts.
 
 ### 2. Signatures
 
-- Generated imports: `@arclayer/openapi`, `@arclayer/openapi`
+- Generated imports: `@arclayer/openapi`, `@arclayer/platform-openapi`
 - Generated source package: `packages/openapi`
 - UI-only projections: `*ViewModel`, `*Row`, `*FormState`, `*UiState`
 - Submit mapper naming: `map<FormState>To<RequestType>()`

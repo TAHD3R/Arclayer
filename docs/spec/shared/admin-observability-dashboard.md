@@ -259,7 +259,7 @@ Each owning Platform Domain defines typed, versioned policies for the Operationa
 Bklit UI is a shadcn Registry source, not an npm runtime package. Reviewed chart source is vendored from the configured `@bklit` registry into `packages/ui/src/chart` and adapted before use.
 
 - `@arclayer/ui/chart` remains the only application import boundary.
-- Admin pages never import Bklit Registry source, `@visx/*`, D3, or Recharts directly.
+- Platform pages never import Bklit Registry source, `@visx/*`, D3, or Recharts directly.
 - The vendored implementation replaces foreign aliases, theme tokens, loaders, and motion defaults with Arclayer primitives.
 - Bklit's long default animation is reduced to the product motion range and disabled for reduced motion.
 - The shared API covers line/area/bar/stacked/composed charts, axis/legend/tooltip, empty/loading/error, point/series selection, text summary, and exact-value alternative.

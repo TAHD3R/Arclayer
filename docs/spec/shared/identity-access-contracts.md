@@ -24,7 +24,7 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 
 ### 3. Contracts
 
-- Admin session tokens grant Product API access only; they do not grant Content API delivery access.
+- Product Application session tokens grant Product API access only; they do not grant Content API delivery access.
 - Content API credentials are validated through Content API auth and must carry required delivery scopes.
 - Preview reads require a preview delivery key or valid preview token.
 - Tenant-owned runtime reads must execute inside the runtime tenant database connection.
@@ -38,7 +38,7 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 
 | Condition | Required behavior |
 |---|---|
-| Admin token sent to Content API | Reject with `API_KEY_INVALID` |
+| Product Application token sent to Content API | Reject with `API_KEY_INVALID` |
 | Delivery key lacks required scope | Reject with `DELIVERY_SCOPE_REQUIRED` |
 | Preview read lacks preview credential | Reject with `PREVIEW_TOKEN_REQUIRED` |
 | Tenant runtime read skips tenant DB binding | Treat as data isolation bug |

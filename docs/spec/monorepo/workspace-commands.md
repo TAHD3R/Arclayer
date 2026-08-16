@@ -45,7 +45,7 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 | Small Product Application-only iteration                       | Run the closest static check and focused test; run `pnpm app:check` at a coherent milestone or before handoff                            |
 | Small Platform-only iteration                    | Run the closest static check and focused test; run `pnpm platform:check` at a coherent milestone or before handoff                         |
 | Small API-only iteration                         | Run the closest static check and focused test; run `pnpm api:check` at a coherent milestone or before handoff                              |
-| Change crosses Admin, Platform, or API           | Run affected package checks; run `pnpm check` for cross-app integration or final delivery                                                  |
+| Change crosses the Product Application, Platform, or API | Run affected package checks; run `pnpm check` for cross-app integration or final delivery                                                  |
 | Change affects `packages/openapi` generation     | Run/regenerate through `pnpm --filter @arclayer/openapi generate`                                                                          |
 | Need focused package script                      | Use `pnpm --filter <package> <script>` or `pnpm -C <dir> <script>`; pass focused test paths directly without an extra `--` before the path |
 | Need backend ad hoc Python command               | Use `pnpm -C apps/api uv -- <command>`                                                                                                     |
@@ -59,7 +59,7 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 - Good: a backend schema/API change runs focused backend checks and regenerates OpenAPI while it is edited, then runs `pnpm api:check` and the affected frontend check at the appropriate milestone.
 - Good: an OpenAPI client refresh uses `pnpm --filter @arclayer/openapi generate`.
 - Base: a narrow API unit investigation uses `pnpm -C apps/api uv -- pytest <node>` with a 60-second initial diagnostic budget, extending integration, database, or inherently slow runs until the actual result is visible.
-- Good: a focused Admin Vitest file uses `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`. Pass the path directly without an extra `--`; separator behavior across pnpm and Vitest can defeat the intended file filter and broaden the run.
+- Good: a focused Product Application Vitest file uses `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`. Pass the path directly without an extra `--`; separator behavior across pnpm and Vitest can defeat the intended file filter and broaden the run.
 - Bad: running `.venv/bin/pytest` directly from `apps/api`.
 - Bad: changing `turbo.json` to make a broken task pass without fixing the failing package script.
 - Bad: hand-editing generated migration or OpenAPI output to satisfy a local test.

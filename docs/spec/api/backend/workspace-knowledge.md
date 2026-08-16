@@ -22,7 +22,7 @@ attachment list, or prompt text copied into every conversation.
   - tenant-control migrations;
   - Background Job types for fetch, parse, index, refresh, and purge;
   - Agent context resolution and retrieval Tools;
-  - generated Admin OpenAPI clients.
+  - generated Product Application OpenAPI clients.
 - Supported source kinds:
   - `manual`;
   - `file`;
@@ -657,7 +657,7 @@ Required tests:
   permission cannot be restored by an old Run snapshot.
 - migration tests applying tenant-control changes to both new and existing
   workspace schemas and refusing API enablement for failed tenants.
-- OpenAPI generation plus Admin typecheck for all public request/response
+- OpenAPI generation plus Product Application typecheck for all public request/response
   shapes.
 
 Acceptance requires real PostgreSQL tenant integration and the real durable Job

@@ -7,7 +7,7 @@ This code-spec defines shared schema semantics for Pydantic, OpenAPI, content mo
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing Pydantic schemas, generated OpenAPI fields, content model fields, field storage metadata, or frontend consumers of those fields.
-- Applies to backend schema files, generated Admin types, content model schema snapshots, storage sync metadata, and frontend forms/tables that render schema-defined fields.
+- Applies to backend schema files, generated Product Application types, content model schema snapshots, storage sync metadata, and frontend forms/tables that render schema-defined fields.
 
 ### 2. Signatures
 

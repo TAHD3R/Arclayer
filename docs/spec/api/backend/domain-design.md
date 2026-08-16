@@ -55,7 +55,7 @@ This code-spec defines backend domain boundaries, public identifier contracts, a
 ### 5. Good/Base/Bad Cases
 
 - Good: runtime content read endpoints stay under `/content-api/v1` with content-api auth dependencies.
-- Good: authenticated Admin operations remain under `/api/v1` and use shared response envelope contracts.
+- Good: authenticated Product Application operations remain under `/api/v1` and use shared response envelope contracts.
 - Base: management routes are introduced under reserved `/management-api/v1` only when programmatic ops require a distinct surface.
 - Bad: a module directly publishes legacy and new endpoint shapes in parallel with implicit fallback behavior.
 - Bad: endpoint schema exposes raw persistence-centric fields that frontend cannot treat as stable contract.

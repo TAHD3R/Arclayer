@@ -23,7 +23,7 @@ command, or permission grant.
   - target module `apps/api/src/modules/workspaces/skills/**`;
   - GitHub import/refresh and validation Background Jobs;
   - Agent definition/version/assignment resolution;
-  - generated Admin clients and official catalog UI.
+  - generated Product Application clients and official catalog UI.
 - Supported source kinds:
   - `builtin`: Arclayer-official, read-only package source;
   - `inline`: workspace-authored declarative instructions/resources;
@@ -541,7 +541,7 @@ but every Tool/Connector/permission decision is still revalidated when used.
   referenced Tool/Connector is called.
 - catalog/list/search never leaks another workspace's package, installation,
   repository, validation finding, or Agent usage.
-- source URLs, commits, and resource paths are escaped as content in Admin; they
+- source URLs, commits, and resource paths are escaped as content in the Product Application; they
   never become commands or executable links without URL policy validation.
 - removal immediately blocks new Agent Run resolution. Historical Run/audit
   references retain immutable provenance until governing retention expires.
@@ -641,7 +641,7 @@ Required tests:
   permission intersection, no Tool-grant escalation, and no runtime Git fetch.
 - migration tests proving legacy locators become review records rather than
   installed Skills and `npx` has no executable path.
-- OpenAPI generation and Admin typecheck for catalog, package, version,
+- OpenAPI generation and Product Application typecheck for catalog, package, version,
   validation, installation, update, and error contracts.
 
 Acceptance requires a real PostgreSQL tenant migration, real durable import/

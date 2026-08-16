@@ -7,7 +7,7 @@ This code-spec defines how backend failures become typed exceptions, logs, and c
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing route, service, validation, authentication, authorization, database, or platform error behavior.
-- Applies to Admin `/api/v1`, public `/content-api/v1`, generated delivery routes, GraphQL delivery, jobs that surface API errors, and shared route helpers.
+- Applies to the Product Application `/api/v1`, public `/content-api/v1`, generated delivery routes, GraphQL delivery, jobs that surface API errors, and shared route helpers.
 
 ### 2. Signatures
 

@@ -6,7 +6,7 @@
 
 - Trigger: adding or changing runtime content-facing routes under `/content-api/v1`.
 - Applies to REST entries, GraphQL delivery, site resolution, sitemap delivery, and future generated delivery routes.
-- Admin routes remain under `/api/v1`; delivery routes use Content API credentials and runtime tenant context.
+- Product Application routes remain under `/api/v1`; delivery routes use Content API credentials and runtime tenant context.
 
 ### 2. Signatures
 
@@ -24,7 +24,7 @@
 - Supplied Content API credentials must be validated by Content API auth, even for published reads.
 - Preview reads require a preview delivery key with the required action or a valid preview token.
 - Content API credentials are accepted from `x-api-key` or `Authorization: Bearer <delivery-key>`.
-- Admin session tokens do not grant Content API access.
+- Product Application session tokens do not grant Content API access.
 - Delivery reads that access runtime content records must execute inside the runtime tenant DB connection.
 - REST and GraphQL delivery routes must share the Content API read limiter.
 
@@ -43,7 +43,7 @@
 - Good: preview REST entry read with a preview delivery key returns the draft revision.
 - Good: GraphQL delivery reads published graph data through runtime tenant DB routing.
 - Base: published REST entry list without a credential returns public published content.
-- Bad: Admin bearer token sent to Content API returns `API_KEY_INVALID`.
+- Bad: Product Application bearer token sent to Content API returns `API_KEY_INVALID`.
 - Bad: GraphQL delivery route skips the shared Content API limiter.
 - Bad: delivery service reads runtime content through the default connection and misses tenant records.
 
@@ -51,7 +51,7 @@
 
 - Integration test for published REST entry list and single-entry read.
 - Integration test for preview read through preview token and preview delivery key.
-- Integration test for Admin bearer rejection and scope failure.
+- Integration test for Product Application bearer rejection and scope failure.
 - Integration test for REST entry read limiter returning `CONTENT_API_RATE_LIMITED`.
 - Integration test for GraphQL delivery limiter returning `CONTENT_API_RATE_LIMITED`.
 - Regression coverage for tenant DB routing through GraphQL delivery published reads.

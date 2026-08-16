@@ -184,7 +184,7 @@ represented by a synthetic all-zero UUID.
 
 The key and source form one bidirectional invariant:
 `profile_key == "env-default"` if and only if
-`config_source == environment`. Route materialization/resolution, Admin
+`config_source == environment`. Route materialization/resolution, Product Application
 list/test/update/delete, and the compatibility profile resolver all validate
 that invariant before returning configuration or performing provider/admin
 side effects. A legacy database-managed collision or an environment-managed
@@ -216,11 +216,11 @@ families match, resolution overlays the historical locator onto that exact
 validated credential snapshot. It does not rebuild or reread credentials after
 provider-family validation.
 
-Admin creation of `env-default` returns `STORAGE_PROFILE_KEY_RESERVED`.
-Admin PATCH or DELETE of the environment-managed row returns
+Product Application creation of `env-default` returns `STORAGE_PROFILE_KEY_RESERVED`.
+Product Application PATCH or DELETE of the environment-managed row returns
 `STORAGE_PROFILE_ENVIRONMENT_MANAGED`.
 
-## 5. Admin and Core Settings Lifecycle
+## 5. Product Application and Core Settings Lifecycle
 
 ### 5.1 List, create, test, and output
 
@@ -232,7 +232,7 @@ Admin PATCH or DELETE of the environment-managed row returns
 - Test excludes tombstones and reports the real provider result; it does not
   fabricate connectivity success.
 - `StorageProfileOut.configSource` distinguishes `database` from
-  `environment` in OpenAPI and Admin UI.
+  `environment` in OpenAPI and the Product Application UI.
 - Secret values are never serialized. Output exposes only whether a supported
   secret is configured.
 

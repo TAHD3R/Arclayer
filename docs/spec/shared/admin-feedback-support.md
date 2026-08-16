@@ -8,7 +8,7 @@ Domain: [Platform Communications](./admin-communications.md)
 
 This contract defines:
 
-- pixel-exact trigger/content sizing for the Admin scope switcher;
+- pixel-exact trigger/content sizing for the Platform scope switcher;
 - one feedback-composer contract for the Header, AI side panel, and error surfaces;
 - the operator Feedback Center and its immediate-update behavior;
 - the shared ContentGuard error/empty presentation.
@@ -185,7 +185,7 @@ Internal notes never cross the user-facing API. Reply delivery failure remains a
 
 ## 9. Cache and concurrency contract
 
-Every feedback mutation returns the updated ticket projection and revision/version. On success the Admin client:
+Every feedback mutation returns the updated ticket projection and revision/version. On success the Platform client:
 
 1. replaces the detail cache;
 2. patches or invalidates every matching queue cache;
@@ -226,7 +226,7 @@ The feedback API adds the new intent and list-query contract while preserving li
 | `POST /system/feedback/{ticketId}/messages` | Add an operator reply or internal note |
 | `POST /system/feedback/batch` | Validate and execute supported assign/priority/state transitions with a per-ticket result ledger |
 
-`POST /system/feedback/batch` is all-or-none when every selected row has the same valid transition. If the API cannot guarantee atomicity across the set, it returns a per-ticket result ledger and the Admin reconciles each row; it never reports one global success for partial execution.
+`POST /system/feedback/batch` is all-or-none when every selected row has the same valid transition. If the API cannot guarantee atomicity across the set, it returns a per-ticket result ledger and the Platform client reconciles each row; it never reports one global success for partial execution.
 
 The server must:
 

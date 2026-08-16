@@ -77,7 +77,7 @@ This spec defines two AI control surfaces:
 - Workspace actions handle AI instructions that target the workspace itself rather than an existing project.
 - Workspace actions must not be routed through `/projects/{project_id}/agents/**`, because those APIs require
   an active project context by contract.
-- Workspace actions are the canonical direct-write surface for the Admin
+- Workspace actions are the canonical direct-write surface for the Product Application
   assistant, Management SDK helpers, and site-builder flows. They must use
   canonical domain services rather than project Agent proposal routes.
 - Supported workspace actions currently include:
@@ -120,7 +120,7 @@ This spec defines two AI control surfaces:
   updates must require `project:settings:manage`.
 - Project source writes/deletes may publish a new release only when their explicit `publishRelease` argument is true,
   and release publication must require `project:release:publish`.
-- Workspace action responses for site-builder flows must return enough first-class data for the Admin and SDK to
+- Workspace action responses for site-builder flows must return enough first-class data for the Product Application and SDK to
   close the loop: project identity, editor navigation, domain summary, content/model mutation result, source manifest
   or file result, settings patch result, and release result when a publish happened.
 - `create_project` responses must include a completed `workspace.create_site_structure` tool call after the homepage
@@ -130,7 +130,7 @@ This spec defines two AI control surfaces:
   - `hierarchyNodeCount`: the number of page-tree nodes created or synchronized by the bootstrap.
   - `componentBindings`: the component-slot bindings extracted from the homepage `slot_mapping` presentation,
     including at least the generated landing hero and section bindings for enterprise landing-site bootstrap.
-- Admin clients must summarize `workspace.create_site_structure` in the persisted workspace action artifact so users
+- Product Application clients must summarize `workspace.create_site_structure` in the persisted workspace action artifact so users
   can see the route, page-tree, and component-binding output from the AI create-project flow.
 - Management SDK helpers must expose a typed site-structure summary for create-project flows and must return `null`
   rather than inventing route, hierarchy, or component-binding data when the backend did not emit

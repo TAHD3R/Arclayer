@@ -516,7 +516,7 @@ Migration is an observed temporary bridge followed by one canonical path:
 3. temporarily dual-write the current event JSON array and `AIRunEvent` only while parity fixtures run. New readers use the normalized path; there is no read fallback from normalized state to the array.
 4. backfill each valid legacy event array in stored order with sequences `1..N`, generated event IDs/cursors, `eventVersion: 1`, mapped payloads, and recorded hashes. Missing historical facts are not invented. Invalid or unmappable records are explicitly quarantined/archived with migration evidence.
 5. run count, order, hash, owner, replay, terminal, cancellation, and Credits parity fixtures while old writes are frozen.
-6. switch the Admin reducer/runtime adapter and backend routes together. Zustand becomes transient UI state, and stream disconnect changes from cancel to detach.
+6. switch the Product Application reducer/runtime adapter and backend routes together. Zustand becomes transient UI state, and stream disconnect changes from cancel to detach.
 7. hard cut Toolkit renderer registration and nested delegation/approval mappings.
 8. remove generic `/chat`, `/chat/workspace-actions`, the old `POST /projects/{project_id}/agents/runs/stream` endpoint, whole-array event authority, disconnect-cancels-run behavior and the `test_stream_project_agent_run_cancels_created_run_on_disconnect` expectation, text-directive routing authority, deprecated Tool UI registration, temporary dual write, and compatibility facades in the same rollout.
 9. remove obsolete columns/tables only after rollback evidence is captured. After destructive cleanup, recovery is forward repair rather than re-enabling the legacy route.
@@ -529,7 +529,7 @@ The hard cut is forbidden until all section 11 gates pass against the normalized
 
 **PARTIALLY EXECUTED.** Normalized repository, HTTP/SSE, snapshot, approval,
 delegation projection, interrupt/resume, durable Job, worker-loss recovery,
-Skill snapshot, Admin reducer/provider, and protocol-contract tests exist in the
+Skill snapshot, Product Application reducer/provider, and protocol-contract tests exist in the
 repository and run in the API/Product Application quality gates. The single full browser
 fixture combining real authenticated UI, worker restart, provider streaming,
 Tool effects, approval, child delegation, Credits settlement, and every fault

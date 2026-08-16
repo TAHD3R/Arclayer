@@ -39,7 +39,7 @@ This code-spec defines API response ownership and frontend consumption boundarie
 | Frontend needs a UI-only projection | Define a `ViewModel`/`Row`/`FormState` type separate from generated response types |
 | Frontend defines a duplicated backend `*Response` type | Treat as a contract drift bug |
 | Route returns raw dict without response model | Add a schema response model or documented raw response exception |
-| Content API public route differs from Admin envelope | Document the route-specific contract in backend and shared specs |
+| Content API public route differs from the Product Application envelope | Document the route-specific contract in backend and shared specs |
 
 ### 5. Good/Base/Bad Cases
 
