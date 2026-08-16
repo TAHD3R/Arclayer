@@ -191,15 +191,15 @@ The Platform Console uses one collapsible domain Sidebar. Overview is first, onl
 |---|---|---|
 | **Overview** | global effective posture and evidence coverage | Needs attention; domain posture, active changes, capacity risk, and verified recent changes |
 | **Workspaces** | Workspaces | Users; Projects; restrictions, lifecycle/legal-case entry, customer-safe support access, and exact cross-domain deep links |
-| **AI Services** | AI tasks | Models & providers; Built-in assistants; Actions & policies; Runtime recovery |
+| **AI Services** | AI tasks | Models & providers; Built-in assistants; Built-in skills; Actions & policies; Runtime recovery |
 | **Hosting & Domains** | Delivery issues | Domains & certificates; File storage; Delivery policies |
 | **Messages & Feedback** | User feedback | Deliveries; Campaigns; Message templates; Email service |
 | **Extensions** | Installed | Extension catalog; Connections; Install & update history |
 | **Plans & Billing** | Subscriptions requiring attention | Plans and immutable Revisions; Subscriptions; provider events and payments; Credits and corrections; provider configuration and readiness |
 | **Access & Security** | Platform team | Roles & permissions; Sign-in & registration |
+| **Monitoring & Audit** | Requests & errors | Performance trends; AI usage; Activity trends; Audit trail |
 
 Current-actor profile, MFA methods, device Sessions, language, and theme are account settings reached from the Sidebar user menu. They are not Platform Domain navigation destinations and do not create a global Settings route or nested settings shell.
-| **Monitoring & Audit** | Requests & errors | Performance trends; AI usage; Activity trends; Audit trail |
 
 Primary navigation renders only deployment-enabled capabilities visible to the current operator. Unsupported or uninstalled capabilities create no blank page. Disabled but activatable capabilities appear only in authorized capability management with exact prerequisites and a real enablement path.
 

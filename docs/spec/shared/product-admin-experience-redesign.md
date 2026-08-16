@@ -60,7 +60,7 @@ All frontend routes use stable non-localized path segments. No Platform route us
 | Overview / 总览 | `/` | global posture, evidence coverage, active changes, capacity risks, verified recent changes |
 | Needs attention / 待处理 | `/attention` | ranked actionable conditions, assignment, work state, reminders, owning-domain remediation |
 | Workspaces / 工作空间 | `/workspaces` | Workspaces, `/users`, `/projects`, route-backed object detail and governed support access |
-| AI Services / AI 服务 | `/ai/tasks` | `/ai/providers`, `/ai/assistants`, `/ai/policies`, task and runtime recovery detail |
+| AI Services / AI 服务 | `/ai/tasks` | `/ai/providers`, `/ai/assistants`, `/ai/skills`, `/ai/policies`, task and runtime recovery detail |
 | Hosting & Domains / 托管与域名 | `/hosting/issues` | `/hosting/domains`, `/hosting/storage`, `/hosting/policies`, route-backed detail |
 | Messages & Feedback / 消息与反馈 | `/messages/feedback` | `/messages/deliveries`, `/messages/campaigns`, `/messages/templates`, `/messages/email` |
 | Extensions / 扩展 | `/extensions/installed` | `/extensions/catalog`, `/extensions/connections`, `/extensions/history`, route-backed detail |

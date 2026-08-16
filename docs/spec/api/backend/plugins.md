@@ -29,8 +29,8 @@ This spec defines Extension runtime phases, registration boundaries, and app int
   - `bootstrap_all(app)` — call `arclayer_bootstrap` on each plugin
   - `ready_all(app)` — call `arclayer_ready` on each plugin
   - `destroy_all()` — call `arclayer_destroy` on each plugin
-  - `activate(extension_name, workspace_id) -> int` — async, increments `domain_workspaces.extension_revision`
-  - `deactivate(extension_name, workspace_id) -> int` — async, increments `domain_workspaces.extension_revision`
+  - `activate(extension_name, workspace_id) -> int` — async, increments `workspaces.extension_revision`
+  - `deactivate(extension_name, workspace_id) -> int` — async, increments `workspaces.extension_revision`
 - Plugin contract:
   - `create_plugin()` — factory exported from entry module
   - `plugin.arclayer_register(registry: PluginRegistry)` — register capabilities
@@ -76,7 +76,7 @@ This spec defines Extension runtime phases, registration boundaries, and app int
 
 - Good: Extension declares `provides.services: ["health"]` and `arclayer_register(registry)` calls `registry.services.register("health", HealthService())`.
 - Good: Extension is loaded, registered, bootstrapped, and ready before any workspace activates it.
-- Good: Workspace activation increments `domain_workspaces.extension_revision` transactionally.
+- Good: Workspace activation increments `workspaces.extension_revision` transactionally.
 - Base: project has no extensions; runtime still initializes with zero extensions loaded.
 - Bad: Extension declares a service in manifest but does not register it in `arclayer_register()`.
 - Bad: Activate called before extension is READY — state transition fails, revision unchanged.

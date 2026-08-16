@@ -22,7 +22,7 @@ Arclayer must let a workspace move from a brief to a managed, responsive, access
 The following decisions are binding:
 
 1. Project management and site creation are two modes of the same project.
-   - Management pages remain under `/projects/{projectId}/**` inside the Admin shell.
+   - Management pages remain under `/projects/{projectId}/**` inside the Product Application shell.
    - `/projects/{projectId}/editor` becomes an independent full-screen creation shell.
    - The current read-only editor dashboard is removed in the same hard-cut rollout; it is not preserved as a legacy mode.
 2. Sitemap, Wireframe, Style Guide, and Design are projections of one versioned site model. They must not own four drifting copies of the website.
@@ -157,7 +157,7 @@ Generated migrations and OpenAPI artifacts are produced through repository scrip
 
 ### 4.1 Route and shell contract
 
-`/projects/{projectId}/editor` is a full-screen route boundary that does not render the Admin sidebar, Admin page header, or `DefaultPage`. It renders `CreationEditorShell` with:
+`/projects/{projectId}/editor` is a full-screen route boundary that does not render the Product Application sidebar, page header, or `DefaultPage`. It renders `CreationEditorShell` with:
 
 - top editor bar: back to management, project identity, save/sync state, four stage tabs, preview, share, and publish/release action.
 - compact left tool rail: AI brief/generate, add page/section, comments/history, and context-dependent tools.

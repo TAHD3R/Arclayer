@@ -1,7 +1,7 @@
 """Backend infrastructure hard-cut audit rules.
 
 These rules enforce the canonical infrastructure ownership model documented in
-`docs/plans/architecture-hard-cut-2026-05-04/05-unify-backend-infrastructure.md`.
+`docs/spec/api/backend/directory-structure.md`.
 They are intentionally file-based because several checks target module-level
 patterns rather than one indexed class symbol.
 """

@@ -1,4 +1,4 @@
-# Admin Feedback and Support Contract
+# Platform Feedback and Support Contract
 
 Status: Approved canonical implementation contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)

@@ -1,4 +1,4 @@
-# Admin Plugin, Notification, and Mail Contract
+# Platform Plugin, Notification, and Mail Contract
 
 Status: Approved canonical implementation contract
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)

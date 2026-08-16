@@ -15,6 +15,8 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
 - Platform-only gate: `pnpm platform:check`
 - API-only gate: `pnpm api:check`
 - CLI gate: `pnpm cli:check`
+- Management SDK gate: `pnpm sdk:check`
+- Browser acceptance run: `pnpm browser:acceptance`
 - Cross-app gate: `pnpm check`
 - Root format command: `pnpm format`
 - Turbo tasks used by checks: `lint`, `format`, `typecheck`, `test`, `build`
@@ -50,10 +52,10 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
 
 | Change type                                         | Validation stage                                                                                                                               |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin page/component/hook/store/API consumer        | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm app:check`.                                            |
+| Product Application page/component/hook/store/API consumer | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm app:check`.                                       |
 | Platform page/component/hook/store/API consumer     | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm platform:check`.                                         |
 | API router/service/repository/schema/core behavior  | During iteration: closest static check plus focused test. At milestone/handoff: `pnpm api:check`.                                              |
-| Shared package used by Admin, Platform, or API      | Verify the affected package and each affected Admin, Platform, or API consumer; reserve `pnpm check` for cross-app integration/final delivery. |
+| Shared package used by the Product Application, Platform, or API | Verify the affected package and each affected Product Application, Platform, or API consumer; reserve `pnpm check` for cross-app integration/final delivery. |
 | API contract consumed by frontend                   | Backend route/schema and affected frontend checks; regenerate/check OpenAPI. Use `pnpm check` only for cross-app integration/final delivery.   |
 | Root `package.json`, `turbo.json`, workspace config | Execute the changed script/task path during iteration; run the relevant root/package gate at the next coherent milestone.                      |
 | CLI package behavior                                | Focused static/test verification during iteration; `pnpm cli:check` at milestone/handoff.                                                      |

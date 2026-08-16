@@ -14,7 +14,7 @@
 - Planner entry point: `build_storage_sync_plan(current_snapshot, next_snapshot, schema_revision)`
 - Snapshot entry point: `build_storage_sync_snapshot(snapshot, schema_revision, state)`
 - Storage strategy: `jsonb_snapshot`
-- Storage target: `domain_content_versions.fields_snapshot`
+- Storage target: `content_versions.fields_snapshot`
 - Field type extension point: `FieldTypeRegistry.get_db_column_type(ContentModelFieldType, FieldConfig)`
 
 ### 3. Contracts
