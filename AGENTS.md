@@ -1,99 +1,114 @@
-# Arclayer Agents Guide
+# Arclayer 代理指南
 
-Actionable rules for automated coding agents — keep diffs minimal, safe, and repo-aligned.
+面向自动编码代理的可执行规则——保持差异最小、安全、与仓库对齐。
 
-## Source-of-Truth Routing
+## 事实源路由
 
-Use this routing model for every change:
+每次改动都按这个模型路由：
 
-- Implementation contracts (canonical): `docs/spec/**`
-- Non-spec guidance: `docs/guidelines/**`
-- Visual language source: `DESIGN.md`
-- Product and Platform implementation guide: `docs/guidelines/frontend-design.md`
+- 实现契约（权威）：`docs/spec/**`
+- 产品方向与实施计划：`docs/plan/**`（当前方向权威：`docs/plan/ai-builder-product-direction.md`）
+- 非规范指导：`docs/guidelines/**`
+- 视觉语言权威：`DESIGN.md`
+- Product 与 Platform 实现指导：`docs/guidelines/frontend-design.md`
+- 架构决策记录：`docs/adr/**`
 
-## Repo Map
+## 仓库地图
 
-- Monorepo: Turborepo + pnpm workspace
-- Product Application: `apps/app` (`@arclayer/app`) — the customer-facing product
-- Server/API: `apps/api` (`@arclayer/api`) — the shared backend and API compositions
-- Platform management console: `apps/platform` (`@arclayer/platform`) — deployment-wide administration
-- Shared packages: `packages/**`
-- Plugin extensions: `plugins/*` (not pnpm workspaces)
+- Monorepo：Turborepo + pnpm workspace
+- Product Application：`apps/app`（`@arclayer/app`）——面向客户的产品
+- Server/API：`apps/api`（`@arclayer/api`）——共享后端与 API 组合
+- Platform 管理台：`apps/platform`（`@arclayer/platform`）——部署级管理
+- 共享包：`packages/**`
+- 插件扩展：`plugins/*`（非 pnpm workspace）
 
-Do not use `admin` as a synonym for the Product Application. `admin` remains valid only for real administration domains, permissions, and legacy external contracts. When a request says “app”, change `apps/app`; when it says “management console” or deployment administration, change `apps/platform`; server work belongs in `apps/api`.
+不要把 `admin` 当作 Product Application 的同义词。`admin` 仅在真正的管理域、权限和遗留外部契约中仍然有效。请求说「app」时改 `apps/app`；说「管理台」或部署级管理时改 `apps/platform`；服务端工作属于 `apps/api`。
 
-## Command Discipline
+## 命令纪律
 
-Use repo scripts only:
+只使用仓库脚本：
 
 - `pnpm <script>`
 - `pnpm --filter <pkg> <script>`
 - `pnpm -C <dir> <script>`
 
-Do not:
+禁止：
 
-- run `.venv/bin/*` directly
-- hand-edit generated artifacts
-- run long-lived dev servers unless requested
+- 直接运行 `.venv/bin/*`
+- 手改生成产物
+- 除非明确要求，不运行长期开发服务器
 
-## Stage Validation
+## 阶段验证
 
-Validate in proportion to the change and its milestone; do not run a package or
-repository-wide gate after every small edit.
+验证力度与改动及其里程碑成比例；不要在每次小改动后运行包级或仓库级门禁。
 
-- During an isolated change, run the closest relevant static check and focused
-  test. Re-run only the checks invalidated by subsequent edits.
-- At a coherent milestone or before handoff, run the affected package gate:
-  `pnpm api:check` for API work, `pnpm app:check` for Product Application work, or
-  `pnpm platform:check` for Platform work.
-- Run `pnpm check` for cross-app integration or final delivery when its scope
-  justifies a repository-wide gate.
-- For a focused backend test, use the package script, for example
-  `pnpm -C apps/api test tests/path/to_test.py::test_name`, and start with a
-  60-second timeout as a diagnostic default, not a hard gate. Give
-  integration, database, or inherently slow tests the time needed to complete
-  and expose their result.
-- Pass focused Product Application Vitest paths directly, for example
-  `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`.
-  Use the same direct-path form for Platform. Do not insert an extra `--`
-  before the path or depend on separator behavior across pnpm and Vitest; it
-  can defeat the intended file filter and trigger a broader run.
+- 孤立改动期间：运行最接近的相关静态检查和聚焦测试。只重跑被后续编辑失效的检查。
+- 一个完整里程碑或交付前：运行受影响的包门禁——API 工作用 `pnpm api:check`，Product Application 工作用 `pnpm app:check`，Platform 工作用 `pnpm platform:check`。
+- 跨应用集成或最终交付、且范围足以证明仓库级门禁合理时，运行 `pnpm check`。
+- 聚焦后端测试使用包脚本，例如 `pnpm -C apps/api test tests/path/to_test.py::test_name`；60 秒超时是诊断默认值而非硬门禁。集成、数据库或天然较慢的测试要给足时间，让最终通过/失败结果完整暴露。
+- Product Application 的聚焦 Vitest 路径直接传入，例如 `pnpm --filter @arclayer/app test test/components/layout/route-progress.test.tsx`。Platform 同样使用直接路径形式。不要在路径前多插 `--`，也不要依赖 pnpm 与 Vitest 之间的分隔符行为；那会破坏文件过滤意图并触发更大范围的运行。
 
-## Guidelines Directory Policy
+## guidelines 目录政策
 
-`docs/guidelines/**` stores non-spec guidance only.
+`docs/guidelines/**` 只存放非规范指导。
 
-- Keep non-spec guidance only, including `agents-guide.md`, `code-review-engine.md`, `frontend-design.md`, and the thinking guides.
-- Do not route implementation contracts from `docs/guidelines/**`
+- 只保留可跨任务复用的长期指导：`frontend-design.md`、`code-review-engine.md`、`code-reuse-thinking-guide.md`、`cross-layer-thinking-guide.md`。
+- 方向备忘录、实施计划与执行记录属于 `docs/plan/**`，不落入本目录。
+- 不从 `docs/guidelines/**` 路由实现契约。
 
-## Frontend Execution Contract
+## 前端执行契约
 
-- Active frontend scope: `apps/app`, `apps/platform`, and application-facing surfaces in `packages/ui`
-- `DESIGN.md` is the primary visual language source
-- For design-sensitive changes, align with `docs/guidelines/frontend-design.md`
-- Reuse `@arclayer/ui` first; install missing generic primitives through the configured shadcn Registry instead of hand-building substitutes
-- Use `lucide-react` for icons and the Arclayer-adapted Bklit implementation behind `@arclayer/ui/chart`; do not add competing icon or chart stacks
-- Keep page-local loading, error, and empty states explicit
-- All new product copy must use stable i18n keys with both `zh-CN` and `en-US` resources
-- Write for the user's task and next action in plain language. Do not expose README instructions, component/API names, raw errors, logs, JSON, hashes, or internal architecture in ordinary product UI; put necessary diagnostics in an explicit details surface
-- Treat `docs/spec/app/frontend/product-ui-toolchain.md` as the canonical UI toolchain contract
+- 前端活跃范围：`apps/app`、`apps/platform`，以及 `packages/ui` 中面向应用的表面
+- `DESIGN.md` 是视觉语言第一权威
+- 设计敏感改动须对齐 `docs/guidelines/frontend-design.md`
+- 优先复用 `@arclayer/ui`；缺失的通用基础组件通过配置好的 shadcn Registry 安装，不手造替代品
+- 图标使用 `lucide-react`，图表使用 `@arclayer/ui/chart` 背后 Arclayer 适配的 Bklit 实现；不引入竞争的图标或图表技术栈
+- 页面级 loading、error、empty 状态保持显式
+- 所有新产品文案必须使用稳定 i18n key，并同时提供 `zh-CN` 与 `en-US` 资源
+- 用平实语言为用户的任务和下一步动作写作。不在普通产品 UI 中暴露 README 指令、组件/API 名、原始错误、日志、JSON、哈希或内部架构；必要的诊断放进显式详情表面
+- `docs/spec/app/frontend/product-ui-toolchain.md` 是权威 UI 工具链契约
 
-## Repo Intelligence Workflow
+## 仓库智能工作流
 
-For medium+ tasks, architecture questions, or multi-file refactors:
+中等以上任务、架构问题或多文件重构：
 
-1. `GitNexus` for discovery and impact
-2. `code-review-engine` changed audit for repository-rule review context
-3. available symbol/LSP tooling for targeted precision when the environment provides it
+1. `GitNexus` 用于发现与影响分析
+2. `code-review-engine`（`scripts/code-review-engine`，根脚本 `pnpm code-review-engine`）变更审计提供仓库规则审查上下文
+3. 环境可用时使用符号/LSP 工具做定点精度
 
-Prefer live repo truth if indexes are stale or unavailable.
+索引过期或不可用时，以仓库实况为准。
 
-## Safety Baseline
+## 沟通规范
 
-- No silent fallbacks or mock-success paths.
-- Keep one canonical contract surface after hard-cut changes.
-- Remove superseded shims/facades in the same rollout unless explicitly approved.
-- Do not touch lockfiles, caches, build outputs, or `node_modules/` unless the task requires it.
+- 面向用户的回复默认使用中文，除非用户明确要求其他语言。
+- 提交信息一律使用英文。
+- 最终答复末尾不提议后续任务或增强项。
+
+## 安全基线
+
+- 禁止静默降级与 mock 假成功路径。
+- 硬切改动后保持唯一权威契约表面。
+- 同一发布内移除被取代的 shim/facade，除非明确批准保留。
+- 除非任务需要，不触碰 lockfile、缓存、构建产物或 `node_modules/`。
+
+## 文档语言政策
+
+- `docs/spec/**` 契约正文使用英文，与代码标识符保持一致。
+- 根文档（本文件、`DESIGN.md`）以及 `docs/plan/**`、`docs/guidelines/**` 中新写或重写的文档使用中文；存量英文指导不强制回译。
+
+## Agent skills
+
+### Issue tracker
+
+Issues 跟踪于 GitHub Issues（`TAHD3R/Arclayer`），通过 `gh` CLI 操作。见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+默认 triage 标签词汇表（`needs-triage`、`needs-info`、`ready-for-agent`、`ready-for-human`、`wontfix`）。见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+单一上下文：根 `CONTEXT.md` + `docs/adr/`。见 `docs/agents/domain.md`。
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
