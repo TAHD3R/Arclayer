@@ -1,0 +1,3 @@
+# Use unprefixed routes in the Platform Console
+
+The independent Platform Console uses `/` for Operations Inbox and stable, non-localized English business segments for its domain routes without a `/system` or `/platform` frontend prefix. TanStack typed route builders own internal links, translated `zh-CN` and `en-US` labels remain display-only, and cross-application links combine a configured application origin with a typed target. The `/system/**` routes embedded in `apps/admin` are migration sources that are deleted in the hard cut; `apps/platform` does not reproduce them as aliases or redirects, while Product API and Platform API prefixes remain independent backend contracts rather than being inferred from frontend URLs.

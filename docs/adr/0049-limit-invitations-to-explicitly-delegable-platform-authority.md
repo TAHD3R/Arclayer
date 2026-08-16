@@ -1,0 +1,3 @@
+# Limit invitations to explicitly delegable Platform authority
+
+The Instance Owner and an active Platform Operator with the exact invitation permission may create a Platform Operator Invitation, but the server authorizes the union of its revision-bound intended roles against the inviter's Delegable Platform Authority rather than treating team management or each role in isolation as unlimited delegation. Acceptance repeats the inviter-status, invitation-permission, role-revision, and combined-authority checks; loss or drift invalidates the pending invitation without silently narrowing it, while Instance Owner transfer and other non-delegable authority remain outside the invitation workflow.

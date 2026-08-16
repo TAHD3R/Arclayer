@@ -1,0 +1,3 @@
+# Separate Product and Platform API composition
+
+Arclayer keeps one modular backend codebase, database authority, migration history, domain service layer, and job system while exposing independently startable **Product API** and **Platform API** FastAPI composition roots. Each composition has its own routes, OpenAPI document, host-facing entrypoint, and boundary middleware; production isolation does not depend on mounting one application beneath the other. This avoids premature service and database fragmentation while preventing customer product traffic from sharing the Platform API application surface.

@@ -1,0 +1,3 @@
+# Share identity and isolate Platform Sessions
+
+Arclayer keeps one human identity and credential authority for users who may participate in both the product and platform contexts, but the **Product Application** and **Platform Console** establish independently authenticated sessions with distinct token audiences and revocation lifecycles. A Product session is never accepted by the **Platform API**, and opening the Platform Console does not silently upgrade or reuse product authority. This avoids duplicate accounts while preserving explicit privilege entry, independent expiry, and actor-specific auditability.

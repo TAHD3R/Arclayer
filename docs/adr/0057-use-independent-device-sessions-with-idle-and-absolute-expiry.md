@@ -1,0 +1,3 @@
+# Use independent device Platform Sessions with idle and absolute expiry
+
+Each browser or device establishes an independently identifiable and revocable Platform Session governed by both a versioned inactivity timeout and an absolute maximum lifetime. Operators can inspect creation, recent activity, and expiry and revoke one device or every other Session; activity and refresh cannot extend beyond absolute expiry, which requires a new MFA-backed Platform sign-in, while Product Sessions, live role authorization, and action-bound Step-up Platform Verification remain separate contracts. Concrete durations stay in the versioned security policy, and no arbitrary concurrent-Session cap substitutes for that lifecycle.

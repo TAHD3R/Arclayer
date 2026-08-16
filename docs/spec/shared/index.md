@@ -30,6 +30,14 @@ Backend and frontend specs should link to these files instead of duplicating the
 | [Platform Feedback and Support](./admin-feedback-support.md) | Feedback submission, triage, privacy, replies, audit, and support lifecycle | Approved canonical |
 | [Platform Monitoring & Audit](./admin-observability-dashboard.md) | Request investigation, telemetry, trends, audit evidence, and cross-domain attention | Approved domain |
 | [Platform Control Plane Productization](./admin-control-plane-rollout.md) | Domain invariants and rollout details behind Overview, Workspaces, AI Services, Hosting & Domains, Messages & Feedback, Extensions, Plans & Billing, Access & Security, and Monitoring & Audit | Approved target |
+| [Platform AI Operations](./admin-ai-operations.md) | AI Services domain: AI tasks, models & providers, built-in assistants and skills, actions & policies, and monitoring boundaries | Approved domain |
+| [Platform Communications](./admin-communications.md) | Messages & Feedback domain: one delivery authority, campaigns, message templates, and email service | Approved domain |
+| [Platform Extensibility](./admin-extensibility.md) | Extensions domain: connector trust, installation lifecycle, and compatibility boundaries | Approved domain |
+| [Platform Hosting & Domains](./admin-hosting-delivery.md) | Hosting & Domains domain: delivery issues, domains and certificates, storage, and suspension/restoration | Approved domain |
+| [Platform Identity & Access](./admin-identity-access.md) | Access & Security domain: platform team, roles and permissions, MFA, device sessions, and recovery | Approved domain |
+| [Platform Workspaces Governance](./admin-tenant-governance.md) | Workspaces domain: directories, commercial projections, restrictions, and lifecycle/legal-case handling | Approved domain |
+| [Plugin, Notification, and Mail (migration era)](./admin-plugin-notification-mail.md) | Combined capability contract being superseded by Extensibility and Communications domain contracts | Migration-era contract |
+| [Workspace Invitation and Permission Experience](./workspace-invitation-permission-experience.md) | Invitation flows, permission catalog, and fixed-member access experience | Active |
 
 ## Shared Layer Rules
 
@@ -38,4 +46,4 @@ Backend and frontend specs should link to these files instead of duplicating the
 - When a shared contract changes, update the relevant backend and frontend specs or indexes to reference it.
 - Generated OpenAPI types remain the frontend source for backend request/response shapes; shared specs define the rule, not a second type package.
 
-**Language**: All documentation should be written in **English**.
+**Language**: Contracts under `docs/spec/**` are written in **English** to stay aligned with code identifiers. Chinese is the working language for root guides and for `docs/plan/**` / `docs/guidelines/**` documents (see `AGENTS.md`).

@@ -1,0 +1,3 @@
+# Keep Workspace deletion outside Commerce
+
+Payment Restricted never schedules or authorizes Workspace data deletion, regardless of how long it lasts. Workspace deletion belongs to an independent lifecycle authority and begins only from an explicit Workspace Owner instruction or a documented legal/privacy process; any retention and purge schedule follows that accepted instruction rather than a Subscription, Provider, Hosting, archive, or suspension timestamp. This avoids using payment pressure as destructive data governance and prevents broad Commerce or settings permissions from becoming an implicit right to erase customer data.

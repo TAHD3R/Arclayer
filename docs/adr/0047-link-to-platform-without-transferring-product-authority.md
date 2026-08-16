@@ -1,0 +1,3 @@
+# Link to Platform without transferring Product authority
+
+The Product Application may show a localized external Platform Console entry only from a minimal Product API eligibility projection, but clicking it transfers no Product Session, token, Workspace context, Platform Role, or Platform Permission. The configured Platform Host independently verifies identity, current Instance Owner or Platform Operator status, mandatory MFA, an independently issued or validated Platform Session, and every Platform API permission; the eligibility projection remains discoverability metadata rather than authorization, while the Console always provides an ordinary external return-to-product link.

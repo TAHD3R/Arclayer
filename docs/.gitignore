@@ -1,5 +1,6 @@
 *
 !.gitignore
+
 # Guidelines
 !guidelines/
 !guidelines/**
@@ -7,3 +8,18 @@
 # Versioned implementation specs
 !spec/
 !spec/**
+
+# Decision records
+!adr/
+!adr/**
+
+# Direction and plans
+!plan/
+!plan/**
+
+# Agent-facing configuration
+!agents/
+!agents/**
+
+# OS noise
+.DS_Store

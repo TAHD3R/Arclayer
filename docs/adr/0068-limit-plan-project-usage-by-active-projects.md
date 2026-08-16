@@ -1,0 +1,3 @@
+# Limit Plan Project usage by active Projects
+
+Each Plan Revision limits the number of non-archived Projects active in its Workspace rather than lifetime-created, retained, or published Projects. Creating and restoring consume an active place atomically, while archiving releases one without deleting data. If a Plan change lowers the allowance below current usage, Arclayer preserves every Project and blocks only further creation and restoration until usage falls within the limit or a higher allowance takes effect; AI Credits, Entitlements, permissions, publishing, and Hosting remain independent controls.

@@ -1,0 +1,3 @@
+# Use an Operations Inbox as the Platform Console home
+
+Arclayer uses an **Operations Inbox**, not a configurable metric dashboard, as the **Platform Console** landing surface. Platform domains project unresolved **Operational Signals** into a prioritized cross-domain queue while retaining ownership of their source state and resolution actions; charts, trends, and exploratory metrics remain in Observability. This favors immediate operational decisions over customizable layout, removes decorative KPI widgets, and avoids creating a second source of truth for incidents, commercial risks, jobs, and governance changes.

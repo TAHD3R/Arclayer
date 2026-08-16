@@ -1,0 +1,3 @@
+# Unify Platform Identity and Access Governance
+
+Deployment sign-in policy, identity providers, Platform Operators, Platform Roles and Permissions, mandatory MFA, and Platform Sessions belong to one Identity & Access Platform Domain whose default surface is the Platform team queue. Arclayer does not split Authentication and Platform Access into separate top-level domains or retain Access/OAuth settings categories: these capabilities jointly answer who may enter the deployment and Platform Console, while ordinary User investigation remains in Tenant Governance and Workspace membership authority remains in Workspace Administration.

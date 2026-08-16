@@ -1,0 +1,3 @@
+# Apply Custom Platform Role revisions to all assignments immediately
+
+A Custom Platform Role change uses a server-generated, revision-bound preview of permission differences, affected Platform Operators and Capabilities, self-impact, and bound pending invitations before explicit apply atomically makes the next Platform Role Revision current for every assignment. Existing Platform Sessions remain authenticated but carry no permission snapshot: old authorization-cache results are unusable before success is acknowledged and every subsequent Platform API request evaluates current role revisions, while pending invitations bound to the replaced revision become invalid instead of silently inheriting changed authority.

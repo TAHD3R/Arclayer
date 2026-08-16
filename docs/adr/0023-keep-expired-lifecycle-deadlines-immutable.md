@@ -1,0 +1,3 @@
+# Keep expired lifecycle deadlines immutable
+
+A Domain Policy Exception may extend only a still-active Payment Grace or Hosting Continuity window and must lose visibly to expiry or another concurrent transition. Once Payment Restricted or Delivery Suspended is effective, the original deadline and transition remain immutable; returning to Payment Grace or Hosting Continuity requires a separately authorized, evidence-backed Domain State Correction that appends a compensating transition. This preserves truthful lifecycle history and concurrency while allowing exceptional restoration without backdating state or impersonating Provider-confirmed recovery.

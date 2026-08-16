@@ -1,0 +1,3 @@
+# Prefer WebAuthn with TOTP as the Platform MFA fallback
+
+Platform MFA initially supports multiple user-verifying WebAuthn security keys or passkeys as the preferred phishing-resistant method and multiple authenticator-app TOTP credentials as the compatibility fallback. Email, SMS, voice, recovery codes, Product sign-in state, and unverified enrollments cannot satisfy routine Platform MFA or Step-up verification; an active Owner or Operator must retain at least one verified method, and replacing the last method verifies its successor before retiring it so stronger security does not require WebAuthn-only compatibility or accept delivery-channel authentication.

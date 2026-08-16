@@ -1,0 +1,3 @@
+# Place the Platform Console in apps/platform
+
+The monorepo keeps the Product Application in `apps/admin` with package name `@arclayer/admin`, creates the independent Platform Console in `apps/platform` with package name `@arclayer/platform`, and keeps the backend in `apps/api` with package name `@arclayer/api`. The historical `admin` directory name is an engineering location for the Product Application rather than a shared product or domain term: all Platform routes, navigation, pages, clients, state, translations, tests, route skeletons, and build output move to `apps/platform` or are deleted in the hard cut, application packages never import one another's source, and no alias or compatibility facade keeps Platform Console code inside `apps/admin`.

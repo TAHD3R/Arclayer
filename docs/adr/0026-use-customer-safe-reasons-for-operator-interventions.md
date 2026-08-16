@@ -1,0 +1,3 @@
+# Use customer-safe reasons for operator interventions
+
+Tenant notifications for Domain Policy Exceptions and Domain State Corrections attribute the action to “Arclayer Platform Operations” rather than an individual operator. Owner and Billing Managers receive a stable localized customer-safe reason category, before/after effect, effective time, and support reference; other members receive only the sanitized effect and time. Personal operator identity, internal notes/evidence, Provider diagnostics, permissions, and raw audit data remain in Platform Audit, providing customer transparency without exposing operational personnel or sensitive investigation material.

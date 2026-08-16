@@ -1,0 +1,3 @@
+# Add lightweight triage without copying Signal resolution
+
+Operations Inbox adds revisioned, audited collaboration for claiming or assigning an Operational Signal, marking work in progress, and setting a time-bounded reminder with a reason. This triage state never changes severity, health, source lifecycle, authorization, or resolution and grants the assignee no source authority. Only the owning Platform Domain may confirm that the condition cleared or its canonical resolution operation committed; the Inbox has no dismiss, close, ignore-forever, or manual-resolve command and does not become a second incident or ticket lifecycle.

@@ -1,0 +1,3 @@
+# Use three-stage Workspace capability rollouts
+
+Workspace-facing capabilities use one server-authoritative rollout policy with exactly three stages: not available, available to explicitly selected eligible Workspaces, and available to all eligible Workspaces. Every change uses a revision-bound impact preview, explicit apply, Product API and worker enforcement, and Platform Audit evidence. Rollout scope remains independent from installation, instance enablement, configuration readiness, commercial Entitlement, Workspace Permission, and runtime health; per-User targeting, random percentages, arbitrary expressions, implicit cohorts, hidden exceptions, and compatibility feature flags are rejected.

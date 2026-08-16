@@ -1,0 +1,3 @@
+# Combine Monitoring and Audit navigation without merging evidence
+
+Operational telemetry and administrative Audit evidence belong to one Monitoring & Audit Platform Domain whose default product surface is Requests & errors, with peer Performance trends, AI usage, Activity trends, and Audit trail pages. The shared navigation reduces top-level fragmentation and supports correlation-based investigation, but telemetry and Audit retain independent storage, completeness, retention, export, permission, and immutability contracts; neither may fill gaps or grant access for the other, and the Operations Inbox remains the global action surface outside this domain.

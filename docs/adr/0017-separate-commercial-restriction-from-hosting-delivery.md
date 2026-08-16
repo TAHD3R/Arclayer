@@ -1,0 +1,3 @@
+# Separate commercial restriction from Hosting delivery
+
+Payment Restricted does not unpublish a site or authorize Commerce to mutate releases, deployments, domains, or certificates. Commerce publishes the commercial-access transition, while Hosting applies its own configured Continuity Window, continues the current active release until that window expires, and then suspends public delivery without removing the release or its delivery associations. This separation preserves a neutral visitor experience and lets successful payment recovery atomically resume the same release without rebuild or redeployment; the alternative of immediate unpublish would conflate billing state with publication authority and make recovery slower and more destructive.

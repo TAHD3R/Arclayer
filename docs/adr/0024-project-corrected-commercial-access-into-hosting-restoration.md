@@ -1,0 +1,3 @@
+# Project corrected commercial access into Hosting restoration
+
+When Commerce corrects Payment Restricted back to Payment Grace, it commits its own compensating transition and publishes a durable corrected commercial-access fact. Hosting consumes that fact idempotently and records its own normal-delivery restoration of the preserved active release because Payment Grace includes already-published delivery; no second Hosting correction is required. The handoff is outbox-backed rather than a distributed transaction, so Hosting failure remains explicit and retryable without rolling Commerce back or granting Commerce direct Hosting mutation authority.

@@ -1,0 +1,3 @@
+# Do not substitute identity-provider MFA for Platform verification
+
+An external identity provider may authenticate a human identity, but its session, remembered-device state, MFA prompt, `amr`/`acr` claims, or equivalent assurance never satisfies Arclayer Platform MFA, Session issuance, or action-bound verification. Every Owner and Operator uses an Arclayer-enrolled method for each Platform Session and local WebAuthn for phishing-resistant actions, accepting a possible consecutive enterprise and Platform challenge so provider mapping or configuration cannot silently downgrade the instance control plane.

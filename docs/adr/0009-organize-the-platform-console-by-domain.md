@@ -1,0 +1,3 @@
+# Organize the Platform Console by domain
+
+Arclayer organizes the **Platform Console** around operator-facing **Platform Domains**, not a split between operational pages and one global Settings area. Each domain owns its operational views, configuration, health, and Operational Signal projections; configuration stays beside the capability it changes. A domain receives an overview only when that page presents real work, readiness, or health, otherwise navigation opens its primary useful surface directly. This avoids fragmenting one workflow across navigation branches and prevents generic Settings and Overview pages from becoming repositories for unrelated or decorative UI.

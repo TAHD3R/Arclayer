@@ -1,0 +1,3 @@
+# Preserve accepted operations without preserving revoked authority
+
+Removing Platform authority immediately blocks new commands, confirmations, retries, scope expansion, cancellation, recovery choices, and later human-authorized steps, but an already committed Accepted Platform Operation retains its original actor, permission, role revisions, scope, idempotency, and Audit evidence and continues under its owning Platform Domain contract. Captured evidence is never reusable authority: only a currently authorized actor may issue a distinct cancellation command when the owning domain defines a safe idempotent boundary, while partial, irreversible, or already-committed effects remain explicit instead of being relabelled as cancelled.

@@ -1,0 +1,3 @@
+# Transfer Instance Ownership through owner nomination and target MFA acceptance
+
+Only the current Instance Owner may nominate an active MFA-ready Platform Operator through a revision-bound preview that includes non-delegable responsibilities, active operations, affected invitations and Sessions, and the former owner's explicitly selected post-transfer roles. The target completes fresh MFA and explicitly accepts before one transaction preserves exactly one owner, ends the target's operator roles, gives the former owner only the reviewed roles or deactivates them, and revokes both principals' old Platform Sessions; pending nomination changes no authority, and no immediate promotion, dual-owner interval, ownerless state, or implicit former-owner access exists.

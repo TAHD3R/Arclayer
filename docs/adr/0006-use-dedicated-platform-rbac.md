@@ -1,0 +1,3 @@
+# Use dedicated Platform RBAC
+
+Arclayer authorizes **Platform Operators** through explicit **Platform Permissions** grouped into **Platform Roles**; Platform API endpoints deny access unless the current Platform Session has the required permission. The **Instance Owner** retains full platform authority plus a narrow set of non-delegable ownership and recovery capabilities. Platform RBAC may reuse authorization infrastructure, but it does not share roles or permission catalogs with Workspace RBAC, because cross-tenant instance governance and tenant-scoped collaboration are different authority domains.

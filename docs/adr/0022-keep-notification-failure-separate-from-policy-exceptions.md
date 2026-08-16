@@ -1,0 +1,3 @@
+# Keep notification failure separate from policy exceptions
+
+Failed or unreachable Commercial Lifecycle Notifications produce delivery evidence and an Operational Signal but never extend Payment Grace or Hosting Continuity automatically. A manual extension, when justified, is an explicit time-bounded and audited Domain Policy Exception for one Workspace, owned separately by Commerce or Hosting and incapable of changing the other domain's deadline. This preserves lifecycle determinism and domain authority while retaining a controlled support exception without misusing Commercial Correction or granting Notifications cross-domain mutation power.

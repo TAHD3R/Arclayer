@@ -1,0 +1,3 @@
+# Apply Platform changes without a global approval queue
+
+An Instance Owner or Platform Operator with the exact current permission applies a Platform change directly after the owning domain's required impact preview, reason, action-bound verification, confirmation, and Audit controls. Arclayer does not add a global approver role, approval queue, awaiting-approval draft, or deployment-configurable second-person policy. Multiple principals participate only when the domain invariant itself requires distinct actors, such as current-owner initiation and target acceptance during Instance Ownership Transfer; that contract cannot be reused as generic approval authority for unrelated changes.

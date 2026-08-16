@@ -1,0 +1,3 @@
+# Require phishing-resistant verification for critical Platform actions
+
+The trusted Platform action and permission catalog marks Instance Ownership Transfer, sign-in or identity-provider authority changes, Platform privilege elevation or delegation, administrative MFA reset, critical credential replacement, and later explicitly justified actions as requiring fresh user-verifying WebAuthn Step-up rather than TOTP. The Instance Owner must retain a security key or passkey, and an Operator must verify one before a role containing those actions becomes effective; invitations, role revisions, ownership recovery, and last-method removal enforce the same server-owned readiness without partial assignment, silent downgrade, or separate frontend risk lists.

@@ -1,0 +1,3 @@
+# Drive Platform Console information architecture from capabilities
+
+Arclayer derives Platform Console navigation and page availability from a server-authoritative **Platform Capability Catalog** combined with the current actor's **Platform Permissions**, rather than shipping one static list of system pages for every deployment. Enabled and authorized capabilities may enter primary navigation; disabled but activatable capabilities are discoverable with explicit prerequisites only to authorized capability managers; unsupported capabilities do not produce empty pages. The catalog selects trusted frontend modules registered at build time and cannot inject executable UI, preserving deployment-aware configuration without turning server metadata into a code-loading boundary.

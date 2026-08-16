@@ -1,0 +1,3 @@
+# Activate Platform Operators only after acceptance and MFA
+
+A Platform Operator Invitation records one intended identity and its intended Platform Roles but grants no Platform Role, Platform Permission, Platform Session, or Platform Entry Eligibility when sent. The intended identity must authenticate, explicitly accept, and complete mandatory multi-factor enrollment before active Platform Operator status and the intended role assignments become effective atomically; expiry, revocation, identity mismatch, failed MFA, or concurrent invalidation leaves no partial authority, while Instance Owner transfer remains a separate non-delegable workflow.

@@ -1,0 +1,3 @@
+# Use a non-expiring Free Plan instead of paid trials
+
+A Workspace created on Free starts on a durable Free Plan Revision with explicit Credits, Entitlements, and resource allowances and no payment method, paid-feature window, expiry, automatic conversion, or automatic downgrade. Paid access begins only after an authorized checkout is confirmed. Paid-only capabilities remain honestly discoverable through localized Plan badges, disabled actions, and an exact Plan & Usage explanation, while Product API and workers enforce Entitlements and keep permission, rollout, readiness, and health denials distinct. ADR 0067 separately governs whether the prospective Owner is eligible to create or own a Free Workspace.

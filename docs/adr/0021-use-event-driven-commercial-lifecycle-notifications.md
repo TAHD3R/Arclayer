@@ -1,0 +1,3 @@
+# Use event-driven commercial lifecycle notifications
+
+Arclayer sends role-sensitive Commercial Lifecycle Notifications from durable Commerce and Hosting milestones instead of depending on Provider-only email or sending daily reminders to every member. The Workspace Owner and current Billing Managers receive email and in-app recovery context, while other active members receive only a sanitized in-app state notice; Notifications re-resolves recipients at dispatch and owns one idempotent per-recipient/channel delivery ledger. This keeps product-state communication complete and auditable without turning operator Campaigns into commercial authority, and delivery failure remains an operational condition rather than changing the underlying lifecycle.

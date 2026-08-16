@@ -1,0 +1,3 @@
+# Use Built-in and Custom Platform Roles without user overrides
+
+Platform Operators receive Platform Permissions only through one or more Platform Roles whose effective authority is the additive deduplicated union: Arclayer supplies a small immutable, localized Built-in Platform Role catalog, and deployments may copy a built-in role or create an independent Custom Platform Role for deployment-specific responsibility. Direct per-operator grants, denies, hidden defaults, and exceptions do not exist, while the Instance Owner retains full and non-delegable governance authority as a distinct principal rather than a synthetic all-access role.

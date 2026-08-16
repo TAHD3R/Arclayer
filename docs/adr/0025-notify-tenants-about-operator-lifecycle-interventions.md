@@ -1,0 +1,3 @@
+# Notify tenants about operator lifecycle interventions
+
+Committed Domain Policy Exceptions and Domain State Corrections are Commercial Lifecycle Notification milestones rather than audit-only Platform actions. Owner and Billing Managers receive email plus in-app context, while other active members receive sanitized in-app state. Cross-domain correction is reported in two phases: Commerce may state that Hosting restoration is pending, but only a committed Hosting result may report delivery success or failure, preventing an accepted operator command from becoming a false customer-facing recovery claim.

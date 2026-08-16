@@ -1,0 +1,3 @@
+# Require Workspace Owner grants for support content access
+
+Platform Operators receive only minimum operational metadata and redacted projections by default; reading customer-authored Project content, Knowledge, Skills, or Design Systems requires both an exact Platform support-read permission and a time-bound, revocable Support Access Grant created by an authorized Workspace Owner for one case, named Operators, and explicit scope. The grant is read-only, customer-visible, and fully audited and never creates Workspace membership, a Product Session, impersonation, tenant approval, content mutation, secret access, or standing Instance Owner visibility.

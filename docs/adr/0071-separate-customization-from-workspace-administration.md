@@ -1,0 +1,3 @@
+# Separate Customization from Workspace Administration
+
+The Product Application keeps general details, Plan & Usage, members, invitations, roles, and permissions in Workspace Administration, while Knowledge, Skills, and Design Systems form a peer Customization navigation group. The three Customization pages remain scoped to the current Workspace but remove the redundant “Workspace” prefix from primary navigation and headings. This prevents AI and site-creation inputs from becoming miscellaneous settings tabs without moving tenant-owned content into Platform AI Operations or creating a second application shell.

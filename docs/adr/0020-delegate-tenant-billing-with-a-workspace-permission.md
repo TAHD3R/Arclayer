@@ -1,0 +1,3 @@
+# Delegate tenant billing with a Workspace permission
+
+Every Workspace Owner has tenant-side billing authority and may delegate `workspace:commerce:manage` to any number of active members, who are presented as Billing Managers. The permission authorizes tenant Plan, Checkout, Provider Portal, detailed ledger, Subscription, and payment-recovery actions without granting settings, membership, content, Platform Commerce, provider-configuration, or Credit-adjustment authority. Platform Operators remain limited to investigation, correction, and reconciliation through the Platform API so instance authority never becomes tenant payment impersonation.

@@ -1,0 +1,3 @@
+# Share one visual language across Product and Platform
+
+The Product Application and Platform Console consume one Arclayer visual language and one `packages/ui` semantic token authority, while the Console differentiates itself through denser operational composition rather than a second theme. Light, Dark, and Follow system are the only preferences; Follow system resolves before first paint, Dark retains the true-black and neutral-charcoal hierarchy in `DESIGN.md`, and blue remains reserved for selection and primary action. Template palettes, theme galleries, arbitrary accent pickers, foreign typography/radius/elevation scales, raw page palettes, gradient dashboards, neon glow, and glass treatments are excluded even when present in adopted source.

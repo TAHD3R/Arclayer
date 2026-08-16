@@ -1,0 +1,3 @@
+# Keep Owner authority while Free members share fixed access
+
+When a Workspace Plan excludes role management, every non-Owner member uses one immutable Fixed Member access profile and invitations cannot select a role. The Workspace Owner remains a single non-delegable ownership authority for tenant billing, ownership transfer, and Workspace deletion rather than becoming an assignable role or an ordinary equal member. Role-management Entitlement, Workspace permission, and Owner authority stay separate: upgrading may enable revisioned role assignment, but it never creates another ownership model or grants role-management permission by itself.

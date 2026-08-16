@@ -1,0 +1,3 @@
+# Use Restricted Recovery Mode after dunning
+
+Payment Restricted places the Product Application in Restricted Recovery Mode instead of continuing ordinary editing or fully suspending the Workspace. Existing Product Sessions, authorized reads, preserved-data export, payment recovery, support, and security/privacy/lifecycle reductions remain available, while content and access expansion, AI, imports, Customization, builds, publishing, deployment, and domain changes fail before dispatch. This keeps customer data inspectable and portable without allowing an unpaid Workspace to keep accumulating product value or external cost, and it preserves the separate meaning of Workspace Suspension.

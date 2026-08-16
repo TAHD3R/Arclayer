@@ -1,0 +1,3 @@
+# Keep Workspace count eligibility outside Workspace Plans
+
+Arclayer keeps each Workspace as the only owner of its Plan, Subscription, Credits, Entitlements, and Usage. A User may own at most one Free Workspace while joining any number of other Workspaces; creation, paid-to-Free downgrade, and ownership transfer enforce the same account-level allowance, and every additional Workspace requires its own Provider-confirmed paid Subscription before becoming usable. This eligibility rule owns no commercial state and rejects both a User/Organization Subscription and a Workspace Plan that claims authority over sibling Workspaces.
