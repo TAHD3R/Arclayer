@@ -1,437 +1,470 @@
-# Arclayer Design Language
+# Arclayer 设计语言
 
-## 1. Visual Theme & Atmosphere
+本文件是 Arclayer 视觉语言的第一权威。令牌数值以共享实现 `packages/ui/src/tokens.css` 为准（见第 12 节）；两个应用当前对该基线的覆盖状态在「已知偏差」中如实记录。
 
-Arclayer should feel like a serious product workspace: composed, intelligent, and low-noise. It is not a blank notebook, not a collaboration toy, and not a glossy SaaS landing page disguised as an admin panel. The interface should feel trustworthy before it feels stylish. When people open the product, they should immediately sense structure, hierarchy, and intent.
+## 1. 视觉主题与气质
 
-The light theme is built on a soft neutral-gray canvas with white work surfaces, cool neutral text, and restrained blue emphasis. It is cleaner and more technical than Notion's warm-paper calm, but still soft enough to avoid the sterile feel of generic enterprise dashboards. Surfaces are controlled. Borders are present but never heavy. Blue appears as a deliberate action signal, not as decoration.
+Arclayer 应该像一个严肃的产品工作台：沉着、聪明、低噪声。它不是空白笔记本，不是协作玩具，也不是伪装成管理面板的亮闪闪 SaaS 营销页。界面在显得时髦之前，先要显得可信。用户打开产品时，应立刻感知到结构、层级与意图。
 
-The dark theme is the sharper half of the system. It begins from a true black background (`hsl(0 0% 0%)`) and builds hierarchy with charcoal planes rather than ambient gradients. Panels are dark graphite, not navy fog. Hover states brighten structure rather than tint the whole page. The result should feel precise and confident, like instruments floating on a black stage, not a glowing cyberpunk dashboard.
+亮色主题建立在柔和的中性灰画布之上：白色工作表面、冷中性文本、克制的行为蓝强调。它比 Notion 的暖纸感更干净、更技术化，但仍足够柔和，不会滑向通用企业后台的无菌感。表面是受控的，边框存在但从不沉重，蓝色只作为明确的行动信号出现，不作装饰。
 
-Typography uses one platform-native UI family for both hierarchy and working text. The stack prioritizes each platform's native Chinese face so mixed Chinese and Latin text keeps consistent weight, baseline, and rendering quality. Hierarchy comes from size and weight rather than switching proportional typefaces; monospace remains reserved for code, identifiers, and diagnostics.
+暗色主题是这套系统里更锐利的一半。它从纯黑背景（`hsl(0 0% 0%)`）出发，用炭黑平面而非环境渐变构建层级。面板是深石墨色，不是海军蓝雾。悬停态提亮结构而不是给整页染色。结果应当精准而自信——像黑色舞台上的仪器，而不是发光的赛博朋克仪表盘。
 
-Arclayer is distinguished by a quiet canvas, obvious task hierarchy, restrained color, and product surfaces that explain what the user can do next without decorative noise.
+排版在层级与正文之间使用同一个平台原生 UI 字体族，栈内优先各平台的中文字体，使中英混排保持一致的字重、基线与渲染质量。层级来自字号与字重，而不是切换比例字体；等宽字体只保留给代码、标识符与诊断信息。
 
-**Key Characteristics**
-- Soft neutral-gray canvas with white work surfaces in light mode
-- True black canvas in dark mode
-- Blue reserved for action, selection, and links
-- Charcoal cards and popovers in dark mode instead of tinted haze
-- One platform-native UI family for headings and body text
-- Compact but readable spacing
-- Soft borders in light mode, clearer boundaries in dark mode
-- Motion used for confirmation and orientation, never spectacle
+Arclayer 的辨识度来自：安静的画布、显而易见的任务层级、克制的颜色，以及能够解释「用户接下来能做什么」的产品表面，没有装饰性噪声。
 
-### Brand Mark
+**关键特征**
 
-The Arclayer mark is the **Arc Weave**: four organic arc-stone pieces interlocked into one continuous core. Each piece represents a composable content or design layer; their woven relationship represents an AI-native system that coordinates those layers without flattening their individual structure.
+- 亮色模式：柔和中性灰画布 + 白色工作表面
+- 暗色模式：纯黑画布
+- 蓝色只保留给行动、选中与链接
+- 暗色模式用炭黑卡片与浮层，不用染色雾
+- 标题与正文共用一个平台原生 UI 字体族
+- 紧凑但可读的间距
+- 亮色模式边框柔和，暗色模式边界更清晰
+- 动效只用于确认与定位，绝不制造奇观
 
-- Preserve the four-piece rotational structure and rounded inner chambers; do not collapse the mark into a letter, generic clover, or single circular ring.
-- The four-piece core is the primary mark. Larger fields may repeat the same arc-stone module as a secondary brand pattern, but dense fields must not replace the compact product icon.
-- Keep the primary mark visually continuous and monochrome. Internal texture and explicit grout lines belong only to illustrative brand applications, not the product icon.
-- Use the near-black mark (`#1D1D1F`) on light surfaces and the soft-white mark (`#F5F5F7`) on dark surfaces.
-- Use the slightly lighter optical profile on dark surfaces so the luminous mark does not appear heavier than its near-black counterpart.
-- Keep the symbol and wordmark monochrome. Gradients, shadows, outlines, and multicolor layer diagrams do not belong in the primary brand assets.
-- Use the standalone mark for favicons and compact navigation; use the full wordmark for authentication, invitations, and expanded product chrome.
+### 品牌标志
 
-## 2. Color Palette & Roles
+Arclayer 的标志是 **Arc Weave**：四块有机的弧形石块互锁成一个连续核心。每块代表一个可组合的内容或设计图层；它们的编织关系代表一个协调这些图层而不压平其个体结构的 AI 原生系统。
 
-Arclayer is a semantic system first. Color names should describe role and behavior, not decoration.
+- 保持四块旋转结构与圆润内腔；不要把标志塌缩成字母、通用三叶草或单一圆环。
+- 四块核心是主标志。更大场域可以复用同一弧形石模块作为辅助品牌图案，但密集场域不得取代紧凑的产品图标。
+- 主标志保持视觉连续与单色。内部纹理与明确的接缝线只属于插画类品牌应用，不属于产品图标。
+- 亮色表面使用近黑标志（`#1D1D1F`），暗色表面使用柔白标志（`#F5F5F7`）。
+- 暗色表面使用略轻的光学轮廓，避免发光标志显得比近黑版本更重。
+- 符号与字标保持单色。渐变、阴影、描边与多层彩色图表不属于主品牌资产。
+- favicon 与紧凑导航使用独立符号；认证、邀请与展开的产品 chrome 使用完整字标。
 
-### Primary
+## 2. 色彩与角色
 
-- **Canvas Gray** (`hsl(220 14% 97%)`): page background, auth background, broad shells
-- **Surface White** (`hsl(0 0% 100%)`): cards, popovers, headers, and contained work areas
-- **Canvas Black** (`hsl(0 0% 0%)`): dark page background, large app canvas
-- **Action Blue** (`hsl(211 100% 45.9%)`): primary CTA, focused selection, active emphasis
-- **Action Blue Dark** (`hsl(211 100% 60%)`): primary CTA in dark mode
+Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述装饰。以下数值为 `packages/ui/src/tokens.css` 的实现值。
 
-### Text Scale
+### 主色（行动蓝）
 
-- **Primary Ink** (`hsl(230 5.7% 20.8%)`): strongest text in light mode
-- **Secondary Ink** (`hsl(237 8% 43.9%)`): descriptions, helper text, subdued labels
-- **Tertiary Ink** (`hsl(229 10% 56%)`): metadata, timestamps, table support text
-- **Quaternary Ink** (`hsl(229 15% 70%)`): placeholders, disabled text, low-importance detail
+- **Primary / 行动蓝**（亮暗同值 `hsl(201.9 53.6% 43.1%)`）：主 CTA、聚焦选中、激活强调；前景为白色
 
-- **Primary Ink on Dark** (`hsl(0 0% 92%)`): strongest text in dark mode
-- **Secondary Ink on Dark** (`hsl(0 0% 70%)`): descriptions and support text
-- **Tertiary Ink on Dark** (`hsl(0 0% 55%)`): quiet metadata
-- **Quaternary Ink on Dark** (`hsl(0 0% 40%)`): disabled or background-support text
+说明：实现中的主色是沉稳的蓝（色相约 202°、饱和度 53.6%），而非高饱和纯蓝；选中/高亮系的蓝色族位于 216° 色相，两者的色相分裂记录在第 12 节已知偏差中。
 
-### Surface System
+### 文本刻度
 
-#### Light surfaces
-- **Card White** (`hsl(0 0% 100%)`): cards, contained work areas, form sections
-- **Popover White** (`hsl(0 0% 100%)`): menus, dialogs, command panels
-- **Muted Surface** (`hsl(220 12% 94%)`): grouped tool areas, low-emphasis containers
-- **Accent Surface** (`hsl(220 10% 90%)`): neutral hover, active rows, chrome hover zones
-- **Sidebar Surface** (`hsl(220 12% 94%)`): stable navigation plane separated from the page canvas
+- **Primary Ink**（`hsl(230 5.7% 20.8%)`）：亮色最强文本
+- **Secondary Ink**（`hsl(237 8% 43.9%)`）：描述、辅助文本、弱化标签
+- **Tertiary Ink**（`hsl(229 10% 56%)`）：元数据、时间戳、表格辅助文本
+- **Quaternary Ink**（`hsl(229 15% 70%)`）：占位符、禁用文本、低重要性细节
 
-#### Dark surfaces
-- **Card Charcoal** (`hsl(0 0% 8%)`): elevated panels, cards, drawers
-- **Popover Charcoal** (`hsl(0 0% 8%)`): command menus, dialogs, dropdowns
-- **Muted Dark Surface** (`hsl(0 0% 10%)`): grouped controls, passive containers
-- **Accent Dark Surface** (`hsl(0 0% 14%)`): hover and pressed neutral background
-- **Sidebar Charcoal** (`hsl(0 0% 5%)`): navigation plane separated from the black canvas
+- **Primary Ink on Dark**（`hsl(0 0% 92%)`）：暗色最强文本
+- **Secondary Ink on Dark**（`hsl(0 0% 70%)`）：描述与辅助文本
+- **Tertiary Ink on Dark**（`hsl(0 0% 55%)`）：安静元数据
+- **Quaternary Ink on Dark**（`hsl(0 0% 40%)`）：禁用或背景辅助文本
 
-### Selection & Highlight Blue
+### 表面系统
 
-- **Primary Hover** (`hsl(209 100% 36.3%)`)
-- **Primary Selected** (`hsl(211 100% 90%)`)
-- **Primary Selected Hover** (`hsl(211 92.9% 83.5%)`)
-- **Primary Highlighted** (`hsl(212 100% 97.1%)`)
-- **Primary Surface** (`hsl(225 46.2% 94.9%)`)
+#### 亮色表面
+- **Card White**（`hsl(0 0% 100%)`）：卡片、受控工作区、表单分区
+- **Popover White**（`hsl(0 0% 100%)`）：菜单、对话框、命令面板
+- **Muted Surface**（`hsl(220 12% 94%)`）：分组工具区、低强调容器
+- **Accent Surface**（`hsl(220 10% 90%)`）：中性悬停、激活行、chrome 悬停区
+- **Sidebar Surface**（`hsl(220 12% 94%)`）：与页面画布分离的稳定导航平面
 
-- **Primary Hover Dark** (`hsl(211 100% 70%)`)
-- **Primary Selected Dark** (`hsl(211 60% 20%)`)
-- **Primary Selected Hover Dark** (`hsl(211 60% 26%)`)
-- **Primary Highlighted Dark** (`hsl(211 50% 14%)`)
-- **Primary Surface Dark** (`hsl(211 40% 12%)`)
+#### 暗色表面
+- **Card Charcoal**（`hsl(0 0% 8%)`）：浮升面板、卡片、抽屉
+- **Popover Charcoal**（`hsl(0 0% 8%)`）：命令菜单、对话框、下拉
+- **Muted Dark Surface**（`hsl(0 0% 10%)`）：分组控件、被动容器
+- **Accent Dark Surface**（`hsl(0 0% 14%)`）：悬停与按下的中性背景
+- **Sidebar Charcoal**（`hsl(0 0% 5%)`）：与黑画布分离的导航平面
 
-### Semantic States
+### 选中与高亮蓝
 
-- **Positive** (`hsl(155 100% 26.1%)` light / `hsl(155 80% 45%)` dark): success, publish, completed states
-- **Negative** (`hsl(351 66.9% 53.7%)` light / `hsl(351 70% 60%)` dark): destructive actions and critical errors
-- **Warning** (`hsl(48 100% 50%)` light / `hsl(48 100% 60%)` dark): caution and warning surfaces
-- **Link** (`hsl(208 72.4% 44.1%)` light / `hsl(210 90% 65%)` dark): inline links and navigational text accents
+亮色：
 
-### Borders & Rings
+- **Primary Hover**（`hsl(216 88% 45%)`）——略亮于基色
+- **Primary Selected**（`hsl(216 92% 91%)`）
+- **Primary Selected Hover**（`hsl(216 88% 84%)`）
+- **Primary Highlighted**（`hsl(216 92% 97%)`）
+- **Primary Surface**（`hsl(216 56% 94%)`）
 
-- **Layout Border Light** (`hsl(220 10% 88%)`): large structure, shell separation
-- **UI Border Light** (`hsl(229 16.5% 79.8%)`): input shells, compact control boundaries
-- **Layout Border Dark** (`hsl(0 0% 16%)`): large structural separation on black
-- **UI Border Dark** (`hsl(0 0% 30%)`): card edges, menus, active boundaries
-- **Input Edge Dark** (`hsl(0 0% 22%)`): field shells and interactive boundaries
-- **Focus Ring** (`hsl(211 100% 45.9%)` light / `hsl(211 100% 60%)` dark): keyboard focus and active precision
+暗色：
 
-### Color Principles
+- **Primary Hover Dark**（`hsl(216 92% 66%)`）
+- **Primary Selected Dark**（`hsl(216 64% 20%)`）
+- **Primary Selected Hover Dark**（`hsl(216 64% 27%)`）
+- **Primary Highlighted Dark**（`hsl(216 54% 14%)`）
+- **Primary Surface Dark**（`hsl(216 42% 12%)`）
 
-- Blue should never become the ambient mood of a page.
-- The canvas should stay neutral; structure comes from surfaces.
-- Dark mode should feel black plus charcoal, not black plus blue haze.
-- Semantic colors belong to meaningful states, not decorative accents.
-- If a screen feels colorful before it feels structured, the design is drifting.
+### 语义状态
 
-## 3. Typography Rules
+- **Positive**（`hsl(155 100% 26.1%)` 亮 / `hsl(155 80% 45%)` 暗）：成功、发布、完成状态
+- **Negative**（`hsl(351 66.9% 53.7%)` 亮 / `hsl(351 70% 60%)` 暗）：破坏性操作与严重错误
+- **Warning**（`hsl(48 100% 50%)` 亮 / `hsl(48 100% 60%)` 暗）：警示与警告表面
+- **Link**（`hsl(216 88% 43%)` 亮 / `hsl(216 92% 68%)` 暗）：内联链接与导航文本强调
+- 各语义色另带 `*-selected` 选中变体（positive/negative/warning 的选中态），用于菜单与选项中的语义高亮
 
-### Font Family
+### 边框与 Ring
 
-- **Heading / Body / UI**: platform-native system UI stack
-- **Chinese priority**: PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC
-- **Monospace**: platform-native monospace stack
+- **Layout Border Light**（`hsl(220 10% 88%)`）：大结构、外壳分离
+- **UI Border Light**（`hsl(229 16.5% 79.8%)`）：输入外壳、紧凑控件边界
+- **Layout Border Dark**（`hsl(0 0% 16%)`）：黑色上的大结构分离
+- **UI Border Dark**（`hsl(0 0% 30%)`）：卡片边缘、菜单、激活边界
+- **Input Edge Dark**（`hsl(0 0% 22%)`）：字段外壳与交互边界
+- **Focus Ring**：亮暗均等于主色值（`hsl(201.9 53.6% 43.1%)`）：键盘聚焦与激活精度
 
-The same proportional stack handles headings, tables, filters, commands, forms, helper text, and body copy. This keeps mixed-language UI coherent and avoids downloading a Latin-only face that forces Chinese text into a visibly different fallback. Weight and scale carry hierarchy; monospace is a semantic exception for technical values.
+### 补充实现令牌
 
-### Hierarchy
+以下令牌存在于 `tokens.css` 并被全局消费，纳入本规范以便对照：
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Scene Title | System UI | 32px (2rem) | 700 | 1.25 | -0.02em | Login titles, major page titles, large state headings |
-| Section Title | System UI | 24px (1.5rem) | 600 | 1.333 | -0.015em | Primary page sections and major panels |
-| Block Title | System UI | 18px (1.125rem) | 600 | 1.444 | -0.01em | Cards, side panels, modal headers |
-| Minor Title | System UI | 16px (1rem) | 600 | 1.4 | 0 | Compact sections and grouped controls |
-| UI Headline | System UI | 16px (1rem) | 600 | 1.4 | 0 | Buttons, tabs, active labels, strong field headers |
-| Body | System UI | 16px (1rem) | 400 | 1.5 | 0 | Standard reading text |
-| Support | System UI | 14px (0.875rem) | 400 | 1.45 | 0 | Helper text, descriptions, compact explanations |
-| Dense Body | System UI | 14px (0.875rem) | 400 | 1.45 | 0 | Menus, command items, settings detail, dense UI |
-| Caption | System UI | 14px (0.875rem) | 500 | 1.45 | 0 | Metadata, tags, hints, emphasized small text |
-| Mono | System monospace | 12px-14px | 400-500 | 1.4 | 0 | Code values, shortcuts, diagnostics |
+- **Secondary**（`hsl(230 5.7% 20.8%)` 亮 / `hsl(0 0% 85%)` 暗）：次级按钮与中性强调底
+- **Border（默认）**（`hsl(210 10% 82%)` 亮 / `hsl(0 0% 18%)` 暗）：由 `* { @apply border-border }` 全局消费的默认边框
+- **Header / Header Foreground**：亮色取 `var(--card)`，暗色取 `var(--background)`
+- **Success / Destructive 别名**：指向 Positive / Negative 的兼容别名
+- **Chart 调色板**：`--chart-1` = 主色、`--chart-2`（`hsl(155 100% 39.2%)`）、`--chart-3` = Warning、`--chart-4`（`hsl(330 100% 44.9%)`）、`--chart-5`（`hsl(270 67.3% 59%)`）
+- **Sidebar 宽度**：`--sidebar-width`（动态 px）、移动端 `18rem`、图标态 `3rem`
+- **Spacing 基准**：`--spacing` = `0.25rem`（Tailwind 基准单位）
 
-### Typography Principles
+### 色彩原则
 
-- Start most product UI at 14px or 16px.
-- Use size and weight for hierarchy instead of switching proportional font families.
-- Let size changes be modest; let weight and spacing carry rhythm.
-- Avoid text smaller than 14px in normal product UI.
-- Avoid uppercase noise, wide tracking, and overly compressed display treatments.
-- If a surface is dense, reduce spacing before reducing font size.
+- 蓝色永远不该成为一页的氛围底色。
+- 画布保持中性；结构来自表面。
+- 暗色模式应当是黑加炭黑，不是黑加蓝雾。
+- 语义色属于有意义的状态，不作装饰强调。
+- 如果一个屏幕在显得有结构之前先显得五颜六色，设计就已经跑偏。
 
-## 4. Component Stylings
+## 3. 字体规则
 
-### Buttons
+### 字体族
+
+- **标题 / 正文 / UI**：平台原生系统 UI 栈（`ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif`）
+- **中文优先**：PingFang SC、Hiragino Sans GB、Microsoft YaHei、Noto Sans CJK SC
+- **等宽**：平台原生等宽栈
+
+同一比例字体栈处理标题、表格、筛选、命令、表单、辅助文本与正文。这保持中英混排 UI 的一致性，避免只下载拉丁字体而让中文落入明显不同的后备字体。层级由字重与字号承担；等宽是技术值的语义例外。
+
+### 层级
+
+| 角色 | 字体 | 字号 | 字重 | 行高 | 字距 | 说明 |
+|------|------|------|------|------|------|------|
+| Scene Title | 系统 UI | 32px (2rem) | 700 | 1.25 | -0.02em | 登录标题、主要页面标题、大状态标题 |
+| Section Title | 系统 UI | 24px (1.5rem) | 600 | 1.333 | -0.015em | 主页面区块与大面板 |
+| Block Title | 系统 UI | 18px (1.125rem) | 600 | 1.444 | -0.01em | 卡片、侧面板、模态标题 |
+| Minor Title | 系统 UI | 16px (1rem) | 600 | 1.4 | 0 | 紧凑区块与分组控件 |
+| UI Headline | 系统 UI | 16px (1rem) | 600 | 1.4 | 0 | 按钮、标签页、激活标签、强字段头 |
+| Body | 系统 UI | 16px (1rem) | 400 | 1.5 | 0 | 标准阅读文本 |
+| Support | 系统 UI | 14px (0.875rem) | 400 | 1.45 | 0 | 辅助文本、描述、紧凑解释 |
+| Dense Body | 系统 UI | 14px (0.875rem) | 400 | 1.45 | 0 | 菜单、命令项、设置详情、密集 UI |
+| Caption | 系统 UI | 14px (0.875rem) | 500 | 1.45 | 0 | 元数据、标签、提示、强调小文本 |
+| Mono | 系统等宽 | 12px-14px | 400-500 | 1.4 | 0 | 代码值、快捷键、诊断 |
+
+### 排版原则
+
+- 大多数产品 UI 从 14px 或 16px 起步。
+- 用字号与字重做层级，而不是切换比例字体族。
+- 字号变化保持克制；让字重与间距承载节奏。
+- 普通产品 UI 避免小于 14px 的文本。
+- 避免大写噪声、宽字距与过度压缩的展示处理。
+- 表面密集时先收间距，再考虑缩字号。
+
+## 4. 组件样式
+
+### 按钮
 
 **Primary**
-- Background: Action Blue / Action Blue Dark
-- Text: white in light mode; near-black in dark mode so the bright action color meets contrast requirements
-- Padding: 8px 16px
-- Radius: 6px
-- Border: transparent
-- Hover: shift to hover blue, no theatrical lift
-- Use: save, continue, confirm, create
+- 背景：行动蓝（亮暗同值）
+- 文本：白色（亮暗均为白色；对比度以 43.1% 亮度的蓝底白字成立）
+- 内边距：8px 16px
+- 圆角：6px
+- 边框：透明
+- 悬停：Primary Hover（`hsl(216 88% 45%)`），无戏剧化抬升
+- 用途：保存、继续、确认、创建
 
 **Secondary**
-- Background: muted or accent surface
-- Text: primary ink
-- Padding: 8px 16px
-- Radius: 6px
-- Border: 1px solid UI border when needed
-- Use: secondary actions that remain clearly interactive
+- 背景：muted 或 accent 表面，或 Secondary 令牌
+- 文本：Primary Ink
+- 内边距：8px 16px
+- 圆角：6px
+- 需要时加 1px UI 边框
+- 用途：保持明确可交互的次级动作
 
 **Ghost**
-- Background: transparent
-- Text: primary ink or secondary ink
-- Hover: neutral surface highlight
-- Use: low-emphasis actions, toolbar controls, contextual actions
+- 背景：透明
+- 文本：Primary Ink 或 Secondary Ink
+- 悬停：中性表面高亮
+- 用途：低强调动作、工具栏控件、上下文动作
 
 **Destructive**
-- Background: negative
-- Text: white
-- Hover: slightly deeper red or higher contrast edge
-- Use: irreversible destructive actions only
+- 背景：Negative
+- 文本：白色
+- 悬停：略深的红或更高对比边缘
+- 用途：仅限不可逆破坏性操作
 
-### Cards & Containers
-
-- Background: Card White / Card Charcoal
-- Border: layout or UI border depending on density
-- Radius: 10px for regular cards, 20px for large dialogs or hero panels
-- Shadow in light mode: restrained, mostly `0 1px 3px rgba(0,0,0,0.1)` to `0 8px 16px rgba(0,0,0,0.1)`
-- Shadow in dark mode: minimal; rely on border and contrast first
-- Hover: structure becomes clearer, never glossy
+### 卡片与容器
 
-Cards should feel like work surfaces, not decorative tiles. In light mode they should barely rise off the canvas. In dark mode they must visibly separate from black, otherwise the whole interface collapses into one layer.
+- 背景：Card White / Card Charcoal
+- 边框：按密度选择 layout 或 UI 边框
+- 圆角：常规卡片 10px，大型对话框或英雄面板 20px
+- 亮色模式阴影：**当前实现为边框优先**——`tokens.css` 中 `--shadow-2xs` 至 `--shadow-2xl` 全部禁用（`none`），仅保留 `--shadow-color: rgba(0,0,0,0.1)`；层级由边框与表面对比建立。若未来启用阴影，克制区间为 `0 1px 3px rgba(0,0,0,0.1)` 至 `0 8px 16px rgba(0,0,0,0.1)`
+- 暗色模式阴影：最小化；先靠边框与对比
+- 悬停：结构更清晰，绝不抛光
 
-Avoid card-in-card by default. Group related content with spacing, headings, or dividers. Nest a bordered or elevated surface only when the child is a distinct object or workflow; keep it one visual level lower and never stack equal-weight borders, shadows, or backgrounds.
-
-### Inputs & Forms
+卡片应当是工作表面，不是装饰瓷砖。亮色模式下几乎不脱离画布；暗色模式下必须与黑明显分离，否则整个界面会塌成一层。
 
-- Background: white in light mode, dark surface in dark mode
-- Text: primary ink / primary ink on dark
-- Border: dedicated input edge, never invisible
-- Radius: 6px
-- Padding: visually comfortable, never cramped
-- Placeholder: tertiary or quaternary text only
-- Focus: ring plus border/surface change
+默认避免卡中卡。用间距、标题或分隔线组织相关内容。只有当子表面是独立对象或工作流时才嵌套带边框或浮升的表面；保持其视觉层级低一级，绝不叠加等重的边框、阴影或背景。
 
-Inputs should feel contained and tactile. A field should always read as an object with edges, not just text floating over the page.
+### 输入与表单
 
-### Navigation
+- 背景：亮色白、暗色暗表面
+- 文本：Primary Ink / Primary Ink on Dark
+- 边框：专用输入边缘，永不隐形
+- 圆角：6px
+- 内边距：视觉舒适，绝不局促
+- 占位符：仅用 Tertiary 或 Quaternary 文本
+- 聚焦：ring 加边框/表面变化
 
-- Navigation should feel stable and quiet
-- Selected states should be obvious without becoming giant blue pills
-- Hover states should use neutral surfaces first, blue second
-- Use an icon only when it communicates a recognized action, state, object/type, or navigation target
-- If a visible label already says the same thing and the icon adds no scanning value, omit the icon
-- Do not use emoji as product UI icons or decorative section markers
-- Decorative icons are hidden from assistive technology; icon-only controls require an accessible name and a tooltip when discoverability matters
-- Page chrome should not compete with the page itself
+输入应当有容纳感和触感。字段永远读作一个有边缘的对象，而不是浮在页面上的裸文本。
 
-### Command Menus & Popovers
+### 导航
 
-- Background: Popover White / Popover Charcoal
-- Radius: 10px
-- Border: visible in both themes
-- Text size: 14px
-- Keyboard hints: caption treatment, secondary emphasis
-- Selected row: blue-selected or neutral-accent depending on context
+- 导航应当稳定而安静
+- 选中态应当明显，但不变成巨大的蓝色药丸
+- 悬停态优先用中性表面，其次才用蓝
+- 只有当图标传递可识别的动作、状态、对象/类型或导航目标时才使用
+- 若可见标签已表达同一含义且图标无扫描价值，省略图标
+- 不使用 emoji 作为产品 UI 图标或装饰性区块标记
+- 装饰性图标对辅助技术隐藏；仅图标控件需要可访问名称，可发现性重要时加 tooltip
+- 页面 chrome 不应与页面本身竞争
 
-Command surfaces should feel instrument-like: crisp, narrow, confident, and easy to parse quickly.
+### 命令菜单与浮层
 
-### Tables & Dense Surfaces
+- 背景：Popover White / Popover Charcoal
+- 圆角：10px
+- 边框：两个主题下都可见
+- 字号：14px
+- 键盘提示：Caption 处理、次级强调
+- 选中行：按上下文用蓝选中或中性强调
 
-- Row height should feel compact but breathable
-- 14px dense body text is the floor
-- Column labels should feel structured, not loud
-- Hover, selected, and sticky states must remain predictable
-- Borders and spacing should help scanning more than background fills
+命令表面应当像仪器：干脆、窄、自信、易快速解析。
 
-### Tags & Badges
+### 表格与密集表面
 
-- Use 14px or 12px only when the badge is genuinely secondary
-- Radius can be 9999px for status pills or 4px for compact semantic chips
-- Filled semantic badges should be used sparingly
-- Neutral badges are often better than colorful ones for routine metadata
+- 行高紧凑但有呼吸感
+- 14px 密集正文是下限
+- 列标签应当有结构感，不喧哗
+- 悬停、选中、置顶状态必须可预测
+- 边框与间距服务扫描，多于背景填充
 
-## 5. Layout Principles
+### 标签与徽章
 
-### Spacing System
+- 仅当徽章真正次要时使用 14px 或 12px
+- 状态药丸可用 9999px 圆角，紧凑语义芯片可用 4px
+- 填充式语义徽章克制使用
+- 例行元数据用中性徽章往往好过彩色徽章
 
-- `2px`
-- `4px`
-- `8px`
-- `12px`
-- `16px`
-- `20px`
-- `24px`
-- `32px`
-- `40px`
-- `48px`
-- `64px`
-- `80px`
+## 5. 布局原则
 
-This is a practical system, not a decorative one. It should make dense surfaces feel ordered rather than airy for the sake of airiness.
+### 间距系统
 
-### Usage Ranges
+`2px`、`4px`、`8px`、`12px`、`16px`、`20px`、`24px`、`32px`、`40px`、`48px`、`64px`、`80px`（基准单位 `--spacing` = 0.25rem）。
 
-- **2-8px**: icon gaps, chip internals, micro-adjustments, shortcut labels
-- **8-16px**: buttons, input internals, compact toolbars, small stacked controls
-- **16-24px**: form groups, card padding, section internals, settings rows
-- **24-40px**: pane spacing, section separation, content rhythm
-- **48-80px**: major scene spacing, auth layout breathing room, large screen structure
+这是一套实用系统，不是装饰系统。它让密集表面显得有序，而不是为空而空。
 
-### Grid & Container Thinking
+### 使用区间
 
-- Wide admin screens should still have one dominant reading axis
-- Secondary rails support the task; they should not fight the main pane
-- Large empty canvas space should feel intentional, not accidental
-- Use surface changes to establish hierarchy before inventing layout tricks
+- **2-8px**：图标间距、芯片内部、微调、快捷键标签
+- **8-16px**：按钮、输入内部、紧凑工具栏、小堆叠控件
+- **16-24px**：表单组、卡片内边距、区块内部、设置行
+- **24-40px**：窗格间距、区块分离、内容节奏
+- **48-80px**：主场景间距、认证布局呼吸、大屏结构
 
-### Whitespace Philosophy
+### 网格与容器思维
 
-- White space separates intent, not just blocks
-- Important regions need more air than routine controls
-- Dense does not mean compressed everywhere
-- Quiet canvas plus controlled surfaces is the core compositional move
+- 宽管理屏幕仍应有一条主导阅读轴
+- 次级侧栏服务任务，不与主窗格争夺
+- 大片空画布应当显得有意，而非意外
+- 先用表面变化建立层级，再发明布局技巧
 
-## 6. Radius, Borders & Elevation
+### 留白哲学
 
-### Radius Scale
+- 留白分隔意图，而不只是分隔块
+- 重要区域比常规控件需要更多空气
+- 密集不等于处处压缩
+- 安静画布加受控表面是核心构图动作
 
-- **6px (`--radius-sm`)**: inputs, buttons, compact controls
-- **10px (`--radius-md`)**: cards, menus, popovers, command surfaces
-- **16px (`--radius-lg`)**: sheets and large panels
-- **20px (`--radius-xl`)**: large dialogs or rare hero surfaces
-- **9999px**: badges and pills when the pattern truly calls for it
+## 6. 圆角、边框与层级
 
-Use the semantic radius tokens from `packages/ui`; do not introduce page-local radius scales.
+### 圆角刻度
 
-### Border System
+- **6px（`--radius-sm`）**：输入、按钮、紧凑控件
+- **10px（`--radius-md`）**：卡片、菜单、浮层、命令表面
+- **16px（`--radius-lg`）**：sheet 与大面板
+- **20px（`--radius-xl`）**：大型对话框或罕见的英雄表面
+- **24px（`--radius-2xl`）** / **32px（`--radius-3xl`）**：超大容器与特殊场景
+- **9999px**：模式确实需要时的徽章与药丸
 
-- **Soft structural border**: large layout separation, shell edges, table divisions
-- **UI border**: control outlines, card edges, popover frames
-- **Input edge**: field shells that need stronger definition
+基准 `--radius` 为 `0.75rem`（12px）。使用 `packages/ui` 的语义圆角令牌；不得引入页面局部圆角刻度。
 
-Light mode borders should feel quiet and disciplined. Dark mode borders should work harder, because on a black canvas a missing edge is a missing layer.
+### 边框系统
 
-### Elevation Levels
+- **软结构边框**：大布局分离、外壳边缘、表格分割
+- **UI 边框**：控件轮廓、卡片边缘、浮层框架
+- **输入边缘**：需要更强定义的字段外壳
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat | no shadow, no visible border | large page canvas, uninterrupted backgrounds |
-| Structural | soft border only | major page regions and low-emphasis divisions |
-| Surface | border + restrained shadow | cards, panels, toolbar groups, contained forms |
-| Floating | clearer border + stronger contrast | menus, dialogs, popovers, command panels |
-| Focus | visible ring plus boundary shift | keyboard focus and active precision moments |
+亮色模式边框安静而有纪律。暗色模式边框要更卖力——在黑画布上，缺失的边缘就是缺失的图层。
 
-### Elevation Philosophy
+### 层级级别
 
-Arclayer should not rely on cinematic shadows. In light mode, depth comes from subtle shadow plus border. In dark mode, depth comes from black versus charcoal, then border, then only a small amount of shadow if needed. If a dark surface needs a big blur to be visible, the surface colors are wrong.
+| 级别 | 处理 | 用途 |
+|------|------|------|
+| Flat | 无阴影、无可见边框 | 大页面画布、无打断背景 |
+| Structural | 仅软边框 | 主页面区域、低强调分割 |
+| Surface | 边框 + 克制强调 | 卡片、面板、工具栏组、受控表单 |
+| Floating | 更清晰边框 + 更强对比 | 菜单、对话框、浮层、命令面板 |
+| Focus | 可见 ring + 边界变化 | 键盘聚焦与激活精度时刻 |
 
-## 7. Motion & Interaction
+### 层级哲学
 
-### Duration
+Arclayer 不依赖电影级阴影。当前实现中，亮色与暗色的深度都首先来自表面色差与边框；阴影令牌整体禁用（见第 4 节）。暗色模式尤其如此：黑与炭黑之差、然后是边框，最后才考虑少量阴影。如果一个暗色表面需要大模糊才能被看见，说明表面颜色错了。
 
-- **70ms**: opacity shifts, tiny icon feedback, micro-state changes
-- **100ms**: hover transitions, chip states, compact interactions
-- **150ms**: productive movement, panel changes, dropdown open/close
-- **250ms**: expressive but justified emphasis
-- **400ms**: rare and intentional entrance moments only
+## 7. 动效与交互（目标态规范）
 
-### Easing
+本节是目标态规范：当前代码尚无集中 motion 令牌，组件内存在硬编码时长与曲线（见第 12 节已知偏差）。新代码应向本节收敛，不再新增偏离。
 
-- **Enter**: `cubic-bezier(0, 0, 0.35, 1)`
-- **Exit**: `cubic-bezier(0.4, 0, 1, 1)`
-- **Transition**: `cubic-bezier(0.4, 0, 0.2, 1)`
-- **Emphasis**: `cubic-bezier(0, 0, 0.2, 1.4)`
+### 时长
 
-### Motion Principles
+- **70ms**：透明度变化、微型图标反馈、微状态切换
+- **100ms**：悬停过渡、芯片状态、紧凑交互
+- **150ms**：高效位移、面板变化、下拉开合
+- **250ms**：有理由的表意强调
+- **400ms**：罕见且有意为之的入场时刻
 
-- Motion should explain spatial change
-- Similar components should move similarly
-- Avoid bounce in routine product tasks
-- Never hold task completion hostage to animation
-- Reduced motion should still feel intentional, not broken
+### 缓动
 
-## 8. Responsive Behavior
+- **Enter**：`cubic-bezier(0, 0, 0.35, 1)`
+- **Exit**：`cubic-bezier(0.4, 0, 1, 1)`
+- **Transition**：`cubic-bezier(0.4, 0, 0.2, 1)`
+- **Emphasis**：`cubic-bezier(0, 0, 0.2, 1.4)`
 
-### Breakpoints
+### 动效原则
 
-| Name | Intent |
-|------|--------|
-| Mobile | one clear column, direct tasks, obvious CTA placement |
-| Tablet | preserve structure, reduce parallel complexity |
-| Desktop | use width for hierarchy, not decorative spread |
-| Wide Desktop | allow larger scene breathing room without losing focus |
+- 动效解释空间变化
+- 相似组件以相似方式运动
+- 例行产品任务中避免弹跳
+- 永不把任务完成扣留给动画
+- 减弱动效仍应有意图感，而不是坏掉
 
-### Responsive Rules
+## 8. 响应式行为
 
-- Collapse layouts by preserving meaning, not by blindly stacking everything
-- Keep action clusters discoverable
-- Maintain heading rhythm as width shrinks
-- Let tables simplify, but do not destroy scannability
-- Panels can become sheets on smaller screens if the mental model survives
+### 断点
 
-## 9. Accessibility & States
+| 名称 | 意图 |
+|------|------|
+| Mobile | 单列清晰、任务直接、CTA 位置明确 |
+| Tablet | 保留结构、降低并行复杂度 |
+| Desktop | 用宽度做层级，不做装饰性摊开 |
+| Wide Desktop | 允许更大场景呼吸而不失焦 |
 
-### Focus System
+### 响应式规则
 
-- Every interactive element needs a visible keyboard focus treatment
-- Focus should survive both white and black canvases
-- Focus should feel designed, not incidental
+- 收起布局时保留含义，不盲目全部堆叠
+- 保持动作簇可发现
+- 宽度收缩时维持标题节奏
+- 表格可以简化，但不破坏可扫描性
+- 心智模型能存活时，面板可在小屏变成 sheet
 
-### Interactive States
+## 9. 可访问性与状态
 
-- **Default**: neutral, legible, structurally clear
-- **Hover**: stronger surface or border signal, not decorative animation
-- **Active / Pressed**: slightly tighter, deeper, or more focused treatment
-- **Selected**: unmistakable without taking over the whole layout
-- **Disabled**: quieter but still readable
-- **Destructive**: explicit and serious, never playful
+### 聚焦系统
 
-### Contrast
+- 每个可交互元素需要可见的键盘聚焦处理
+- 聚焦在白与黑画布上都要存活
+- 聚焦应当显得被设计过，而非偶然
 
-- Text and interactive controls must meet WCAG 2.2 AA contrast requirements
-- Secondary text must remain readable on both white and charcoal
-- Borders in dark mode must remain visible against black
-- Never rely on color alone to convey meaning
+### 交互状态
 
-### Semantics
+- **Default**：中性、可读、结构清晰
+- **Hover**：更强的表面或边框信号，不是装饰动画
+- **Active / Pressed**：略收紧、略深或更聚焦的处理
+- **Selected**：无可误认，但不接管整个布局
+- **Disabled**：更安静但仍可读
+- **Destructive**：明确而严肃，绝不俏皮
 
-- Heading structure should mirror the visual hierarchy
-- Reading order should match interaction order
-- Decorative imagery stays out of the accessibility tree
-- Informative imagery needs meaningful alt text
-- Icon-only controls need an accessible name; decorative icons and emoji stay out of the accessibility tree
+### 对比度
 
-## 10. UX Writing
+- 文本与交互控件必须满足 WCAG 2.2 AA 对比度要求
+- 次级文本在白与炭黑上都必须可读
+- 暗色模式边框在黑上必须可见
+- 绝不单靠颜色传达含义
 
-Arclayer writing should feel like a capable operator speaking clearly.
+### 语义
 
-### Voice
+- 标题结构应映射视觉层级
+- 阅读顺序应匹配交互顺序
+- 装饰性图像留在可访问性树之外
+- 信息性图像需要有意义 alt 文本
+- 仅图标控件需要可访问名称；装饰性图标与 emoji 留在可访问性树之外
 
-- direct
-- calm
-- concise
-- human
-- competent
+## 10. UX 文案
 
-### Writing Rules
+Arclayer 的文案应当像一个有能力的操作者清晰说话。
 
-- Use sentence case
-- Put the bottom line first
-- Prefer specific verbs over abstract product language
-- Keep one clear CTA in each decision area
-- Remove filler, hype, and apology loops
-- Stay consistent with terminology
-- Empty states should guide, not perform personality
-- Error copy should clarify what happened and what the user can do next
-- Write for the user's task and next action, not for the implementation
-- Use plain language and concrete verbs; explain necessary domain terms where they first appear
-- Do not expose README instructions, component/API/route names, raw errors, stack traces, logs, JSON, hashes, or internal architecture in ordinary product UI
-- Put necessary technical detail in an explicit diagnostics/details surface, paired with a plain-language summary and next step
-- Product Application copy focuses on creating, editing, publishing, sharing, and recovering work; Platform Console copy focuses on operator decisions and outcomes, not service internals
-- Keep diagnostic identifiers, job/run ids, revisions, and error codes out of the primary status or action area
+### 语气
 
-## 11. Product Guardrails
+- 直接
+- 冷静
+- 简洁
+- 人性
+- 专业
 
-Product UI must satisfy these checks:
+### 写作规则
 
-- no gradient, glow, glass, or decorative color treatment without a functional state meaning
-- no card-in-card composition unless the nested surface is an independent object or workflow
-- no emoji or redundant icon used as decoration
-- no normal task information below 14px
-- no marketing slogan where the user needs a status, instruction, or next action
-- no raw implementation or diagnostic text in the primary product surface
+- 使用句式大小写（sentence case）
+- 结论先行
+- 优先具体动词而非抽象产品语言
+- 每个决策区只保留一个明确 CTA
+- 删除填充、炒作与道歉循环
+- 术语保持一致
+- 空状态应当引导，不表演人格
+- 错误文案说明发生了什么、用户能做什么
+- 为用户的任务与下一步动作写作，不为实现写作
+- 使用平实语言与具体动词；必要领域术语在首次出现处解释
+- 不在普通产品 UI 暴露 README 指令、组件/API/路由名、原始错误、堆栈、日志、JSON、哈希或内部架构
+- 必要的技术细节放入显式诊断/详情表面，并配平实摘要与下一步
+- Product Application 文案聚焦创建、编辑、发布、分享与恢复工作；Platform Console 文案聚焦运营者决策与结果，而非服务内部
+- 诊断标识、job/run id、revision、错误码不进入主状态或动作区
 
-## 12. One-Sentence Brief
+## 11. 产品护栏
 
-Design Arclayer as a high-trust product workspace: quiet surfaces, clear task hierarchy, blue reserved for action, semantic icons only, plain-language product copy, and just enough motion to confirm change without stealing attention.
+产品 UI 必须满足以下检查：
+
+- 没有功能状态含义时，不使用渐变、发光、玻璃或装饰性颜色处理
+- 除非嵌套表面是独立对象或工作流，不使用卡中卡构图
+- 不使用 emoji 或冗余图标作装饰
+- 普通任务信息不低于 14px
+- 用户需要状态、指令或下一步时，不出现营销口号
+- 主产品表面不出现原始实现或诊断文本
+
+## 12. 主题令牌实现源与已知偏差
+
+### 实现源
+
+- 共享令牌唯一定义：`packages/ui/src/tokens.css`——亮色在 `:root`，暗色在 `[data-theme="dark"]`，Tailwind v4 映射在同文件 `@theme inline` 块
+- Tailwind 桥接：`packages/ui/src/tailwind-preset.ts` 将颜色/圆角/字体/阴影映射到上述变量；两个应用均以 preset 引用
+- 主题切换：Product Application 通过 `document.documentElement.dataset.theme`（`apps/app/src/lib/theme.ts`）设置 `data-theme`；Platform Console 通过 `.dark` class（`apps/platform/src/lib/preferences.tsx`）切换
+
+### 已知偏差（记录于 2026-08-16，待收敛）
+
+1. **apps/app 亮色整体覆盖**：`apps/app/src/index.css:11-22` 以 210° 色相覆盖整套亮色背景/表面/边框（注释自称 "Keep Admin light mode crisp"），偏离共享包与本文档的 220° 中性灰画布。
+2. **apps/app chart 体系独立 + 暗色死分支**：`apps/app/src/index.css:200-255` 用 oklch 灰阶覆盖并扩展 chart 变量；其 `.dark {}` 块在 app 内永不生效（app 只设 `data-theme`，不添加 `.dark` class），暗色下仍消费亮色 chart 变量。
+3. **apps/platform 近全量覆盖**：`apps/platform/src/index.css:9-117` 以 oklch 中性灰覆盖 `:root` 与 `.dark` 两套主色/背景（`--primary` 为近黑），并重定义圆角为 `calc(var(--radius) ±)`（实际 6/8/10/14px），违反第 6 节「使用 packages/ui 语义圆角令牌」；其 body 字体硬编码缺失中文字体段（`apps/platform/src/index.css:142`）；`.dark` class 机制使共享包的 `[data-theme="dark"]` 块在 platform 永不生效。
+4. **主色与蓝色族色相分裂**：`--primary` 为 201.9°，而 hover/selected/highlight/surface/link 蓝色族为 216°；收敛时应统一色相。
+5. **暗色主色未提亮**：暗色 `--primary` 与亮色同值且前景仍为白；若需要暗色下的更高对比 CTA，应显式设计暗色主色变体而非页面局部覆盖。
+6. **Motion 无集中令牌**：组件内硬编码 `280ms`（sidebar）、`250ms`（switch）、`cubic-bezier(0.22,1,0.36,1)`、`cubic-bezier(0.85,0,0.15,1)` 等不在第 7 节刻度内；第 7 节为目标态。
+7. **高对比模式格式不一致（潜在 bug）**：`apps/app/src/index.css:32-46` 的 `html[data-contrast="more"]` 覆盖值使用裸 HSL 三元组（如 `206 18% 28%`），与全库 `hsl(...)` 完整字符串格式不一致，经 `var()` 直接消费时是无效颜色。
+
+### 偏差处理原则
+
+- 新代码一律消费 `packages/ui` 共享令牌，不新增应用级主题覆盖。
+- 上述偏差的收敛属于代码任务，按各自域内的变更流程处理；本文件只记录事实，不为偏差背书。
+
+## 13. 一句话简报
+
+把 Arclayer 设计成一个高信任的产品工作台：安静的表面、清晰的任务层级、蓝色只属于行动、图标只表语义、产品文案说人话，以及刚好够用的动效——确认变化，不抢注意力。
