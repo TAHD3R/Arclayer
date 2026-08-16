@@ -106,5 +106,3 @@ catalogs:
     zustand: ^5.0.14
 
 confirmModulesPurge: false
-
-storeDir: .pnpm-store

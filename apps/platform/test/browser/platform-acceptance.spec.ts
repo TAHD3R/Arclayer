@@ -8,7 +8,7 @@ import {
   productUrl,
   signInToPlatform,
   signInToProduct,
-} from "../../../../tests/browser/support";
+} from "@arclayer/browser-acceptance";
 
 test.use({ colorScheme: "light", locale: "en-US", viewport: { width: 1280, height: 900 } });
 test.slow();

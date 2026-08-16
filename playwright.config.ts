@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
-const ACCEPTANCE_ROOT = "/tmp/arclayer-browser-acceptance";
+// Debug artifacts root; relative paths resolve against this config file's
+// directory, so artifacts stay in output/playwright regardless of invocation cwd.
+const OUTPUT_ROOT = "output/playwright";
 
 export default defineConfig({
   testDir: ".",
@@ -13,10 +15,10 @@ export default defineConfig({
   retries: 0,
   timeout: 45_000,
   expect: { timeout: 10_000 },
-  outputDir: `${ACCEPTANCE_ROOT}/artifacts`,
+  outputDir: `${OUTPUT_ROOT}/artifacts`,
   reporter: [
     ["line"],
-    ["html", { open: "never", outputFolder: `${ACCEPTANCE_ROOT}/report` }],
+    ["html", { open: "never", outputFolder: `${OUTPUT_ROOT}/report` }],
   ],
   use: {
     browserName: "chromium",

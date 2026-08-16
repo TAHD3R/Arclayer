@@ -44,7 +44,9 @@ export async function signInToPlatform(page: Page): Promise<void> {
   const fixture = await getBrowserAcceptanceFixture();
   await page.goto(platformUrl("/sign-in"));
   await page.getByLabel("Email or username").fill(fixture.platform.identifier);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(fixture.platform.password);
+  await page
+    .getByRole("textbox", { name: "Password", exact: true })
+    .fill(fixture.platform.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
   const codeInput = page.getByLabel("Verification code");

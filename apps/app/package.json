@@ -151,6 +151,7 @@
     "zustand": "catalog:"
   },
   "devDependencies": {
+    "@arclayer/browser-acceptance": "workspace:*",
     "@arclayer/config": "workspace:*",
     "@arclayer/vite-plugin": "workspace:*",
     "@iconify/react": "catalog:",

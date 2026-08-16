@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { getBrowserAcceptanceFixture } from "../../../../tests/browser/support";
+import { getBrowserAcceptanceFixture } from "@arclayer/browser-acceptance";
 
 test.use({
   ignoreHTTPSErrors: true,

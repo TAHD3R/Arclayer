@@ -710,6 +710,9 @@ importers:
         specifier: 'catalog:'
         version: 5.0.14(@types/react@19.2.9)(immer@11.1.8)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     devDependencies:
+      '@arclayer/browser-acceptance':
+        specifier: workspace:*
+        version: link:../../packages/internal/browser-acceptance
       '@arclayer/config':
         specifier: workspace:*
         version: link:../../packages/internal/oxc
@@ -882,6 +885,9 @@ importers:
         specifier: 'catalog:'
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
+      '@arclayer/browser-acceptance':
+        specifier: workspace:*
+        version: link:../../packages/internal/browser-acceptance
       '@arclayer/config':
         specifier: workspace:*
         version: link:../../packages/internal/oxc
@@ -989,6 +995,12 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+
+  packages/internal/browser-acceptance:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.62.1
+        version: 1.62.1
 
   packages/internal/oxc: {}
 

@@ -6,7 +6,7 @@ import {
   getBrowserAcceptanceFixture,
   productUrl,
   signInToProduct,
-} from "../../../../tests/browser/support";
+} from "@arclayer/browser-acceptance";
 
 test.use({ colorScheme: "light", locale: "en-US", viewport: { width: 1280, height: 900 } });
 

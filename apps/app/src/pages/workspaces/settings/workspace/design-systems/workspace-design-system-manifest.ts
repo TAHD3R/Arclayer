@@ -25,8 +25,14 @@ export type DesignSystemFoundationValues = {
 };
 
 export const MOTION_EASING_PRESETS = {
-  linear: { labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_LINEAR", value: [0, 0, 1, 1] },
-  ease: { labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_EASE", value: [0.25, 0.1, 0.25, 1] },
+  linear: {
+    labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_LINEAR",
+    value: [0, 0, 1, 1],
+  },
+  ease: {
+    labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_EASE",
+    value: [0.25, 0.1, 0.25, 1],
+  },
   "ease-out": {
     labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_EASE_OUT",
     value: [0, 0, 0.2, 1],
@@ -39,7 +45,10 @@ export const MOTION_EASING_PRESETS = {
     labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_STANDARD",
     value: [0.2, 0.8, 0.2, 1],
   },
-  sharp: { labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_SHARP", value: [0.4, 0, 0.2, 1] },
+  sharp: {
+    labelKey: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_MOTION_EASING_SHARP",
+    value: [0.4, 0, 0.2, 1],
+  },
 } as const;
 
 export type MotionEasingKey = keyof typeof MOTION_EASING_PRESETS;
@@ -105,8 +114,7 @@ export function designSystemFoundationDefaults(
   const family = source.primitiveTokens?.["primitive.font.family.body"]?.value;
   const fontSize = source.primitiveTokens?.["primitive.font.size.body"]?.value;
   const duration = source.primitiveTokens?.["primitive.motion.duration.standard"]?.value;
-  const reducedDuration =
-    source.primitiveTokens?.["primitive.motion.duration.reduced"]?.value;
+  const reducedDuration = source.primitiveTokens?.["primitive.motion.duration.reduced"]?.value;
   const easing = source.primitiveTokens?.["primitive.motion.easing.standard"]?.value;
   return {
     manifestName: source.name,
@@ -127,9 +135,7 @@ export function designSystemFoundationDefaults(
     motionDuration: typeof duration === "string" ? duration : DEFAULT_VALUES.motionDuration,
     motionEasing: easingKeyFromTokenValue(easing),
     motionReducedDuration:
-      typeof reducedDuration === "string"
-        ? reducedDuration
-        : DEFAULT_VALUES.motionReducedDuration,
+      typeof reducedDuration === "string" ? reducedDuration : DEFAULT_VALUES.motionReducedDuration,
   };
 }
 
@@ -200,8 +206,7 @@ export function buildDesignSystemFoundationManifest(
     primitiveTokens["primitive.motion.duration.reduced"],
   );
   const easingPreset =
-    MOTION_EASING_PRESETS[values.motionEasing as MotionEasingKey] ??
-    MOTION_EASING_PRESETS.standard;
+    MOTION_EASING_PRESETS[values.motionEasing as MotionEasingKey] ?? MOTION_EASING_PRESETS.standard;
   primitiveTokens["primitive.motion.easing.standard"] = token(
     "cubic-bezier",
     [...easingPreset.value],
