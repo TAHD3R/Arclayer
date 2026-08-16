@@ -52,7 +52,7 @@
 
 `docs/guidelines/**` 只存放非规范指导。
 
-- 只保留可跨任务复用的长期指导：`frontend-design.md`、`code-review-engine.md`、`code-reuse-thinking-guide.md`、`cross-layer-thinking-guide.md`。
+- 只保留可跨任务复用的长期指导；活跃清单以 `docs/guidelines/README.md` 为准。
 - 方向备忘录、实施计划与执行记录属于 `docs/plan/**`，不落入本目录。
 - 不从 `docs/guidelines/**` 路由实现契约。
 
