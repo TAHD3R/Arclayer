@@ -579,11 +579,13 @@ def _reasoning_provider_params(model: str, effort: AIReasoningEffort | None) -> 
 
     provider = detect_provider(model)
     if provider == "deepseek":
+        # LiteLLM (drop_params=true) silently drops a top-level `thinking` key
+        # for deepseek models; DeepSeek only honors it inside `extra_body`.
         if effort == "low":
-            return {"thinking": {"type": "disabled"}}
+            return {"extra_body": {"thinking": {"type": "disabled"}}}
         if effort == "medium":
-            return {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}
-        return {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}
+            return {"extra_body": {"thinking": {"type": "enabled"}}, "reasoning_effort": "high"}
+        return {"extra_body": {"thinking": {"type": "enabled"}}, "reasoning_effort": "max"}
 
     return {"reasoning_effort": effort}
 
@@ -604,16 +606,22 @@ def _chat_provider_params(
             model=model,
             tool_name=forced_tool_name,
         )
-        params["thinking"] = {"type": "disabled"}
+        _disable_deepseek_thinking(params)
         params.pop("reasoning_effort", None)
     elif detect_provider(model) == "deepseek" and params.get("tool_choice") == "required":
         logger.info(
             "Using DeepSeek-compatible non-thinking forced Tool selection",
             model=model,
         )
-        params["thinking"] = {"type": "disabled"}
+        _disable_deepseek_thinking(params)
         params.pop("reasoning_effort", None)
     return params
+
+
+def _disable_deepseek_thinking(params: dict[str, Any]) -> None:
+    extra_body = dict(params.get("extra_body") or {})
+    extra_body["thinking"] = {"type": "disabled"}
+    params["extra_body"] = extra_body
 
 
 def _forced_function_tool_name(params: dict[str, Any]) -> str | None:

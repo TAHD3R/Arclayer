@@ -395,9 +395,9 @@ class TestMockLLMIntegration:
         settings = get_settings()
 
         cases: list[tuple[AIReasoningEffort, dict[str, object]]] = [
-            ("low", {"thinking": {"type": "disabled"}}),
-            ("medium", {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}),
-            ("high", {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}),
+            ("low", {"extra_body": {"thinking": {"type": "disabled"}}}),
+            ("medium", {"extra_body": {"thinking": {"type": "enabled"}}, "reasoning_effort": "high"}),
+            ("high", {"extra_body": {"thinking": {"type": "enabled"}}, "reasoning_effort": "max"}),
         ]
         for effort, expected in cases:
             mock_runtime = AsyncMock(spec=LLMRuntime)
@@ -462,7 +462,7 @@ class TestMockLLMIntegration:
 
         assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
             **forced_tool_params,
-            "thinking": {"type": "disabled"},
+            "extra_body": {"thinking": {"type": "disabled"}},
         }
         assert mock_runtime.chat.await_args.kwargs["max_tokens"] == 8192
 
@@ -504,7 +504,7 @@ class TestMockLLMIntegration:
 
         assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
             **required_tool_params,
-            "thinking": {"type": "disabled"},
+            "extra_body": {"thinking": {"type": "disabled"}},
         }
 
     async def test_streaming_flow(self, monkeypatch) -> None:
