@@ -88,3 +88,7 @@ docs/plans/
 # Audit reports (generated)
 audit-report*.json
 .baseline/
+
+# Local agent tool state
+.claude/settings.local.json
+.codex/
