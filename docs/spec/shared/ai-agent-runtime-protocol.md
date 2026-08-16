@@ -54,15 +54,7 @@ HTTP subscriber lifetime must not own producer lifetime. Closing, refreshing, or
 
 ## 3. Candidate comparison
 
-| Candidate | Fit with FastAPI/LangGraph | assistant-ui mapping | Durable reconnect | Added infrastructure | Decision |
-| --- | --- | --- | --- | --- | --- |
-| AG-UI runtime/protocol | Semantically promising for events and Agent UI, but no repository fixture currently proves LangGraph interrupts, nested delegations, Credits ordering, owner validation, or replay against this stack | Vendor adapter is attractive | Must still be designed and proved separately; an AG-UI runtime does not by itself establish Arclayer event retention and cursor semantics | likely an additional package and adapter surface | Not selected for the first hard cut; eligible to supersede this contract only after the same proof gates pass |
-| assistant-ui Assistant Transport | Native to assistant-ui's transport/runtime model, but the installed implementation is TypeScript-oriented and no production Python encoder/decoder path is proved here | Direct mapping is attractive | Transport events do not replace Arclayer's append-only history, snapshots, retention, or tenant authorization | a Node relay/sidecar would be required unless a first-class Python path is proved | Rejected for the first hard cut; no Node relay or sidecar will be introduced for this purpose |
-| Arclayer versioned custom SSE | Native to current FastAPI boundaries and can map LangGraph interrupts and commercial ordering without changing orchestrators | Requires one maintained reducer/adapter | Explicitly defined by this contract | no new runtime service | **Selected, subject to section 11** |
-| A2A | Intended for interoperating with external Agent systems | Does not solve the internal thread/Tool UI contract | Does not replace internal run recovery | unnecessary protocol surface | Rejected for internal specialist delegation; reserved for future external interoperability |
-| Existing create-and-stream POST | Already present | Existing custom frontend can consume it | Disconnect owns cancellation; no cursor, replay, or versioned envelope | none | Rejected and removed at hard cut |
-
-This decision deliberately avoids binding backend domain objects to React or assistant-ui package types. It also avoids a permanent compatibility facade. If AG-UI later passes the same fixture, a superseding protocol contract may change the wire/runtime mapping while retaining the domain and recovery contracts.
+The protocol decision is recorded in [ADR-0073](../../adr/0073-use-arclayer-agent-event-stream-sse-over-ag-ui.md): Arclayer's versioned custom SSE event stream is selected over AG-UI and assistant-ui Assistant Transport for the first hard cut, subject to the section 11 proof gates. The decision deliberately avoids binding backend domain objects to React or assistant-ui package types and avoids a permanent compatibility facade. AG-UI remains eligible to supersede this contract only after passing the same proof gates.
 
 ## 4. Public domain event contract
 
@@ -509,19 +501,7 @@ Public events may expose declared actions, typed arguments after redaction, cita
 
 ## 10. Migration and hard cut
 
-Migration is an observed temporary bridge followed by one canonical path:
-
-1. add normalized thread/message/part/run/step/Tool/approval/delegation tables and the append-only `AIRunEvent` table with event schema validation and sequence constraints.
-2. add the canonical workspace Thread/Run/Tool-response APIs, including separated create, snapshot, event, resume, and cancel resources, plus generated clients.
-3. temporarily dual-write the current event JSON array and `AIRunEvent` only while parity fixtures run. New readers use the normalized path; there is no read fallback from normalized state to the array.
-4. backfill each valid legacy event array in stored order with sequences `1..N`, generated event IDs/cursors, `eventVersion: 1`, mapped payloads, and recorded hashes. Missing historical facts are not invented. Invalid or unmappable records are explicitly quarantined/archived with migration evidence.
-5. run count, order, hash, owner, replay, terminal, cancellation, and Credits parity fixtures while old writes are frozen.
-6. switch the Product Application reducer/runtime adapter and backend routes together. Zustand becomes transient UI state, and stream disconnect changes from cancel to detach.
-7. hard cut Toolkit renderer registration and nested delegation/approval mappings.
-8. remove generic `/chat`, `/chat/workspace-actions`, the old `POST /projects/{project_id}/agents/runs/stream` endpoint, whole-array event authority, disconnect-cancels-run behavior and the `test_stream_project_agent_run_cancels_created_run_on_disconnect` expectation, text-directive routing authority, deprecated Tool UI registration, temporary dual write, and compatibility facades in the same rollout.
-9. remove obsolete columns/tables only after rollback evidence is captured. After destructive cleanup, recovery is forward repair rather than re-enabling the legacy route.
-
-The hard cut is forbidden until all section 11 gates pass against the normalized store and new browser adapter.
+The nine-step migration and hard-cut execution plan lives in [docs/plan/ai-agent-runtime-protocol-hard-cut.md](../../plan/ai-agent-runtime-protocol-hard-cut.md) and has not executed yet. The hard cut is forbidden until all section 11 gates pass against the normalized store and new browser adapter.
 
 ## 11. Required proof spike and acceptance gates
 
