@@ -10,7 +10,6 @@ import { initializePlatformI18n, i18n } from "@/lib/i18n";
 import { PlatformPreferencesProvider } from "@/lib/preferences";
 import { routeTree } from "@/routeTree.gen";
 import type { PlatformSessionIssuedOut } from "@arclayer/platform-openapi";
-import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 vi.mock("@/components/platform-aurora", () => ({
   PlatformAurora: () => <div data-testid="platform-aurora" />,
@@ -46,16 +45,9 @@ async function renderSignIn() {
   render(
     <ProgressProvider color="var(--foreground)" height="2px">
       <PlatformPreferencesProvider>
-        <ChromeTabsProvider
-          labels={{
-            scrollLeftAriaLabel: i18n.t("common:TABS_SCROLL_LEFT"),
-            scrollRightAriaLabel: i18n.t("common:TABS_SCROLL_RIGHT"),
-          }}
-        >
-          <PlatformAuthProvider>
-            <RouterProvider router={router} />
-          </PlatformAuthProvider>
-        </ChromeTabsProvider>
+        <PlatformAuthProvider>
+          <RouterProvider router={router} />
+        </PlatformAuthProvider>
       </PlatformPreferencesProvider>
     </ProgressProvider>,
   );
@@ -124,7 +116,7 @@ describe("Platform sign-in and MFA", () => {
     expect(password).toHaveAttribute("type", "password");
 
     await user.click(screen.getByRole("button", { name: "Theme" }));
-    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
     expect(screen.getByRole("img", { name: "Arclayer" })).toHaveAttribute(
       "src",
       "/logo-full-dark.svg",

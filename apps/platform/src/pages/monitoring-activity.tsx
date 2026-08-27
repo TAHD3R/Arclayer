@@ -2,14 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { ChartTooltip, Grid, Line, LineChart, XAxis } from "@arclayer/ui/chart";
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
 import { formatDate, formatNumber } from "@/monitoring/format";
 import { getActivityTrend } from "@/monitoring/monitoring-api";
 import {
@@ -26,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+const CHART_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 export function MonitoringActivityPage() {
   const { t } = useTranslation("monitoring");
@@ -46,12 +42,6 @@ export function MonitoringActivityPage() {
             date: point.date,
             value: Number(point.value),
           }));
-          const chartConfig = {
-            value: {
-              label: t("ACTIVITY_EVENTS"),
-              color: "var(--chart-1)",
-            },
-          } satisfies ChartConfig;
           return (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
@@ -79,32 +69,28 @@ export function MonitoringActivityPage() {
                     </Button>
                   </div>
                   <div aria-label={t("ACTIVITY_CHART_ACCESSIBLE_LABEL")} role="img">
-                    <ChartContainer className="h-72 w-full" config={chartConfig}>
-                      <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          axisLine={false}
-                          dataKey="date"
-                          minTickGap={32}
-                          tickFormatter={formatDate}
-                          tickLine={false}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => formatNumber(Number(value))}
-                            />
-                          }
-                        />
-                        <Line
-                          dataKey="value"
-                          dot={{ fill: "var(--color-value)" }}
-                          stroke="var(--color-value)"
-                          strokeWidth={2}
-                          type="monotone"
-                        />
-                      </LineChart>
-                    </ChartContainer>
+                    <LineChart
+                      className="h-72 w-full"
+                      data={chartData}
+                      dateFormatters={{
+                        axis: (date) => CHART_DATE_FORMAT.format(date),
+                        tooltip: (date) => CHART_DATE_FORMAT.format(date),
+                      }}
+                      margin={{ top: 16, right: 12, bottom: 16, left: 12 }}
+                    >
+                      <Grid />
+                      <XAxis />
+                      <ChartTooltip
+                        rows={(point) => [
+                          {
+                            color: "var(--chart-1)",
+                            label: t("ACTIVITY_EVENTS"),
+                            value: formatNumber(Number(point.value)),
+                          },
+                        ]}
+                      />
+                      <Line dataKey="value" stroke="var(--chart-1)" strokeWidth={2} />
+                    </LineChart>
                   </div>
                 </section>
                 <section className="rounded-xl border bg-card shadow-xs">

@@ -9,6 +9,7 @@ from src.core.middleware.guard_decorators import guard_rate_limit
 from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.auth.limits.service import REGISTER_RATE_LIMIT
 from src.modules.feedback.system_router import router as system_feedback_router
+from src.modules.jobs.platform_router import router as platform_jobs_router
 from src.modules.observability.system_router import router as system_observability_router
 from src.modules.operational_signals.router import router as operational_signals_router
 from src.modules.platform_ai.router import router as platform_ai_operations_router
@@ -112,4 +113,5 @@ platform_router.include_router(platform_site_delivery_router, prefix="/site-deli
 platform_router.include_router(platform_system_settings_router, prefix="/settings")
 platform_router.include_router(system_feedback_router, prefix="/communications/feedback")
 platform_router.include_router(system_observability_router, prefix="/observability")
+platform_router.include_router(platform_jobs_router, prefix="/jobs")
 platform_router.include_router(operational_signals_router)

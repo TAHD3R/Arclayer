@@ -5,10 +5,14 @@ import {
   platformGetPlatformDeliveryDomainDossier,
   platformGetPlatformDeliveryContinuityPolicy,
   platformGetPlatformDeliveryIssueDossier,
+  platformGetPlatformDeliveryOperation,
   platformGetPlatformDeliveryStorageDossier,
+  platformListPlatformDeliveryDomainOperations,
   platformListPlatformDeliveryDomains,
+  platformListPlatformDeliveryIssueOperations,
   platformListPlatformDeliveryIssues,
   platformListPlatformDeliveryRules,
+  platformListPlatformDeliveryStorageOperations,
   platformListPlatformDeliveryStorage,
   platformListStorageProfiles,
   platformPreviewPlatformDeliveryPolicy,
@@ -30,6 +34,7 @@ import {
   type PageDataPlatformDeliveryIssueOut,
   type PageDataPlatformDeliveryRuleOut,
   type PageDataPlatformDeliveryStorageOut,
+  type PageDataPlatformDeliveryOperationOut,
   type PlatformListPlatformDeliveryIssuesData,
   type StorageProfileCreateRequest,
   type StorageProfileDeleteOut,
@@ -218,5 +223,42 @@ export function applyDeliveryPolicy(
     client: platformApiClient,
     path: { preview_id: previewId },
     body: { idempotencyKey, reason },
+  }).then(unwrap);
+}
+
+export function listDeliveryIssueOperations(
+  issueId: string,
+): Promise<PageDataPlatformDeliveryOperationOut> {
+  return platformListPlatformDeliveryIssueOperations({
+    client: platformApiClient,
+    path: { issue_id: issueId },
+    query: { page: 1, size: 25 },
+  }).then(unwrap);
+}
+
+export function listDeliveryDomainOperations(
+  bindingId: string,
+): Promise<PageDataPlatformDeliveryOperationOut> {
+  return platformListPlatformDeliveryDomainOperations({
+    client: platformApiClient,
+    path: { binding_id: bindingId },
+    query: { page: 1, size: 25 },
+  }).then(unwrap);
+}
+
+export function listDeliveryStorageOperations(
+  profileId: string,
+): Promise<PageDataPlatformDeliveryOperationOut> {
+  return platformListPlatformDeliveryStorageOperations({
+    client: platformApiClient,
+    path: { profile_id: profileId },
+    query: { page: 1, size: 25 },
+  }).then(unwrap);
+}
+
+export function getDeliveryOperation(operationId: string): Promise<PlatformDeliveryOperationOut> {
+  return platformGetPlatformDeliveryOperation({
+    client: platformApiClient,
+    path: { operation_id: operationId },
   }).then(unwrap);
 }

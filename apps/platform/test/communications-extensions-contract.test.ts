@@ -27,7 +27,7 @@ describe("Platform Messages & Feedback and Extensions routes", () => {
   it("provides a global delivery directory with optional campaign context", async () => {
     const [route, page, api] = await Promise.all([
       source("apps/platform/src/routes/_authenticated/messages/deliveries.tsx"),
-      source("apps/platform/src/communications/communications-ui.tsx"),
+      source("apps/platform/src/communications/deliveries-page.tsx"),
       source("apps/platform/src/communications/communications-api.ts"),
     ]);
 

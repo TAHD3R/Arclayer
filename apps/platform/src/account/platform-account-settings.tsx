@@ -81,7 +81,7 @@ export function PlatformAccountSettings({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="flex h-[min(46rem,calc(100vh-2rem))] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
+      <DialogContent className="flex h-[min(46rem,calc(100vh-2rem))] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <DialogHeader className="shrink-0 border-b px-6 py-5 pr-14">
           <DialogTitle>{t("access:ACCOUNT_SETTINGS_TITLE")}</DialogTitle>
           <DialogDescription>{t("access:ACCOUNT_SETTINGS_DESCRIPTION")}</DialogDescription>

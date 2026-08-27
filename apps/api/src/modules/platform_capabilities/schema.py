@@ -59,6 +59,7 @@ class PlatformCapabilityRouteTarget(StrEnum):
     MONITORING_AI_USAGE = "monitoring.ai-usage"
     MONITORING_ACTIVITY = "monitoring.activity"
     MONITORING_AUDIT = "monitoring.audit"
+    MONITORING_JOBS = "monitoring.jobs"
     OPERATIONS_SIGNALS = "operations.signals"
     COMMERCE_SUBSCRIPTIONS = "commerce.subscriptions"
     COMMERCE_PLANS = "commerce.plans"

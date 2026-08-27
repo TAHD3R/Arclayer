@@ -38,10 +38,13 @@ export function CommercePage(
   );
 }
 
-type AsyncState<T> =
+export type AsyncState<T> =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "ready"; data: T }>
   | Readonly<{ status: "error"; error: unknown }>;
+
+/** Binds one mutation attempt to the request fingerprint it was issued for. */
+export type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
 
 export function CommerceQueryState<T>(
   props: Readonly<{

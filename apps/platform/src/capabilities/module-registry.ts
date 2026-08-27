@@ -27,6 +27,7 @@ import {
   SlidersHorizontal,
   UserRoundCog,
   UsersRound,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,7 +70,8 @@ export type TrustedNavigationRouteTarget =
   | "monitoring.performance"
   | "monitoring.ai-usage"
   | "monitoring.activity"
-  | "monitoring.audit";
+  | "monitoring.audit"
+  | "monitoring.jobs";
 
 export type PlatformDestinationId =
   | "overview"
@@ -107,7 +109,8 @@ export type PlatformDestinationId =
   | "monitoring-performance"
   | "monitoring-ai-usage"
   | "monitoring-activity"
-  | "monitoring-audit";
+  | "monitoring-audit"
+  | "monitoring-jobs";
 
 export type PlatformDestination = Readonly<{
   id: PlatformDestinationId;
@@ -147,7 +150,8 @@ export type PlatformDestination = Readonly<{
     | "/monitoring/performance"
     | "/monitoring/ai-usage"
     | "/monitoring/activity"
-    | "/monitoring/audit";
+    | "/monitoring/audit"
+    | "/monitoring/jobs";
   labelKey: string;
   icon: LucideIcon;
 }>;
@@ -478,13 +482,46 @@ export const PLATFORM_CAPABILITY_MODULES: Readonly<
         labelKey: "navigation:MONITORING_AUDIT_TRAIL",
         icon: ScrollText,
       },
+      {
+        id: "monitoring-jobs",
+        routeTarget: "monitoring.jobs",
+        path: "/monitoring/jobs",
+        labelKey: "navigation:MONITORING_JOBS",
+        icon: Workflow,
+      },
     ],
   },
 };
 
+// Canonical domain order from docs/spec/shared/product-admin-experience-redesign.md §4.1:
+// Workspaces, AI Services, Hosting & Domains, Messages & Feedback, Extensions,
+// Plans & Billing, Access & Security, Monitoring & Audit. Enabled and authorized
+// domains render in this order regardless of backend catalog record order.
+export const PLATFORM_CAPABILITY_DOMAIN_ORDER: readonly TrustedCapabilityRouteTarget[] = [
+  "tenants.workspaces",
+  "ai.tasks",
+  "site-delivery.issues",
+  "communications.feedback",
+  "extensions.installed",
+  "commerce.subscriptions",
+  "access.team",
+  "monitoring.requests",
+];
+
 export function getTrustedCapabilityModule(routeTarget: string): PlatformCapabilityModule | null {
   if (!(routeTarget in PLATFORM_CAPABILITY_MODULES)) return null;
   return PLATFORM_CAPABILITY_MODULES[routeTarget as TrustedCapabilityRouteTarget];
+}
+
+// True for any route the build knows as a capability destination, authorized or
+// not. Projection uses it to keep an unauthorized destination path rejected
+// instead of falling through to the domain-prefix route authority below.
+export function isRegisteredCapabilityDestinationPath(pathname: string): boolean {
+  return Object.values(PLATFORM_CAPABILITY_MODULES).some((module) =>
+    module.destinations.some(
+      (destination) => pathname === destination.path || pathname.startsWith(`${destination.path}/`),
+    ),
+  );
 }
 
 export function getTrustedSupportingRouteDestination(

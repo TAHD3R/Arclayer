@@ -434,6 +434,8 @@ async def apply_platform_delivery_policy(
 
 
 def _operation_read_permission(target_type: HostingDeliveryOperationTargetType) -> PlatformPermissionCode:
-    if target_type is HostingDeliveryOperationTargetType.STORAGE_PROFILE:
+    # Schema outputs carry the raw enum value (use_enum_values=True), so compare
+    # by value equality instead of enum identity.
+    if target_type == HostingDeliveryOperationTargetType.STORAGE_PROFILE:
         return PlatformPermissionCode.SITE_STORAGE_READ
     return PlatformPermissionCode.SITE_DELIVERY_READ

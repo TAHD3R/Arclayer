@@ -1,10 +1,13 @@
-import { useMemo } from "react";
-import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Fragment, useMemo } from "react";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { CapabilityAccessProvider } from "@/capabilities/capability-access";
-import { resolveCapabilityBreadcrumbKey } from "@/capabilities/navigation-projection";
+import {
+  resolveCapabilityBreadcrumbTrail,
+  type CapabilityBreadcrumbCrumb,
+} from "@/capabilities/navigation-projection";
 import { usePlatformCapabilityCatalog } from "@/capabilities/use-capability-catalog";
 import { PlatformCommandCenter } from "@/command-center/platform-command-center";
 import { PlatformSidebar } from "@/components/platform-sidebar";
@@ -17,8 +20,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -29,12 +34,24 @@ import { Toaster } from "@/components/ui/sonner";
 function PlatformHeader(props: { state: ResolvedCapabilityState; pathname: string }) {
   const { t } = useTranslation(["common", "navigation"]);
   const navigate = useNavigate();
-  const titleKey =
+  const trail =
     props.state.status === "success"
-      ? resolveCapabilityBreadcrumbKey(props.pathname, props.state.projection)
-      : props.state.status === "loading"
-        ? "navigation:CAPABILITY_LOADING"
-        : "navigation:CAPABILITY_ERROR_TITLE";
+      ? resolveCapabilityBreadcrumbTrail(props.pathname, props.state.projection)
+      : null;
+  const fallbackKey =
+    props.state.status === "loading"
+      ? "navigation:CAPABILITY_LOADING"
+      : props.state.status === "error"
+        ? "navigation:CAPABILITY_ERROR_TITLE"
+        : "navigation:CAPABILITY_UNAUTHORIZED";
+  // A domain and its primary destination can share a label (Workspaces);
+  // collapse duplicated neighbours instead of repeating the same words.
+  const crumbs = useMemo(() => {
+    if (!trail) return [] as Array<CapabilityBreadcrumbCrumb & { label: string }>;
+    return trail
+      .map((crumb) => ({ ...crumb, label: t(crumb.labelKey) }))
+      .filter((crumb, index, all) => crumb.label !== all[index - 1]?.label);
+  }, [t, trail]);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b">
@@ -43,11 +60,26 @@ function PlatformHeader(props: { state: ResolvedCapabilityState; pathname: strin
         <Separator className="mr-2 data-[orientation=vertical]:h-4" orientation="vertical" />
         <Breadcrumb className="min-w-0">
           <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbPage>
-                {titleKey ? t(titleKey) : t("navigation:CAPABILITY_UNAUTHORIZED")}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
+            {crumbs.length > 0 ? (
+              crumbs.map((crumb, index) => (
+                <Fragment key={crumb.labelKey}>
+                  {index > 0 ? <BreadcrumbSeparator /> : null}
+                  <BreadcrumbItem>
+                    {crumb.linkPath && index < crumbs.length - 1 ? (
+                      <BreadcrumbLink asChild>
+                        <Link to={crumb.linkPath}>{crumb.label}</Link>
+                      </BreadcrumbLink>
+                    ) : (
+                      <BreadcrumbPage aria-current="page">{crumb.label}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
+              ))
+            ) : (
+              <BreadcrumbItem>
+                <BreadcrumbPage>{t(fallbackKey)}</BreadcrumbPage>
+              </BreadcrumbItem>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
@@ -98,7 +130,7 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
       </div>
     );
   }
-  if (!resolveCapabilityBreadcrumbKey(props.pathname, props.state.projection)) {
+  if (!resolveCapabilityBreadcrumbTrail(props.pathname, props.state.projection)) {
     return (
       <div className="flex flex-1 flex-col p-4 pt-0">
         <Alert className="max-w-2xl" variant="destructive">

@@ -33,19 +33,41 @@ describe("AI and Hosting Platform operation contracts", () => {
       aiApi,
       assistantsApi,
       hostingApi,
-      aiPage,
-      hostingPage,
+      aiTasksPage,
+      aiProvidersPage,
+      aiAssistantsPage,
+      aiPoliciesPage,
+      hostingShared,
+      hostingIssuesPage,
+      hostingDomainsPage,
+      hostingStoragePage,
+      hostingRulesPage,
       providerDialogs,
       assistantDialogs,
     ] = await Promise.all([
       readSource("apps/platform/src/ai/ai-services-api.ts"),
       readSource("apps/platform/src/ai/ai-assistants-api.ts"),
       readSource("apps/platform/src/site-delivery/site-delivery-api.ts"),
-      readSource("apps/platform/src/pages/ai-services.tsx"),
+      readSource("apps/platform/src/pages/ai-tasks.tsx"),
+      readSource("apps/platform/src/pages/ai-providers.tsx"),
+      readSource("apps/platform/src/pages/ai-assistants.tsx"),
+      readSource("apps/platform/src/pages/ai-policies.tsx"),
+      readSource("apps/platform/src/site-delivery/site-delivery-page-state.tsx"),
       readSource("apps/platform/src/pages/site-delivery.tsx"),
+      readSource("apps/platform/src/pages/site-delivery-domains.tsx"),
+      readSource("apps/platform/src/pages/site-delivery-storage.tsx"),
+      readSource("apps/platform/src/pages/site-delivery-rules.tsx"),
       readSource("apps/platform/src/ai/ai-provider-dialogs.tsx"),
       readSource("apps/platform/src/ai/ai-assistant-dialogs.tsx"),
     ]);
+    const aiPage = [aiTasksPage, aiProvidersPage, aiAssistantsPage, aiPoliciesPage].join("\n");
+    const hostingPage = [
+      hostingShared,
+      hostingIssuesPage,
+      hostingDomainsPage,
+      hostingStoragePage,
+      hostingRulesPage,
+    ].join("\n");
 
     expect(aiApi).toContain("platformRetryPlatformAiTask");
     expect(aiApi).toContain("platformCancelPlatformAiTask");

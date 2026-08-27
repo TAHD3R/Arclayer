@@ -11,16 +11,35 @@ async function source(relativePath: string): Promise<string> {
 
 describe("Platform communications UI contract", () => {
   it("uses generated real CRUD operations and shadcn setting dialogs without browser prompts", async () => {
-    const [api, ui, templateEditor, templateActions, mailDialogs, campaignDialog, publishDialog] =
-      await Promise.all([
-        source("apps/platform/src/communications/communications-api.ts"),
-        source("apps/platform/src/communications/communications-ui.tsx"),
-        source("apps/platform/src/communications/email-template-editor-dialog.tsx"),
-        source("apps/platform/src/communications/email-template-action-dialogs.tsx"),
-        source("apps/platform/src/communications/mail-service-dialogs.tsx"),
-        source("apps/platform/src/communications/campaign-draft-dialog.tsx"),
-        source("apps/platform/src/communications/campaign-publish-dialog.tsx"),
-      ]);
+    const [
+      api,
+      pageState,
+      feedback,
+      campaigns,
+      deliveries,
+      templates,
+      email,
+      templateEditor,
+      templateActions,
+      mailDialogs,
+      campaignDialog,
+      publishDialog,
+    ] = await Promise.all([
+      source("apps/platform/src/communications/communications-api.ts"),
+      source("apps/platform/src/communications/messages-page-state.tsx"),
+      source("apps/platform/src/communications/feedback-page.tsx"),
+      source("apps/platform/src/communications/campaigns-page.tsx"),
+      source("apps/platform/src/communications/deliveries-page.tsx"),
+      source("apps/platform/src/communications/templates-page.tsx"),
+      source("apps/platform/src/communications/email-service-page.tsx"),
+      source("apps/platform/src/communications/email-template-editor-dialog.tsx"),
+      source("apps/platform/src/communications/email-template-action-dialogs.tsx"),
+      source("apps/platform/src/communications/mail-service-dialogs.tsx"),
+      source("apps/platform/src/communications/campaign-draft-dialog.tsx"),
+      source("apps/platform/src/communications/campaign-publish-dialog.tsx"),
+    ]);
+    const pages = [pageState, feedback, campaigns, deliveries, templates, email].join("\n");
+    const ui = pages;
     const communicationsSource = [
       ui,
       templateEditor,
@@ -55,10 +74,12 @@ describe("Platform communications UI contract", () => {
   });
 
   it("keeps async communications dialogs last-intent-wins", async () => {
-    const [ui, templateActions] = await Promise.all([
-      source("apps/platform/src/communications/communications-ui.tsx"),
+    const [campaigns, templates, templateActions] = await Promise.all([
+      source("apps/platform/src/communications/campaigns-page.tsx"),
+      source("apps/platform/src/communications/templates-page.tsx"),
       source("apps/platform/src/communications/email-template-action-dialogs.tsx"),
     ]);
+    const ui = [campaigns, templates].join("\n");
 
     expect(ui).toContain("const editorRequest = useRef(0);");
     expect(ui).toContain("if (editorRequest.current !== requestId) return;");
@@ -77,10 +98,13 @@ describe("Platform communications UI contract", () => {
   });
 
   it("keeps retry idempotency attempts scoped by fingerprint until matching mutations succeed", async () => {
-    const [ui, mailDialogs] = await Promise.all([
-      source("apps/platform/src/communications/communications-ui.tsx"),
+    const [feedback, campaigns, deliveries, mailDialogs] = await Promise.all([
+      source("apps/platform/src/communications/feedback-page.tsx"),
+      source("apps/platform/src/communications/campaigns-page.tsx"),
+      source("apps/platform/src/communications/deliveries-page.tsx"),
       source("apps/platform/src/communications/mail-service-dialogs.tsx"),
     ]);
+    const ui = [feedback, campaigns, deliveries].join("\n");
 
     expect(ui).toContain(
       "const replyRetryAttempts = useRef<Map<string, IdempotencyAttempt>>(new Map());",

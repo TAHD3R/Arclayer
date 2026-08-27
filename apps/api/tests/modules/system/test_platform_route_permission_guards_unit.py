@@ -15,6 +15,7 @@ from src.models.hosting.commercial_access import (
     HostingDeliveryOperationTargetType,
     HostingDeliveryOperationVerificationState,
 )
+from src.modules.jobs.platform_router import router as platform_jobs_router
 from src.modules.platform_ai.router import router as platform_ai_router
 from src.modules.platform_identity.http import get_current_platform_session, get_platform_identity_repository
 from src.modules.platform_identity.permissions import PlatformPermissionCode
@@ -244,6 +245,9 @@ def _app_with_denied_platform_permission(router, *, prefix: str = "") -> tuple[F
             f"/policies/continuity/previews/{uuid4()}/apply",
             PlatformPermissionCode.SITE_DELIVERY_SETTINGS_MANAGE,
         ),
+        (platform_jobs_router, "/jobs", "get", "/queues", PlatformPermissionCode.JOBS_READ),
+        (platform_jobs_router, "/jobs", "get", "", PlatformPermissionCode.JOBS_READ),
+        (platform_jobs_router, "/jobs", "get", f"/{uuid4()}", PlatformPermissionCode.JOBS_READ),
     ],
 )
 async def test_platform_routes_deny_the_exact_missing_permission(

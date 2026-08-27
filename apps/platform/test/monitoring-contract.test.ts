@@ -12,7 +12,7 @@ async function source(relativePath: string): Promise<string> {
 describe("Platform Monitoring & Audit routes", () => {
   it("owns every focused Monitoring route including the overview route", async () => {
     const routeFiles = await Promise.all(
-      ["requests", "performance", "ai-usage", "activity", "audit"].map((name) =>
+      ["requests", "performance", "ai-usage", "activity", "audit", "jobs"].map((name) =>
         source(`apps/platform/src/routes/_authenticated/monitoring/${name}.tsx`),
       ),
     );
@@ -22,6 +22,7 @@ describe("Platform Monitoring & Audit routes", () => {
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/ai-usage"');
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/activity"');
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/audit"');
+    expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/jobs"');
     expect(routeFiles.join("\n")).toContain('"/_authenticated/monitoring/ai-usage"');
   });
 
@@ -39,8 +40,29 @@ describe("Platform Monitoring & Audit routes", () => {
     expect(api).toContain("platformListActivity");
     expect(api).not.toContain("fetch(");
     expect(api).toContain("platformGetPlatformObservabilityOverview");
+    expect(api).toContain("platformGetPlatformJobQueues");
+    expect(api).toContain("platformListPlatformJobs");
+    expect(api).toContain("platformGetPlatformJob");
     expect(aiUsagePage).toContain("AI_USAGE_RECORDS_TITLE");
     expect(aiUsagePage).toContain("dashboard.records.items");
+  });
+
+  it("anchors the background jobs page to the generated queue and attempt lifecycle", async () => {
+    const [jobsPage, detailSheet, registry, route] = await Promise.all([
+      source("apps/platform/src/pages/monitoring-jobs.tsx"),
+      source("apps/platform/src/monitoring/job-detail-sheet.tsx"),
+      source("apps/platform/src/capabilities/module-registry.ts"),
+      source("apps/platform/src/routes/_authenticated/monitoring/jobs.tsx"),
+    ]);
+
+    expect(jobsPage).toContain("getJobQueues");
+    expect(jobsPage).toContain("listJobs");
+    expect(jobsPage).toContain("QueueCard");
+    expect(detailSheet).toContain("getJobDetail");
+    expect(detailSheet).toContain("detail.attempts.map");
+    expect(registry).toContain('"monitoring.jobs"');
+    expect(registry).toContain('labelKey: "navigation:MONITORING_JOBS"');
+    expect(route).toContain("MonitoringJobsPage");
   });
 
   it("expands server-effective Audit saved views into typed Audit URL state only", async () => {

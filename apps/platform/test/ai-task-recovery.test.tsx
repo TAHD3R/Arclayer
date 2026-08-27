@@ -7,7 +7,7 @@ import type { PageDataPlatformAiTaskOut, PlatformAiTaskOut } from "@arclayer/pla
 
 import { executeAiTaskAction, listAiTasks, PlatformAiServicesApiError } from "@/ai/ai-services-api";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
-import { AiTasksPage } from "@/pages/ai-services";
+import { AiTasksPage } from "@/pages/ai-tasks";
 
 vi.mock("@/ai/ai-services-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/ai/ai-services-api")>();

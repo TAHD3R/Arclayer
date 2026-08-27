@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Ban, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Ban, CheckCircle2, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AccessRestrictionAdminOut, DirectoryUserDetailOut } from "@arclayer/platform-openapi";
 
 import { disableTenantUser, enableTenantUser } from "@/api/tenant-directory";
 import { useCapabilityAccess } from "@/capabilities/capability-access";
 import { TenantAccessRestrictionDialog } from "@/components/tenant-directory-mutation-dialogs";
+import { TenantUserSecurityActions } from "@/components/tenant-user-security-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function TenantUserDossier(props: { item: DirectoryUserDetailOut; onChang
   const [user, setUser] = useState(props.item);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
   const restriction = activeRestriction(user);
   const label = userLabel(user);
   const formatDate = (value: string) =>
@@ -31,6 +33,18 @@ export function TenantUserDossier(props: { item: DirectoryUserDetailOut; onChang
     setResultKey(messageKey);
     props.onChanged();
   };
+
+  if (deleted) {
+    return (
+      <div className="grid gap-4">
+        <h2 className="truncate text-2xl font-semibold">{label}</h2>
+        <Alert variant="destructive">
+          <Trash2 aria-hidden="true" />
+          <AlertDescription>{t("USER_DELETED_DESCRIPTION")}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6">
@@ -114,6 +128,17 @@ export function TenantUserDossier(props: { item: DirectoryUserDetailOut; onChang
           </Button>
         )
       ) : null}
+
+      <TenantUserSecurityActions
+        canManage={Boolean(capability.canManage)}
+        onChanged={props.onChanged}
+        onDeleted={() => {
+          setDeleted(true);
+          props.onChanged();
+        }}
+        onSaved={saved}
+        user={user}
+      />
 
       <Link
         className="text-primary underline underline-offset-4"

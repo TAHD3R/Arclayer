@@ -183,5 +183,22 @@
   "DETAIL_CONNECTIONS_ERROR": "Connection status couldn't be loaded.",
   "DETAIL_CONNECTIONS_EMPTY": "This extension does not provide any installed connections.",
   "DETAIL_HISTORY": "Recent extension changes",
-  "DETAIL_HISTORY_DESCRIPTION": "Review recent changes and open the full record."
+  "DETAIL_HISTORY_DESCRIPTION": "Review recent changes and open the full record.",
+  "ARTIFACT_UPLOAD_TITLE": "Upload plugin package",
+  "ARTIFACT_UPLOAD_DESCRIPTION": "Upload a signed plugin archive; it is reviewed for safety before it can be installed.",
+  "ARTIFACT_UPLOAD": "Submit for review",
+  "ARTIFACT_REVIEWING": "Reviewing…",
+  "ARTIFACT_PACKAGE": "Plugin package (.zip)",
+  "ARTIFACT_PACKAGE_HELP": "Only .zip plugin archives are accepted.",
+  "ARTIFACT_SIGNATURE": "Detached signature",
+  "ARTIFACT_SIGNATURE_PLACEHOLDER": "Paste the detached signature for the package",
+  "ARTIFACT_SIGNATURE_HELP": "A detached signature of the archive made with the release key; the package must not change after signing.",
+  "ARTIFACT_FILE_REQUIRED": "Choose a plugin package to upload.",
+  "ARTIFACT_SIGNATURE_REQUIRED": "Enter the detached signature.",
+  "ARTIFACT_REVIEW_FAILED": "The review could not be completed.",
+  "ARTIFACT_REVIEW_PASSED": "Review passed",
+  "ARTIFACT_PACKAGE_CHECKSUM": "Package checksum",
+  "ARTIFACT_SIGNER": "Signer fingerprint",
+  "ARTIFACT_REVIEW_NOTE": "Review ID {{id}}; reference this artifact in the install dialog.",
+  "ARTIFACT_DONE": "Done"
 }

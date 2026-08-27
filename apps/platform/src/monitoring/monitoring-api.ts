@@ -1,5 +1,7 @@
 import {
   platformGetActivityDetail,
+  platformGetPlatformJob,
+  platformGetPlatformJobQueues,
   platformGetPlatformObservabilityOverview,
   platformGetPlatformObservabilityTrend,
   platformGetPlatformAiRuntimeHealth,
@@ -8,6 +10,7 @@ import {
   platformListPlatformAiUsageRecords,
   platformListPlatformHttpRequestGroups,
   platformListPlatformHttpRequestRecords,
+  platformListPlatformJobs,
   type AuditEventOut,
   type ObservabilityTrendOut,
   type PageDataAiUsageGroupOut,
@@ -15,16 +18,22 @@ import {
   type PageDataAuditEventOut,
   type PageDataHttpRequestGroupOut,
   type PageDataHttpRequestRecordOut,
+  type PageDataPlatformJobOut,
   type PlatformGetActivityDetailData,
+  type PlatformGetPlatformJobData,
+  type PlatformGetPlatformJobQueuesData,
   type PlatformGetPlatformObservabilityTrendData,
   type PlatformGetPlatformObservabilityOverviewData,
   type ObservabilityOverviewOut,
   type PlatformAiRuntimeHealthOut,
+  type PlatformJobDetailOut,
+  type PlatformJobQueuesOut,
   type PlatformListActivityData,
   type PlatformListPlatformAiUsageGroupsData,
   type PlatformListPlatformAiUsageRecordsData,
   type PlatformListPlatformHttpRequestGroupsData,
   type PlatformListPlatformHttpRequestRecordsData,
+  type PlatformListPlatformJobsData,
 } from "@arclayer/platform-openapi";
 
 import { platformApiClient } from "@/api/client";
@@ -121,4 +130,22 @@ export async function getObservabilityOverview(
 
 export async function getAiRuntimeHealth(): Promise<PlatformAiRuntimeHealthOut> {
   return unwrap(await platformGetPlatformAiRuntimeHealth({ client: platformApiClient }));
+}
+
+export async function getJobQueues(
+  query: NonNullable<PlatformGetPlatformJobQueuesData["query"]>,
+): Promise<PlatformJobQueuesOut> {
+  return unwrap(await platformGetPlatformJobQueues({ client: platformApiClient, query }));
+}
+
+export async function listJobs(
+  query: NonNullable<PlatformListPlatformJobsData["query"]>,
+): Promise<PageDataPlatformJobOut> {
+  return unwrap(await platformListPlatformJobs({ client: platformApiClient, query }));
+}
+
+export async function getJobDetail(
+  path: PlatformGetPlatformJobData["path"],
+): Promise<PlatformJobDetailOut> {
+  return unwrap(await platformGetPlatformJob({ client: platformApiClient, path }));
 }

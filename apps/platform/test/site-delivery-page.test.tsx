@@ -31,12 +31,10 @@ import {
   testDeliveryStorage,
 } from "@/site-delivery/site-delivery-api";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
-import {
-  SiteDeliveryDomainsPage,
-  SiteDeliveryIssuesPage,
-  SiteDeliveryRulesPage,
-  SiteDeliveryStoragePage,
-} from "@/pages/site-delivery";
+import { SiteDeliveryDomainsPage } from "@/pages/site-delivery-domains";
+import { SiteDeliveryIssuesPage } from "@/pages/site-delivery";
+import { SiteDeliveryRulesPage } from "@/pages/site-delivery-rules";
+import { SiteDeliveryStoragePage } from "@/pages/site-delivery-storage";
 
 vi.mock("@/site-delivery/site-delivery-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/site-delivery/site-delivery-api")>();

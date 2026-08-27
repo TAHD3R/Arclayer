@@ -20,6 +20,7 @@ import { Route as AuthenticatedAttentionRouteImport } from './routes/_authentica
 import { Route as AuthenticatedWorkspacesIndexRouteImport } from './routes/_authenticated/workspaces/index'
 import { Route as AuthenticatedMonitoringRequestsRouteImport } from './routes/_authenticated/monitoring/requests'
 import { Route as AuthenticatedMonitoringPerformanceRouteImport } from './routes/_authenticated/monitoring/performance'
+import { Route as AuthenticatedMonitoringJobsRouteImport } from './routes/_authenticated/monitoring/jobs'
 import { Route as AuthenticatedMonitoringAuditRouteImport } from './routes/_authenticated/monitoring/audit'
 import { Route as AuthenticatedMonitoringAiUsageRouteImport } from './routes/_authenticated/monitoring/ai-usage'
 import { Route as AuthenticatedMonitoringActivityRouteImport } from './routes/_authenticated/monitoring/activity'
@@ -108,6 +109,12 @@ const AuthenticatedMonitoringPerformanceRoute =
   AuthenticatedMonitoringPerformanceRouteImport.update({
     id: '/monitoring/performance',
     path: '/monitoring/performance',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMonitoringJobsRoute =
+  AuthenticatedMonitoringJobsRouteImport.update({
+    id: '/monitoring/jobs',
+    path: '/monitoring/jobs',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMonitoringAuditRoute =
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
+  '/monitoring/jobs': typeof AuthenticatedMonitoringJobsRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
@@ -382,6 +390,7 @@ export interface FileRoutesByTo {
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
+  '/monitoring/jobs': typeof AuthenticatedMonitoringJobsRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/workspaces': typeof AuthenticatedWorkspacesIndexRoute
@@ -428,6 +437,7 @@ export interface FileRoutesById {
   '/_authenticated/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/_authenticated/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/_authenticated/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
+  '/_authenticated/monitoring/jobs': typeof AuthenticatedMonitoringJobsRoute
   '/_authenticated/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/_authenticated/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/_authenticated/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
+    | '/monitoring/jobs'
     | '/monitoring/performance'
     | '/monitoring/requests'
     | '/workspaces/'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
+    | '/monitoring/jobs'
     | '/monitoring/performance'
     | '/monitoring/requests'
     | '/workspaces'
@@ -563,6 +575,7 @@ export interface FileRouteTypes {
     | '/_authenticated/monitoring/activity'
     | '/_authenticated/monitoring/ai-usage'
     | '/_authenticated/monitoring/audit'
+    | '/_authenticated/monitoring/jobs'
     | '/_authenticated/monitoring/performance'
     | '/_authenticated/monitoring/requests'
     | '/_authenticated/workspaces/'
@@ -652,6 +665,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoring/performance'
       fullPath: '/monitoring/performance'
       preLoaderRoute: typeof AuthenticatedMonitoringPerformanceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/monitoring/jobs': {
+      id: '/_authenticated/monitoring/jobs'
+      path: '/monitoring/jobs'
+      fullPath: '/monitoring/jobs'
+      preLoaderRoute: typeof AuthenticatedMonitoringJobsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/monitoring/audit': {
@@ -946,6 +966,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMonitoringActivityRoute: typeof AuthenticatedMonitoringActivityRoute
   AuthenticatedMonitoringAiUsageRoute: typeof AuthenticatedMonitoringAiUsageRoute
   AuthenticatedMonitoringAuditRoute: typeof AuthenticatedMonitoringAuditRoute
+  AuthenticatedMonitoringJobsRoute: typeof AuthenticatedMonitoringJobsRoute
   AuthenticatedMonitoringPerformanceRoute: typeof AuthenticatedMonitoringPerformanceRoute
   AuthenticatedMonitoringRequestsRoute: typeof AuthenticatedMonitoringRequestsRoute
   AuthenticatedWorkspacesIndexRoute: typeof AuthenticatedWorkspacesIndexRoute
@@ -990,6 +1011,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMonitoringActivityRoute: AuthenticatedMonitoringActivityRoute,
   AuthenticatedMonitoringAiUsageRoute: AuthenticatedMonitoringAiUsageRoute,
   AuthenticatedMonitoringAuditRoute: AuthenticatedMonitoringAuditRoute,
+  AuthenticatedMonitoringJobsRoute: AuthenticatedMonitoringJobsRoute,
   AuthenticatedMonitoringPerformanceRoute:
     AuthenticatedMonitoringPerformanceRoute,
   AuthenticatedMonitoringRequestsRoute: AuthenticatedMonitoringRequestsRoute,

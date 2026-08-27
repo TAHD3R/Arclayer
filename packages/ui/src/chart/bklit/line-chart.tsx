@@ -14,7 +14,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@arclayer/lib/utils";
-import type { LineConfig, Margin } from "./chart-context";
+import type { ChartDateFormatters, LineConfig, Margin } from "./chart-context";
 import { ChartLoadingLabel } from "./chart-loading-label";
 import {
   type ChartPhase,
@@ -33,6 +33,8 @@ export interface LineChartProps {
   xDataKey?: string;
   /** Chart margins */
   margin?: Partial<Margin>;
+  /** Locale-aware date label overrides for axis ticks and tooltip titles. */
+  dateFormatters?: ChartDateFormatters;
   /** Animation duration in milliseconds. Default: 1100 */
   animationDuration?: number;
   /** CSS easing for clip-reveal. Default: cubic-bezier(0.85, 0, 0.15, 1) */
@@ -140,6 +142,7 @@ interface ChartInnerProps {
   data: Record<string, unknown>[];
   xDataKey: string;
   margin: Margin;
+  dateFormatters?: ChartDateFormatters;
   animationDuration: number;
   animationEasing?: string;
   enterTransition?: Transition;
@@ -163,6 +166,7 @@ function ChartInner({
   data,
   xDataKey,
   margin,
+  dateFormatters,
   animationDuration,
   animationEasing,
   enterTransition,
@@ -189,6 +193,7 @@ function ChartInner({
       clipPathId="chart-grow-clip"
       containerRef={containerRef}
       data={data}
+      dateFormatters={dateFormatters}
       enterTransition={enterTransition}
       height={height}
       lines={lines}
@@ -214,6 +219,7 @@ export function LineChart({
   data,
   xDataKey = "date",
   margin: marginProp,
+  dateFormatters,
   animationDuration = 1100,
   animationEasing,
   enterTransition,
@@ -269,6 +275,7 @@ export function LineChart({
             chartStatus={status}
             containerRef={containerRef}
             data={data}
+            dateFormatters={dateFormatters}
             enterTransition={enterTransition}
             height={height}
             loadingLabel={loadingLabel}

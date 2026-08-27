@@ -1,4 +1,5 @@
 export { AreaChart, type AreaChartProps, Area, type AreaProps } from "./bklit/area-chart";
+export type { ChartDateFormatters } from "./bklit/chart-context";
 export { BarChart, type BarChartProps, type BarOrientation } from "./bklit/bar-chart";
 export { Bar, type BarProps, type BarAnimationType, type BarLineCap } from "./bklit/bar";
 export { Grid, type GridProps } from "./bklit/grid";

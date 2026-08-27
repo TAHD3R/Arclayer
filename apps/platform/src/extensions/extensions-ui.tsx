@@ -17,6 +17,7 @@ import {
   listInstalledExtensions,
 } from "@/extensions/extensions-api";
 import { ExtensionInstallDialog } from "@/extensions/extension-lifecycle-dialogs";
+import { PluginArtifactUploadDialog } from "@/extensions/plugin-artifact-upload-dialog";
 import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
 import { Badge } from "@/components/ui/badge";
@@ -46,10 +47,16 @@ const OPERATION_REFRESH_INTERVAL_MS = 3_000;
 function ExtensionPage({
   title,
   description,
+  primaryAction,
   children,
-}: Readonly<{ title: string; description: string; children: ReactNode }>) {
+}: Readonly<{
+  title: string;
+  description: string;
+  primaryAction?: ReactNode;
+  children: ReactNode;
+}>) {
   return (
-    <PlatformPage description={description} title={title}>
+    <PlatformPage description={description} primaryAction={primaryAction} title={title}>
       {children}
     </PlatformPage>
   );
@@ -516,6 +523,7 @@ export function ExtensionsCatalogPage() {
   const { state, retry } = useMonitoringQuery(load, []);
   const [installingItem, setInstallingItem] = useState<SystemPluginCatalogItemOut>();
   const [operations, setOperations] = useState<SystemPluginOperationOut[]>([]);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const recordOperation = (operation: SystemPluginOperationOut) => {
     setOperations((current) => [
       operation,
@@ -524,7 +532,15 @@ export function ExtensionsCatalogPage() {
     retry();
   };
   return (
-    <ExtensionPage title={t("CATALOG_TITLE")} description={t("CATALOG_DESCRIPTION")}>
+    <ExtensionPage
+      title={t("CATALOG_TITLE")}
+      description={t("CATALOG_DESCRIPTION")}
+      primaryAction={
+        <Button onClick={() => setUploadOpen(true)} variant="outline">
+          {t("ARTIFACT_UPLOAD_TITLE")}
+        </Button>
+      }
+    >
       <ExtensionState
         empty={(data: SystemPluginCatalogListOut) => !data.items?.length}
         errorDescription="CATALOG_ERROR_DESCRIPTION"
@@ -586,6 +602,7 @@ export function ExtensionsCatalogPage() {
           open
         />
       ) : null}
+      <PluginArtifactUploadDialog onOpenChange={setUploadOpen} open={uploadOpen} />
       <ExtensionOperationReceipts operations={operations} />
     </ExtensionPage>
   );

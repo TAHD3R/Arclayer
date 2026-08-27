@@ -1,6 +1,11 @@
 import {
+  platformApplyWorkspaceCapabilityRollout,
   platformListPlatformCapabilities,
+  platformPreviewWorkspaceCapabilityRollout,
   type PlatformCapabilityCatalogOut,
+  type WorkspaceCapabilityRolloutApplyReceipt,
+  type WorkspaceCapabilityRolloutPreview,
+  type WorkspaceCapabilityRolloutPreviewRequest,
 } from "@arclayer/platform-openapi";
 
 import { platformApiClient } from "@/api/client";
@@ -52,4 +57,48 @@ export async function getPlatformCapabilityCatalog(): Promise<PlatformCapability
         : "PLATFORM_CAPABILITY_CATALOG_REQUEST_FAILED",
     );
   }
+}
+
+export async function previewCapabilityRollout(
+  capabilityId: string,
+  body: WorkspaceCapabilityRolloutPreviewRequest,
+): Promise<WorkspaceCapabilityRolloutPreview> {
+  const result = await platformPreviewWorkspaceCapabilityRollout({
+    client: platformApiClient,
+    path: { capability_id: capabilityId },
+    body,
+  });
+  if (result.error !== undefined || !result.data?.data || result.data.error) {
+    throw new PlatformCapabilityCatalogApiError(
+      extractErrorCode(result.error) ??
+        result.data?.error ??
+        "PLATFORM_CAPABILITY_ROLLOT_PREVIEW_FAILED",
+      result.response?.status,
+    );
+  }
+  return result.data.data;
+}
+
+export async function applyCapabilityRollout(request: {
+  previewId: string;
+  reason: string;
+  idempotencyKey: string;
+}): Promise<WorkspaceCapabilityRolloutApplyReceipt> {
+  const result = await platformApplyWorkspaceCapabilityRollout({
+    client: platformApiClient,
+    body: {
+      previewId: request.previewId,
+      idempotencyKey: request.idempotencyKey,
+      reason: request.reason,
+    },
+  });
+  if (result.error !== undefined || !result.data?.data || result.data.error) {
+    throw new PlatformCapabilityCatalogApiError(
+      extractErrorCode(result.error) ??
+        result.data?.error ??
+        "PLATFORM_CAPABILITY_ROLLOT_APPLY_FAILED",
+      result.response?.status,
+    );
+  }
+  return result.data.data;
 }

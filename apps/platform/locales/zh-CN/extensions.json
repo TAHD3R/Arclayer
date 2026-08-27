@@ -183,5 +183,22 @@
   "DETAIL_CONNECTIONS_ERROR": "无法加载连接状态。",
   "DETAIL_CONNECTIONS_EMPTY": "此扩展没有提供已安装的连接能力。",
   "DETAIL_HISTORY": "最近扩展变更",
-  "DETAIL_HISTORY_DESCRIPTION": "查看最近变更，并打开完整记录。"
+  "DETAIL_HISTORY_DESCRIPTION": "查看最近变更，并打开完整记录。",
+  "ARTIFACT_UPLOAD_TITLE": "上传插件包",
+  "ARTIFACT_UPLOAD_DESCRIPTION": "上传签名过的插件压缩包，系统会先做安全评审，通过后才能安装。",
+  "ARTIFACT_UPLOAD": "提交评审",
+  "ARTIFACT_REVIEWING": "正在评审…",
+  "ARTIFACT_PACKAGE": "插件包（.zip）",
+  "ARTIFACT_PACKAGE_HELP": "只接受 .zip 格式的插件压缩包。",
+  "ARTIFACT_SIGNATURE": "分离签名",
+  "ARTIFACT_SIGNATURE_PLACEHOLDER": "粘贴对插件包的分离签名",
+  "ARTIFACT_SIGNATURE_HELP": "使用发布密钥对压缩包生成的分离签名；签名通过后包内容不可再改动。",
+  "ARTIFACT_FILE_REQUIRED": "请选择要上传的插件包。",
+  "ARTIFACT_SIGNATURE_REQUIRED": "请填写分离签名。",
+  "ARTIFACT_REVIEW_FAILED": "评审未能完成。",
+  "ARTIFACT_REVIEW_PASSED": "评审通过",
+  "ARTIFACT_PACKAGE_CHECKSUM": "包校验和",
+  "ARTIFACT_SIGNER": "签名指纹",
+  "ARTIFACT_REVIEW_NOTE": "评审标识 {{id}}；安装时请在安装对话框中引用该制品。",
+  "ARTIFACT_DONE": "完成"
 }

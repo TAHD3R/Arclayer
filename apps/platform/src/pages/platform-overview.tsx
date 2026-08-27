@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, RefreshCw } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { OperationalSignalOut, PlatformCapabilityOut } from "@arclayer/platform-openapi";
 
+import { CapabilityRolloutSheet } from "@/capabilities/capability-rollout-sheet";
 import { getTrustedCapabilityModule } from "@/capabilities/module-registry";
 import { PlatformPage, PlatformSection } from "@/components/platform-page";
 import { useOperationsQuery } from "@/operations/operations-state";
@@ -71,8 +72,12 @@ function CapabilityStatus({ capability }: Readonly<{ capability: PlatformCapabil
   );
 }
 
-function CapabilityRows({ source }: Readonly<{ source: PlatformOverview["catalog"] }>) {
+function CapabilityRows({
+  source,
+  retry,
+}: Readonly<{ source: PlatformOverview["catalog"]; retry: () => void }>) {
   const { t } = useTranslation(["overview", "navigation"]);
+  const [rolloutTarget, setRolloutTarget] = useState<PlatformCapabilityOut | null>(null);
   if (source.status === "error") return <SourceUnavailable label={t("overview:DOMAIN_POSTURE")} />;
   const capabilities = source.data.items.filter((item) => item.navigationCandidate);
 
@@ -85,57 +90,77 @@ function CapabilityRows({ source }: Readonly<{ source: PlatformOverview["catalog
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("overview:DOMAIN")}</TableHead>
-            <TableHead>{t("overview:EFFECTIVE_STATE")}</TableHead>
-            <TableHead>{t("overview:READINESS_AND_HEALTH")}</TableHead>
-            <TableHead className="text-right">{t("overview:NEXT_ACTION")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {capabilities.map((capability) => {
-            const destination = capabilityDestination(capability);
-            return (
-              <TableRow key={capability.capabilityId}>
-                <TableCell>
-                  <p className="font-medium">{t(capability.nameI18nKey)}</p>
-                  {capability.missingPrerequisiteCodes.length > 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t("overview:MISSING_PREREQUISITES", {
-                        count: capability.missingPrerequisiteCodes.length,
-                      })}
-                    </p>
-                  ) : null}
-                </TableCell>
-                <TableCell>
-                  {t(`overview:ENABLEMENT_${capability.enablementState.toUpperCase()}`)}
-                </TableCell>
-                <TableCell>
-                  <CapabilityStatus capability={capability} />
-                </TableCell>
-                <TableCell className="text-right">
-                  {destination ? (
-                    <Button asChild size="sm" variant="ghost">
-                      <Link to={destination}>
-                        {t("overview:OPEN_DOMAIN")}
-                        <ArrowRight aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {t("overview:NO_DESTINATION")}
-                    </span>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <>
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("overview:DOMAIN")}</TableHead>
+              <TableHead>{t("overview:EFFECTIVE_STATE")}</TableHead>
+              <TableHead>{t("overview:READINESS_AND_HEALTH")}</TableHead>
+              <TableHead className="text-right">{t("overview:NEXT_ACTION")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {capabilities.map((capability) => {
+              const destination = capabilityDestination(capability);
+              return (
+                <TableRow key={capability.capabilityId}>
+                  <TableCell>
+                    <p className="font-medium">{t(capability.nameI18nKey)}</p>
+                    {capability.missingPrerequisiteCodes.length > 0 ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t("overview:MISSING_PREREQUISITES", {
+                          count: capability.missingPrerequisiteCodes.length,
+                        })}
+                      </p>
+                    ) : null}
+                  </TableCell>
+                  <TableCell>
+                    {t(`overview:ENABLEMENT_${capability.enablementState.toUpperCase()}`)}
+                  </TableCell>
+                  <TableCell>
+                    <CapabilityStatus capability={capability} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center justify-end gap-1">
+                      {capability.canManage ? (
+                        <Button
+                          onClick={() => setRolloutTarget(capability)}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          {t("overview:ADJUST_ROLLOUT")}
+                        </Button>
+                      ) : null}
+                      {destination ? (
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={destination}>
+                            {t("overview:OPEN_DOMAIN")}
+                            <ArrowRight aria-hidden="true" />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {t("overview:NO_DESTINATION")}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+      {rolloutTarget ? (
+        <CapabilityRolloutSheet
+          capability={rolloutTarget}
+          onApplied={retry}
+          onClose={() => setRolloutTarget(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -266,7 +291,7 @@ function OverviewContent({ data, retry }: Readonly<{ data: PlatformOverview; ret
       </PlatformSection>
 
       <PlatformSection description={t("DOMAIN_POSTURE_DESCRIPTION")} title={t("DOMAIN_POSTURE")}>
-        <CapabilityRows source={data.catalog} />
+        <CapabilityRows retry={retry} source={data.catalog} />
       </PlatformSection>
 
       <PlatformSection

@@ -1,7 +1,5 @@
-export {
-  CommunicationsCampaignsPage,
-  CommunicationsDeliveriesPage,
-  CommunicationsEmailPage,
-  CommunicationsFeedbackPage,
-  CommunicationsTemplatesPage,
-} from "@/communications/communications-ui";
+export { CommunicationsCampaignsPage } from "@/communications/campaigns-page";
+export { CommunicationsDeliveriesPage } from "@/communications/deliveries-page";
+export { CommunicationsEmailPage } from "@/communications/email-service-page";
+export { CommunicationsFeedbackPage } from "@/communications/feedback-page";
+export { CommunicationsTemplatesPage } from "@/communications/templates-page";

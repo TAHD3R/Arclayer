@@ -3259,9 +3259,29 @@ export type InvitationImpact = {
 };
 
 /**
+ * JobAttemptStatus
+ */
+export type JobAttemptStatus = 'claimed' | 'running' | 'interrupted' | 'succeeded' | 'failed' | 'cancelled' | 'lease_expired';
+
+/**
+ * JobFailureClassification
+ */
+export type JobFailureClassification = 'permanent' | 'transient' | 'unexpected' | 'worker_lost';
+
+/**
  * JobInternalStatus
  */
 export type JobInternalStatus = 'pending_dispatch' | 'queued' | 'running' | 'retry_scheduled' | 'waiting_for_user' | 'succeeded' | 'failed' | 'dead_lettered' | 'cancelled';
+
+/**
+ * JobRetryDecision
+ */
+export type JobRetryDecision = 'scheduled' | 'exhausted' | 'code_not_allowed' | 'not_retryable';
+
+/**
+ * JobWorkloadClass
+ */
+export type JobWorkloadClass = 'agent-io' | 'render-browser' | 'asset-cpu' | 'publish' | 'connector' | 'maintenance';
 
 export type JsonValueInput = string | number | number | boolean | Array<JsonValueInput> | {
     [key: string]: JsonValueInput;
@@ -6982,6 +7002,54 @@ export type PageDataPlatformDeliveryStorageOut = {
 };
 
 /**
+ * PageData[PlatformJobOut]
+ */
+export type PageDataPlatformJobOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<PlatformJobOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[PlatformSkillPackageSummaryOut]
  */
 export type PageDataPlatformSkillPackageSummaryOut = {
@@ -8066,7 +8134,7 @@ export type PlatformCapabilityReadinessState = 'ready' | 'not_ready';
 /**
  * PlatformCapabilityRouteTarget
  */
-export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.skills' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
+export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'monitoring.jobs' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.skills' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
 
 /**
  * PlatformCapabilityRuntimeHealth
@@ -9371,6 +9439,314 @@ export type PlatformInvoiceOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformJobAttemptOut
+ */
+export type PlatformJobAttemptOut = {
+    /**
+     * Attemptnumber
+     */
+    attemptNumber: number;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Errorcode
+     */
+    errorCode: string | null;
+    /**
+     * Errormessage
+     */
+    errorMessage: string | null;
+    failureClassification: JobFailureClassification | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Retryat
+     */
+    retryAt: string | null;
+    retryDecision: JobRetryDecision | null;
+    /**
+     * Retrydelayseconds
+     */
+    retryDelaySeconds: number | null;
+    /**
+     * Startedat
+     */
+    startedAt: string;
+    status: JobAttemptStatus;
+    /**
+     * Workerid
+     */
+    workerId: string;
+};
+
+/**
+ * PlatformJobDetailOut
+ */
+export type PlatformJobDetailOut = {
+    /**
+     * Attemptcount
+     */
+    attemptCount: number;
+    /**
+     * Attempts
+     */
+    attempts: Array<PlatformJobAttemptOut>;
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Errorcode
+     */
+    errorCode: string | null;
+    /**
+     * Errormessage
+     */
+    errorMessage: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Jobtype
+     */
+    jobType: string;
+    /**
+     * Jobtypeversion
+     */
+    jobTypeVersion: number;
+    /**
+     * Nextattemptat
+     */
+    nextAttemptAt: string | null;
+    /**
+     * Phase
+     */
+    phase: string | null;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Retryofjobid
+     */
+    retryOfJobId: string | null;
+    /**
+     * Siteid
+     */
+    siteId: string | null;
+    /**
+     * Startedat
+     */
+    startedAt: string | null;
+    status: JobInternalStatus;
+    /**
+     * Statuskey
+     */
+    statusKey: string | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    workload: JobWorkloadClass;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * PlatformJobOut
+ *
+ * Platform-wide Job projection without transport, lease, or raw provider data.
+ */
+export type PlatformJobOut = {
+    /**
+     * Attemptcount
+     */
+    attemptCount: number;
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Errorcode
+     */
+    errorCode: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Jobtype
+     */
+    jobType: string;
+    /**
+     * Jobtypeversion
+     */
+    jobTypeVersion: number;
+    /**
+     * Nextattemptat
+     */
+    nextAttemptAt: string | null;
+    /**
+     * Phase
+     */
+    phase: string | null;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Retryofjobid
+     */
+    retryOfJobId: string | null;
+    /**
+     * Siteid
+     */
+    siteId: string | null;
+    /**
+     * Startedat
+     */
+    startedAt: string | null;
+    status: JobInternalStatus;
+    /**
+     * Statuskey
+     */
+    statusKey: string | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    workload: JobWorkloadClass;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * PlatformJobQueueOut
+ *
+ * One workload's DB-backed queue snapshot without transport internals.
+ */
+export type PlatformJobQueueOut = {
+    /**
+     * Deadletteredjobsinwindow
+     */
+    deadLetteredJobsInWindow: number;
+    /**
+     * Failedjobsinwindow
+     */
+    failedJobsInWindow: number;
+    /**
+     * Oldestbacklogcreatedat
+     */
+    oldestBacklogCreatedAt?: string | null;
+    /**
+     * Oldestbacklognextattemptat
+     */
+    oldestBacklogNextAttemptAt?: string | null;
+    /**
+     * Outboxdeadlettereddispatches
+     */
+    outboxDeadLetteredDispatches: number;
+    /**
+     * Outboxinflightdispatches
+     */
+    outboxInFlightDispatches: number;
+    /**
+     * Pendingdispatchjobs
+     */
+    pendingDispatchJobs: number;
+    /**
+     * Queuedjobs
+     */
+    queuedJobs: number;
+    /**
+     * Retryscheduledjobs
+     */
+    retryScheduledJobs: number;
+    /**
+     * Runningjobs
+     */
+    runningJobs: number;
+    /**
+     * Streamname
+     */
+    streamName: string;
+    /**
+     * Waitingforuserjobs
+     */
+    waitingForUserJobs: number;
+    workload: JobWorkloadClass;
+};
+
+/**
+ * PlatformJobQueuesOut
+ */
+export type PlatformJobQueuesOut = {
+    /**
+     * Queues
+     */
+    queues: Array<PlatformJobQueueOut>;
+    /**
+     * Windowhours
+     */
+    windowHours: number;
 };
 
 /**
@@ -14352,6 +14728,31 @@ export type ResponseModelPageDataPlatformDeliveryStorageOut = {
 };
 
 /**
+ * ResponseModel[PageData[PlatformJobOut]]
+ */
+export type ResponseModelPageDataPlatformJobOut = {
+    data?: PageDataPlatformJobOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[PlatformSkillPackageSummaryOut]]
  */
 export type ResponseModelPageDataPlatformSkillPackageSummaryOut = {
@@ -15031,6 +15432,56 @@ export type ResponseModelPlatformInvitationOptionsOut = {
  */
 export type ResponseModelPlatformInvoiceListOut = {
     data?: PlatformInvoiceListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformJobDetailOut]
+ */
+export type ResponseModelPlatformJobDetailOut = {
+    data?: PlatformJobDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformJobQueuesOut]
+ */
+export type ResponseModelPlatformJobQueuesOut = {
+    data?: PlatformJobQueuesOut | null;
     /**
      * Error
      */
@@ -26646,6 +27097,136 @@ export type PlatformUpgradeSystemPluginResponses = {
 };
 
 export type PlatformUpgradeSystemPluginResponse = PlatformUpgradeSystemPluginResponses[keyof PlatformUpgradeSystemPluginResponses];
+
+export type PlatformListPlatformJobsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: JobInternalStatus | null;
+        /**
+         * Workload
+         */
+        workload?: JobWorkloadClass | null;
+        /**
+         * Jobtype
+         */
+        jobType?: string | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Errorcode
+         */
+        errorCode?: string | null;
+        /**
+         * Createdfrom
+         */
+        createdFrom?: string | null;
+        /**
+         * Createdto
+         */
+        createdTo?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/jobs';
+};
+
+export type PlatformListPlatformJobsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformJobsError = PlatformListPlatformJobsErrors[keyof PlatformListPlatformJobsErrors];
+
+export type PlatformListPlatformJobsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPlatformJobOut;
+};
+
+export type PlatformListPlatformJobsResponse = PlatformListPlatformJobsResponses[keyof PlatformListPlatformJobsResponses];
+
+export type PlatformGetPlatformJobQueuesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Hours
+         */
+        hours?: number;
+    };
+    url: '/platform-api/v1/jobs/queues';
+};
+
+export type PlatformGetPlatformJobQueuesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformJobQueuesError = PlatformGetPlatformJobQueuesErrors[keyof PlatformGetPlatformJobQueuesErrors];
+
+export type PlatformGetPlatformJobQueuesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformJobQueuesOut;
+};
+
+export type PlatformGetPlatformJobQueuesResponse = PlatformGetPlatformJobQueuesResponses[keyof PlatformGetPlatformJobQueuesResponses];
+
+export type PlatformGetPlatformJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/jobs/{job_id}';
+};
+
+export type PlatformGetPlatformJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformJobError = PlatformGetPlatformJobErrors[keyof PlatformGetPlatformJobErrors];
+
+export type PlatformGetPlatformJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformJobDetailOut;
+};
+
+export type PlatformGetPlatformJobResponse = PlatformGetPlatformJobResponses[keyof PlatformGetPlatformJobResponses];
 
 export type PlatformListPlatformAiUsageGroupsData = {
     body?: never;

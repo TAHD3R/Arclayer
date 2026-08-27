@@ -9,6 +9,7 @@ import {
   platformListSystemPluginCatalog,
   platformListSystemPluginOperations,
   platformRecoverSystemPlugin,
+  platformReviewManualPluginArtifact,
   platformRollbackSystemPlugin,
   platformUninstallSystemPlugin,
   platformUpgradeSystemPlugin,
@@ -16,6 +17,7 @@ import {
   type PlatformListSystemPluginCatalogData,
   type PlatformListSystemPluginOperationsData,
   type PageDataSystemPluginOperationOut,
+  type SystemPluginArtifactReviewOut,
   type SystemPluginCatalogListOut,
   type SystemPluginDetailOut,
   type SystemPluginInstallationCreateRequest,
@@ -155,5 +157,15 @@ export function removeExtension(
     path: { plugin_id: pluginId },
     body,
     headers: { "Idempotency-Key": idempotencyKey },
+  }).then(unwrap);
+}
+
+export function reviewManualArtifact(
+  file: File,
+  detachedSignature: string,
+): Promise<SystemPluginArtifactReviewOut> {
+  return platformReviewManualPluginArtifact({
+    client: platformApiClient,
+    body: { package: file, detached_signature: detachedSignature },
   }).then(unwrap);
 }

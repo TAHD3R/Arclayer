@@ -6,6 +6,7 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
+from tortoise.functions import Count, Min
 from tortoise.queryset import QuerySet
 
 from src.common.types.json_types import JsonObject
@@ -18,13 +19,25 @@ from src.models.jobs.background_job import (
     JobDispatchOutboxRecord,
     JobDispatchStatus,
     JobInternalStatus,
+    JobWorkloadClass,
 )
+from src.modules.jobs.platform_schema import PlatformJobListQuery
 from src.modules.jobs.reaper_schema import JobLeaseReapCandidate
 from src.modules.jobs.registry import JobTargetScope, JobTypeDefinition
 from src.modules.jobs.schema import BackgroundJobCreate, BackgroundJobFailure, JobDispatchEnvelope
 from src.modules.jobs.workspace_schema import WorkspaceJobListQuery
 
 _ACTIVE_ATTEMPT_STATUSES = (JobAttemptStatus.CLAIMED, JobAttemptStatus.RUNNING)
+_PLATFORM_BACKLOG_STATUSES = (
+    JobInternalStatus.PENDING_DISPATCH,
+    JobInternalStatus.QUEUED,
+    JobInternalStatus.RETRY_SCHEDULED,
+)
+_PLATFORM_OUTBOX_IN_FLIGHT_STATUSES = (
+    JobDispatchStatus.PENDING,
+    JobDispatchStatus.DISPATCHING,
+    JobDispatchStatus.RETRY_SCHEDULED,
+)
 
 
 class BackgroundJobRepositoryInvariantError(RuntimeError):
@@ -617,3 +630,91 @@ class BackgroundJobRepository(TortoiseORMRepository):
         conn: BaseDBAsyncClient,
     ) -> None:
         await self.update_fields(job, fields=fields, conn=conn)
+
+    async def list_platform_jobs(
+        self,
+        *,
+        filters: PlatformJobListQuery,
+        params: PageParams,
+    ) -> tuple[list[BackgroundJobRecord], int]:
+        query = BackgroundJobRecord.all()
+        if filters.status is not None:
+            query = query.filter(internal_status=filters.status)
+        if filters.workload is not None:
+            query = query.filter(workload_class=filters.workload)
+        if filters.job_type is not None:
+            query = query.filter(job_type=filters.job_type)
+        if filters.workspace_id is not None:
+            query = query.filter(workspace_id=filters.workspace_id)
+        if filters.project_id is not None:
+            query = query.filter(project_id=filters.project_id)
+        if filters.error_code is not None:
+            query = query.filter(error_code=filters.error_code)
+        if filters.created_from is not None:
+            query = query.filter(created_at__gte=filters.created_from)
+        if filters.created_to is not None:
+            query = query.filter(created_at__lte=filters.created_to)
+        total = int(await query.count())
+        rows = await query.order_by("-created_at", "-id").offset(params.offset).limit(params.limit)
+        return list(rows), total
+
+    async def get_platform_job(self, *, job_id: UUID) -> BackgroundJobRecord | None:
+        return await BackgroundJobRecord.filter(id=job_id).first()
+
+    async def list_platform_job_attempts(self, *, job_id: UUID) -> list[JobAttemptRecord]:
+        rows = await JobAttemptRecord.filter(job_id=job_id).order_by("-attempt_number", "-id")
+        return list(rows)
+
+    async def count_platform_jobs_by_workload_status(
+        self,
+    ) -> dict[tuple[JobWorkloadClass, JobInternalStatus], int]:
+        rows = (
+            await BackgroundJobRecord
+            .annotate(item_count=Count("id"))
+            .group_by("workload_class", "internal_status")
+            .values("workload_class", "internal_status", "item_count")
+        )
+        return {(row["workload_class"], row["internal_status"]): int(row["item_count"]) for row in rows}
+
+    async def count_platform_terminal_failures_by_workload(
+        self,
+        *,
+        since: datetime,
+    ) -> dict[tuple[JobWorkloadClass, JobInternalStatus], int]:
+        rows = (
+            await BackgroundJobRecord
+            .filter(
+                internal_status__in=[JobInternalStatus.FAILED, JobInternalStatus.DEAD_LETTERED],
+                completed_at__gte=since,
+            )
+            .annotate(item_count=Count("id"))
+            .group_by("workload_class", "internal_status")
+            .values("workload_class", "internal_status", "item_count")
+        )
+        return {(row["workload_class"], row["internal_status"]): int(row["item_count"]) for row in rows}
+
+    async def count_platform_outbox_by_workload_status(
+        self,
+    ) -> dict[tuple[JobWorkloadClass, JobDispatchStatus], int]:
+        rows = (
+            await JobDispatchOutboxRecord
+            .annotate(item_count=Count("id"))
+            .group_by("workload_class", "status")
+            .values("workload_class", "status", "item_count")
+        )
+        return {(row["workload_class"], row["status"]): int(row["item_count"]) for row in rows}
+
+    async def platform_backlog_extremes_by_workload(
+        self,
+    ) -> dict[JobWorkloadClass, tuple[datetime | None, datetime | None]]:
+        rows = (
+            await BackgroundJobRecord
+            .filter(internal_status__in=_PLATFORM_BACKLOG_STATUSES)
+            .annotate(
+                oldest_created=Min("created_at"),
+                oldest_next_attempt=Min("next_attempt_at"),
+            )
+            .group_by("workload_class")
+            .values("workload_class", "oldest_created", "oldest_next_attempt")
+        )
+        return {row["workload_class"]: (row["oldest_created"], row["oldest_next_attempt"]) for row in rows}

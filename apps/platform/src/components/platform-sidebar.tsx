@@ -3,10 +3,7 @@ import { ChevronRight, Settings } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type {
-  PlatformDestination,
-  TrustedCapabilityRouteTarget,
-} from "@/capabilities/module-registry";
+import type { PlatformDestination } from "@/capabilities/module-registry";
 import type {
   CapabilityNavigationItem,
   CapabilityNavigationProjection,
@@ -32,41 +29,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type CapabilityNavigationGroupId =
-  | "workspaces"
-  | "platform-services"
-  | "business-operations"
-  | "security-monitoring";
-
-const CAPABILITY_GROUP_BY_ROUTE_TARGET = {
-  "tenants.workspaces": "workspaces",
-  "ai.tasks": "platform-services",
-  "site-delivery.issues": "platform-services",
-  "communications.feedback": "platform-services",
-  "extensions.installed": "platform-services",
-  "commerce.subscriptions": "business-operations",
-  "access.team": "security-monitoring",
-  "monitoring.requests": "security-monitoring",
-} as const satisfies Readonly<Record<TrustedCapabilityRouteTarget, CapabilityNavigationGroupId>>;
-
-const CAPABILITY_NAVIGATION_GROUPS = [
-  { id: "workspaces", labelKey: "WORKSPACE_MANAGEMENT" },
-  { id: "platform-services", labelKey: "PLATFORM_SERVICES_GROUP" },
-  { id: "business-operations", labelKey: "BUSINESS_OPERATIONS" },
-  { id: "security-monitoring", labelKey: "SECURITY_MONITORING" },
-] as const;
-
-const CAPABILITY_NAVIGATION_ORDER = {
-  "tenants.workspaces": 0,
-  "ai.tasks": 1,
-  "site-delivery.issues": 2,
-  "communications.feedback": 3,
-  "extensions.installed": 4,
-  "commerce.subscriptions": 5,
-  "access.team": 6,
-  "monitoring.requests": 7,
-} as const satisfies Readonly<Record<TrustedCapabilityRouteTarget, number>>;
 
 function PlatformBrand() {
   const { t } = useTranslation("common");
@@ -208,12 +170,10 @@ function CapabilityNavigation(props: {
     () => new Set(activeCapabilityId ? [activeCapabilityId] : []),
   );
 
+  // Only the active domain stays expanded; navigating collapses manually opened
+  // domains so the tree keeps one predictable shape.
   useLayoutEffect(() => {
-    if (!activeCapabilityId) return;
-    setOpenCapabilityIds((current) => {
-      if (current.has(activeCapabilityId)) return current;
-      return new Set([...current, activeCapabilityId]);
-    });
+    setOpenCapabilityIds(new Set(activeCapabilityId ? [activeCapabilityId] : []));
   }, [activeCapabilityId]);
 
   const setCapabilityOpen = (capabilityId: string, open: boolean) => {
@@ -244,7 +204,21 @@ function CapabilityNavigation(props: {
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel>{t("PLATFORM_SETTINGS_GROUP")}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {props.projection.capabilityItems.map((item) => (
+              <CapabilityMenuItem
+                item={item}
+                key={item.capabilityId}
+                onOpenChange={(open) => setCapabilityOpen(item.capabilityId, open)}
+                open={openCapabilityIds.has(item.capabilityId)}
+                pathname={props.pathname}
+              />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -266,35 +240,6 @@ function CapabilityNavigation(props: {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-      {CAPABILITY_NAVIGATION_GROUPS.map((group) => {
-        const items = props.projection.capabilityItems.filter(
-          (item) => CAPABILITY_GROUP_BY_ROUTE_TARGET[item.module.routeTarget] === group.id,
-        );
-        items.sort(
-          (left, right) =>
-            CAPABILITY_NAVIGATION_ORDER[left.module.routeTarget] -
-            CAPABILITY_NAVIGATION_ORDER[right.module.routeTarget],
-        );
-        if (items.length === 0) return null;
-        return (
-          <SidebarGroup key={group.id}>
-            <SidebarGroupLabel>{t(group.labelKey)}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {items.map((item) => (
-                  <CapabilityMenuItem
-                    item={item}
-                    key={item.capabilityId}
-                    onOpenChange={(open) => setCapabilityOpen(item.capabilityId, open)}
-                    open={openCapabilityIds.has(item.capabilityId)}
-                    pathname={props.pathname}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        );
-      })}
     </>
   );
 }

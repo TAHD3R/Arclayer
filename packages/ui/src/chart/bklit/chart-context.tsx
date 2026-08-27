@@ -111,8 +111,15 @@ export interface ChartHoverContextValue {
   setHoveredCandleIndex?: (index: number | null) => void;
 }
 
-export interface ChartContextValue extends ChartHoverContextValue {
-  // Data
+/** Locale-aware date formatting overrides; unset surfaces keep built-in en-US formats. */
+export interface ChartDateFormatters {
+  /** Formats x-axis tick labels. */
+  axis?: (date: Date) => string;
+  /** Formats the tooltip title date. Falls back to `axis` when omitted. */
+  tooltip?: (date: Date) => string;
+}
+
+export interface ChartContextValue extends ChartHoverContextValue {  // Data
   data: Record<string, unknown>[];
   /** Decimated subset for SVG path rendering; equals `data` when no decimation is needed. */
   renderData: Record<string, unknown>[];
@@ -172,6 +179,9 @@ export interface ChartContextValue extends ChartHoverContextValue {
 
   // Pre-computed date labels for ticker animation
   dateLabels: string[];
+
+  /** Locale-aware date formatting overrides for axis ticks and tooltip titles. */
+  dateFormatters?: ChartDateFormatters;
 
   /** Active brush zoom range — when set, axis ticks align to visible data rows. */
   xDomain?: [Date, Date];
@@ -264,6 +274,7 @@ export function ChartProvider({
       notifyLoadingPulseComplete: value.notifyLoadingPulseComplete,
       xAccessor: value.xAccessor,
       dateLabels: value.dateLabels,
+      dateFormatters: value.dateFormatters,
       xDomain: value.xDomain,
       xDomainSlotCount: value.xDomainSlotCount,
       barScale: value.barScale,
@@ -309,6 +320,7 @@ export function ChartProvider({
       value.notifyLoadingPulseComplete,
       value.xAccessor,
       value.dateLabels,
+      value.dateFormatters,
       value.xDomain,
       value.xDomainSlotCount,
       value.barScale,

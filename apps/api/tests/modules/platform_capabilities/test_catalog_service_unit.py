@@ -187,6 +187,11 @@ async def test_ready_peer_route_permissions_create_only_their_exact_navigation_t
             ["monitoring.activity", "monitoring.audit"],
         ),
         (
+            PlatformPermissionCode.JOBS_READ,
+            "monitoring-audit",
+            ["monitoring.jobs"],
+        ),
+        (
             PlatformPermissionCode.AI_AGENTS_READ,
             "ai-services",
             ["ai.assistants", "ai.policies"],
@@ -403,6 +408,7 @@ def test_registry_contains_every_canonical_platform_navigation_target() -> None:
         "monitoring.ai-usage",
         "monitoring.activity",
         "monitoring.audit",
+        "monitoring.jobs",
         "operations.signals",
     }
     assert all(

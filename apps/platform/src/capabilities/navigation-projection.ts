@@ -1,7 +1,9 @@
 import {
   getTrustedCapabilityModule,
+  isRegisteredCapabilityDestinationPath,
   NEEDS_ATTENTION_DESTINATION,
   OVERVIEW_DESTINATION,
+  PLATFORM_CAPABILITY_DOMAIN_ORDER,
   type PlatformCapabilityModule,
   type PlatformDestination,
 } from "@/capabilities/module-registry";
@@ -21,6 +23,11 @@ export type CapabilityNavigationItem = Readonly<{
   capabilityId: string;
   module: PlatformCapabilityModule;
   destinations: readonly PlatformDestination[];
+}>;
+
+export type CapabilityBreadcrumbCrumb = Readonly<{
+  labelKey: string;
+  linkPath?: PlatformDestination["path"];
 }>;
 
 export type CapabilityNavigationProjection = Readonly<{
@@ -118,6 +125,15 @@ export function projectCapabilityNavigation(
     ...(hasNeedsAttentionDestination ? [NEEDS_ATTENTION_DESTINATION] : []),
   ];
 
+  const domainOrder = new Map(
+    PLATFORM_CAPABILITY_DOMAIN_ORDER.map((routeTarget, index) => [routeTarget, index]),
+  );
+  capabilityItems.sort(
+    (left, right) =>
+      (domainOrder.get(left.module.routeTarget) ?? PLATFORM_CAPABILITY_DOMAIN_ORDER.length) -
+      (domainOrder.get(right.module.routeTarget) ?? PLATFORM_CAPABILITY_DOMAIN_ORDER.length),
+  );
+
   return {
     primaryDestinations,
     destinations: [...primaryDestinations, ...capabilityItems.flatMap((item) => item.destinations)],
@@ -127,7 +143,48 @@ export function projectCapabilityNavigation(
   };
 }
 
-export function resolveCapabilityBreadcrumbKey(
+function isDestinationPathMatch(pathname: string, destination: PlatformDestination): boolean {
+  return pathname === destination.path || pathname.startsWith(`${destination.path}/`);
+}
+
+function firstPathSegment(pathname: string): string {
+  return `/${pathname.split("/")[1] ?? ""}`;
+}
+
+type ResolvedNavigationMatch = Readonly<{
+  item: CapabilityNavigationItem;
+  destination: PlatformDestination | null;
+}>;
+
+// Resolve the authorized navigation item for a route. Detail routes that live
+// under a domain path (for example /extensions/{pluginId}) resolve through the
+// domain-prefix fallback with destination null; a registered destination path
+// that the projection did not authorize stays rejected instead of leaking
+// sibling-destination authority.
+function resolveNavigationMatch(
+  pathname: string,
+  projection: CapabilityNavigationProjection,
+): ResolvedNavigationMatch | null {
+  const direct = projection.capabilityItems.find(({ destinations }) =>
+    destinations.some((destination) => isDestinationPathMatch(pathname, destination)),
+  );
+  if (direct) {
+    return {
+      item: direct,
+      destination:
+        direct.destinations.find((destination) => isDestinationPathMatch(pathname, destination)) ??
+        null,
+    };
+  }
+  if (isRegisteredCapabilityDestinationPath(pathname)) return null;
+  const segment = firstPathSegment(pathname);
+  const fallback = projection.capabilityItems.find(({ module }) =>
+    module.destinations.some((destination) => firstPathSegment(destination.path) === segment),
+  );
+  return fallback ? { item: fallback, destination: null } : null;
+}
+
+function resolvePrimaryBreadcrumbKey(
   pathname: string,
   projection: CapabilityNavigationProjection,
 ): string | null {
@@ -140,10 +197,35 @@ export function resolveCapabilityBreadcrumbKey(
   ) {
     return NEEDS_ATTENTION_DESTINATION.labelKey;
   }
-  const item = projection.capabilityItems.find(({ destinations }) =>
-    destinations.some(
-      (destination) => pathname === destination.path || pathname.startsWith(`${destination.path}/`),
-    ),
-  );
-  return item?.module.domainLabelKey ?? null;
+  return null;
+}
+
+export function resolveCapabilityBreadcrumbTrail(
+  pathname: string,
+  projection: CapabilityNavigationProjection,
+): readonly CapabilityBreadcrumbCrumb[] | null {
+  const primaryKey = resolvePrimaryBreadcrumbKey(pathname, projection);
+  if (primaryKey) return [{ labelKey: primaryKey }];
+
+  const match = resolveNavigationMatch(pathname, projection);
+  if (!match) return null;
+  const domainCrumb: CapabilityBreadcrumbCrumb = { labelKey: match.item.module.domainLabelKey };
+  if (!match.destination || match.item.destinations.length === 1) return [domainCrumb];
+  const defaultDestination = match.item.destinations[0];
+  if (isDestinationPathMatch(pathname, defaultDestination)) {
+    return [domainCrumb, { labelKey: defaultDestination.labelKey }];
+  }
+  return [
+    { ...domainCrumb, linkPath: defaultDestination.path },
+    { labelKey: match.destination.labelKey },
+  ];
+}
+
+export function resolveCapabilityBreadcrumbKey(
+  pathname: string,
+  projection: CapabilityNavigationProjection,
+): string | null {
+  const primaryKey = resolvePrimaryBreadcrumbKey(pathname, projection);
+  if (primaryKey) return primaryKey;
+  return resolveNavigationMatch(pathname, projection)?.item.module.domainLabelKey ?? null;
 }

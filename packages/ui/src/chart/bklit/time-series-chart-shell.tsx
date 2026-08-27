@@ -22,7 +22,12 @@ import {
   isUnderlayComponent,
   resolveChartChildElement,
 } from "./chart-child-passthrough";
-import { ChartProvider, type LineConfig, type Margin } from "./chart-context";
+import {
+  ChartProvider,
+  type ChartDateFormatters,
+  type LineConfig,
+  type Margin,
+} from "./chart-context";
 import { isGradientDefComponent, isPatternDefComponent } from "./chart-defs";
 import { shortDateFmt } from "./chart-formatters";
 import {
@@ -148,6 +153,8 @@ export interface TimeSeriesChartInnerProps {
   xDomain?: [Date, Date];
   /** Full dataset length for x-scale padding when `xDomain` is set. */
   xDomainSlotCount?: number;
+  /** Locale-aware date label overrides for axis ticks and tooltip titles. */
+  dateFormatters?: ChartDateFormatters;
   /** Tween y-domain when the visible x-range changes during the ready phase. */
   tweenYDomainOnXDomainChange?: boolean;
   onPhaseChange?: (phase: ChartPhase) => void;
@@ -191,6 +198,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   yDomainTweenDuration = DEFAULT_Y_DOMAIN_TWEEN_MS,
   xDomain,
   xDomainSlotCount,
+  dateFormatters,
   tweenYDomainOnXDomainChange = false,
   onPhaseChange,
   onPointClick,
@@ -361,8 +369,9 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   );
 
   const dateLabels = useMemo(
-    () => visiblePlotData.map((d) => shortDateFmt.format(xAccessor(d))),
-    [visiblePlotData, xAccessor],
+    () =>
+      visiblePlotData.map((d) => (dateFormatters?.axis ?? shortDateFmt.format)(xAccessor(d))),
+    [visiblePlotData, xAccessor, dateFormatters],
   );
 
   const canInteract = isLoaded && isChartInteractionPhase(chartPhase);
@@ -498,6 +507,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
       notifyLoadingPulseComplete,
       xAccessor,
       dateLabels,
+      dateFormatters,
       xDomain,
       xDomainSlotCount,
       selection,
@@ -541,6 +551,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
       notifyLoadingPulseComplete,
       xAccessor,
       dateLabels,
+      dateFormatters,
       xDomain,
       xDomainSlotCount,
       selection,

@@ -5,6 +5,7 @@ import {
   CapabilityNavigationContractError,
   projectCapabilityNavigation,
   resolveCapabilityBreadcrumbKey,
+  resolveCapabilityBreadcrumbTrail,
   type CapabilityProjectionRecord,
 } from "@/capabilities/navigation-projection";
 
@@ -158,6 +159,7 @@ describe("trusted Platform capability projection", () => {
       ["monitoring.activity", "monitoring.audit"],
       ["monitoring-activity", "monitoring-audit"],
     ],
+    ["monitoring.requests", ["monitoring.jobs"], ["monitoring-jobs"]],
   ] as const)(
     "keeps canonical destination authority exact for %s",
     (routeTarget, targets, expected) => {
@@ -174,7 +176,7 @@ describe("trusted Platform capability projection", () => {
         "tenants.users",
         "tenants.projects",
       ]),
-      capabilityRecord("monitoring.requests", ["monitoring.audit"]),
+      capabilityRecord("monitoring.requests", ["monitoring.audit", "monitoring.jobs"]),
     ]);
 
     expect(resolveCapabilityBreadcrumbKey("/users", projection)).toBe("navigation:WORKSPACES");
@@ -185,11 +187,75 @@ describe("trusted Platform capability projection", () => {
     expect(resolveCapabilityBreadcrumbKey("/monitoring/audit/events/evt-1", projection)).toBe(
       "navigation:MONITORING_AUDIT",
     );
+    expect(resolveCapabilityBreadcrumbKey("/monitoring/jobs", projection)).toBe(
+      "navigation:MONITORING_AUDIT",
+    );
     expect(resolveCapabilityBreadcrumbKey("/attention/signal-1", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/monitoring/requests", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/operations/jobs", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/settings", projection)).toBe(
       "common:SYSTEM_SETTINGS_TITLE",
+    );
+  });
+
+  it("orders domains by the canonical Platform information architecture", () => {
+    const projection = projectCapabilityNavigation([
+      capabilityRecord("monitoring.requests", ["monitoring.requests"]),
+      capabilityRecord("access.team", ["access.team"]),
+      capabilityRecord("tenants.workspaces", ["tenants.workspaces"]),
+      capabilityRecord("extensions.installed", ["extensions.installed"]),
+      capabilityRecord("ai.tasks", ["ai.tasks"]),
+      capabilityRecord("commerce.subscriptions", ["commerce.subscriptions"]),
+      capabilityRecord("communications.feedback", ["communications.feedback"]),
+      capabilityRecord("site-delivery.issues", ["site-delivery.issues"]),
+    ]);
+
+    expect(projection.capabilityItems.map(({ module }) => module.routeTarget)).toEqual([
+      "tenants.workspaces",
+      "ai.tasks",
+      "site-delivery.issues",
+      "communications.feedback",
+      "extensions.installed",
+      "commerce.subscriptions",
+      "access.team",
+      "monitoring.requests",
+    ]);
+  });
+
+  it("derives the two-level breadcrumb trail from the same authorized destinations", () => {
+    const projection = projectCapabilityNavigation([
+      capabilityRecord("tenants.workspaces", [
+        "tenants.workspaces",
+        "tenants.users",
+        "tenants.projects",
+      ]),
+      capabilityRecord("extensions.installed", ["extensions.installed", "extensions.catalog"]),
+    ]);
+
+    expect(resolveCapabilityBreadcrumbTrail("/users", projection)).toEqual([
+      { labelKey: "navigation:WORKSPACES", linkPath: "/workspaces" },
+      { labelKey: "navigation:WORKSPACE_USERS" },
+    ]);
+    expect(resolveCapabilityBreadcrumbTrail("/workspaces", projection)).toEqual([
+      { labelKey: "navigation:WORKSPACES" },
+      { labelKey: "navigation:WORKSPACES_DIRECTORY" },
+    ]);
+    expect(resolveCapabilityBreadcrumbTrail("/extensions/catalog", projection)).toEqual([
+      { labelKey: "navigation:EXTENSIONS", linkPath: "/extensions/installed" },
+      { labelKey: "navigation:EXTENSIONS_CATALOG" },
+    ]);
+  });
+
+  it("resolves route-backed detail pages through the domain-prefix authority", () => {
+    const projection = projectCapabilityNavigation([
+      capabilityRecord("extensions.installed", ["extensions.installed", "extensions.catalog"]),
+    ]);
+
+    expect(resolveCapabilityBreadcrumbTrail("/extensions/changelog-pro", projection)).toEqual([
+      { labelKey: "navigation:EXTENSIONS" },
+    ]);
+    expect(resolveCapabilityBreadcrumbKey("/extensions/changelog-pro", projection)).toBe(
+      "navigation:EXTENSIONS",
     );
   });
 

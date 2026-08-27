@@ -15,7 +15,7 @@ import {
   updateAiProvider,
 } from "@/ai/ai-services-api";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
-import { AiProvidersPage } from "@/pages/ai-services";
+import { AiProvidersPage } from "@/pages/ai-providers";
 
 vi.mock("@/ai/ai-services-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/ai/ai-services-api")>();

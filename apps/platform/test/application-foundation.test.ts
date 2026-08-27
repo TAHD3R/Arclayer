@@ -60,12 +60,19 @@ describe("Platform application foundation", () => {
     expect(favicon).toContain("Arclayer Arc Weave");
   });
 
-  it("provides shared Chrome Tabs behavior at the Platform composition root", async () => {
-    const app = await readRepositoryFile("apps/platform/src/app.tsx");
+  it("keeps the shared UI token system as the only visual-token authority", async () => {
+    const stylesheet = await readRepositoryFile("apps/platform/src/index.css");
+    const document = await readRepositoryFile("apps/platform/index.html");
 
-    expect(app).toContain("<ChromeTabsProvider");
-    expect(app).toContain('scrollLeftAriaLabel: t("TABS_SCROLL_LEFT")');
-    expect(app).toContain('scrollRightAriaLabel: t("TABS_SCROLL_RIGHT")');
+    expect(stylesheet).toContain('@import "@arclayer/ui/tokens.css" layer(theme)');
+    expect(stylesheet).toContain('@custom-variant dark (&:is([data-theme="dark"] *))');
+    expect(stylesheet).not.toContain(":root {");
+    expect(stylesheet).not.toContain(".dark {");
+    expect(stylesheet).not.toContain("@theme inline");
+
+    expect(document).toContain("document.documentElement.dataset.theme = resolvedTheme");
+    expect(document).toContain('html[data-theme="dark"] #app-loading');
+    expect(document).not.toContain('classList.toggle("dark"');
   });
 
   it("ships an independent Platform locale tree with exact key parity", async () => {

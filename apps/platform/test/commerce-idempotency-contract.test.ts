@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = (path: string) => readFileSync(resolve(process.cwd(), "src/pages", path), "utf8");
+const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
 describe("Commerce mutation idempotency contract", () => {
   it("binds every rendered Commerce mutation key to its target, inputs, and revision", () => {
-    const configuration = source("commerce-configuration.tsx");
-    const payments = source("commerce-payments.tsx");
-    const plans = source("commerce-plans.tsx");
+    const configuration = source("src/pages/commerce-configuration.tsx");
+    const payments = source("src/commerce/payment-events-table.tsx");
+    const plans = source("src/pages/commerce-plans.tsx");
 
     expect(configuration).toContain(
       "const fingerprint = JSON.stringify([policy.provider, policy.revision, mode, parsed]);",

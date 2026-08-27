@@ -66,7 +66,7 @@ export function PlatformPreferencesProvider({ children }: { children: ReactNode 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const applyTheme = () => {
-      document.documentElement.classList.toggle("dark", resolveTheme(theme) === "dark");
+      document.documentElement.dataset.theme = resolveTheme(theme);
     };
     applyTheme();
     if (theme !== "system") return;
@@ -90,7 +90,7 @@ export function PlatformPreferencesProvider({ children }: { children: ReactNode 
       theme,
       setTheme: (nextTheme) => {
         window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-        document.documentElement.classList.toggle("dark", resolveTheme(nextTheme) === "dark");
+        document.documentElement.dataset.theme = resolveTheme(nextTheme);
         setThemeState(nextTheme);
       },
     }),

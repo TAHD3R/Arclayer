@@ -398,6 +398,11 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 required_view_permissions=(PlatformPermissionCode.MONITORING_AUDIT_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.MONITORING_JOBS,
+                required_view_permissions=(PlatformPermissionCode.JOBS_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
         ),
         required_view_permissions=(PlatformPermissionCode.MONITORING_REQUESTS_READ,),
         view_permission_match=PlatformCapabilityPermissionMatch.ALL,

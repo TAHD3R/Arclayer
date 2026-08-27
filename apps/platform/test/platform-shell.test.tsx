@@ -169,8 +169,18 @@ describe("Platform shell", () => {
         .getAllByRole("link", { name: "Workspaces" })
         .some((link) => link.getAttribute("href") === "/workspaces"),
     ).toBe(true);
-    expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("data-active", "true");
+    const usersSidebarLinks = screen
+      .getAllByRole("link", { name: "Users" })
+      .filter((link) => link.getAttribute("href") === "/users");
+    expect(usersSidebarLinks).toHaveLength(1);
+    expect(usersSidebarLinks[0]).toHaveAttribute("data-active", "true");
     expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("data-active", "false");
+    const breadcrumb = screen.getByRole("navigation", { name: "breadcrumb" });
+    expect(within(breadcrumb).getByRole("link", { name: "Workspaces" })).toHaveAttribute(
+      "href",
+      "/workspaces",
+    );
+    expect(within(breadcrumb).getByText("Users")).toBeVisible();
     expect(screen.getByRole("button", { name: "Monitoring and audit" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Requests and errors" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
@@ -444,10 +454,10 @@ describe("Platform shell", () => {
     expect(document.documentElement.lang).toBe("zh-CN");
 
     await user.click(screen.getByRole("button", { name: "浅色" }));
-    expect(document.documentElement).not.toHaveClass("dark");
+    expect(document.documentElement.dataset.theme).toBe("light");
 
     await user.click(screen.getByRole("button", { name: "深色" }));
-    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
 
     await user.click(screen.getByRole("button", { name: "使用系统设置" }));
     expect(window.localStorage.getItem("arclayer:platform:theme")).toBe("system");

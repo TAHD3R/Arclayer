@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { platformListPlatformCapabilities } from "@arclayer/platform-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +19,24 @@ vi.unmock("@/capabilities/catalog-api");
 describe("Platform capability Catalog API", () => {
   beforeEach(() => {
     vi.mocked(platformListPlatformCapabilities).mockReset();
+  });
+
+  it("exposes the rollout preview and apply flow through the generated SDK", async () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../src");
+    const source = await readFile(path.join(root, "capabilities/catalog-api.ts"), "utf8");
+
+    expect(source).toContain("platformPreviewWorkspaceCapabilityRollout");
+    expect(source).toContain("platformApplyWorkspaceCapabilityRollout");
+    expect(source).not.toContain("fetch(");
+
+    const rolloutSheet = await readFile(
+      path.join(root, "capabilities/capability-rollout-sheet.tsx"),
+      "utf8",
+    );
+    expect(rolloutSheet).toContain("previewCapabilityRollout");
+    expect(rolloutSheet).toContain("applyCapabilityRollout");
+    expect(rolloutSheet).toContain("ROLLOUT_REASON_REQUIRED");
+    expect(rolloutSheet).toContain("applyAttempt.current?.fingerprint !== fingerprint");
   });
 
   it("uses the generated Platform SDK and unwraps the canonical envelope", async () => {

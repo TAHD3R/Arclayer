@@ -55,18 +55,18 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
   await currentPage.getByRole("button", { name: "Appearance & language" }).click();
   await currentPage.getByRole("button", { name: "Dark", exact: true }).click();
   await expect
-    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
-    .toBe(true);
+    .poll(() => currentPage.locator("html").evaluate((html) => html.dataset.theme))
+    .toBe("dark");
   await currentPage.emulateMedia({ colorScheme: "light" });
   await currentPage.getByRole("button", { name: "Light", exact: true }).click();
   await expect
-    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
-    .toBe(false);
+    .poll(() => currentPage.locator("html").evaluate((html) => html.dataset.theme))
+    .toBe("light");
   await currentPage.emulateMedia({ colorScheme: "dark" });
   await currentPage.getByRole("button", { name: "Use system setting", exact: true }).click();
   await expect
-    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
-    .toBe(true);
+    .poll(() => currentPage.locator("html").evaluate((html) => html.dataset.theme))
+    .toBe("dark");
 
   await currentPage.getByRole("button", { name: "简体中文", exact: true }).click();
   await expect(currentPage.getByRole("heading", { name: "总览", exact: true })).toBeVisible();

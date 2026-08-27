@@ -1,6 +1,8 @@
 import {
+  platformDeleteUserAccount,
   platformDisableProject,
   platformDisableUser,
+  platformDisableUserTwoFactor,
   platformArchiveWorkspace,
   platformDisableWorkspace,
   platformEnableProject,
@@ -13,7 +15,11 @@ import {
   platformListProjects,
   platformListUsers,
   platformListWorkspaces,
+  platformResetUserPassword,
   platformRestoreWorkspace,
+  platformRevokeUserSessions,
+  platformSendUserResetPasswordEmail,
+  platformUnlinkUserOauthIdentity,
   platformUpdateWorkspace,
   type AccessRestrictionEnforceRequest,
   type AccessRestrictionLiftRequest,
@@ -258,6 +264,108 @@ export async function enableTenantUser(
         path: { user_id: userId },
         headers: { "Idempotency-Key": idempotencyKey },
         body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+function unwrapVoid(result: SdkResult<null>): void {
+  if (result.error !== undefined) {
+    throw new TenantDirectoryApiError(
+      errorCode(result.error) ?? "TENANT_DIRECTORY_REQUEST_FAILED",
+      result.response?.status,
+    );
+  }
+  if (!result.data || result.data.error) {
+    throw new TenantDirectoryApiError(
+      result.data?.error ?? "TENANT_DIRECTORY_RESPONSE_INVALID",
+      result.response?.status,
+    );
+  }
+}
+
+export async function resetTenantUserPassword(
+  userId: string,
+  newPassword: string,
+): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformResetUserPassword({
+        client: platformApiClient,
+        path: { user_id: userId },
+        body: { newPassword },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function sendTenantUserResetPasswordEmail(
+  userId: string,
+): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformSendUserResetPasswordEmail({
+        client: platformApiClient,
+        path: { user_id: userId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function revokeTenantUserSessions(userId: string): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformRevokeUserSessions({
+        client: platformApiClient,
+        path: { user_id: userId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function disableTenantUserTwoFactor(userId: string): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformDisableUserTwoFactor({
+        client: platformApiClient,
+        path: { user_id: userId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function deleteTenantUserAccount(userId: string): Promise<void> {
+  try {
+    unwrapVoid(
+      await platformDeleteUserAccount({
+        client: platformApiClient,
+        path: { user_id: userId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function unlinkTenantUserOauthProvider(
+  userId: string,
+  provider: string,
+): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformUnlinkUserOauthIdentity({
+        client: platformApiClient,
+        path: { user_id: userId, provider },
       }),
     );
   } catch (error) {
