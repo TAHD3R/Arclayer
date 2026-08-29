@@ -15,7 +15,7 @@ describe("post-auth-routing", () => {
     mocked.listMyWorkspaces.mockReset();
   });
 
-  test("lands on project overview when no workspace is available", async () => {
+  test("routes workspaceless users back to welcome in create-workspace mode", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
       instanceSetup: { status: "ready", repairReason: null },
@@ -23,9 +23,10 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/projects");
+    expect(decision.path).toBe("/welcome");
     expect(decision.workspaceId).toBeNull();
-    expect(decision.onboardingRequired).toBe(false);
+    expect(decision.onboardingRequired).toBe(true);
+    expect(decision.welcomeMode).toBe("create-workspace");
   });
 
   test("uses the remembered workspace when it still exists", async () => {
@@ -73,19 +74,7 @@ describe("post-auth-routing", () => {
     expect(decision.path).toBe("/projects");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(false);
-  });
-
-  test("falls back to root when no workspace can be resolved", async () => {
-    mocked.listMyWorkspaces.mockResolvedValue({
-      items: [],
-      instanceSetup: { status: "ready", repairReason: null },
-      onboarding: { status: "completed", workspaceId: null },
-    });
-
-    const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/projects");
-    expect(decision.workspaceId).toBeNull();
-    expect(decision.onboardingRequired).toBe(false);
+    expect(decision.welcomeMode).toBeNull();
   });
 
   test("routes first login to welcome and marks onboarding as required", async () => {
@@ -106,6 +95,7 @@ describe("post-auth-routing", () => {
     expect(decision.path).toBe("/welcome");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(true);
+    expect(decision.welcomeMode).toBeNull();
   });
 
   test("keeps onboarding blocked on welcome until defaults are confirmed", async () => {
@@ -119,6 +109,7 @@ describe("post-auth-routing", () => {
     expect(decision.path).toBe("/welcome");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(true);
+    expect(decision.welcomeMode).toBeNull();
   });
 
   test("surfaces workspace lookup failures instead of bypassing onboarding", async () => {

@@ -162,7 +162,10 @@ export const Route = createRootRoute({
       });
       if (decision.onboardingRequired) {
         if (!isWelcome) {
-          throw redirect({ to: "/welcome" });
+          throw redirect({
+            to: "/welcome",
+            ...(decision.welcomeMode ? { search: { mode: decision.welcomeMode } } : {}),
+          });
         }
         return;
       }
@@ -198,7 +201,10 @@ export const Route = createRootRoute({
             : null;
         throw redirect({
           to: "/welcome",
-          ...(safeRedirect ? { search: { redirect: safeRedirect } } : {}),
+          search: {
+            ...(decision.welcomeMode ? { mode: decision.welcomeMode } : {}),
+            ...(safeRedirect ? { redirect: safeRedirect } : {}),
+          },
         });
       }
       if (

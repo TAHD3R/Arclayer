@@ -6,6 +6,8 @@ export interface PostAuthRouteDecision {
   workspaceId: string | null;
   projectId: string | null;
   onboardingRequired: boolean;
+  /** Welcome flow mode to enter when onboardingRequired; null keeps the default first-run flow. */
+  welcomeMode: "create-workspace" | null;
 }
 
 export async function resolvePostAuthRoute(params: {
@@ -26,6 +28,7 @@ export async function resolvePostAuthRoute(params: {
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,
+      welcomeMode: null,
     };
   }
 
@@ -35,11 +38,27 @@ export async function resolvePostAuthRoute(params: {
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,
+      welcomeMode: null,
+    };
+  }
+
+  const items = workspaces.items ?? [];
+
+  // Workspace existence is the entry invariant: a user without any active
+  // workspace membership must rebuild one through the create-workspace flow
+  // before entering the platform, even after finishing first-run onboarding.
+  if (items.length === 0) {
+    return {
+      path: "/welcome",
+      workspaceId: null,
+      projectId: null,
+      onboardingRequired: true,
+      welcomeMode: "create-workspace",
     };
   }
 
   const workspace = pickDefaultWorkspace({
-    workspaces: workspaces.items ?? [],
+    workspaces: items,
     lastWorkspaceId,
   });
 
@@ -49,6 +68,7 @@ export async function resolvePostAuthRoute(params: {
       workspaceId: workspace.workspaceId,
       projectId: workspace.projectId ?? null,
       onboardingRequired: false,
+      welcomeMode: null,
     };
   }
 
@@ -57,5 +77,6 @@ export async function resolvePostAuthRoute(params: {
     workspaceId: null,
     projectId: null,
     onboardingRequired: false,
+    welcomeMode: null,
   };
 }

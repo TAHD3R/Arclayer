@@ -14,6 +14,7 @@ const {
     workspaceId: null as string | null,
     projectId: null as string | null,
     onboardingRequired: true,
+    welcomeMode: null as "create-workspace" | null,
   })),
   routeState: {
     pathname: "/projects",
@@ -111,6 +112,7 @@ describe("welcome onboarding route guard", () => {
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,
+      welcomeMode: null,
     });
     setCurrentContextMock.mockReset();
     workspaceState.currentProjectId = null;
@@ -206,6 +208,7 @@ describe("welcome onboarding route guard", () => {
       workspaceId: "workspace-current",
       projectId: "project-current",
       onboardingRequired: false,
+      welcomeMode: null,
     });
 
     await expect(
@@ -232,6 +235,7 @@ describe("welcome onboarding route guard", () => {
       workspaceId: "workspace-current",
       projectId: "project-default",
       onboardingRequired: false,
+      welcomeMode: null,
     });
 
     await rootRouteConfig.beforeLoad({
@@ -294,6 +298,7 @@ describe("welcome onboarding route guard", () => {
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,
+      welcomeMode: null,
     });
 
     await expect(
@@ -313,5 +318,53 @@ describe("welcome onboarding route guard", () => {
       to: "/welcome",
       search: { redirect: "/projects/project-invite" },
     });
+  });
+
+  it("redirects workspaceless completed users to the create-workspace welcome flow", async () => {
+    routeState.pathname = "/projects";
+    resolvePostAuthRouteMock.mockResolvedValueOnce({
+      path: "/welcome",
+      workspaceId: null,
+      projectId: null,
+      onboardingRequired: true,
+      welcomeMode: "create-workspace",
+    });
+
+    await expect(
+      rootRouteConfig.beforeLoad({
+        location: {
+          pathname: "/projects",
+          searchStr: "",
+          search: {},
+        },
+      }),
+    ).rejects.toEqual({
+      to: "/welcome",
+      search: { mode: "create-workspace" },
+    });
+
+    expect(redirectMock).toHaveBeenCalledWith({
+      to: "/welcome",
+      search: { mode: "create-workspace" },
+    });
+  });
+
+  it("keeps the create-workspace welcome flow local after auth", async () => {
+    routeState.pathname = "/welcome";
+    redirectMock.mockClear();
+    resolvePostAuthRouteMock.mockClear();
+
+    await expect(
+      rootRouteConfig.beforeLoad({
+        location: {
+          pathname: "/welcome",
+          searchStr: "?mode=create-workspace",
+          search: { mode: "create-workspace" },
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(resolvePostAuthRouteMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 });
