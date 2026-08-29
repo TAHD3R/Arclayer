@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, CircleAlert, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -19,10 +19,11 @@ export function WorkspaceSkillPackageArchiveAction(props: {
   workspaceId: string;
   packageId: string;
   metadataRevision: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const archiveKey = useRef("");
   const impactQuery = useQuery({
     queryKey: [
@@ -34,7 +35,7 @@ export function WorkspaceSkillPackageArchiveAction(props: {
     ],
     queryFn: ({ signal }) =>
       getWorkspaceSkillPackageImpact(props.workspaceId, props.packageId, signal),
-    enabled: open,
+    enabled: props.open,
   });
   const archiveMutation = useMutation({
     mutationFn: () =>
@@ -47,81 +48,76 @@ export function WorkspaceSkillPackageArchiveAction(props: {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: WORKSPACE_SKILLS_QUERY_KEY });
       notifySuccessText(t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_SUCCESS"));
-      setOpen(false);
+      props.onOpenChange(false);
     },
   });
+
+  // Each opening of the review dialog targets a distinct package state, so the
+  // idempotency key must be fresh per session.
+  useEffect(() => {
+    if (!props.open) return;
+    archiveKey.current = crypto.randomUUID();
+    archiveMutation.reset();
+  }, [archiveMutation, props.open]);
+
   const impact = impactQuery.data;
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        className="text-destructive hover:text-destructive"
-        onClick={() => {
-          archiveKey.current = crypto.randomUUID();
-          archiveMutation.reset();
-          setOpen(true);
-        }}
-      >
-        <Archive data-icon="inline-start" />
-        {t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_REVIEW_ACTION")}
-      </Button>
-      <SettingDialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!archiveMutation.isPending) setOpen(nextOpen);
-        }}
-        title={t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_TITLE")}
-        description={t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_DESC")}
-        contentClassName="sm:max-w-3xl"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              disabled={archiveMutation.isPending}
-              onClick={() => setOpen(false)}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              variant="destructive"
-              loading={archiveMutation.isPending}
-              disabled={!impact?.canArchive}
-              onClick={() => archiveMutation.mutate()}
-            >
-              <Archive data-icon="inline-start" />
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_CONFIRM_ACTION")}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-5">
-          {impactQuery.isPending ? (
-            <div className="grid gap-3" aria-live="polite">
-              <div className="h-32 animate-pulse rounded-lg bg-muted" />
-              <p className="text-footnote text-label-secondary">
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_LOADING")}
-              </p>
-            </div>
-          ) : null}
-          {impactQuery.isError ? (
-            <ArchiveError
-              message={getErrorMessage(impactQuery.error)}
-              retrying={impactQuery.isFetching}
-              onRetry={() => void impactQuery.refetch()}
-            />
-          ) : null}
-          {impact ? <PackageImpactReview impact={impact} /> : null}
-          {archiveMutation.isError ? (
-            <ArchiveError
-              message={getErrorMessage(archiveMutation.error)}
-              retrying={archiveMutation.isPending}
-              onRetry={() => archiveMutation.mutate()}
-            />
-          ) : null}
-        </div>
-      </SettingDialog>
-    </>
+    <SettingDialog
+      open={props.open}
+      onOpenChange={(nextOpen) => {
+        if (!archiveMutation.isPending) props.onOpenChange(nextOpen);
+      }}
+      title={t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_TITLE")}
+      description={t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_DESC")}
+      contentClassName="sm:max-w-3xl"
+      footer={
+        <>
+          <Button
+            variant="ghost"
+            disabled={archiveMutation.isPending}
+            onClick={() => props.onOpenChange(false)}
+          >
+            {t("common:CANCEL")}
+          </Button>
+          <Button
+            variant="destructive"
+            loading={archiveMutation.isPending}
+            disabled={!impact?.canArchive}
+            onClick={() => archiveMutation.mutate()}
+          >
+            <Archive data-icon="inline-start" />
+            {t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_CONFIRM_ACTION")}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {impactQuery.isPending ? (
+          <div className="grid gap-3" aria-live="polite">
+            <div className="h-32 animate-pulse rounded-lg bg-muted" />
+            <p className="text-footnote text-label-secondary">
+              {t("settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_LOADING")}
+            </p>
+          </div>
+        ) : null}
+        {impactQuery.isError ? (
+          <ArchiveError
+            message={getErrorMessage(impactQuery.error)}
+            retrying={impactQuery.isFetching}
+            onRetry={() => void impactQuery.refetch()}
+          />
+        ) : null}
+        {impact ? <PackageImpactReview impact={impact} /> : null}
+        {archiveMutation.isError ? (
+          <ArchiveError
+            message={getErrorMessage(archiveMutation.error)}
+            retrying={archiveMutation.isPending}
+            onRetry={() => archiveMutation.mutate()}
+          />
+        ) : null}
+      </div>
+    </SettingDialog>
   );
 }
 

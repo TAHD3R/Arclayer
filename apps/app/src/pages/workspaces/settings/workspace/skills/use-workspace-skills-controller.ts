@@ -44,10 +44,9 @@ function latestValidation(results: readonly SkillValidationResultOut[]) {
   )[0];
 }
 
-export function useWorkspaceSkillsController(workspaceId: string) {
+export function useWorkspaceSkillsController(workspaceId: string, search: string) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -90,20 +89,9 @@ export function useWorkspaceSkillsController(workspaceId: string) {
 
   const packages = packagesQuery.data?.items ?? [];
   const installations = installationsQuery.data?.items ?? [];
-  const selectedPackage =
-    packages.find((skillPackage) => skillPackage.id === selectedPackageId) ?? packages[0];
-
-  useEffect(() => {
-    if (!selectedPackage) {
-      setSelectedPackageId(null);
-      setSelectedVersionId(null);
-      return;
-    }
-    if (selectedPackage.id !== selectedPackageId) {
-      setSelectedPackageId(selectedPackage.id);
-      setSelectedVersionId(null);
-    }
-  }, [selectedPackage, selectedPackageId]);
+  // The detail dialog owns selection: queries below only run while a package is
+  // selected, so closing the dialog releases the detail network work.
+  const selectedPackage = packages.find((skillPackage) => skillPackage.id === selectedPackageId);
 
   const packageQuery = useQuery({
     queryKey: [...WORKSPACE_SKILLS_QUERY_KEY, workspaceId, "package", selectedPackage?.id],
@@ -285,8 +273,6 @@ export function useWorkspaceSkillsController(workspaceId: string) {
 
   return {
     workspaceId,
-    search,
-    setSearch,
     selectedPackageId,
     setSelectedPackageId,
     selectedVersionId,

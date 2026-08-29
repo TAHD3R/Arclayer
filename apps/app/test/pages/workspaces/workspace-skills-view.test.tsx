@@ -83,6 +83,10 @@ vi.mock("@/lib/notifications", () => ({
   notifyErrorText: (...args: unknown[]) => mocks.notifyErrorText(...args),
 }));
 
+vi.mock("@/hooks/use-current-user-profile", () => ({
+  useCurrentUserProfile: () => ({ profile: { id: "user-1" }, isLoading: false }),
+}));
+
 vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-authoring-dialog", () => ({
   WorkspaceSkillPackageCreateDialog: () => null,
   WorkspaceSkillVersionCreateDialog: () => null,
@@ -90,8 +94,13 @@ vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-authoring-
 vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-install-dialog", () => ({
   WorkspaceSkillInstallDialog: () => null,
 }));
-vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-official-skills-catalog", () => ({
-  WorkspaceOfficialSkillsCatalog: () => <div data-testid="official-skills-table" />,
+vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-official-skills-section", () => ({
+  WorkspaceOfficialSkillsSection: () => <div data-testid="official-skills-section" />,
+}));
+vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-file-browser", () => ({
+  WorkspaceSkillFileBrowser: (props: { files: ReadonlyArray<{ path: string }> }) => (
+    <div data-testid="skill-file-browser">{props.files.map((file) => file.path).join(",")}</div>
+  ),
 }));
 vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
   useEnabledAIComposerSkills: () => ({
@@ -128,6 +137,15 @@ const packageSummary = {
   updatedAt: "2026-07-20T00:00:00Z",
 };
 
+const otherUserPackage = {
+  ...packageSummary,
+  id: "package-2",
+  slug: "brand-voice",
+  displayName: "Brand Voice",
+  description: "Owned by another member.",
+  createdByUserId: "user-2",
+};
+
 const versionSummary = {
   id: "version-1",
   packageId: "package-1",
@@ -159,6 +177,13 @@ const versionDetail = {
         byteSize: 20,
         digest: `sha256:${"b".repeat(64)}`,
       },
+      {
+        path: "guides/evidence.md",
+        role: "reference" as const,
+        mimeType: "text/markdown",
+        byteSize: 15,
+        digest: `sha256:${"e".repeat(64)}`,
+      },
     ],
     requiredTools: [],
     permissions: [],
@@ -174,6 +199,14 @@ const versionDetail = {
       byteSize: 20,
       digest: `sha256:${"b".repeat(64)}`,
       content: "Use approved evidence.",
+    },
+    {
+      path: "guides/evidence.md",
+      role: "reference",
+      mimeType: "text/markdown",
+      byteSize: 15,
+      digest: `sha256:${"e".repeat(64)}`,
+      content: "Only cite verified sources.",
     },
   ],
   sourceProvenance: { kind: "inline" },
@@ -191,15 +224,25 @@ const validation = {
   createdAt: "2026-07-20T00:01:00Z",
 };
 
-function renderView() {
+function renderView(scope: "official" | "workspace" | "mine" = "workspace") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceSkillsView workspaceId="workspace-1" />
+      <WorkspaceSkillsView
+        onSearchChange={vi.fn()}
+        scope={scope}
+        search=""
+        workspaceId="workspace-1"
+      />
     </QueryClientProvider>,
   );
+}
+
+async function openDetailDialog() {
+  fireEvent.click(await screen.findByRole("button", { name: /Editorial Planner/ }));
+  return screen.findByTestId("skill-file-browser");
 }
 
 describe("WorkspaceSkillsView", () => {
@@ -215,7 +258,10 @@ describe("WorkspaceSkillsView", () => {
       installationAvailable: true,
       agentSkillGrantsAvailable: true,
     });
-    mocks.listPackages.mockResolvedValue({ items: [packageSummary], nextCursor: null });
+    mocks.listPackages.mockResolvedValue({
+      items: [packageSummary, otherUserPackage],
+      nextCursor: null,
+    });
     mocks.getPackage.mockResolvedValue({ ...packageSummary, latestVersion: versionSummary });
     mocks.listVersions.mockResolvedValue({ items: [versionSummary], nextCursor: null });
     mocks.getVersion.mockResolvedValue(versionDetail);
@@ -256,26 +302,61 @@ describe("WorkspaceSkillsView", () => {
     });
   });
 
-  it("renders the authored, validated, and exact-install lifecycle without stale Agent gates", async () => {
-    renderView();
+  it("renders workspace skill cards and opens the detail dialog with full files", async () => {
+    renderView("workspace");
 
-    expect(
-      await screen.findByRole("heading", { level: 2, name: "Editorial Planner" }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText("SETTINGS_WORKSPACE_SKILLS_LIFECYCLE_AUTHORED"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("SETTINGS_WORKSPACE_SKILLS_LIFECYCLE_VALIDATED")).toBeInTheDocument();
-    expect(screen.getByText("SETTINGS_WORKSPACE_SKILLS_LIFECYCLE_INSTALLED")).toBeInTheDocument();
-    expect(screen.queryByText("SETTINGS_WORKSPACE_SKILLS_GATED")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Editorial Planner/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Brand Voice/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("official-skills-section")).not.toBeInTheDocument();
+
+    const fileBrowser = await openDetailDialog();
+    expect(fileBrowser).toHaveTextContent("SKILL.md");
+    expect(fileBrowser).toHaveTextContent("guides/evidence.md");
     expect(screen.getByText("SETTINGS_WORKSPACE_SKILLS_VALIDATION_PASSED")).toBeInTheDocument();
   });
 
+  it("scopes the mine tab to the current member's skills", async () => {
+    renderView("mine");
+
+    expect(await screen.findByRole("button", { name: /Editorial Planner/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Brand Voice/ })).not.toBeInTheDocument();
+  });
+
+  it("renders the official section instead of workspace cards on the official tab", async () => {
+    renderView("official");
+
+    expect(await screen.findByTestId("official-skills-section")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editorial Planner/ })).not.toBeInTheDocument();
+  });
+
   it("sends search text to the package query contract", async () => {
-    renderView();
-    fireEvent.change(
-      await screen.findByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_SEARCH_LABEL"),
-      { target: { value: "editorial" } },
+    const onSearchChange = vi.fn();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    // The header search control lives in the page shell; the view consumes its
+    // value as a controlled prop and funnels it into the package query.
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <WorkspaceSkillsView
+          onSearchChange={onSearchChange}
+          scope="workspace"
+          search=""
+          workspaceId="workspace-1"
+        />
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("button", { name: /Editorial Planner/ });
+
+    view.rerender(
+      <QueryClientProvider client={queryClient}>
+        <WorkspaceSkillsView
+          onSearchChange={onSearchChange}
+          scope="workspace"
+          search="editorial"
+          workspaceId="workspace-1"
+        />
+      </QueryClientProvider>,
     );
 
     await waitFor(() => {
@@ -286,75 +367,24 @@ describe("WorkspaceSkillsView", () => {
     });
   });
 
-  it("shows workspace and Arclayer Skills with the knowledge-page heading hierarchy", async () => {
-    renderView();
-
-    expect(
-      await screen.findByRole("heading", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_TAB_WORKSPACE",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_TAB_OFFICIAL",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("official-skills-table")).toBeInTheDocument();
-  });
-
-  it("renders a Header split button whose primary action writes manually", async () => {
+  it("runs a real validation command from the detail actions menu", async () => {
     const user = userEvent.setup();
-    const onSelect = vi.fn();
-    render(<WorkspaceSkillsHeaderActions workspaceId="workspace-1" onSelect={onSelect} />);
-
-    await user.click(screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_ADD_ACTION" }));
-    expect(onSelect).toHaveBeenCalledWith("manual");
-
-    await user.click(screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_ADD_OPTIONS" }));
-    expect(
-      await screen.findByRole("menuitem", {
-        name: "SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole("separator").length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText("SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER_DESC"),
-    ).not.toBeInTheDocument();
+    renderView("workspace");
+    await openDetailDialog();
 
     await user.click(
-      screen.getByRole("menuitem", {
-        name: "SETTINGS_WORKSPACE_SKILLS_BUILD_WITH_ARCLAYER",
-      }),
+      await screen.findByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_DETAIL_MORE" }),
     );
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/",
-      search: {
-        prompt: ":skill[Skill Creator]{name=installation-skill-creator} ",
-      },
-    });
-    expect(useAIComposerDirectiveStore.getState().directivesByScope.home).toEqual([
-      {
-        type: "skill",
-        id: "installation-skill-creator",
-        label: "Skill Creator",
-        command: "skill-creator",
-      },
-    ]);
-  });
-
-  it("runs a real validation command and refreshes the governed projection", async () => {
-    renderView();
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "SETTINGS_WORKSPACE_SKILLS_VALIDATE_ACTION",
-      }),
+    await user.click(
+      screen.getByRole("menuitem", { name: "SETTINGS_WORKSPACE_SKILLS_VALIDATE_ACTION" }),
     );
 
     await waitFor(() => expect(mocks.validate).toHaveBeenCalledTimes(1));
     expect(mocks.notifySuccess).toHaveBeenCalledWith("SETTINGS_WORKSPACE_SKILLS_VALIDATED");
   });
 
-  it("refreshes GitHub packages through the durable source operation instead of inline authoring", async () => {
+  it("refreshes GitHub packages from the detail actions menu instead of inline authoring", async () => {
+    const user = userEvent.setup();
     const githubPackage = {
       ...packageSummary,
       sourceKind: "github",
@@ -372,10 +402,14 @@ describe("WorkspaceSkillsView", () => {
         resolvedCommit: "a".repeat(40),
       },
     });
-    renderView();
+    renderView("workspace");
+    await openDetailDialog();
 
-    fireEvent.click(
-      await screen.findByRole("button", {
+    await user.click(
+      await screen.findByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_DETAIL_MORE" }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", {
         name: "SETTINGS_WORKSPACE_SKILLS_GITHUB_REFRESH_ACTION",
       }),
     );
@@ -423,10 +457,15 @@ describe("WorkspaceSkillsView", () => {
       createdAt: "2026-07-20T00:02:00Z",
       updatedAt: "2026-07-20T00:03:00Z",
     });
-    renderView();
+    renderView("workspace");
+    await openDetailDialog();
 
-    fireEvent.click(
-      await screen.findByRole("button", {
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_DETAIL_MORE" }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", {
         name: "SETTINGS_WORKSPACE_SKILLS_GITHUB_REFRESH_ACTION",
       }),
     );
@@ -439,5 +478,94 @@ describe("WorkspaceSkillsView", () => {
         "SETTINGS_WORKSPACE_SKILLS_GITHUB_REFRESHED",
       ),
     );
+  });
+
+  it("offers upload and GitHub import entry points on the workspace tab", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <WorkspaceSkillsHeaderActions
+        onSelect={onSelect}
+        scope="workspace"
+        workspaceId="workspace-1"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "SETTINGS_WORKSPACE_SKILLS_CREATE_FOR_WORKSPACE",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("menuitem", { name: "SETTINGS_WORKSPACE_SKILLS_UPLOAD_ZIP" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_IMPORT_GITHUB",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_ADD_FROM_OFFICIAL",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("routes mine-tab creation entries to chat and the official catalog", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <WorkspaceSkillsHeaderActions onSelect={onSelect} scope="mine" workspaceId="workspace-1" />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_CREATE_FOR_MINE" }),
+    );
+
+    expect(
+      await screen.findByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_CREATE_WITH_CHAT",
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_ADD_FROM_OFFICIAL",
+      }),
+    );
+    expect(onSelect).toHaveBeenCalledWith("browse-official");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps chat creation wired to the AI skill creator directive flow", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <WorkspaceSkillsHeaderActions onSelect={onSelect} scope="mine" workspaceId="workspace-1" />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_CREATE_FOR_MINE" }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "SETTINGS_WORKSPACE_SKILLS_CREATE_WITH_CHAT",
+      }),
+    );
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/",
+      search: {
+        prompt: ":skill[Skill Creator]{name=installation-skill-creator} ",
+      },
+    });
+    expect(useAIComposerDirectiveStore.getState().directivesByScope.home).toEqual([
+      {
+        type: "skill",
+        id: "installation-skill-creator",
+        label: "Skill Creator",
+        command: "skill-creator",
+      },
+    ]);
   });
 });

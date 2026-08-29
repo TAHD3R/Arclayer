@@ -100,10 +100,13 @@ function createController() {
           "settings:SETTINGS_WORKSPACE_ID_TITLE": "工作空间 ID",
           "settings:SETTINGS_WORKSPACE_ID_COPIED": "工作空间 ID 已复制",
           "settings:SETTINGS_SAVE": "保存",
+          "settings:SETTINGS_NOT_SET": "未设置",
           "settings:SETTINGS_WORKSPACE_DESCRIPTION_TOO_LONG": "介绍过长（最多 256 字符）",
           "common:ORG_WORKSPACES_FIELD_DESCRIPTION": "介绍",
           "common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER": "填写工作空间介绍",
           "common:ORG_WORKSPACES_ACTION_CHANGE_ICON": "更换图标",
+          "common:EDIT": "编辑",
+          "common:CANCEL": "取消",
           "common:DUPLICATE": "复制",
         }) as Record<string, string>
       )[key] ?? key,
@@ -137,8 +140,9 @@ describe("WorkspaceSettingsIconAccordionItem", () => {
     render(<WorkspaceSettingsIconAccordionItem controller={createController() as never} />);
 
     expect(screen.getByTestId("workspace-basics-card")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Workspace Alpha")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Brand system and marketing operations.")).toBeInTheDocument();
+    expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
+    expect(screen.getByText("Brand system and marketing operations.")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2);
     expect(screen.getByText("工作空间 ID")).toBeInTheDocument();
     expect(screen.getByText("ws-1")).toBeInTheDocument();
   });
@@ -149,6 +153,7 @@ describe("WorkspaceSettingsIconAccordionItem", () => {
 
     render(<WorkspaceSettingsIconAccordionItem controller={controller as never} />);
 
+    await user.click(screen.getAllByRole("button", { name: "编辑" })[0]);
     const input = screen.getByDisplayValue("Workspace Alpha");
     await user.clear(input);
     await user.type(input, "Workspace Beta");
@@ -166,12 +171,11 @@ describe("WorkspaceSettingsIconAccordionItem", () => {
 
     render(<WorkspaceSettingsIconAccordionItem controller={controller as never} />);
 
+    await user.click(screen.getAllByRole("button", { name: "编辑" })[1]);
     const textarea = screen.getByDisplayValue("Brand system and marketing operations.");
     await user.clear(textarea);
     await user.type(textarea, "New workspace description");
-
-    const saveButtons = screen.getAllByRole("button", { name: "保存" });
-    await user.click(saveButtons[saveButtons.length - 1]);
+    await user.click(screen.getByRole("button", { name: "保存" }));
 
     expect(controller.withSavingKey).toHaveBeenCalledWith(
       "workspace:description",
@@ -180,6 +184,24 @@ describe("WorkspaceSettingsIconAccordionItem", () => {
     expect(controller.patchWorkspaceMutation.mutateAsync).toHaveBeenCalledWith({
       description: "New workspace description",
     });
+  });
+
+  it("exits name edit mode without saving when the value is unchanged", async () => {
+    const user = userEvent.setup();
+    const controller = createController();
+
+    render(<WorkspaceSettingsIconAccordionItem controller={controller as never} />);
+
+    await user.click(screen.getAllByRole("button", { name: "编辑" })[0]);
+    const saveButton = screen.getByRole("button", { name: "保存" });
+    expect(saveButton).toBeEnabled();
+
+    await user.click(saveButton);
+
+    expect(screen.queryByDisplayValue("Workspace Alpha")).not.toBeInTheDocument();
+    expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
+    expect(controller.withSavingKey).not.toHaveBeenCalled();
+    expect(controller.patchWorkspaceMutation.mutateAsync).not.toHaveBeenCalled();
   });
 
   it("opens the shared icon dialog and saves the selected icon", async () => {

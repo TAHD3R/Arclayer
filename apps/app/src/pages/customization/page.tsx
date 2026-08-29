@@ -1,5 +1,5 @@
 import { Blocks, BookOpenText, SwatchBook } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
@@ -8,8 +8,17 @@ import { WorkspaceKnowledgePage } from "@/pages/workspaces/settings/workspace/kn
 import {
   WorkspaceSkillsPage,
   type WorkspaceSkillCreateAction,
+  type WorkspaceSkillScope,
 } from "@/pages/workspaces/settings/workspace/skills/page";
-import { WorkspaceSkillsHeaderActions } from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
+import {
+  WorkspaceSkillsHeaderActions,
+  WorkspaceSkillsSearchControl,
+  type WorkspaceSkillsHeaderAction,
+} from "@/pages/workspaces/settings/workspace/skills/workspace-skills-view";
+import {
+  isWorkspaceSkillScope,
+  WorkspaceSkillsScopeTabs,
+} from "@/pages/workspaces/settings/workspace/skills/workspace-skill-scope-tabs";
 import {
   DesignSystemHeaderDescription,
   DesignSystemHeaderTitle,
@@ -17,6 +26,7 @@ import {
 } from "@/pages/workspaces/settings/workspace/design-systems/workspace-design-systems-view";
 import type { WorkspaceDesignSystemsController } from "@/pages/workspaces/settings/workspace/design-systems/use-workspace-design-systems-controller";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { ChromeTabs } from "@arclayer/ui/chrome-tabs";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 
 type CustomizationSection = "knowledge" | "skills" | "design-systems";
@@ -48,11 +58,17 @@ export function CustomizationPage(props: {
   const copy = SECTION_COPY[props.section];
   const [requestedAction, setRequestedAction] = useState<WorkspaceSkillCreateAction>();
   const [focusRequestId, setFocusRequestId] = useState(0);
+  const [skillScope, setSkillScope] = useState<WorkspaceSkillScope>("official");
+  const [skillSearch, setSkillSearch] = useState("");
   const [designSystemsController, setDesignSystemsController] =
     useState<WorkspaceDesignSystemsController | null>(null);
 
   useEffect(() => {
     if (!props.requestedAction) return;
+    // Creation actions produce workspace-scope skills; land on a tab where the
+    // result is visible.
+    setSkillScope("workspace");
+    setSkillSearch("");
     setRequestedAction(props.requestedAction);
     setFocusRequestId((current) => current + 1);
   }, [props.requestedAction]);
@@ -61,15 +77,45 @@ export function CustomizationPage(props: {
     if (props.section !== "design-systems" || !workspaceId) setDesignSystemsController(null);
   }, [props.section, workspaceId]);
 
-  const requestSkillAction = (action: WorkspaceSkillCreateAction) => {
+  const requestSkillAction = (action: WorkspaceSkillsHeaderAction) => {
+    if (action === "browse-official") {
+      setSkillScope("official");
+      setRequestedAction(undefined);
+      return;
+    }
+    setSkillScope("workspace");
+    setSkillSearch("");
     setRequestedAction(action);
     setFocusRequestId((current) => current + 1);
   };
-  const pageAction =
+  const handleSkillScopeTabChange = (value: string) => {
+    if (!isWorkspaceSkillScope(value)) return;
+    setSkillScope(value);
+    setSkillSearch("");
+  };
+
+  let pageAction: ReactNode = null;
+  if (props.section === "skills" && workspaceId) {
+    pageAction = (
+      <>
+        <WorkspaceSkillsSearchControl onChange={setSkillSearch} value={skillSearch} />
+        {skillScope === "official" ? null : (
+          <WorkspaceSkillsHeaderActions
+            onSelect={requestSkillAction}
+            scope={skillScope}
+            workspaceId={workspaceId}
+          />
+        )}
+      </>
+    );
+  } else if (props.section === "design-systems" && workspaceId && designSystemsController) {
+    pageAction = <WorkspaceDesignSystemsHeaderActions controller={designSystemsController} />;
+  }
+  const pageExtra =
     props.section === "skills" && workspaceId ? (
-      <WorkspaceSkillsHeaderActions workspaceId={workspaceId} onSelect={requestSkillAction} />
-    ) : props.section === "design-systems" && workspaceId && designSystemsController ? (
-      <WorkspaceDesignSystemsHeaderActions controller={designSystemsController} />
+      <div className="border-t border-border pt-3">
+        <WorkspaceSkillsScopeTabs />
+      </div>
     ) : null;
 
   // 详情态把设计系统的名称/描述编辑器提升为页头，替代静态板块文案。
@@ -84,27 +130,31 @@ export function CustomizationPage(props: {
       t(copy.titleKey)
     );
   const pageDescription =
-    designDetailActive && designSystemsController ? (
+    props.section === "skills" ? undefined : designDetailActive && designSystemsController ? (
       <DesignSystemHeaderDescription controller={designSystemsController} />
     ) : (
       t(copy.descriptionKey)
     );
 
-  return (
+  const page = (
     <DefaultPage
-      title={pageTitle}
-      description={pageDescription}
-      showFavoriteToggle={false}
       action={pageAction}
+      description={pageDescription}
+      extra={pageExtra}
+      showFavoriteToggle={false}
+      title={pageTitle}
     >
       {workspaceId ? (
         props.section === "knowledge" ? (
           <WorkspaceKnowledgePage workspaceId={workspaceId} />
         ) : props.section === "skills" ? (
           <WorkspaceSkillsPage
-            workspaceId={workspaceId}
-            requestedAction={requestedAction}
             focusRequestId={focusRequestId}
+            onSearchChange={setSkillSearch}
+            scope={skillScope}
+            search={skillSearch}
+            requestedAction={requestedAction}
+            workspaceId={workspaceId}
           />
         ) : (
           <WorkspaceDesignSystemsPage
@@ -125,4 +175,13 @@ export function CustomizationPage(props: {
       )}
     </DefaultPage>
   );
+
+  if (props.section === "skills") {
+    return (
+      <ChromeTabs onValueChange={handleSkillScopeTabChange} value={skillScope}>
+        {page}
+      </ChromeTabs>
+    );
+  }
+  return page;
 }

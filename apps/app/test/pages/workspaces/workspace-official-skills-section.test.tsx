@@ -9,11 +9,6 @@ const apiMocks = vi.hoisted(() => ({
   detail: vi.fn(),
   install: vi.fn(),
   update: vi.fn(),
-  getInstallation: vi.fn(),
-  preview: vi.fn(),
-  repin: vi.fn(),
-  impact: vi.fn(),
-  remove: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -39,17 +34,22 @@ vi.mock("@/api/workspace-skills", () => ({
   getOfficialSkillCatalogPackage: apiMocks.detail,
   createWorkspaceSkillInstallation: apiMocks.install,
   updateWorkspaceSkillInstallation: apiMocks.update,
-  getWorkspaceSkillInstallation: apiMocks.getInstallation,
-  createWorkspaceSkillUpdatePreview: apiMocks.preview,
-  repinWorkspaceSkillInstallation: apiMocks.repin,
-  getWorkspaceSkillInstallationImpact: apiMocks.impact,
-  removeWorkspaceSkillInstallation: apiMocks.remove,
 }));
 
 vi.mock("@/lib/notifications", () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : "error"),
   notifyError: vi.fn(),
   notifySuccessText: vi.fn(),
+}));
+
+vi.mock("@/components/ui/tags", () => ({
+  BaseTag: (props: { children: React.ReactNode }) => <span>{props.children}</span>,
+}));
+
+vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-file-browser", () => ({
+  WorkspaceSkillFileBrowser: (props: { files: ReadonlyArray<{ path: string }> }) => (
+    <div data-testid="skill-file-browser">{props.files.map((file) => file.path).join(",")}</div>
+  ),
 }));
 
 vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-install-dialog", () => ({
@@ -78,7 +78,7 @@ vi.mock("@/pages/workspaces/settings/workspace/skills/workspace-skill-install-di
     ) : null,
 }));
 
-import { WorkspaceOfficialSkillsCatalog } from "@/pages/workspaces/settings/workspace/skills/workspace-official-skills-catalog";
+import { WorkspaceOfficialSkillsSection } from "@/pages/workspaces/settings/workspace/skills/workspace-official-skills-section";
 
 const item: OfficialSkillCatalogItemOut = {
   packageId: "package-1",
@@ -120,6 +120,13 @@ const detail: OfficialSkillCatalogDetailOut = {
         byteSize: 10,
         digest: `sha256:${"c".repeat(64)}`,
       },
+      {
+        path: "guides/usage.md",
+        role: "reference",
+        mimeType: "text/markdown",
+        byteSize: 12,
+        digest: `sha256:${"d".repeat(64)}`,
+      },
     ],
     requiredTools: [],
     permissions: [],
@@ -127,7 +134,24 @@ const detail: OfficialSkillCatalogDetailOut = {
     capabilityTags: ["site.sitemap"],
     checksum: item.packageChecksum,
   },
-  resources: [],
+  resources: [
+    {
+      path: "SKILL.md",
+      role: "instructions",
+      mimeType: "text/markdown",
+      byteSize: 10,
+      digest: `sha256:${"c".repeat(64)}`,
+      content: "# Sitemap planning\nPlan the hierarchy.",
+    },
+    {
+      path: "guides/usage.md",
+      role: "reference",
+      mimeType: "text/markdown",
+      byteSize: 12,
+      digest: `sha256:${"d".repeat(64)}`,
+      content: "Usage guide",
+    },
+  ],
   validation: {
     policyVersion: 1,
     status: "valid",
@@ -137,18 +161,22 @@ const detail: OfficialSkillCatalogDetailOut = {
   },
 };
 
-function renderCatalog() {
+function renderSection() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceOfficialSkillsCatalog workspaceId="workspace-1" />
+      <WorkspaceOfficialSkillsSection
+        onSearchChange={vi.fn()}
+        search=""
+        workspaceId="workspace-1"
+      />
     </QueryClientProvider>,
   );
 }
 
-describe("WorkspaceOfficialSkillsCatalog", () => {
+describe("WorkspaceOfficialSkillsSection", () => {
   beforeEach(() => {
     apiMocks.list.mockReset().mockResolvedValue({ items: [item], nextCursor: null });
     apiMocks.detail.mockReset().mockResolvedValue(detail);
@@ -156,29 +184,19 @@ describe("WorkspaceOfficialSkillsCatalog", () => {
     apiMocks.update.mockReset();
   });
 
-  it("keeps verification details out of the catalog while installing the exact system version", async () => {
-    renderCatalog();
+  it("installs the exact system version from the card add action", async () => {
+    renderSection();
 
     expect((await screen.findAllByText("Sitemap Planning")).length).toBeGreaterThan(0);
     expect(screen.queryByText("site.sitemap")).not.toBeInTheDocument();
     expect(screen.queryByText(item.packageChecksum)).not.toBeInTheDocument();
-    expect(screen.queryByText("1.0.0")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_VALIDATION"),
-    ).not.toBeInTheDocument();
     expect(apiMocks.list).toHaveBeenCalledWith(
       "workspace-1",
       expect.objectContaining({ limit: 100 }),
     );
 
-    expect(
-      screen.getByText("settings:SETTINGS_WORKSPACE_SKILLS_DISABLED_BADGE"),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
     fireEvent.click(
-      await screen.findByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_ENABLE_ACTION",
-      }),
+      await screen.findByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_CARD_ADD" }),
     );
     const dialog = await screen.findByTestId("official-install-dialog");
     expect(dialog).toHaveAttribute("data-scope", "system");
@@ -196,6 +214,48 @@ describe("WorkspaceOfficialSkillsCatalog", () => {
         }),
         expect.any(String),
       ),
+    );
+  });
+
+  it("opens a detail dialog with the full skill files on card select", async () => {
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Sitemap Planning/ }));
+
+    const detailDialog = await screen.findByTestId("skill-file-browser");
+    expect(detailDialog).toHaveTextContent("SKILL.md");
+    expect(detailDialog).toHaveTextContent("guides/usage.md");
+    expect(
+      screen.getAllByText(/SETTINGS_WORKSPACE_SKILLS_PUBLISHER_ARCLAYER/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("marks installed official skills as added and toggles them from the detail dialog", async () => {
+    const installedItem = {
+      ...item,
+      installed: true,
+      installationStatus: "enabled",
+      installationId: "installation-1",
+      installationMetadataRevision: 3,
+    };
+    apiMocks.list.mockResolvedValue({ items: [installedItem], nextCursor: null });
+    apiMocks.detail.mockResolvedValue({ ...detail, ...installedItem });
+    renderSection();
+
+    expect(await screen.findByText("SETTINGS_WORKSPACE_SKILLS_CARD_ADDED")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "SETTINGS_WORKSPACE_SKILLS_CARD_ADD" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Sitemap Planning/ }));
+    await screen.findByRole("dialog");
+    const toggle = await screen.findByRole("switch");
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(apiMocks.update).toHaveBeenCalledWith("workspace-1", "installation-1", {
+        enabled: false,
+        expectedRevision: 3,
+      }),
     );
   });
 });

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, ShieldAlert, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,10 +17,11 @@ import { getErrorMessage, notifySuccessText } from "@/lib/notifications";
 export function WorkspaceSkillRemovalAction(props: {
   workspaceId: string;
   installation: SkillInstallationOut;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const removalKey = useRef("");
   const impactQuery = useQuery({
     queryKey: [
@@ -32,7 +33,7 @@ export function WorkspaceSkillRemovalAction(props: {
     ],
     queryFn: ({ signal }) =>
       getWorkspaceSkillInstallationImpact(props.workspaceId, props.installation.id, signal),
-    enabled: open,
+    enabled: props.open,
   });
   const removeMutation = useMutation({
     mutationFn: () =>
@@ -45,80 +46,74 @@ export function WorkspaceSkillRemovalAction(props: {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: WORKSPACE_SKILLS_QUERY_KEY });
       notifySuccessText(t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_SUCCESS"));
-      setOpen(false);
+      props.onOpenChange(false);
     },
   });
+
+  // Each opening of the review dialog targets a distinct installation state, so
+  // the idempotency key must be fresh per session.
+  useEffect(() => {
+    if (!props.open) return;
+    removalKey.current = crypto.randomUUID();
+    removeMutation.reset();
+  }, [removeMutation, props.open]);
   const impact = impactQuery.data;
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        className="text-destructive hover:text-destructive"
-        onClick={() => {
-          removalKey.current = crypto.randomUUID();
-          removeMutation.reset();
-          setOpen(true);
-        }}
-      >
-        <Trash2 data-icon="inline-start" />
-        {t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_REVIEW_ACTION")}
-      </Button>
-      <SettingDialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!removeMutation.isPending) setOpen(nextOpen);
-        }}
-        title={t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_TITLE")}
-        description={t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_DESC")}
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              disabled={removeMutation.isPending}
-              onClick={() => setOpen(false)}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              variant="destructive"
-              loading={removeMutation.isPending}
-              disabled={!impact?.canRemove}
-              onClick={() => removeMutation.mutate()}
-            >
-              <Trash2 data-icon="inline-start" />
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_CONFIRM_ACTION")}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-5">
-          {impactQuery.isPending ? (
-            <div className="grid gap-3" aria-live="polite">
-              <div className="h-28 animate-pulse rounded-lg bg-muted" />
-              <p className="text-footnote text-label-secondary">
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_LOADING")}
-              </p>
-            </div>
-          ) : null}
-          {impactQuery.isError ? (
-            <ImpactError
-              message={getErrorMessage(impactQuery.error)}
-              retrying={impactQuery.isFetching}
-              onRetry={() => void impactQuery.refetch()}
-            />
-          ) : null}
-          {impact ? <ImpactReview impact={impact} /> : null}
-          {removeMutation.isError ? (
-            <ImpactError
-              message={getErrorMessage(removeMutation.error)}
-              retrying={removeMutation.isPending}
-              onRetry={() => removeMutation.mutate()}
-            />
-          ) : null}
-        </div>
-      </SettingDialog>
-    </>
+    <SettingDialog
+      open={props.open}
+      onOpenChange={(nextOpen) => {
+        if (!removeMutation.isPending) props.onOpenChange(nextOpen);
+      }}
+      title={t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_TITLE")}
+      description={t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_DESC")}
+      footer={
+        <>
+          <Button
+            variant="ghost"
+            disabled={removeMutation.isPending}
+            onClick={() => props.onOpenChange(false)}
+          >
+            {t("common:CANCEL")}
+          </Button>
+          <Button
+            variant="destructive"
+            loading={removeMutation.isPending}
+            disabled={!impact?.canRemove}
+            onClick={() => removeMutation.mutate()}
+          >
+            <Trash2 data-icon="inline-start" />
+            {t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_CONFIRM_ACTION")}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {impactQuery.isPending ? (
+          <div className="grid gap-3" aria-live="polite">
+            <div className="h-28 animate-pulse rounded-lg bg-muted" />
+            <p className="text-footnote text-label-secondary">
+              {t("settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_LOADING")}
+            </p>
+          </div>
+        ) : null}
+        {impactQuery.isError ? (
+          <ImpactError
+            message={getErrorMessage(impactQuery.error)}
+            retrying={impactQuery.isFetching}
+            onRetry={() => void impactQuery.refetch()}
+          />
+        ) : null}
+        {impact ? <ImpactReview impact={impact} /> : null}
+        {removeMutation.isError ? (
+          <ImpactError
+            message={getErrorMessage(removeMutation.error)}
+            retrying={removeMutation.isPending}
+            onRetry={() => removeMutation.mutate()}
+          />
+        ) : null}
+      </div>
+    </SettingDialog>
   );
 }
 

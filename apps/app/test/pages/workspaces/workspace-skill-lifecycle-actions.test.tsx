@@ -270,16 +270,15 @@ describe("Workspace Skill lifecycle actions", () => {
 
   it("blocks removal while Agent, Assignment, or retained Run references exist", async () => {
     apiMocks.impact.mockResolvedValue(impactResult(false));
-    const user = userEvent.setup();
     renderWithQueryClient(
-      <WorkspaceSkillRemovalAction workspaceId="workspace-1" installation={installation} />,
+      <WorkspaceSkillRemovalAction
+        onOpenChange={vi.fn()}
+        open
+        installation={installation}
+        workspaceId="workspace-1"
+      />,
     );
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_REVIEW_ACTION",
-      }),
-    );
     expect(
       await screen.findByText("SETTINGS_WORKSPACE_SKILLS_REMOVE_BLOCKED_TITLE"),
     ).toBeInTheDocument();
@@ -302,14 +301,14 @@ describe("Workspace Skill lifecycle actions", () => {
     });
     const user = userEvent.setup();
     renderWithQueryClient(
-      <WorkspaceSkillRemovalAction workspaceId="workspace-1" installation={installation} />,
+      <WorkspaceSkillRemovalAction
+        onOpenChange={vi.fn()}
+        open
+        installation={installation}
+        workspaceId="workspace-1"
+      />,
     );
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_REMOVE_REVIEW_ACTION",
-      }),
-    );
     await screen.findByText("SETTINGS_WORKSPACE_SKILLS_REMOVE_READY_TITLE");
     await user.click(
       screen.getByRole("button", {
@@ -328,20 +327,16 @@ describe("Workspace Skill lifecycle actions", () => {
 
   it("keeps package archive disabled while governed references remain", async () => {
     apiMocks.packageImpact.mockResolvedValue(packageImpact(false));
-    const user = userEvent.setup();
     renderWithQueryClient(
       <WorkspaceSkillPackageArchiveAction
-        workspaceId="workspace-1"
-        packageId="package-1"
         metadataRevision={3}
+        onOpenChange={vi.fn()}
+        open
+        packageId="package-1"
+        workspaceId="workspace-1"
       />,
     );
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_REVIEW_ACTION",
-      }),
-    );
     expect(
       await screen.findByText("SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_BLOCKED_TITLE"),
     ).toBeInTheDocument();
@@ -367,17 +362,14 @@ describe("Workspace Skill lifecycle actions", () => {
     const user = userEvent.setup();
     renderWithQueryClient(
       <WorkspaceSkillPackageArchiveAction
-        workspaceId="workspace-1"
-        packageId="package-1"
         metadataRevision={3}
+        onOpenChange={vi.fn()}
+        open
+        packageId="package-1"
+        workspaceId="workspace-1"
       />,
     );
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "settings:SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_REVIEW_ACTION",
-      }),
-    );
     await screen.findByText("SETTINGS_WORKSPACE_SKILLS_PACKAGE_ARCHIVE_READY_TITLE");
     await user.click(
       screen.getByRole("button", {
