@@ -41,7 +41,10 @@ export default defineConfig({
     css: true,
     server: {
       deps: {
-        inline: [/^@platejs\/math/, /^katex/],
+        // Match the RESOLVED module path: pnpm stores the package under
+        // `.pnpm/@platejs+math@<version>/`. Bare-specifier patterns never match,
+        // leaving the package external so the katex CSS alias above cannot apply.
+        inline: [/\/@platejs\/math\//, /\/@platejs\+math@/],
       },
     },
     include: ["test/**/*.test.{ts,tsx}"],
