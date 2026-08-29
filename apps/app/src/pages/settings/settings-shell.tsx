@@ -97,7 +97,7 @@ function SettingsNavList(props: {
                       data-active={isActive}
                       data-unavailable={item.unavailable || undefined}
                       className={cn(
-                        "relative z-10 flex w-full items-center gap-1 text-sm",
+                        "relative z-10 flex w-full items-center gap-2 text-sm",
                         NAV_ITEM_HEIGHT_CLASSNAME,
                         NAV_ITEM_RADIUS_CLASSNAME,
                         NAV_ITEM_BUTTON_PADDING_CLASSNAME,
@@ -124,7 +124,7 @@ function SettingsNavList(props: {
                       aria-disabled="true"
                       data-active={isActive}
                       className={cn(
-                        "relative z-10 flex items-center gap-1 text-sm",
+                        "relative z-10 flex items-center gap-2 text-sm",
                         NAV_ITEM_HEIGHT_CLASSNAME,
                         NAV_ITEM_RADIUS_CLASSNAME,
                         NAV_ITEM_BUTTON_PADDING_CLASSNAME,
