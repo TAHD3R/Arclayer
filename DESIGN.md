@@ -6,9 +6,9 @@
 
 Arclayer 应该像一个严肃的产品工作台：沉着、聪明、低噪声。它不是空白笔记本，不是协作玩具，也不是伪装成管理面板的亮闪闪 SaaS 营销页。界面在显得时髦之前，先要显得可信。用户打开产品时，应立刻感知到结构、层级与意图。
 
-亮色主题建立在柔和的中性灰画布之上：白色工作表面、冷中性文本、克制的行为蓝强调。它比 Notion 的暖纸感更干净、更技术化，但仍足够柔和，不会滑向通用企业后台的无菌感。表面是受控的，边框存在但从不沉重，蓝色只作为明确的行动信号出现，不作装饰。
+亮色主题建立在纯中性灰画布之上：白色工作表面、纯黑文本与主行动按钮。它比 Notion 的暖纸感更干净、更技术化，但仍足够柔和，不会滑向通用企业后台的无菌感。表面是受控的，边框存在但从不沉重；黑白单色承担全部行动信号，绿色只属于正向状态，两者都不作装饰。这套配色对齐 OKX 的视觉语言：黑、白、灰构成一切，品牌绿（Dell `oklch(0.474 0.136 139.475)`）是唯一的强调色。
 
-暗色主题是这套系统里更锐利的一半。它从纯黑背景（`hsl(0 0% 0%)`）出发，用炭黑平面而非环境渐变构建层级。面板是深石墨色，不是海军蓝雾。悬停态提亮结构而不是给整页染色。结果应当精准而自信——像黑色舞台上的仪器，而不是发光的赛博朋克仪表盘。
+暗色主题是这套系统里更锐利的一半。它从纯黑背景（`oklch(0 0 0)`）出发，用炭黑平面而非环境渐变构建层级。面板是深石墨色，不是染色雾。悬停态提亮结构而不是给整页染色。结果应当精准而自信——像黑色舞台上的仪器，而不是发光的赛博朋克仪表盘。
 
 排版在层级与正文之间使用同一个平台原生 UI 字体族，栈内优先各平台的中文字体，使中英混排保持一致的字重、基线与渲染质量。层级来自字号与字重，而不是切换比例字体；等宽字体只保留给代码、标识符与诊断信息。
 
@@ -16,9 +16,9 @@ Arclayer 的辨识度来自：安静的画布、显而易见的任务层级、�
 
 **关键特征**
 
-- 亮色模式：柔和中性灰画布 + 白色工作表面
+- 亮色模式：纯中性灰画布 + 白色工作表面
 - 暗色模式：纯黑画布
-- 蓝色只保留给行动、选中与链接
+- 黑白单色承担行动、选中与链接；绿色只属于正向状态
 - 暗色模式用炭黑卡片与浮层，不用染色雾
 - 标题与正文共用一个平台原生 UI 字体族
 - 紧凑但可读的间距
@@ -41,93 +41,93 @@ Arclayer 的标志是 **Arc Weave**：四块有机的弧形石块互锁成一个
 
 Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述装饰。以下数值为 `packages/ui/src/tokens.css` 的实现值。
 
-### 主色（行动蓝）
+### 主色（单色行动色）
 
-- **Primary / 行动蓝**（亮暗同值 `hsl(201.9 53.6% 43.1%)`）：主 CTA、聚焦选中、激活强调；前景为白色
+- **Primary / 行动色**（亮色 `oklch(0 0 0)`、暗色 `oklch(1 0 0)`）：主 CTA、聚焦选中、激活强调；前景在亮色为白色、暗色为黑色
 
-说明：实现中的主色是沉稳的蓝（色相约 202°、饱和度 53.6%），而非高饱和纯蓝；选中/高亮系的蓝色族位于 216° 色相，两者的色相分裂记录在第 12 节已知偏差中。
+说明：主色是纯黑与纯白的镜像对——亮色界面用黑按钮，暗色界面用白按钮，这正是 OKX 的标志性处理。选中/高亮族使用同一套中性灰，不存在色相分裂。
 
 ### 文本刻度
 
-- **Primary Ink**（`hsl(230 5.7% 20.8%)`）：亮色最强文本
-- **Secondary Ink**（`hsl(237 8% 43.9%)`）：描述、辅助文本、弱化标签
-- **Tertiary Ink**（`hsl(229 10% 56%)`）：元数据、时间戳、表格辅助文本
-- **Quaternary Ink**（`hsl(229 15% 70%)`）：占位符、禁用文本、低重要性细节
+- **Primary Ink**（`oklch(0.218 0 0)`）：亮色最强文本
+- **Secondary Ink**（`oklch(0.51 0 0)`，即 OKX Dove Gray `#666666`）：描述、辅助文本、弱化标签
+- **Tertiary Ink**（`oklch(0.683 0 0)`）：元数据、时间戳、表格辅助文本
+- **Quaternary Ink**（`oklch(0.767 0 0)`）：占位符、禁用文本、低重要性细节
 
-- **Primary Ink on Dark**（`hsl(0 0% 92%)`）：暗色最强文本
-- **Secondary Ink on Dark**（`hsl(0 0% 70%)`）：描述与辅助文本
-- **Tertiary Ink on Dark**（`hsl(0 0% 55%)`）：安静元数据
-- **Quaternary Ink on Dark**（`hsl(0 0% 40%)`）：禁用或背景辅助文本
+- **Primary Ink on Dark**（`oklch(0.955 0 0)`）：暗色最强文本
+- **Secondary Ink on Dark**（`oklch(0.683 0 0)`）：描述与辅助文本
+- **Tertiary Ink on Dark**（`oklch(0.569 0 0)`）：安静元数据
+- **Quaternary Ink on Dark**（`oklch(0.439 0 0)`）：禁用或背景辅助文本
 
 ### 表面系统
 
 #### 亮色表面
-- **Card White**（`hsl(0 0% 100%)`）：卡片、受控工作区、表单分区
-- **Popover White**（`hsl(0 0% 100%)`）：菜单、对话框、命令面板
-- **Muted Surface**（`hsl(220 12% 94%)`）：分组工具区、低强调容器
-- **Accent Surface**（`hsl(220 10% 90%)`）：中性悬停、激活行、chrome 悬停区
-- **Sidebar Surface**（`hsl(220 12% 94%)`）：与页面画布分离的稳定导航平面
+- **Card White**（`oklch(1 0 0)`）：卡片、受控工作区、表单分区
+- **Popover White**（`oklch(1 0 0)`）：菜单、对话框、命令面板
+- **Muted Surface**（`oklch(0.97 0 0)`）：分组工具区、低强调容器
+- **Accent Surface**（`oklch(0.94 0 0)`）：中性悬停、激活行、chrome 悬停区
+- **Sidebar Surface**（`oklch(0.97 0 0)`）：与页面画布分离的稳定导航平面
 
 #### 暗色表面
-- **Card Charcoal**（`hsl(0 0% 8%)`）：浮升面板、卡片、抽屉
-- **Popover Charcoal**（`hsl(0 0% 8%)`）：命令菜单、对话框、下拉
-- **Muted Dark Surface**（`hsl(0 0% 10%)`）：分组控件、被动容器
-- **Accent Dark Surface**（`hsl(0 0% 14%)`）：悬停与按下的中性背景
-- **Sidebar Charcoal**（`hsl(0 0% 5%)`）：与黑画布分离的导航平面
+- **Card Charcoal**（`oklch(0.191 0 0)`）：浮升面板、卡片、抽屉
+- **Popover Charcoal**（`oklch(0.191 0 0)`）：命令菜单、对话框、下拉
+- **Muted Dark Surface**（`oklch(0.213 0 0)`）：分组控件、被动容器
+- **Accent Dark Surface**（`oklch(0.239 0 0)`）：悬停与按下的中性背景
+- **Sidebar Charcoal**（`oklch(0.159 0 0)`）：与黑画布分离的导航平面
 
-### 选中与高亮蓝
+### 选中与高亮（单色）
 
 亮色：
 
-- **Primary Hover**（`hsl(216 88% 45%)`）——略亮于基色
-- **Primary Selected**（`hsl(216 92% 91%)`）
-- **Primary Selected Hover**（`hsl(216 88% 84%)`）
-- **Primary Highlighted**（`hsl(216 92% 97%)`）
-- **Primary Surface**（`hsl(216 56% 94%)`）
+- **Primary Hover**（`oklch(0.321 0 0)`）——黑按钮悬停时提亮
+- **Primary Selected**（`oklch(0.946 0 0)`）
+- **Primary Selected Hover**（`oklch(0.907 0 0)`）
+- **Primary Highlighted**（`oklch(0.976 0 0)`）
+- **Primary Surface**（`oklch(0.955 0 0)`）
 
 暗色：
 
-- **Primary Hover Dark**（`hsl(216 92% 66%)`）
-- **Primary Selected Dark**（`hsl(216 64% 20%)`）
-- **Primary Selected Hover Dark**（`hsl(216 64% 27%)`）
-- **Primary Highlighted Dark**（`hsl(216 54% 14%)`）
-- **Primary Surface Dark**（`hsl(216 42% 12%)`）
+- **Primary Hover Dark**（`oklch(0.925 0 0)`）——白按钮悬停时压暗
+- **Primary Selected Dark**（`oklch(0.269 0 0)`）
+- **Primary Selected Hover Dark**（`oklch(0.309 0 0)`）
+- **Primary Highlighted Dark**（`oklch(0.239 0 0)`）
+- **Primary Surface Dark**（`oklch(0.235 0 0)`）
 
 ### 语义状态
 
-- **Positive**（`hsl(155 100% 26.1%)` 亮 / `hsl(155 80% 45%)` 暗）：成功、发布、完成状态
-- **Negative**（`hsl(351 66.9% 53.7%)` 亮 / `hsl(351 70% 60%)` 暗）：破坏性操作与严重错误
-- **Warning**（`hsl(48 100% 50%)` 亮 / `hsl(48 100% 60%)` 暗）：警示与警告表面
-- **Link**（`hsl(216 88% 43%)` 亮 / `hsl(216 92% 68%)` 暗）：内联链接与导航文本强调
+- **Positive**（`oklch(0.474 0.136 139.475)` 亮 / `oklch(0.712 0.164 154.091)` 暗）：成功、发布、完成状态；亮色为 OKX 品牌绿 Dell（`#2b6d16`），暗色提亮为高可见绿，前景均为黑/白按对比度取用
+- **Negative**（`oklch(0.583 0.2 18.68)` 亮 / `oklch(0.643 0.193 19.154)` 暗）：破坏性操作与严重错误；暗色前景用黑以保证对比
+- **Warning**（`oklch(0.865 0.177 90.382)` 亮 / `oklch(0.896 0.173 95.956)` 暗）：警示与警告表面
+- **Link**（`oklch(0.218 0 0)` 亮 / `oklch(0.955 0 0)` 暗）：内联链接与导航文本强调，跟随单色体系，靠下划线等非颜色信号区分
 - 各语义色另带 `*-selected` 选中变体（positive/negative/warning 的选中态），用于菜单与选项中的语义高亮
 
 ### 边框与 Ring
 
-- **Layout Border Light**（`hsl(220 10% 88%)`）：大结构、外壳分离
-- **UI Border Light**（`hsl(229 16.5% 79.8%)`）：输入外壳、紧凑控件边界
-- **Layout Border Dark**（`hsl(0 0% 16%)`）：黑色上的大结构分离
-- **UI Border Dark**（`hsl(0 0% 30%)`）：卡片边缘、菜单、激活边界
-- **Input Edge Dark**（`hsl(0 0% 22%)`）：字段外壳与交互边界
-- **Focus Ring**：亮暗均等于主色值（`hsl(201.9 53.6% 43.1%)`）：键盘聚焦与激活精度
+- **Layout Border Light**（`oklch(0.94 0 0)`）：大结构、外壳分离
+- **UI Border Light**（`oklch(0.885 0 0)`）：输入外壳、紧凑控件边界
+- **Layout Border Dark**（`oklch(0.256 0 0)`）：黑色上的大结构分离
+- **UI Border Dark**（`oklch(0.439 0 0)`）：卡片边缘、菜单、激活边界
+- **Input Edge Dark**（`oklch(0.371 0 0)`）：字段外壳与交互边界
+- **Focus Ring**：亮色 `oklch(0 0 0)`、暗色 `oklch(1 0 0)`——与主色同值的镜像对，键盘聚焦与激活精度
 
 ### 补充实现令牌
 
 以下令牌存在于 `tokens.css` 并被全局消费，纳入本规范以便对照：
 
-- **Secondary**（`hsl(230 5.7% 20.8%)` 亮 / `hsl(0 0% 85%)` 暗）：次级按钮与中性强调底
-- **Border（默认）**（`hsl(210 10% 82%)` 亮 / `hsl(0 0% 18%)` 暗）：由 `* { @apply border-border }` 全局消费的默认边框
+- **Secondary**（`oklch(0.269 0 0)` 亮 / `oklch(0.955 0 0)` 暗）：次级按钮与中性强调底
+- **Border（默认）**（`oklch(0.925 0 0)` 亮 / `oklch(0.309 0 0)` 暗）：由 `* { @apply border-border }` 全局消费的默认边框
 - **Header / Header Foreground**：亮色取 `var(--card)`，暗色取 `var(--background)`
 - **Success / Destructive 别名**：指向 Positive / Negative 的兼容别名
-- **Chart 调色板**：`--chart-1` = 主色、`--chart-2`（`hsl(155 100% 39.2%)`）、`--chart-3` = Warning、`--chart-4`（`hsl(330 100% 44.9%)`）、`--chart-5`（`hsl(270 67.3% 59%)`）
+- **Chart 调色板**：`--chart-1` = 主色、`--chart-2` = Positive（Dell 绿）、`--chart-3` = Warning、`--chart-4` = Negative、`--chart-5`（`oklch(0.64 0 0)`）；Product Application 另有独立的 oklch 图表扩展体系（见 `apps/app/src/index.css`）
 - **Sidebar 宽度**：`--sidebar-width`（动态 px）、移动端 `18rem`、图标态 `3rem`
 - **Spacing 基准**：`--spacing` = `0.25rem`（Tailwind 基准单位）
 
 ### 色彩原则
 
-- 蓝色永远不该成为一页的氛围底色。
+- 黑白单色是行动与结构的唯一载体；任何彩色都不该成为一页的氛围底色。
 - 画布保持中性；结构来自表面。
-- 暗色模式应当是黑加炭黑，不是黑加蓝雾。
-- 语义色属于有意义的状态，不作装饰强调。
+- 暗色模式应当是黑加炭黑，不是黑加染色雾。
+- 绿色与红色只属于有意义的正负状态，不作装饰强调。
 - 如果一个屏幕在显得有结构之前先显得五颜六色，设计就已经跑偏。
 
 ## 3. 字体规则
@@ -169,12 +169,12 @@ Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述�
 ### 按钮
 
 **Primary**
-- 背景：行动蓝（亮暗同值）
-- 文本：白色（亮暗均为白色；对比度以 43.1% 亮度的蓝底白字成立）
+- 背景：行动色（亮色纯黑、暗色纯白）
+- 文本：亮色白色、暗色黑色（黑底白字与白底黑字均远超 AA 对比度）
 - 内边距：8px 16px
 - 圆角：6px
 - 边框：透明
-- 悬停：Primary Hover（`hsl(216 88% 45%)`），无戏剧化抬升
+- 悬停：Primary Hover（亮色 `oklch(0.321 0 0)` / 暗色 `oklch(0.925 0 0)`），无戏剧化抬升
 - 用途：保存、继续、确认、创建
 
 **Secondary**
@@ -193,7 +193,7 @@ Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述�
 
 **Destructive**
 - 背景：Negative
-- 文本：白色
+- 文本：亮色白色、暗色黑色
 - 悬停：略深的红或更高对比边缘
 - 用途：仅限不可逆破坏性操作
 
@@ -225,8 +225,8 @@ Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述�
 ### 导航
 
 - 导航应当稳定而安静
-- 选中态应当明显，但不变成巨大的蓝色药丸
-- 悬停态优先用中性表面，其次才用蓝
+- 选中态应当明显，但不变成巨大的高对比药丸
+- 悬停态优先用中性表面，其次才用主色
 - 只有当图标传递可识别的动作、状态、对象/类型或导航目标时才使用
 - 若可见标签已表达同一含义且图标无扫描价值，省略图标
 - 不使用 emoji 作为产品 UI 图标或装饰性区块标记
@@ -240,7 +240,7 @@ Arclayer 首先是语义系统。颜色命名描述角色与行为，不描述�
 - 边框：两个主题下都可见
 - 字号：14px
 - 键盘提示：Caption 处理、次级强调
-- 选中行：按上下文用蓝选中或中性强调
+- 选中行：按上下文用单色选中或中性强调
 
 命令表面应当像仪器：干脆、窄、自信、易快速解析。
 
@@ -446,19 +446,18 @@ Arclayer 的文案应当像一个有能力的操作者清晰说话。
 
 ### 实现源
 
-- 共享令牌唯一定义：`packages/ui/src/tokens.css`——亮色在 `:root`，暗色在 `[data-theme="dark"]`，Tailwind v4 映射在同文件 `@theme inline` 块
+- 共享令牌唯一定义：`packages/ui/src/tokens.css`——亮色在 `:root`，暗色在 `[data-theme="dark"]`，色值全部使用 oklch，Tailwind v4 映射在同文件 `@theme inline` 块
 - Tailwind 桥接：`packages/ui/src/tailwind-preset.ts` 将颜色/圆角/字体/阴影映射到上述变量；两个应用均以 preset 引用
 - 主题切换：Product Application 通过 `document.documentElement.dataset.theme`（`apps/app/src/lib/theme.ts`）设置 `data-theme`；Platform Console 通过 `.dark` class（`apps/platform/src/lib/preferences.tsx`）切换
+- 配色基准：OKX 视觉语言（黑 `oklch(0 0 0)`、白 `oklch(1 0 0)`、Dove Gray `oklch(0.51 0 0)`、Dell 绿 `oklch(0.474 0.136 139.475)`），全部换算为 oklch 表达
 
-### 已知偏差（记录于 2026-08-16，待收敛）
+### 已知偏差（复核于 2026-08-26）
 
-1. **apps/app 亮色整体覆盖**：`apps/app/src/index.css:11-22` 以 210° 色相覆盖整套亮色背景/表面/边框（注释自称 "Keep Admin light mode crisp"），偏离共享包与本文档的 220° 中性灰画布。
-2. **apps/app chart 体系独立 + 暗色死分支**：`apps/app/src/index.css:200-255` 用 oklch 灰阶覆盖并扩展 chart 变量；其 `.dark {}` 块在 app 内永不生效（app 只设 `data-theme`，不添加 `.dark` class），暗色下仍消费亮色 chart 变量。
-3. **apps/platform 近全量覆盖**：`apps/platform/src/index.css:9-117` 以 oklch 中性灰覆盖 `:root` 与 `.dark` 两套主色/背景（`--primary` 为近黑），并重定义圆角为 `calc(var(--radius) ±)`（实际 6/8/10/14px），违反第 6 节「使用 packages/ui 语义圆角令牌」；其 body 字体硬编码缺失中文字体段（`apps/platform/src/index.css:142`）；`.dark` class 机制使共享包的 `[data-theme="dark"]` 块在 platform 永不生效。
-4. **主色与蓝色族色相分裂**：`--primary` 为 201.9°，而 hover/selected/highlight/surface/link 蓝色族为 216°；收敛时应统一色相。
-5. **暗色主色未提亮**：暗色 `--primary` 与亮色同值且前景仍为白；若需要暗色下的更高对比 CTA，应显式设计暗色主色变体而非页面局部覆盖。
-6. **Motion 无集中令牌**：组件内硬编码 `280ms`（sidebar）、`250ms`（switch）、`cubic-bezier(0.22,1,0.36,1)`、`cubic-bezier(0.85,0,0.15,1)` 等不在第 7 节刻度内；第 7 节为目标态。
-7. **高对比模式格式不一致（潜在 bug）**：`apps/app/src/index.css:32-46` 的 `html[data-contrast="more"]` 覆盖值使用裸 HSL 三元组（如 `206 18% 28%`），与全库 `hsl(...)` 完整字符串格式不一致，经 `var()` 直接消费时是无效颜色。
+1. **apps/platform 近全量覆盖**：`apps/platform/src/index.css` 仍以应用级 oklch 覆盖 `:root` 与 `.dark` 两套主色/背景（方向与共享盘一致），并重定义圆角为 `calc(var(--radius) ±)`（实际 6/8/10/14px），违反第 6 节「使用 packages/ui 语义圆角令牌」；其 body 字体硬编码缺失中文字体段；`.dark` class 机制使共享包的 `[data-theme="dark"]` 块在 platform 永不生效。
+2. **apps/app chart 体系独立**：`apps/app/src/index.css` 以 oklch 覆盖并扩展 chart 变量（含独立的 `[data-theme="dark"]` 暗色块，原 `.dark` 死分支已修复）；该扩展体系与共享盘的 `--chart-1..5` 并存。
+3. **Motion 无集中令牌**：组件内硬编码 `280ms`（sidebar）、`250ms`（switch）、`cubic-bezier(0.22,1,0.36,1)`、`cubic-bezier(0.85,0,0.15,1)` 等不在第 7 节刻度内；第 7 节为目标态。
+
+2026-08-26 的 OKX 配色迁移同时收敛了此前记录的三项偏差：apps/app 的 210° 亮色整体覆盖已删除（现直接消费共享盘）、chart 暗色死分支的 `.dark` 选择器已改为 `[data-theme="dark"]`、`html[data-contrast="more"]` 的裸 HSL 三元组已改为合法 oklch 值；主色改为黑白镜像对后，原「色相分裂」与「暗色主色未提亮」两项偏差随之消失。
 
 ### 偏差处理原则
 
@@ -467,4 +466,4 @@ Arclayer 的文案应当像一个有能力的操作者清晰说话。
 
 ## 13. 一句话简报
 
-把 Arclayer 设计成一个高信任的产品工作台：安静的表面、清晰的任务层级、蓝色只属于行动、图标只表语义、产品文案说人话，以及刚好够用的动效——确认变化，不抢注意力。
+把 Arclayer 设计成一个高信任的产品工作台：安静的表面、清晰的任务层级、黑白单色承担行动、绿色只属于正向状态、图标只表语义、产品文案说人话，以及刚好够用的动效——确认变化，不抢注意力。

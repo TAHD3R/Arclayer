@@ -4,12 +4,12 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {
-  const bg = isDark ? "hsl(220 10% 8%)" : "hsl(210 30% 98%)";
-  const panel = isDark ? "hsl(220 10% 12%)" : "hsl(0 0% 100%)";
-  const border = isDark ? "hsl(220 10% 20%)" : "hsl(210 14% 92%)";
-  const textTitle = isDark ? "hsl(200 7% 91%)" : "hsl(210 25% 15%)";
-  const textBody = isDark ? "hsl(210 4% 60%)" : "hsl(210 10% 45%)";
-  const primary = "hsl(220 70% 50%)";
+  const bg = isDark ? "oklch(0 0 0)" : "oklch(0.985 0 0)";
+  const panel = isDark ? "oklch(0.191 0 0)" : "oklch(1 0 0)";
+  const border = isDark ? "oklch(0.309 0 0)" : "oklch(0.925 0 0)";
+  const textTitle = isDark ? "oklch(0.955 0 0)" : "oklch(0.218 0 0)";
+  const textBody = isDark ? "oklch(0.683 0 0)" : "oklch(0.51 0 0)";
+  const primary = isDark ? "oklch(1 0 0)" : "oklch(0 0 0)";
 
   return (
     <>
@@ -97,7 +97,7 @@ function AdminLayoutMockup(props: { mode: ThemePreference }) {
           y1="0"
           x2="160"
           y2="200"
-          stroke="hsl(206 10% 50%)"
+          stroke="oklch(0.64 0 0)"
           strokeOpacity="0.3"
           strokeWidth="1"
         />
