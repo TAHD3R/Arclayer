@@ -54,24 +54,24 @@ describe("usePreferencesStore layout width preferences", () => {
     expect(usePreferencesStore.getState().sidebarWidthPx).toBe(305);
   });
 
-  it("starts with a collapsed sidebar and keeps runtime state separate from the default", () => {
+  it("starts with an expanded sidebar and keeps runtime state separate from the default", () => {
     initializePreferences();
 
     expect(usePreferencesStore.getState()).toMatchObject({
-      sidebarOpen: false,
-      sidebarDefaultOpen: false,
+      sidebarOpen: true,
+      sidebarDefaultOpen: true,
       sidebarExpandPromptShown: false,
     });
 
-    usePreferencesStore.getState().setSidebarOpen(true);
-    expect(usePreferencesStore.getState().sidebarOpen).toBe(true);
-    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(false);
+    usePreferencesStore.getState().setSidebarOpen(false);
+    expect(usePreferencesStore.getState().sidebarOpen).toBe(false);
+    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(true);
     expect(window.localStorage.getItem(STORAGE_KEYS.sidebarOpen)).toBeNull();
 
-    usePreferencesStore.getState().setSidebarDefaultOpen(true);
-    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(true);
-    expect(usePreferencesStore.getState().sidebarOpen).toBe(true);
-    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarDefaultOpen)).toBe("true");
+    usePreferencesStore.getState().setSidebarDefaultOpen(false);
+    expect(usePreferencesStore.getState().sidebarDefaultOpen).toBe(false);
+    expect(usePreferencesStore.getState().sidebarOpen).toBe(false);
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarDefaultOpen)).toBe("false");
   });
 
   it("migrates the legacy persisted sidebar state into the new default preference", () => {

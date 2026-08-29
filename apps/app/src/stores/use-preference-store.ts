@@ -35,7 +35,7 @@ import { type ThemeMode } from "@arclayer/ui/theme-mode";
 const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
   favorites: true,
 };
-const DEFAULT_SIDEBAR_OPEN = false;
+const DEFAULT_SIDEBAR_OPEN = true;
 const DEFAULT_SIDEBAR_WIDTH_PX = 220;
 const MIN_SIDEBAR_WIDTH_PX = 180;
 const MAX_SIDEBAR_WIDTH_PX = 320;
