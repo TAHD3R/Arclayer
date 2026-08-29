@@ -102,13 +102,13 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
 
   return (
     <div className="min-w-0 overflow-x-auto">
-      <table className="min-w-[42rem] w-full table-fixed border-collapse">
+      <table className="w-full table-fixed border-collapse">
         <thead>
           <tr className="border-b border-border/60">
-            <th className="w-[42%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+            <th className="w-[36%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_DEVICE")}
             </th>
-            <th className="w-[22%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+            <th className="w-[24%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE")}
             </th>
             <th className="w-[20%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
@@ -116,7 +116,7 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
             </th>
             <th
               className={cn(
-                "w-[16%] py-2 pl-4 text-footnote font-medium text-label-secondary",
+                "w-[20%] py-2 pl-4 text-footnote font-medium text-label-secondary",
                 actionsColumnMeta.headerAlign === "center" ? "text-center" : "text-right",
               )}
             />

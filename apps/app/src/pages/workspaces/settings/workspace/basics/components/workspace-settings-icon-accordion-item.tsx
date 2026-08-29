@@ -1,4 +1,4 @@
-import { AlertCircle, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -13,7 +13,6 @@ import type { UserCenterWorkspaceListItem } from "@/pages/usercenter/workspaces/
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingCard, SettingCardContent } from "@arclayer/ui/setting-card";
-import { Textarea } from "@arclayer/ui/textarea";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 
@@ -92,8 +91,10 @@ export function WorkspaceSettingsIconAccordionItem(props: {
 
   const [nameDraft, setNameDraft] = useState(c.currentWorkspaceName ?? "");
   const [nameDirty, setNameDirty] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState(c.currentWorkspaceDescription ?? "");
   const [descriptionDirty, setDescriptionDirty] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
 
   useEffect(() => {
     if (nameDirty) return;
@@ -111,8 +112,8 @@ export function WorkspaceSettingsIconAccordionItem(props: {
   );
   const nextNameNormalized = useMemo(() => normalizeName(nameDraft), [nameDraft]);
   const hasNameChanged = currentNameNormalized !== nextNameNormalized;
-  const canSaveName =
-    hasNameChanged && nextNameNormalized.length > 0 && nextNameNormalized.length <= 128;
+  const isNameInvalid = nextNameNormalized.length === 0 || nextNameNormalized.length > 128;
+  const canSaveName = hasNameChanged && !isNameInvalid;
 
   const currentDescriptionNormalized = useMemo(
     () => normalizeDescription(c.currentWorkspaceDescription ?? "").trim(),
@@ -132,20 +133,31 @@ export function WorkspaceSettingsIconAccordionItem(props: {
   };
 
   const handleSaveName = () => {
+    // Saving an unchanged value acts as the way out of edit mode.
+    if (!hasNameChanged) {
+      setIsEditingName(false);
+      return;
+    }
     if (!canSaveName) return;
     void c.withSavingKey("workspace:name", async () => {
       await c.patchWorkspaceMutation.mutateAsync({ name: nextNameNormalized });
       setNameDirty(false);
+      setIsEditingName(false);
     });
   };
 
   const handleSaveDescription = () => {
-    if (!hasDescriptionChanged || !canSaveDescription) return;
+    if (!hasDescriptionChanged) {
+      setIsEditingDescription(false);
+      return;
+    }
+    if (!canSaveDescription) return;
     void c.withSavingKey("workspace:description", async () => {
       await c.patchWorkspaceMutation.mutateAsync({
         description: nextDescriptionNormalized || null,
       });
       setDescriptionDirty(false);
+      setIsEditingDescription(false);
     });
   };
 
@@ -163,92 +175,128 @@ export function WorkspaceSettingsIconAccordionItem(props: {
     <>
       <SettingCard>
         <SettingCardContent>
-          <div className="flex flex-row items-start gap-6 sm:gap-8">
-            <div className="flex flex-col gap-3 shrink-0 ml-1">
-              <button
-                type="button"
-                className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                aria-label={t("common:ORG_WORKSPACES_ACTION_CHANGE_ICON")}
-                disabled={c.disabled || !workspace}
-                onClick={openIconDialog}
-              >
-                {workspace ? (
-                  <WorkspaceAvatar
-                    name={workspace.name}
-                    size={80}
-                    {...workspaceAvatarPropsFromIdentity(workspace)}
-                  />
-                ) : null}
-              </button>
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 shrink-0">
+                <div className="text-body font-medium text-label-primary">
+                  {t("settings:SETTINGS_WORKSPACE_ICON_LABEL")}
+                </div>
+              </div>
+              <div className="flex shrink-0">
+                <button
+                  type="button"
+                  className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  aria-label={t("common:ORG_WORKSPACES_ACTION_CHANGE_ICON")}
+                  disabled={c.disabled || !workspace}
+                  onClick={openIconDialog}
+                >
+                  {workspace ? (
+                    <WorkspaceAvatar
+                      name={workspace.name}
+                      size={40}
+                      {...workspaceAvatarPropsFromIdentity(workspace)}
+                    />
+                  ) : null}
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-              <label className="text-body font-medium text-label-primary">
-                {t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
-              </label>
-              <div className="flex items-center gap-2 max-w-sm">
-                <Input
-                  value={nameDraft}
-                  onChange={(event) => {
-                    setNameDraft(event.target.value);
-                    setNameDirty(true);
-                  }}
-                  maxLength={128}
-                  className="h-10 flex-1 text-body"
-                  placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
-                  disabled={c.disabled || !workspace}
-                />
-                {hasNameChanged || c.savingKey === "workspace:name" ? (
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 shrink-0">
+                <div className="text-body font-medium text-label-primary">
+                  {t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
+                </div>
+              </div>
+              {isEditingName ? (
+                <div className="flex w-full min-w-0 max-w-sm items-center gap-2">
+                  <Input
+                    value={nameDraft}
+                    onChange={(event) => {
+                      setNameDraft(event.target.value);
+                      setNameDirty(true);
+                    }}
+                    maxLength={128}
+                    className="h-10 flex-1 text-body"
+                    placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
+                    disabled={c.disabled || !workspace}
+                  />
                   <Button
                     variant="outline"
-                    disabled={!canSaveName || c.savingKey === "workspace:name"}
+                    disabled={isNameInvalid || c.savingKey === "workspace:name"}
                     loading={c.savingKey === "workspace:name"}
                     onClick={handleSaveName}
-                    className="h-10 px-5 font-medium"
+                    className="h-10 shrink-0 px-5 font-medium"
                   >
                     {t("settings:SETTINGS_SAVE")}
                   </Button>
-                ) : null}
-              </div>
-              <div className="text-footnote text-label-secondary">{`${nameDraft.length}/128`}</div>
+                </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="truncate text-body text-label-primary"
+                    title={currentNameNormalized}
+                  >
+                    {currentNameNormalized || "-"}
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="h-10 shrink-0 px-5 font-medium"
+                    disabled={c.disabled || !workspace}
+                    onClick={() => setIsEditingName(true)}
+                  >
+                    {t("common:EDIT")}
+                  </Button>
+                </div>
+              )}
+            </div>
 
-              <label className="mt-2 text-body font-medium text-label-primary">
-                {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
-              </label>
-              <div className="flex items-start gap-2 max-w-xl">
-                <Textarea
-                  rows={3}
-                  value={descriptionDraft}
-                  onChange={(event) => {
-                    setDescriptionDraft(event.target.value);
-                    setDescriptionDirty(true);
-                  }}
-                  maxLength={WORKSPACE_DESCRIPTION_MAX_LENGTH}
-                  placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
-                  disabled={c.disabled || !workspace}
-                  className="max-w-sm resize-none text-body"
-                />
-                {hasDescriptionChanged || c.savingKey === "workspace:description" ? (
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 shrink-0">
+                <div className="text-body font-medium text-label-primary">
+                  {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+                </div>
+              </div>
+              {isEditingDescription ? (
+                <div className="flex w-full min-w-0 max-w-sm items-center gap-2">
+                  <Input
+                    value={descriptionDraft}
+                    onChange={(event) => {
+                      setDescriptionDraft(event.target.value);
+                      setDescriptionDirty(true);
+                    }}
+                    maxLength={WORKSPACE_DESCRIPTION_MAX_LENGTH}
+                    placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
+                    disabled={c.disabled || !workspace}
+                    className="h-10 flex-1 text-body"
+                  />
                   <Button
                     variant="outline"
                     disabled={!canSaveDescription || c.savingKey === "workspace:description"}
                     loading={c.savingKey === "workspace:description"}
                     onClick={handleSaveDescription}
-                    className="h-10 px-5 font-medium"
+                    className="h-10 shrink-0 px-5 font-medium"
                   >
                     {t("settings:SETTINGS_SAVE")}
                   </Button>
-                ) : null}
-              </div>
-              <div className="text-footnote text-label-secondary">
-                {`${descriptionDraft.length}/${WORKSPACE_DESCRIPTION_MAX_LENGTH}`}
-              </div>
-              {descriptionDraft.length > WORKSPACE_DESCRIPTION_MAX_LENGTH ? (
-                <div className="mt-1 flex items-center gap-1.5 text-footnote text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {t("settings:SETTINGS_WORKSPACE_DESCRIPTION_TOO_LONG")}
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="max-w-[16rem] truncate text-right text-body text-label-secondary"
+                    title={c.currentWorkspaceDescription ?? ""}
+                  >
+                    {currentDescriptionNormalized || t("settings:SETTINGS_NOT_SET")}
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="h-10 shrink-0 px-5 font-medium"
+                    disabled={c.disabled || !workspace}
+                    onClick={() => setIsEditingDescription(true)}
+                  >
+                    {t("common:EDIT")}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </SettingCardContent>

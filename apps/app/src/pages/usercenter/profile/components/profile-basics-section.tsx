@@ -53,6 +53,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
   const [displayNameDraft, setDisplayNameDraft] = useState(props.profile.displayName ?? "");
   const [displayNameDirty, setDisplayNameDirty] = useState(false);
   const [confirmDisplayNameOpen, setConfirmDisplayNameOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
 
   useEffect(() => {
     if (displayNameDirty) return;
@@ -82,6 +83,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
       setConfirmDisplayNameOpen(false);
       setDisplayNameDirty(false);
+      setIsEditingName(false);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
     onError: (err) => notifyError(err),
@@ -146,77 +148,111 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
     <>
       <SettingCard>
         <SettingCardContent>
-          <div className="flex flex-row items-start gap-6 sm:gap-8">
-            <div className="flex flex-col gap-3 shrink-0 ml-1">
-              <input
-                ref={avatarFileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                tabIndex={-1}
-                aria-label={t("account:ME_PROFILE_AVATAR_CHANGE")}
-                disabled={isAvatarBusy}
-                onChange={handleAvatarFileChange}
-              />
-              <AvatarUploadSlot
-                size={80}
-                shape="circle"
-                disabled={isAvatarBusy}
-                loading={isAvatarBusy}
-                src={
-                  resolveAssetRefToPublicUrlPath(
-                    props.profile.avatarUrl ?? props.profile.avatarAssetId,
-                  ) ?? undefined
-                }
-                fallback={initialsFromName(
-                  displayNameFallback === "-" ? "User" : displayNameFallback,
-                )}
-                uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
-                removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
-                canRemove={Boolean(props.profile.avatarUrl || props.profile.avatarAssetId)}
-                onPick={() => avatarFileInputRef.current?.click()}
-                onRemove={() => void updateAvatarMutation.mutateAsync(null)}
-              />
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 shrink-0">
+                <div className="text-body font-medium text-label-primary">
+                  {t("account:ME_PROFILE_AVATAR_TITLE")}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-end">
+                <input
+                  ref={avatarFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  tabIndex={-1}
+                  aria-label={t("account:ME_PROFILE_AVATAR_CHANGE")}
+                  disabled={isAvatarBusy}
+                  onChange={handleAvatarFileChange}
+                />
+                <AvatarUploadSlot
+                  size={40}
+                  shape="circle"
+                  disabled={isAvatarBusy}
+                  loading={isAvatarBusy}
+                  src={
+                    resolveAssetRefToPublicUrlPath(
+                      props.profile.avatarUrl ?? props.profile.avatarAssetId,
+                    ) ?? undefined
+                  }
+                  fallback={initialsFromName(
+                    displayNameFallback === "-" ? "User" : displayNameFallback,
+                  )}
+                  uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
+                  removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
+                  canRemove={Boolean(props.profile.avatarUrl || props.profile.avatarAssetId)}
+                  onPick={() => avatarFileInputRef.current?.click()}
+                  onRemove={() => void updateAvatarMutation.mutateAsync(null)}
+                />
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-              <label className="text-body font-medium text-label-primary">
-                {t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
-              </label>
-              <div className="flex items-center gap-2 max-w-sm">
-                <Input
-                  value={displayNameDraft}
-                  onChange={(e) => {
-                    setDisplayNameDraft(e.target.value);
-                    setDisplayNameDirty(true);
-                  }}
-                  maxLength={64}
-                  aria-invalid={displayNameDirty && !isDisplayNameValid}
-                  className="h-10 flex-1 text-body"
-                  placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
-                />
-                {hasDisplayNameChanged || updateProfileMutation.isPending ? (
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 shrink-0">
+                <div className="text-body font-medium text-label-primary">
+                  {t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
+                </div>
+              </div>
+              {isEditingName ? (
+                <div className="flex w-full min-w-0 max-w-sm flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={displayNameDraft}
+                      onChange={(e) => {
+                        setDisplayNameDraft(e.target.value);
+                        setDisplayNameDirty(true);
+                      }}
+                      maxLength={64}
+                      aria-invalid={displayNameDirty && !isDisplayNameValid}
+                      className="h-10 flex-1 text-body"
+                      placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={
+                        (displayNameDirty && !isDisplayNameValid) || updateProfileMutation.isPending
+                      }
+                      loading={updateProfileMutation.isPending}
+                      onClick={() => {
+                        // Saving an unchanged value acts as the way out of edit mode.
+                        if (!hasDisplayNameChanged) {
+                          setIsEditingName(false);
+                          return;
+                        }
+                        setConfirmDisplayNameOpen(true);
+                      }}
+                      className="h-10 shrink-0 px-5 font-medium"
+                    >
+                      {t("settings:SETTINGS_SAVE")}
+                    </Button>
+                  </div>
+                  {displayNameDirty && !isDisplayNameValid && (
+                    <div className="flex items-center justify-end gap-1.5 text-footnote text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="truncate text-body text-label-primary"
+                    title={displayNameFallback}
+                  >
+                    {displayNameFallback}
+                  </span>
                   <Button
                     variant="outline"
-                    disabled={!canSaveDisplayName || updateProfileMutation.isPending}
-                    loading={updateProfileMutation.isPending}
-                    onClick={() => setConfirmDisplayNameOpen(true)}
-                    className="h-10 px-5 font-medium "
+                    className="h-10 shrink-0 px-5 font-medium"
+                    onClick={() => setIsEditingName(true)}
                   >
-                    {t("settings:SETTINGS_SAVE")}
+                    {t("common:EDIT")}
                   </Button>
-                ) : null}
-              </div>
-              <div className="text-footnote text-label-secondary">{`${displayNameDraft.length}/64`}</div>
-              {displayNameDirty && !isDisplayNameValid && (
-                <div className="mt-1 flex items-center gap-1.5 text-footnote text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
                 </div>
               )}
             </div>
-          </div>
-          <div className="mt-4">
+
             <UserProfileUserIdSection userId={props.profile.id} />
           </div>
         </SettingCardContent>
