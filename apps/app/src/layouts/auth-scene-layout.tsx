@@ -121,7 +121,7 @@ export function AuthSceneLayout(
       <main
         data-testid="auth-scene-content"
         className={cn(
-          "relative z-10 flex w-full flex-1 items-center justify-center px-6 py-6 md:px-4 md:py-4",
+          "relative z-10 flex w-full flex-1 items-center justify-center px-6 py-8 md:px-4 md:py-10",
           props.contentClassName,
         )}
       >

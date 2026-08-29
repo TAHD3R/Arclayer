@@ -9,12 +9,10 @@ import {
   ShieldX,
   TriangleAlert,
 } from "lucide-react";
-import { useId, useMemo, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AuroraSceneBackground } from "@/components/aurora-scene-background";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
   Empty,
@@ -38,13 +36,13 @@ export type BuiltinResultPageProps = {
   extra?: ReactNode;
 };
 
-function DefaultAction(props: { status: BuiltinResultStatus; size?: "default" | "lg" }) {
+function DefaultAction(props: { status: BuiltinResultStatus }) {
   const { t } = useTranslation();
   const router = useRouter();
 
   if (props.status === "401") {
     return (
-      <Button size={props.size} onClick={() => void router.navigate({ to: "/login" })}>
+      <Button size="lg" onClick={() => void router.navigate({ to: "/login" })}>
         {t("common:GO_LOGIN")}
       </Button>
     );
@@ -52,14 +50,14 @@ function DefaultAction(props: { status: BuiltinResultStatus; size?: "default" | 
 
   if (props.status === "404" || props.status === "403") {
     return (
-      <Button size={props.size} onClick={() => void router.navigate({ to: "/" })}>
+      <Button size="lg" onClick={() => void router.navigate({ to: "/" })}>
         {t("common:GO_HOME")}
       </Button>
     );
   }
 
   return (
-    <Button size={props.size} onClick={() => window.location.reload()}>
+    <Button size="lg" onClick={() => window.location.reload()}>
       {t("common:REFRESH")}
     </Button>
   );
@@ -85,53 +83,23 @@ export function BuiltinResultPage({
 }: BuiltinResultPageProps) {
   const titleId = useId();
   const isFullscreen = variant === "fullscreen";
-  const actions = useMemo(() => {
-    if (extra) return extra;
-    return <DefaultAction status={status} size={isFullscreen ? "lg" : "default"} />;
-  }, [extra, isFullscreen, status]);
   const StatusIcon = pickBuiltinIcon(status);
 
   const content = (
-    <div className={cn(isFullscreen ? "w-full" : "py-10")}>
-      <Empty
-        data-status={status}
-        className={cn("border-dashed", isFullscreen && "gap-7 rounded-none border-0 p-0 sm:gap-8")}
-      >
-        <EmptyHeader
-          className={cn(isFullscreen && "max-w-[min(64rem,calc(100vw-3rem))] gap-3 sm:gap-4")}
-        >
+    <div className={isFullscreen ? "w-full" : "py-10"}>
+      <Empty data-status={status} className="border-dashed">
+        <EmptyHeader>
           <EmptyMedia variant="icon">
             <StatusIcon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle
-            id={titleId}
-            role="heading"
-            aria-level={isFullscreen ? 1 : 2}
-            className={cn(
-              isFullscreen &&
-                "max-w-5xl text-[clamp(2.5rem,6vw,4.5rem)] leading-[1.08] font-bold tracking-[-0.035em] text-pretty",
-            )}
-          >
+          <EmptyTitle id={titleId} role="heading" aria-level={isFullscreen ? 1 : 2}>
             {title}
           </EmptyTitle>
-          {subTitle ? (
-            <EmptyDescription
-              className={cn(
-                isFullscreen &&
-                  "max-w-2xl text-[clamp(1rem,1.6vw,1.25rem)] leading-relaxed text-pretty",
-              )}
-            >
-              {subTitle}
-            </EmptyDescription>
-          ) : null}
+          {subTitle ? <EmptyDescription>{subTitle}</EmptyDescription> : null}
         </EmptyHeader>
-        {actions ? (
-          <EmptyContent
-            className={cn("flex-row flex-wrap justify-center", isFullscreen && "w-auto gap-3")}
-          >
-            {actions}
-          </EmptyContent>
-        ) : null}
+        <EmptyContent className="flex-row flex-wrap justify-center gap-2">
+          {extra ?? <DefaultAction status={status} />}
+        </EmptyContent>
       </Empty>
     </div>
   );
@@ -142,12 +110,7 @@ export function BuiltinResultPage({
         aria-labelledby={titleId}
         className="fixed inset-0 z-2147483647 isolate flex overflow-y-auto bg-background"
       >
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <AuroraSceneBackground testId="fullscreen-result-aurora" />
-        </div>
-        <div className="relative z-10 flex min-h-full w-full items-center justify-center px-6 py-[clamp(3rem,8vh,6rem)] sm:px-12">
-          {content}
-        </div>
+        <div className="flex min-h-full w-full items-center justify-center p-6">{content}</div>
       </section>
     );
   }

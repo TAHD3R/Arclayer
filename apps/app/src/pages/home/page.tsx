@@ -43,7 +43,6 @@ import {
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
 import { formatAIChatError } from "@/api/ai";
-import { HomeAIBackground } from "@/pages/home/home-ai-background";
 import { HomeAIPromptStarters } from "@/pages/home/home-ai-prompt-starters";
 import { HomeBrandHero } from "@/pages/home/home-brand-hero";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
@@ -294,7 +293,6 @@ export function HomePage() {
       className="min-h-full isolate"
       innerClassName="relative z-10 min-h-full px-0"
     >
-      <HomeAIBackground />
       <div
         data-page="ai-home"
         className={cn(

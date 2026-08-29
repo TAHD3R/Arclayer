@@ -237,12 +237,6 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
   AIComposerSkillMenu: () => <div data-testid="ai-skill-selector" />,
 }));
 
-vi.mock("@/components/Aurora", () => ({
-  default: ({ colorStops }: { colorStops: [string, string, string] }) => (
-    <div data-testid="aurora-canvas" data-color-stops={JSON.stringify(colorStops)} />
-  ),
-}));
-
 vi.mock("@/components/layout/admin-logo", () => ({
   AdminLogo: ({ ariaLabel }: { ariaLabel: string }) => (
     <div aria-label={ariaLabel} data-testid="home-brand-logo" />
@@ -479,29 +473,8 @@ describe("HomePage", () => {
 
     expect(screen.getByRole("heading", { name: "Arclayer 让内容构建更简单" })).toBeInTheDocument();
     expect(screen.getByText("从想法到发布，用 AI 完成内容与网站构建。")).toBeInTheDocument();
-    const aurora = screen.getByTestId("home-ai-aurora");
-    expect(aurora).toBeInTheDocument();
-    expect(aurora).toHaveClass("sticky", "top-0", "z-0", "-mb-[100dvh]", "h-[100dvh]");
-    expect(aurora).not.toHaveClass("-mb-[calc(100svh-4rem)]", "h-[calc(100svh-4rem)]");
-    expect(aurora.closest('[data-slot="admin-route-frame"]')).not.toBeNull();
-    expect(aurora.querySelector('[data-slot="home-aurora-viewport"]')).toHaveClass(
-      "relative",
-      "h-full",
-      "overflow-hidden",
-    );
+    expect(container.querySelector('[data-testid="home-ai-aurora"]')).not.toBeInTheDocument();
     expect(container.querySelector('[data-page="ai-home"]')).toHaveClass("relative", "z-10");
-    expect(aurora.querySelector('[data-slot="home-aurora-edge-glow"]')).toHaveClass(
-      "bottom-0",
-      "h-[clamp(16rem,42svh,28rem)]",
-    );
-    expect(aurora.querySelector('[data-slot="home-aurora-canvas"]')).toHaveClass(
-      "bottom-0",
-      "h-[clamp(16rem,42svh,28rem)]",
-    );
-    expect(screen.getByTestId("aurora-canvas")).toHaveAttribute(
-      "data-color-stops",
-      JSON.stringify(["#339cff", "#526477", "#339cff"]),
-    );
     const composerShell = screen
       .getByRole("textbox", { name: "询问 AI…" })
       .closest("[data-ai-composer-shell]");

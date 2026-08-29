@@ -9,11 +9,6 @@ import { ApiError } from "@/lib/http";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/feedback", () => ({ submitFeedback: vi.fn() }));
-vi.mock("@/components/Aurora", () => ({
-  default: ({ colorStops }: { colorStops: [string, string, string] }) => (
-    <div data-testid="aurora-canvas" data-color-stops={JSON.stringify(colorStops)} />
-  ),
-}));
 vi.mock("@/lib/notifications", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/notifications")>();
   return { ...actual, notifySuccessText: vi.fn() };
@@ -56,7 +51,7 @@ describe("ServerErrorView", () => {
     vi.mocked(submitFeedback).mockResolvedValue({ id: "feedback-1" } as never);
   });
 
-  it("renders the fullscreen visual hierarchy, Aurora background, and recovery actions", () => {
+  it("renders the fullscreen in-app error card and recovery actions", () => {
     const { container } = renderServerError(new Error("boom"));
 
     const fullscreen = container.firstElementChild;
@@ -67,24 +62,19 @@ describe("ServerErrorView", () => {
       "overflow-y-auto",
       "bg-background",
     );
-    expect(screen.getByTestId("fullscreen-result-aurora")).toHaveClass("h-1/2", "opacity-30");
-    expect(screen.getByTestId("fullscreen-result-aurora")).toContainElement(
-      screen.getByTestId("aurora-canvas"),
-    );
-    expect(screen.getByTestId("aurora-canvas")).toHaveAttribute(
-      "data-color-stops",
-      JSON.stringify(["#339cff", "#526477", "#339cff"]),
+    expect(container.querySelector("[data-testid='fullscreen-result-aurora']")).toBeNull();
+    expect(container.querySelector("[data-slot='empty']")).toHaveClass(
+      "border-dashed",
+      "rounded-lg",
+      "p-6",
     );
 
     const heading = screen.getByRole("heading", {
       level: 1,
       name: "common:PAGE_SERVER_ERROR_TITLE",
     });
-    expect(heading).toHaveClass("text-[clamp(2.5rem,6vw,4.5rem)]", "leading-[1.08]");
-    expect(container.querySelector("[data-slot='empty-description']")).toHaveClass(
-      "text-[clamp(1rem,1.6vw,1.25rem)]",
-      "leading-relaxed",
-    );
+    expect(heading).toHaveClass("text-title3");
+    expect(container.querySelector("[data-slot='empty-description']")).toHaveClass("text-body");
     expect(container.querySelector("[data-slot='empty-icon']")).toHaveAttribute(
       "data-variant",
       "icon",

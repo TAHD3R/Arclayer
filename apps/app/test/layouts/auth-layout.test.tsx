@@ -10,10 +10,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/components/auth-showcase-background", () => ({
-  AuthShowcaseBackground: () => <div data-testid="auth-showcase-background" />,
-}));
-
 vi.mock("@/components/layout/route-transition", () => ({
   RouteTransition: ({
     children,
@@ -62,9 +58,7 @@ describe("AuthLayout", () => {
     expect(screen.queryByTestId("auth-preferences-bar")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-scene-header")).not.toBeInTheDocument();
     expect(screen.getByTestId("auth-route-skeleton")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-scene-background")).toContainElement(
-      screen.getByTestId("auth-showcase-background"),
-    );
+    expect(screen.queryByTestId("auth-scene-background")).not.toBeInTheDocument();
     expect(screen.getByTestId("route-transition")).toHaveClass("w-full");
     expect(screen.getByText("auth-content")).toBeInTheDocument();
     expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
@@ -82,10 +76,9 @@ describe("AuthLayout", () => {
     expect(centeredShell).not.toHaveClass("overflow-y-auto", "min-h-full");
     expect(centeredShell).toHaveClass("items-center");
     expect(centeredShell).toHaveClass("justify-center");
-    expect(centeredShell).toHaveClass("px-6", "py-6", "md:px-4", "md:py-4", "max-md:-mt-[20px]");
+    expect(centeredShell).toHaveClass("px-6", "py-8", "md:px-4", "md:py-10");
     expect(screen.getByTestId("route-transition").parentElement).toHaveClass("max-w-[25.875rem]");
-    expect(screen.getByTestId("auth-scene-background")).toHaveClass("z-0");
 
-    expect(root?.children).toHaveLength(2);
+    expect(root?.children).toHaveLength(1);
   });
 });
