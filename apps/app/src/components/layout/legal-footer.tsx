@@ -28,7 +28,7 @@ function LegalFooterButton(props: {
     <button
       type="button"
       className={cn(
-        "inline-flex items-baseline gap-0 px-1 align-baseline font-semibold text-label-secondary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:text-label-primary hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-baseline gap-0 align-baseline font-semibold text-label-secondary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:text-label-primary hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
         props.className,
       )}
       onClick={props.onClick}
@@ -96,32 +96,6 @@ export function LegalFooterCopyright() {
   );
 }
 
-export function LegalFooterLinks(props: {
-  termsLabel: ReactNode;
-  privacyLabel: ReactNode;
-  className?: string;
-  buttonClassName?: string;
-}) {
-  const [openModal, setOpenModal] = useState<LegalModal>(null);
-
-  return (
-    <>
-      <div className={props.className}>
-        <LegalFooterButton
-          className={props.buttonClassName}
-          onClick={() => setOpenModal("privacy")}
-        >
-          {props.privacyLabel}
-        </LegalFooterButton>
-        <LegalFooterButton className={props.buttonClassName} onClick={() => setOpenModal("terms")}>
-          {props.termsLabel}
-        </LegalFooterButton>
-      </div>
-      <LegalModalDialogs openModal={openModal} setOpenModal={setOpenModal} />
-    </>
-  );
-}
-
 export function LegalFooter({ i18nKey, className }: LegalFooterProps) {
   const [openModal, setOpenModal] = useState<LegalModal>(null);
 
@@ -129,7 +103,9 @@ export function LegalFooter({ i18nKey, className }: LegalFooterProps) {
     <>
       <p
         className={
-          className ? `${className} text-label-secondary` : "text-footnote text-label-secondary"
+          className
+            ? `${className} text-balance text-label-secondary`
+            : "text-footnote text-balance text-label-secondary"
         }
       >
         <Trans
