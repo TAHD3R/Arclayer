@@ -148,7 +148,8 @@ describe("RouteTransition progress contract", () => {
     expect(screen.getByTestId("route-content")).toBeInTheDocument();
   });
 
-  it("covers stale route content immediately while cross-route loading is pending", () => {
+  it("keeps stale route content visible and interactive during the cross-route delay window", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
     const view = render(
       <RouteTransition pendingMs={10_000}>
         <div data-testid="old-route-content" />
@@ -157,7 +158,6 @@ describe("RouteTransition progress contract", () => {
 
     routerState.isLoading = true;
     routerState.location.pathname = "/projects/project-1/settings/access";
-    routerState.resolvedLocation = { pathname: "/projects/project-1/activity" };
     routerState.matches = [{ status: "pending", routeId: "/projects/$projectId/settings/access" }];
 
     view.rerender(
@@ -169,15 +169,50 @@ describe("RouteTransition progress contract", () => {
     expect(view.queryByTestId("old-route-content")).toBeInTheDocument();
     expect(
       view.queryByTestId("old-route-content")?.closest('[data-slot="route-content"]'),
-    ).toHaveAttribute("inert");
-    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
-    expect(view.container.firstElementChild).toHaveAttribute("aria-busy", "true");
+    ).not.toHaveAttribute("inert");
+    expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
+    expect(view.container.firstElementChild).not.toHaveAttribute("aria-busy", "true");
+
+    view.unmount();
+  });
+
+  it("resolves fast navigations inside the delay window without any skeleton", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
+    const view = render(
+      <RouteTransition>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    routerState.isLoading = true;
+    routerState.location.pathname = "/projects/project-1/settings/access";
+    routerState.matches = [{ status: "pending", routeId: "/projects/$projectId/settings/access" }];
+    view.rerender(
+      <RouteTransition>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+    act(() => vi.advanceTimersByTime(120));
+
+    // The route commits inside the window: pending clears and the animation key
+    // syncs in the same render pass, so the new content swaps in seamlessly.
+    routerState.isLoading = false;
+    routerState.matches = [{ status: "success", routeId: "/projects/$projectId/settings/access" }];
+    view.rerender(
+      <RouteTransition>
+        <div data-testid="next-route-content" />
+      </RouteTransition>,
+    );
+
+    act(() => vi.advanceTimersByTime(400));
+    expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
+    expect(screen.getByTestId("next-route-content")).toBeInTheDocument();
   });
 
   it("uses a route-specific pending fallback without rendering the generic page skeleton", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
     routerState.isLoading = true;
     routerState.location.pathname = "/login";
-    routerState.resolvedLocation = { pathname: "/reset-password" };
     routerState.matches = [{ status: "pending", routeId: "/login" }];
 
     render(
@@ -186,33 +221,10 @@ describe("RouteTransition progress contract", () => {
       </RouteTransition>,
     );
 
+    act(() => vi.advanceTimersByTime(200));
     expect(screen.getByTestId("auth-pending-fallback")).toBeInTheDocument();
     expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveClass("bg-transparent");
-  });
-
-  it("covers stale route content when pathname advances before pending state", () => {
-    const view = render(
-      <RouteTransition pendingMs={10_000}>
-        <div data-testid="old-route-content" />
-      </RouteTransition>,
-    );
-
-    routerState.location.pathname = "/projects/project-1/settings/access";
-    routerState.resolvedLocation = { pathname: "/projects/project-1/settings/access" };
-    routerState.matches = [{ status: "success", routeId: "/projects/$projectId/settings/access" }];
-
-    view.rerender(
-      <RouteTransition pendingMs={10_000}>
-        <div data-testid="old-route-content" />
-      </RouteTransition>,
-    );
-
-    expect(view.queryByTestId("old-route-content")).toBeInTheDocument();
-    expect(
-      view.queryByTestId("old-route-content")?.closest('[data-slot="route-content"]'),
-    ).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
   });
 
   it("preserves child state and mount identity while the pending overlay is visible", () => {

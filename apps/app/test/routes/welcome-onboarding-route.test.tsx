@@ -18,7 +18,7 @@ const {
   routeState: {
     pathname: "/projects",
     isPagePending: false,
-    matches: [] as Array<{ status: string; error?: unknown }>,
+    matches: [] as Array<{ status: string; error?: unknown; pathname?: string }>,
   },
   setCurrentContextMock: vi.fn(),
   workspaceState: { currentProjectId: null as string | null },
@@ -124,6 +124,21 @@ describe("welcome onboarding route guard", () => {
     expect(screen.getByTestId("route-outlet")).toBeInTheDocument();
     expect(screen.queryByTestId("scene-layout-global")).not.toBeInTheDocument();
     expect(screen.queryByTestId("root-scene-shell")).not.toBeInTheDocument();
+  });
+
+  it("keeps the current scene shell while a /welcome navigation is still pending", () => {
+    // The router flips `location` to /welcome as soon as navigation starts, but
+    // the rendered match chain (and thus <Outlet />) still holds the admin
+    // route until the commit — the shell must follow the matches, or the
+    // sidebar disappears one frame before the view transition begins.
+    routeState.pathname = "/welcome";
+    routeState.matches = [{ status: "success", pathname: "/projects/project-1/settings/skills" }];
+
+    render(<RootLayout />);
+
+    expect(screen.getByTestId("root-scene-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("scene-layout-admin")).toBeInTheDocument();
+    expect(screen.getByTestId("route-outlet")).toBeInTheDocument();
   });
 
   it("renders route errors outside the active scene layout", () => {

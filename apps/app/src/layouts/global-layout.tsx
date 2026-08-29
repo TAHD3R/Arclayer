@@ -8,7 +8,6 @@ import {
   mapProjectListItemToSidebarBrowseProject,
   mapProjectToListItem,
 } from "@/pages/usercenter/projects/project-list-items";
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { GLOBAL_RECENT_PROJECT_LIMIT, resolveGlobalNavItems } from "@/constants/menu/global";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
@@ -31,7 +30,7 @@ export function GlobalLayout() {
   const navigate = useNavigate();
   const { pathname, searchStr } = useRouterState({
     select: (s) => ({
-      pathname: s.resolvedLocation?.pathname ?? s.location.pathname,
+      pathname: s.location.pathname,
       searchStr: s.location.searchStr,
     }),
     structuralSharing: true,
@@ -113,11 +112,9 @@ export function GlobalLayout() {
           <div className="relative flex min-h-0 flex-1">
             <SidebarInset className="w-auto min-w-0 flex-1 overflow-hidden bg-background">
               <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:auto]">
-                <ContentGuard loading={false} error={null} container="raw" loadingVariant="form">
-                  <RouteTransition className="h-full min-h-0 w-full">
-                    <Outlet />
-                  </RouteTransition>
-                </ContentGuard>
+                <RouteTransition className="h-full min-h-0 w-full">
+                  <Outlet />
+                </RouteTransition>
               </div>
             </SidebarInset>
           </div>

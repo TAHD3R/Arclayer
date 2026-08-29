@@ -16,7 +16,6 @@ import {
   getGlobalNotificationMeta,
   GlobalNotificationSurfaces,
 } from "@/components/common/global-notification-surfaces";
-import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { SidebarDefaultPreferenceDialog } from "@/components/layout/sidebar-default-preference-dialog";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
@@ -53,10 +52,6 @@ type AdminSceneLayoutProps = PropsWithChildren<{
   showOrgNavErrorOverlay?: boolean;
   sidebarCollapsible?: "icon" | "none";
   sidebarPathnameOverride?: string;
-  loading?: boolean;
-  error?: unknown | null;
-  onRetry?: () => void;
-  guardContainer?: ContentGuardProps["container"];
   routeTransitionClassName?: string;
 }>;
 
@@ -73,10 +68,6 @@ export function AdminSceneLayout({
   showOrgNavErrorOverlay = false,
   sidebarCollapsible = "icon",
   sidebarPathnameOverride,
-  loading = false,
-  error = null,
-  onRetry,
-  guardContainer = "raw",
   routeTransitionClassName = "w-full",
   children,
 }: AdminSceneLayoutProps) {
@@ -394,19 +385,11 @@ export function AdminSceneLayout({
                         sidebarPathnameOverride === "/" && "scrollbar-none",
                       )}
                     >
-                      <ContentGuard
-                        loading={loading}
-                        error={error}
-                        container={guardContainer}
-                        onRetry={onRetry}
-                        loadingVariant="form"
+                      <RouteTransition
+                        className={cn("min-w-0 max-w-full", routeTransitionClassName)}
                       >
-                        <RouteTransition
-                          className={cn("min-w-0 max-w-full", routeTransitionClassName)}
-                        >
-                          {children}
-                        </RouteTransition>
-                      </ContentGuard>
+                        {children}
+                      </RouteTransition>
                     </div>
                   </SidebarInset>
                 </div>

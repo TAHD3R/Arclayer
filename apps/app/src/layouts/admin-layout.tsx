@@ -16,7 +16,7 @@ import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { resolveNotificationsSourcePath } from "@/lib/routing/notifications-source";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { RouteTransition } from "@/components/layout/route-transition";
+import { resolveAdminSkeletonVariant } from "@/components/layout/route-transition";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -278,11 +278,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
                       }
                     : undefined
                 }
-                loadingVariant="form"
+                loadingVariant={resolveAdminSkeletonVariant(undefined, sidebarPathname)}
               >
-                <RouteTransition className="h-full min-h-0 w-full">
-                  {children ?? <Outlet />}
-                </RouteTransition>
+                {children ?? <Outlet />}
               </ContentGuard>
             </div>
           </SidebarInset>
@@ -335,16 +333,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
       resolvePermissionName={resolvePermissionName}
       showNavSkeleton={false}
       sidebarCollapsible="icon"
-      loading={false}
-      error={isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
-      onRetry={
-        isWorkspaceScopeRoute
-          ? () => {
-              void workspaceDetailQuery.refetch();
-            }
-          : undefined
-      }
-      guardContainer="admin-route"
       routeTransitionClassName="h-full min-h-0 w-full"
     >
       {children ?? <Outlet />}

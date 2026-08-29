@@ -96,6 +96,7 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
 
 vi.mock("@/components/layout/route-transition", () => ({
   RouteTransition: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  resolveAdminSkeletonVariant: () => "form",
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
@@ -299,7 +300,6 @@ describe("sidebar route state wiring", () => {
 
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
-    expect(props.loading).toBe(false);
   });
 
   it("syncs the browse tab project identity on project routes", async () => {

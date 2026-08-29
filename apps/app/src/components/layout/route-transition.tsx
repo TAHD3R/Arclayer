@@ -63,7 +63,7 @@ function useRouteLoadingProgress(isRouteLoading: boolean) {
   }, [stop]);
 }
 
-function resolveAdminSkeletonVariant(routeId: string | undefined, pathname: string) {
+export function resolveAdminSkeletonVariant(routeId: string | undefined, pathname: string) {
   const routeKey = routeId ?? pathname;
 
   if (
@@ -132,69 +132,56 @@ export function RouteTransition({
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
-  const { currentPathname, pendingRouteId, resolvedPathname, isPagePending, isRouteLoading } =
-    useRouterState({
-      select: (s) => ({
-        // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
-        // do not trigger a full route transition animation.
-        currentPathname: s.location.pathname,
-        resolvedPathname: s.resolvedLocation?.pathname ?? s.location.pathname,
-        // Matches can stay pending even after `isLoading` flips; mirror router internals.
-        isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
-        isRouteLoading: s.isLoading,
-        pendingRouteId: [...s.matches].reverse().find((match) => match.routeId)?.routeId,
-      }),
-      structuralSharing: true,
-    });
+  const { currentPathname, pendingRouteId, isPagePending, isRouteLoading } = useRouterState({
+    select: (s) => ({
+      // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
+      // do not trigger a full route transition animation.
+      currentPathname: s.location.pathname,
+      // Matches can stay pending even after `isLoading` flips; mirror router internals.
+      isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
+      isRouteLoading: s.isLoading,
+      pendingRouteId: [...s.matches].reverse().find((match) => match.routeId)?.routeId,
+    }),
+    structuralSharing: true,
+  });
   useRouteLoadingProgress(isRouteLoading);
 
-  // Key route animations by the last resolved pathname, but keep children live.
-  // Freezing children during pending renders stale page content inside the next
-  // route shell for a frame on fast intra-scene navigation.
-  const [displayedPathname, setDisplayedPathname] = useState(resolvedPathname);
-  // Same-route pending stays subtle by default. Path changes must cover during
-  // render because the router location can advance before Outlet or pending
-  // state resolves, otherwise stale route content is visible for one frame.
-  const isCrossRoutePending = isPagePending && currentPathname !== resolvedPathname;
+  // Key route animations by the current pathname, but keep children live. While a
+  // navigation is pending the optimistic pathname already points at the target
+  // route, yet the rendered match chain (and thus children) is still the old
+  // page — keeping the old key keeps the old content mounted and visible for the
+  // delay window instead of flashing a skeleton.
+  const [displayedPathname, setDisplayedPathname] = useState(currentPathname);
+  // Sync the animation key during render so a committed route never paints under
+  // a stale key; a passive effect here leaves one frame of new content inside
+  // the old key's motion.div.
+  if (!isPagePending && displayedPathname !== currentPathname) {
+    setDisplayedPathname(currentPathname);
+  }
+  // A pending navigation whose target pathname has not been displayed yet.
   const hasUnresolvedPathSwitch = currentPathname !== displayedPathname;
+  const isNavigating = isPagePending || hasUnresolvedPathSwitch;
   const [routeAnimationSettled, setRouteAnimationSettled] = useState(true);
   const displayedPathnameRef = useRef(displayedPathname);
-  const resolvedPathnameRef = useRef(resolvedPathname);
   const isPagePendingRef = useRef(isPagePending);
   const routeTransitionState = useMemo(
     () => ({
-      settled:
-        routeAnimationSettled &&
-        !isPagePending &&
-        !hasUnresolvedPathSwitch &&
-        displayedPathname === resolvedPathname,
+      settled: routeAnimationSettled && !isPagePending && !hasUnresolvedPathSwitch,
     }),
-    [
-      displayedPathname,
-      hasUnresolvedPathSwitch,
-      isPagePending,
-      resolvedPathname,
-      routeAnimationSettled,
-    ],
+    [hasUnresolvedPathSwitch, isPagePending, routeAnimationSettled],
   );
 
   displayedPathnameRef.current = displayedPathname;
-  resolvedPathnameRef.current = resolvedPathname;
   isPagePendingRef.current = isPagePending;
 
   useEffect(() => {
-    if (isPagePending) return;
-    setDisplayedPathname(resolvedPathname);
-  }, [isPagePending, resolvedPathname]);
-
-  useEffect(() => {
-    if (isPagePending || hasUnresolvedPathSwitch || displayedPathname !== resolvedPathname) {
+    if (isPagePending || hasUnresolvedPathSwitch || displayedPathname !== currentPathname) {
       setRouteAnimationSettled(false);
     }
-  }, [displayedPathname, hasUnresolvedPathSwitch, isPagePending, resolvedPathname]);
+  }, [currentPathname, displayedPathname, hasUnresolvedPathSwitch, isPagePending]);
 
   const [showPending, setShowPending] = useState(false);
-  const shouldShowPending = showPending || hasUnresolvedPathSwitch;
+  const shouldShowPending = showPending;
   const pendingShownAtRef = useRef<number | null>(null);
   const showPendingTimerRef = useRef<number | null>(null);
   const hidePendingTimerRef = useRef<number | null>(null);
@@ -216,9 +203,18 @@ export function RouteTransition({
       hidePendingTimerRef.current = null;
     }
 
-    if (isCrossRoutePending || hasUnresolvedPathSwitch) {
-      pendingShownAtRef.current ??= Date.now();
-      setShowPending(true);
+    if (isNavigating) {
+      // Delay the skeleton: fast (cached) navigations resolve inside the window
+      // and stay a seamless swap with no loading state at all.
+      if (showPending) {
+        pendingShownAtRef.current ??= Date.now();
+        return;
+      }
+      showPendingTimerRef.current = window.setTimeout(() => {
+        pendingShownAtRef.current = Date.now();
+        setShowPending(true);
+        showPendingTimerRef.current = null;
+      }, pendingMs);
       return;
     }
 
@@ -243,22 +239,7 @@ export function RouteTransition({
 
       return;
     }
-
-    if (showPending) return;
-
-    showPendingTimerRef.current = window.setTimeout(() => {
-      pendingShownAtRef.current = Date.now();
-      setShowPending(true);
-      showPendingTimerRef.current = null;
-    }, pendingMs);
-  }, [
-    hasUnresolvedPathSwitch,
-    isCrossRoutePending,
-    isPagePending,
-    pendingMinMs,
-    pendingMs,
-    showPending,
-  ]);
+  }, [isNavigating, isPagePending, pendingMinMs, pendingMs, showPending]);
 
   useEffect(
     () => () => {
@@ -310,7 +291,6 @@ export function RouteTransition({
               onAnimationComplete={() => {
                 if (
                   displayedPathname === displayedPathnameRef.current &&
-                  displayedPathname === resolvedPathnameRef.current &&
                   !isPagePendingRef.current
                 ) {
                   setRouteAnimationSettled(true);

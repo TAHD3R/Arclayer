@@ -57,8 +57,17 @@ export function RootLayout() {
   ) as { error?: Error } | undefined;
   const routeError = errorMatch?.error;
   const hasRouteError = Boolean(errorMatch);
-  const isWelcome = isWelcomePath(pathname);
-  const sceneKey = resolveSceneKey(pathname, searchStr);
+  // TanStack Router flips `location` to the destination the moment a navigation
+  // starts, while `matches` (what <Outlet /> renders) only switch inside the
+  // commit. Branching the shell on the optimistic pathname renders a mixed
+  // "new shell + old content" frame while pending — e.g. the admin sidebar
+  // vanishing before the /welcome view transition even starts. Derive the shell
+  // pathname from the rendered match chain so the shell swaps in the same
+  // commit as the content.
+  const renderedMatches = routerState.matches;
+  const renderedPathname = renderedMatches[renderedMatches.length - 1]?.pathname ?? pathname;
+  const isWelcome = isWelcomePath(renderedPathname);
+  const sceneKey = resolveSceneKey(renderedPathname, searchStr);
   const lastResolvedSceneRef = useRef(sceneKey);
   const Layout = getSceneLayout(sceneKey);
   const overlayVisible =
