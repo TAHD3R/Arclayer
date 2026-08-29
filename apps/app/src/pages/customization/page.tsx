@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { WorkspaceDesignSystemsPage } from "@/pages/workspaces/settings/workspace/design-systems/page";
 import { WorkspaceKnowledgePage } from "@/pages/workspaces/settings/workspace/knowledge/page";
-import { WorkspaceKnowledgeHeaderActions } from "@/pages/workspaces/settings/workspace/knowledge/workspace-guidance-authoring";
-import type { WorkspaceGuidanceController } from "@/pages/workspaces/settings/workspace/knowledge/use-workspace-guidance-controller";
 import {
   WorkspaceSkillsPage,
   type WorkspaceSkillCreateAction,
@@ -50,8 +48,6 @@ export function CustomizationPage(props: {
   const copy = SECTION_COPY[props.section];
   const [requestedAction, setRequestedAction] = useState<WorkspaceSkillCreateAction>();
   const [focusRequestId, setFocusRequestId] = useState(0);
-  const [knowledgeController, setKnowledgeController] =
-    useState<WorkspaceGuidanceController | null>(null);
   const [designSystemsController, setDesignSystemsController] =
     useState<WorkspaceDesignSystemsController | null>(null);
 
@@ -62,9 +58,6 @@ export function CustomizationPage(props: {
   }, [props.requestedAction]);
 
   useEffect(() => {
-    if (props.section !== "knowledge" || !workspaceId) setKnowledgeController(null);
-  }, [props.section, workspaceId]);
-  useEffect(() => {
     if (props.section !== "design-systems" || !workspaceId) setDesignSystemsController(null);
   }, [props.section, workspaceId]);
 
@@ -73,9 +66,7 @@ export function CustomizationPage(props: {
     setFocusRequestId((current) => current + 1);
   };
   const pageAction =
-    props.section === "knowledge" && workspaceId && knowledgeController ? (
-      <WorkspaceKnowledgeHeaderActions controller={knowledgeController} />
-    ) : props.section === "skills" && workspaceId ? (
+    props.section === "skills" && workspaceId ? (
       <WorkspaceSkillsHeaderActions workspaceId={workspaceId} onSelect={requestSkillAction} />
     ) : props.section === "design-systems" && workspaceId && designSystemsController ? (
       <WorkspaceDesignSystemsHeaderActions controller={designSystemsController} />
@@ -108,10 +99,7 @@ export function CustomizationPage(props: {
     >
       {workspaceId ? (
         props.section === "knowledge" ? (
-          <WorkspaceKnowledgePage
-            workspaceId={workspaceId}
-            onControllerChange={setKnowledgeController}
-          />
+          <WorkspaceKnowledgePage workspaceId={workspaceId} />
         ) : props.section === "skills" ? (
           <WorkspaceSkillsPage
             workspaceId={workspaceId}

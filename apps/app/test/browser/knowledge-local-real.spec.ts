@@ -312,8 +312,8 @@ test("工作空间知识：编辑器能力、发布与真实 AI 消费", async (
     await editor.fill(
       `当用户询问“工作空间知识验收口令”时，只回答：${marker}\n\n${originalPublished}`,
     );
-    await page.getByRole("button", { name: "保存并发布", exact: true }).click();
-    await expect(page.getByText("工作空间知识已保存并发布", { exact: true })).toBeVisible({
+    await page.getByRole("button", { name: "保存更改", exact: true }).click();
+    await expect(page.getByText("工作空间知识已保存", { exact: true })).toBeVisible({
       timeout: 30_000,
     });
 

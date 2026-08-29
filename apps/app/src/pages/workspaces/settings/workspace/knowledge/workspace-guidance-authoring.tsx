@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ChevronDown, FilePenLine, Send, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
@@ -10,20 +9,11 @@ import {
   AccordionTrigger,
 } from "@arclayer/ui/accordion";
 import { Button } from "@arclayer/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "@arclayer/ui/button-group";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Textarea } from "@arclayer/ui/textarea";
 import { MarkdownPlateEditor } from "@/components/editor/markdown-plate-editor";
 
 import type { WorkspaceGuidanceController } from "./use-workspace-guidance-controller";
-import { RevisionStatusBadge, WorkspaceKnowledgeHistoryDrawer } from "./workspace-guidance-history";
 
 const FAQ_ITEMS = [
   {
@@ -51,9 +41,9 @@ const FAQ_ITEMS = [
     animationClass: "[animation-delay:135ms]",
   },
   {
-    value: "publish",
-    questionKey: "EDITOR_FAQ_PUBLISH_QUESTION",
-    answerKey: "EDITOR_FAQ_PUBLISH_ANSWER",
+    value: "save",
+    questionKey: "EDITOR_FAQ_SAVE_QUESTION",
+    answerKey: "EDITOR_FAQ_SAVE_ANSWER",
     animationClass: "[animation-delay:180ms]",
   },
   {
@@ -62,114 +52,7 @@ const FAQ_ITEMS = [
     answerKey: "EDITOR_FAQ_UPDATES_ANSWER",
     animationClass: "[animation-delay:225ms]",
   },
-  {
-    value: "rollback",
-    questionKey: "EDITOR_FAQ_ROLLBACK_QUESTION",
-    answerKey: "EDITOR_FAQ_ROLLBACK_ANSWER",
-    animationClass: "[animation-delay:270ms]",
-  },
 ] as const;
-
-export function WorkspaceKnowledgeHeaderActions({
-  controller,
-}: {
-  controller: WorkspaceGuidanceController;
-}) {
-  const { t } = useTranslation("knowledge");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const layer = controller.layer;
-  if (!layer) return null;
-
-  const pending =
-    controller.saveDraftMutation.isPending ||
-    controller.publishMutation.isPending ||
-    controller.saveAndPublishMutation.isPending;
-  const canSaveAndPublish =
-    Boolean(controller.draft.trim()) &&
-    (controller.hasUnsavedChanges || Boolean(layer.currentDraft?.id));
-  const canPublishWithoutSaving =
-    Boolean(layer.currentDraft?.id) ||
-    (Boolean(controller.draft.trim()) && controller.hasUnsavedChanges);
-  const canSaveDraft = Boolean(controller.draft.trim()) && controller.hasUnsavedChanges;
-  const canOpenPublishOptions = canSaveAndPublish || canPublishWithoutSaving || canSaveDraft;
-  const canViewHistory =
-    !controller.historyQuery.isLoading &&
-    controller.history.length > 0 &&
-    !controller.historyQuery.error;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        variant="outline"
-        className="h-10"
-        disabled={!canViewHistory || pending}
-        onClick={() => setHistoryOpen(true)}
-      >
-        {t("HISTORY_ACTION")}
-      </Button>
-      <ButtonGroup>
-        <Button
-          className="h-10"
-          disabled={!canSaveAndPublish || pending}
-          loading={
-            controller.saveAndPublishMutation.isPending || controller.publishMutation.isPending
-          }
-          onClick={() => {
-            if (controller.hasUnsavedChanges) {
-              controller.saveAndPublish();
-            } else {
-              controller.publish({ notificationKey: "SAVED_AND_PUBLISHED" });
-            }
-          }}
-        >
-          {t("SAVE_AND_PUBLISH")}
-        </Button>
-        <ButtonGroupSeparator />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              className="size-10"
-              aria-label={t("PUBLISH_OPTIONS")}
-              disabled={!canOpenPublishOptions || pending}
-              variant="default"
-            >
-              <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              disabled={!canPublishWithoutSaving || pending}
-              onSelect={() => {
-                if (layer.currentDraft?.id) {
-                  controller.publish({ preserveUnsavedChanges: true });
-                } else {
-                  controller.saveAndPublish();
-                }
-              }}
-            >
-              <Send data-icon="inline-start" />
-              {t("PUBLISH_WITHOUT_SAVING")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={!canSaveDraft || pending}
-              onSelect={() => controller.saveDraft()}
-            >
-              <FilePenLine data-icon="inline-start" />
-              {t("SAVE_DRAFT_ONLY")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </ButtonGroup>
-      <WorkspaceKnowledgeHistoryDrawer
-        controller={controller}
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-      />
-    </div>
-  );
-}
 
 export function WorkspaceKnowledgeEditor({
   controller,
@@ -178,6 +61,7 @@ export function WorkspaceKnowledgeEditor({
 }) {
   const { t } = useTranslation("knowledge");
   const layer = controller.layer!;
+  const savePending = controller.saveMutation.isPending;
 
   return (
     <section aria-labelledby="workspace-knowledge-title">
@@ -190,6 +74,13 @@ export function WorkspaceKnowledgeEditor({
             {t("EDITOR_DESCRIPTION")}
           </p>
         </div>
+        <Button
+          disabled={savePending || !controller.hasUnsavedChanges || !controller.content.trim()}
+          loading={savePending}
+          onClick={() => controller.save()}
+        >
+          {t("SAVE_ACTION")}
+        </Button>
       </div>
 
       {layer.removedAt ? <RemovedGuidanceAlert isProject={false} /> : null}
@@ -197,11 +88,11 @@ export function WorkspaceKnowledgeEditor({
       <div className="mt-6" aria-describedby="workspace-knowledge-description">
         <MarkdownPlateEditor
           ariaLabel={t("EDITOR_FIELD_LABEL")}
-          disabled={controller.saveDraftMutation.isPending || controller.publishMutation.isPending}
-          onChange={controller.setDraft}
+          disabled={savePending}
+          onChange={controller.setContent}
           exportFilename="workspace-knowledge.md"
           placeholder={t("EDITOR_PLACEHOLDER")}
-          value={controller.draft}
+          value={controller.content}
         />
       </div>
 
@@ -249,8 +140,7 @@ export function WorkspaceKnowledgeEditor({
 export function GuidanceEditor({ controller }: { controller: WorkspaceGuidanceController }) {
   const { t } = useTranslation("knowledge");
   const layer = controller.layer!;
-  const currentRevision = layer.currentDraft ?? layer.currentPublished ?? null;
-  const hasContent = Boolean(currentRevision?.content);
+  const hasContent = Boolean(layer.currentPublished?.content);
 
   return (
     <section
@@ -258,12 +148,9 @@ export function GuidanceEditor({ controller }: { controller: WorkspaceGuidanceCo
       aria-labelledby="guidance-editor-title"
     >
       <div className="p-4 sm:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 id="guidance-editor-title" className="text-title2 font-bold text-label-primary">
-            {t(controller.isProject ? "PROJECT_EDITOR_TITLE" : "EDITOR_TITLE")}
-          </h2>
-          {currentRevision ? <RevisionStatusBadge status={currentRevision.status} /> : null}
-        </div>
+        <h2 id="guidance-editor-title" className="text-title2 font-bold text-label-primary">
+          {t(controller.isProject ? "PROJECT_EDITOR_TITLE" : "EDITOR_TITLE")}
+        </h2>
         <p className="mt-2 max-w-3xl text-footnote leading-6 text-label-secondary">
           {t(controller.isProject ? "PROJECT_EDITOR_DESCRIPTION" : "EDITOR_DESCRIPTION")}
         </p>
@@ -281,11 +168,9 @@ export function GuidanceEditor({ controller }: { controller: WorkspaceGuidanceCo
             id="workspace-guidance-content"
             aria-describedby="workspace-guidance-help"
             className="mt-3 min-h-[26rem] resize-y text-body leading-7"
-            disabled={
-              controller.saveDraftMutation.isPending || controller.publishMutation.isPending
-            }
-            value={controller.draft}
-            onChange={(event) => controller.setDraft(event.target.value)}
+            disabled={controller.saveMutation.isPending}
+            value={controller.content}
+            onChange={(event) => controller.setContent(event.target.value)}
             placeholder={t("EDITOR_PLACEHOLDER")}
           />
         </div>
@@ -294,54 +179,31 @@ export function GuidanceEditor({ controller }: { controller: WorkspaceGuidanceCo
       </div>
 
       <div className="flex flex-col gap-4 border-t bg-muted/20 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-caption text-label-secondary" aria-live="polite">
-            {currentRevision
-              ? t("REVISION_DETAIL", { revision: currentRevision.revisionNumber })
-              : t("NO_REVISION_YET")}
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            disabled={
-              !hasContent || Boolean(layer.removedAt) || controller.removePreviewMutation.isPending
-            }
-            loading={controller.removePreviewMutation.isPending}
-            onClick={() => void controller.previewRemoval()}
-          >
-            <Trash2 data-icon="inline-start" />
-            {t("REMOVE_ACTION")}
-          </Button>
-        </div>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          {controller.hasUnsavedChanges || controller.saveDraftMutation.isPending ? (
-            <Button
-              variant="outline"
-              disabled={
-                !controller.draft.trim() ||
-                controller.saveDraftMutation.isPending ||
-                controller.publishMutation.isPending
-              }
-              loading={controller.saveDraftMutation.isPending}
-              onClick={() => void controller.saveDraft()}
-            >
-              {t("SAVE_DRAFT")}
-            </Button>
-          ) : null}
-          <Button
-            disabled={
-              !layer.currentDraft?.id ||
-              controller.hasUnsavedChanges ||
-              controller.saveDraftMutation.isPending ||
-              controller.publishMutation.isPending
-            }
-            loading={controller.publishMutation.isPending}
-            onClick={() => void controller.publish()}
-          >
-            {t("PUBLISH_ACTION")}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          disabled={
+            !hasContent || Boolean(layer.removedAt) || controller.removePreviewMutation.isPending
+          }
+          loading={controller.removePreviewMutation.isPending}
+          onClick={() => void controller.previewRemoval()}
+        >
+          <Trash2 data-icon="inline-start" />
+          {t("REMOVE_ACTION")}
+        </Button>
+        <Button
+          className="lg:self-end"
+          disabled={
+            !controller.content.trim() ||
+            !controller.hasUnsavedChanges ||
+            controller.saveMutation.isPending
+          }
+          loading={controller.saveMutation.isPending}
+          onClick={() => void controller.save()}
+        >
+          {t("SAVE_ACTION")}
+        </Button>
       </div>
     </section>
   );
@@ -370,7 +232,7 @@ function ProjectGuidanceMode({ controller }: { controller: WorkspaceGuidanceCont
         {t("PROJECT_MODE_LABEL")}
       </label>
       <Select
-        disabled={controller.saveDraftMutation.isPending || controller.publishMutation.isPending}
+        disabled={controller.saveMutation.isPending}
         value={controller.projectMode}
         onValueChange={(value) => controller.setProjectMode(value as "supplement" | "override")}
       >

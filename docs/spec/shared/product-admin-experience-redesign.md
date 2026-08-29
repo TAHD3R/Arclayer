@@ -177,7 +177,7 @@ The shared creation-context loop is discover or inherit, apply in a Project or A
 
 Each Workspace owns one shared-guidance layer; each Project owns project guidance that supplements or explicitly overrides it under a visible precedence and conflict contract. Users do not create a “Knowledge Base” container before entering useful guidance.
 
-The page must support editing and publishing shared guidance, previewing effective Workspace and Project context, identifying overrides, conflicts, and unavailable instructions, inspecting where guidance is used, restoring prior content, and removing content with impact review.
+The page must support editing shared guidance with a single save action that makes content active, previewing effective Workspace and Project context, identifying overrides, conflicts, and unavailable instructions, and removing content with impact review. Revision history browsing, draft states, and restore workflows stay out of the primary UI; saving again is the correction path.
 
 Files, websites, manual pages, and Connectors are optional reusable references. When used, the complete source lifecycle includes add, permission validation, processing, preview, synchronization, freshness, retrieval test, citations, failure recovery, detach or removal impact, and history. These mechanics do not dominate the default guidance experience.
 

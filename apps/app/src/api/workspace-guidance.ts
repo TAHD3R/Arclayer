@@ -1,5 +1,4 @@
 import type {
-  KnowledgeCursorPageKnowledgeGuidanceRevisionOut,
   KnowledgeGuidanceDraftSaveRequest,
   KnowledgeGuidanceEffectivePreviewOut,
   KnowledgeGuidanceLayerOut,
@@ -9,7 +8,6 @@ import type {
   KnowledgeGuidanceReferenceAttachRequest,
   KnowledgeGuidanceReferenceDetachRequest,
   KnowledgeGuidanceRemovePreviewRequest,
-  KnowledgeGuidanceRestorePreviewRequest,
 } from "@arclayer/openapi";
 
 import { api } from "@/lib/http";
@@ -48,17 +46,6 @@ export function getGuidanceLayer(
   return api.get<KnowledgeGuidanceLayerOut>(guidancePath(scope), { signal });
 }
 
-export function listGuidanceHistory(
-  scope: GuidanceScope,
-  params: { limit?: number; cursor?: string; signal?: AbortSignal } = {},
-): Promise<KnowledgeCursorPageKnowledgeGuidanceRevisionOut> {
-  const { signal, ...query } = params;
-  return api.get<KnowledgeCursorPageKnowledgeGuidanceRevisionOut>(
-    `${guidancePath(scope)}/history${queryString(query)}`,
-    { signal },
-  );
-}
-
 export function saveGuidanceDraft(
   scope: GuidanceScope,
   payload: KnowledgeGuidanceDraftSaveRequest,
@@ -89,31 +76,6 @@ export function getEffectiveGuidance(
   return api.get<KnowledgeGuidanceEffectivePreviewOut>(
     `${guidancePath(scope)}/effective${queryString({ projectId })}`,
     { signal },
-  );
-}
-
-export function createGuidanceRestorePreview(
-  scope: GuidanceScope,
-  payload: KnowledgeGuidanceRestorePreviewRequest,
-  idempotencyKey: string,
-): Promise<KnowledgeGuidancePreviewOut> {
-  return api.post<KnowledgeGuidancePreviewOut>(
-    `${guidancePath(scope)}/restore-previews`,
-    payload,
-    commandOptions(idempotencyKey),
-  );
-}
-
-export function applyGuidanceRestorePreview(
-  scope: GuidanceScope,
-  previewId: string,
-  payload: KnowledgeGuidancePreviewApplyRequest,
-  idempotencyKey: string,
-): Promise<KnowledgeGuidanceLayerOut> {
-  return api.post<KnowledgeGuidanceLayerOut>(
-    `${guidancePath(scope)}/restore-previews/${encodeURIComponent(previewId)}/apply`,
-    payload,
-    commandOptions(idempotencyKey),
   );
 }
 

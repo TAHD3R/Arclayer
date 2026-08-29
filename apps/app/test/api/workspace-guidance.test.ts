@@ -8,12 +8,7 @@ vi.mock("@/lib/http", () => ({
   },
 }));
 
-import {
-  applyGuidanceRestorePreview,
-  getEffectiveGuidance,
-  listGuidanceHistory,
-  saveGuidanceDraft,
-} from "@/api/workspace-guidance";
+import { getEffectiveGuidance, publishGuidance, saveGuidanceDraft } from "@/api/workspace-guidance";
 import { api } from "@/lib/http";
 
 describe("api/workspace guidance contracts", () => {
@@ -26,27 +21,17 @@ describe("api/workspace guidance contracts", () => {
     vi.mocked(api.put).mockResolvedValue({});
   });
 
-  it("uses the canonical Workspace and Project guidance lifecycle paths", async () => {
+  it("uses the canonical project guidance paths", async () => {
     const signal = new AbortController().signal;
-    await listGuidanceHistory(
-      { workspaceId: "workspace/alpha", projectId: "project/one" },
-      { limit: 25, cursor: "cursor/one", signal },
-    );
     await getEffectiveGuidance("workspace/alpha", "project/one", signal);
 
-    expect(api.get).toHaveBeenNthCalledWith(
-      1,
-      "/workspaces/workspace%2Falpha/guidance/projects/project%2Fone/history?limit=25&cursor=cursor%2Fone",
-      { signal },
-    );
-    expect(api.get).toHaveBeenNthCalledWith(
-      2,
+    expect(api.get).toHaveBeenCalledWith(
       "/workspaces/workspace%2Falpha/guidance/effective?projectId=project%2Fone",
       { signal },
     );
   });
 
-  it("sends idempotency keys for draft and impact-preview application commands", async () => {
+  it("sends idempotency keys for save and publish commands", async () => {
     await saveGuidanceDraft(
       { workspaceId: "workspace/alpha" },
       { expectedRevision: 4, content: "Approved guidance" },
@@ -57,11 +42,10 @@ describe("api/workspace guidance contracts", () => {
       { expectedRevision: 4, content: "Project guidance", projectMode: "override" },
       "project-draft-key",
     );
-    await applyGuidanceRestorePreview(
-      { workspaceId: "workspace/alpha", projectId: "project/one" },
-      "preview/one",
-      { expectedGuidanceRevision: 5, expectedPreviewRevision: 2 },
-      "apply-key",
+    await publishGuidance(
+      { workspaceId: "workspace/alpha" },
+      { expectedRevision: 5, revisionId: "revision/one" },
+      "publish-key",
     );
 
     expect(api.put).toHaveBeenCalledWith(
@@ -75,9 +59,9 @@ describe("api/workspace guidance contracts", () => {
       { headers: { "Idempotency-Key": "project-draft-key" } },
     );
     expect(api.post).toHaveBeenCalledWith(
-      "/workspaces/workspace%2Falpha/guidance/projects/project%2Fone/restore-previews/preview%2Fone/apply",
-      { expectedGuidanceRevision: 5, expectedPreviewRevision: 2 },
-      { headers: { "Idempotency-Key": "apply-key" } },
+      "/workspaces/workspace%2Falpha/guidance/publish",
+      { expectedRevision: 5, revisionId: "revision/one" },
+      { headers: { "Idempotency-Key": "publish-key" } },
     );
   });
 });

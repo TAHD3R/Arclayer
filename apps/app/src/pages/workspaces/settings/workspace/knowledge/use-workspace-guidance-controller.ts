@@ -1,55 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import type {
   KnowledgeGuidanceDraftSaveRequest,
   KnowledgeGuidanceLayerOut,
   KnowledgeGuidancePreviewOut,
-  KnowledgeGuidanceRevisionOut,
 } from "@arclayer/openapi";
 import {
   WORKSPACE_GUIDANCE_QUERY_KEY,
   type GuidanceScope,
   applyGuidanceRemovePreview,
-  applyGuidanceRestorePreview,
   attachGuidanceReference,
   createGuidanceRemovePreview,
-  createGuidanceRestorePreview,
   detachGuidanceReference,
   getEffectiveGuidance,
   getGuidanceLayer,
-  listGuidanceHistory,
   publishGuidance,
   saveGuidanceDraft,
 } from "@/api/workspace-guidance";
 import { WORKSPACE_KNOWLEDGE_QUERY_KEY, listKnowledgeBases } from "@/api/workspace-knowledge";
 import { notifySuccessText } from "@/lib/notifications";
 
-const HISTORY_PAGE_SIZE = 25;
 type ProjectGuidanceMode = NonNullable<KnowledgeGuidanceDraftSaveRequest["projectMode"]>;
 
-type PendingPreview =
-  | Readonly<{
-      kind: "restore";
-      preview: KnowledgeGuidancePreviewOut;
-      revision: KnowledgeGuidanceRevisionOut;
-    }>
-  | Readonly<{
-      kind: "remove";
-      preview: KnowledgeGuidancePreviewOut;
-    }>;
-
-type SaveDraftCommand = Readonly<{
-  request: KnowledgeGuidanceDraftSaveRequest;
-  notify?: boolean;
-}>;
-
-type PublishCommand = Readonly<{
-  request: { expectedRevision: number; revisionId: string };
-  notificationKey?: "PUBLISHED" | "SAVED_AND_PUBLISHED";
-  preserveUnsavedChanges?: boolean;
-}>;
+export type PendingGuidanceRemoval = Readonly<{ preview: KnowledgeGuidancePreviewOut }>;
 
 function guidanceQueryKey(workspaceId: string, projectId?: string | null) {
   return [
@@ -61,7 +36,7 @@ function guidanceQueryKey(workspaceId: string, projectId?: string | null) {
 }
 
 function guidanceContent(layer: KnowledgeGuidanceLayerOut | null): string {
-  return (layer?.currentDraft ?? layer?.currentPublished)?.content ?? "";
+  return layer?.currentPublished?.content ?? "";
 }
 
 function guidanceProjectMode(layer: KnowledgeGuidanceLayerOut | null): ProjectGuidanceMode {
@@ -76,11 +51,10 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   const { workspaceId, projectId } = scopeInput;
   const { t } = useTranslation("knowledge");
   const queryClient = useQueryClient();
-  const [draft, setDraftValue] = useState("");
+  const [content, setContentValue] = useState("");
   const [projectMode, setProjectMode] = useState<ProjectGuidanceMode>("supplement");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [pendingPreview, setPendingPreview] = useState<PendingPreview | null>(null);
-  const [detailRevision, setDetailRevision] = useState<KnowledgeGuidanceRevisionOut | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<PendingGuidanceRemoval | null>(null);
   const scope = useMemo(() => ({ workspaceId, projectId }), [projectId, workspaceId]);
   const layerQueryKey = useMemo(
     () => [...guidanceQueryKey(workspaceId, projectId), "layer"] as const,
@@ -94,14 +68,14 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   });
   const layer = guidanceQuery.data ?? null;
   useEffect(() => {
-    setDraftValue("");
+    setContentValue("");
     setProjectMode("supplement");
     setHasUnsavedChanges(false);
-    setDetailRevision(null);
+    setPendingRemoval(null);
   }, [projectId, workspaceId]);
   useEffect(() => {
     if (hasUnsavedChanges) return;
-    setDraftValue(guidanceContent(layer));
+    setContentValue(guidanceContent(layer));
     setProjectMode(guidanceProjectMode(layer));
   }, [hasUnsavedChanges, layer]);
 
@@ -111,29 +85,12 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     enabled: Boolean(layer && projectId),
     retry: false,
   });
-  const historyQuery = useInfiniteQuery({
-    queryKey: [...guidanceQueryKey(workspaceId, projectId), "history"],
-    queryFn: ({ pageParam, signal }) =>
-      listGuidanceHistory(scope, {
-        limit: HISTORY_PAGE_SIZE,
-        cursor: pageParam ?? undefined,
-        signal,
-      }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: Boolean(layer),
-    retry: false,
-  });
   const referenceBasesQuery = useQuery({
     queryKey: [...guidanceQueryKey(workspaceId, projectId), "reference-bases"],
     queryFn: ({ signal }) => listKnowledgeBases(workspaceId, { limit: 100, signal }),
     enabled: Boolean(layer && projectId),
     retry: false,
   });
-  const history = useMemo(
-    () => (historyQuery.data?.pages ?? []).flatMap((page) => page.items ?? []),
-    [historyQuery.data?.pages],
-  );
 
   const invalidate = async () => {
     await Promise.all([
@@ -149,85 +106,62 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
   };
   const acceptServerLayer = (nextLayer: KnowledgeGuidanceLayerOut) => {
     cacheServerLayer(nextLayer);
-    setDraftValue(guidanceContent(nextLayer));
+    setContentValue(guidanceContent(nextLayer));
     setProjectMode(guidanceProjectMode(nextLayer));
     setHasUnsavedChanges(false);
   };
-  const saveDraftMutation = useMutation({
-    mutationFn: (command: SaveDraftCommand) =>
-      saveGuidanceDraft(scope, command.request, crypto.randomUUID()),
-    onSuccess: async (nextLayer, command) => {
-      cacheServerLayer(nextLayer);
-      const savedCurrentEditor =
-        draft === command.request.content &&
-        (!projectId || projectMode === (command.request.projectMode ?? "supplement"));
-      if (savedCurrentEditor) acceptServerLayer(nextLayer);
-      await invalidate();
-      if (command.notify !== false) notifySuccessText(t("DRAFT_SAVED"));
-    },
-  });
-  const publishMutation = useMutation({
-    mutationFn: (command: PublishCommand) =>
-      publishGuidance(scope, command.request, crypto.randomUUID()),
-    onSuccess: async (nextLayer, command) => {
-      cacheServerLayer(nextLayer);
-      if (!command.preserveUnsavedChanges || !hasUnsavedChanges) acceptServerLayer(nextLayer);
-      await invalidate();
-      notifySuccessText(t(command.notificationKey ?? "PUBLISHED"));
-    },
-  });
-  const saveAndPublishMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
       if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
 
-      const savedLayer = await saveDraftMutation.mutateAsync({
-        notify: false,
-        request: {
-          content: draft,
+      const savedLayer = await saveGuidanceDraft(
+        scope,
+        {
+          content,
           expectedRevision: layer.metadataRevision,
           ...(projectId ? { projectMode } : {}),
         },
-      });
-      const revisionId = savedLayer.currentDraft?.id;
-      if (!revisionId) throw new Error("KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED");
-
-      await publishMutation.mutateAsync({
-        notificationKey: "SAVED_AND_PUBLISHED",
-        request: {
-          expectedRevision: savedLayer.metadataRevision,
-          revisionId,
-        },
-      });
-    },
-  });
-  const restorePreviewMutation = useMutation({
-    mutationFn: (input: { expectedRevision: number; revision: KnowledgeGuidanceRevisionOut }) =>
-      createGuidanceRestorePreview(
-        scope,
-        { expectedRevision: input.expectedRevision, sourceRevisionId: input.revision.id },
         crypto.randomUUID(),
-      ),
-    onSuccess: (preview, input) =>
-      setPendingPreview({ kind: "restore", preview, revision: input.revision }),
+      );
+      const revisionId = savedLayer.currentDraft?.id;
+      if (!revisionId) throw new Error("KNOWLEDGE_GUIDANCE_REVISION_REQUIRED");
+
+      return publishGuidance(
+        scope,
+        { expectedRevision: savedLayer.metadataRevision, revisionId },
+        crypto.randomUUID(),
+      );
+    },
+    onSuccess: async (nextLayer) => {
+      acceptServerLayer(nextLayer);
+      await invalidate();
+      notifySuccessText(t(projectId ? "PROJECT_SAVED" : "SAVED"));
+    },
   });
   const removePreviewMutation = useMutation({
-    mutationFn: (input: { expectedRevision: number }) =>
-      createGuidanceRemovePreview(scope, input, crypto.randomUUID()),
-    onSuccess: (preview) => setPendingPreview({ kind: "remove", preview }),
-  });
-  const applyPreviewMutation = useMutation({
-    mutationFn: (pending: PendingPreview) => {
-      const payload = {
-        expectedGuidanceRevision: pending.preview.expectedGuidanceRevision,
-        expectedPreviewRevision: pending.preview.previewRevision,
-      };
-      if (pending.kind === "restore") {
-        return applyGuidanceRestorePreview(scope, pending.preview.id, payload, crypto.randomUUID());
-      }
-      return applyGuidanceRemovePreview(scope, pending.preview.id, payload, crypto.randomUUID());
+    mutationFn: () => {
+      if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
+      return createGuidanceRemovePreview(
+        scope,
+        { expectedRevision: layer.metadataRevision },
+        crypto.randomUUID(),
+      );
     },
+    onSuccess: (preview) => setPendingRemoval({ preview }),
+  });
+  const applyRemoveMutation = useMutation({
+    mutationFn: (pending: PendingGuidanceRemoval) =>
+      applyGuidanceRemovePreview(
+        scope,
+        pending.preview.id,
+        {
+          expectedGuidanceRevision: pending.preview.expectedGuidanceRevision,
+          expectedPreviewRevision: pending.preview.previewRevision,
+        },
+        crypto.randomUUID(),
+      ),
     onSuccess: async () => {
-      setPendingPreview(null);
+      setPendingRemoval(null);
       await invalidate();
       notifySuccessText(t("CHANGE_APPLIED"));
     },
@@ -264,9 +198,9 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
 
   return {
     layer,
-    draft,
-    setDraft: (value: string) => {
-      setDraftValue(value);
+    content,
+    setContent: (value: string) => {
+      setContentValue(value);
       setHasUnsavedChanges(
         value !== guidanceContent(layer) ||
           (Boolean(projectId) && projectMode !== guidanceProjectMode(layer)),
@@ -278,63 +212,28 @@ export function useWorkspaceGuidanceController(scopeInput: GuidanceScope) {
     setProjectMode: (value: ProjectGuidanceMode) => {
       setProjectMode(value);
       setHasUnsavedChanges(
-        draft !== guidanceContent(layer) || value !== guidanceProjectMode(layer),
+        content !== guidanceContent(layer) || value !== guidanceProjectMode(layer),
       );
     },
-    history,
-    pendingPreview,
-    setPendingPreview,
-    detailRevision,
-    setDetailRevision,
+    pendingRemoval,
+    setPendingRemoval,
     guidanceQuery,
     effectiveQuery,
-    historyQuery,
     referenceBasesQuery,
-    saveDraftMutation,
-    publishMutation,
-    saveAndPublishMutation,
-    restorePreviewMutation,
+    saveMutation,
     removePreviewMutation,
-    applyPreviewMutation,
+    applyRemoveMutation,
     attachReferenceMutation,
     detachReferenceMutation,
-    saveDraft: () => {
-      if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      saveDraftMutation.mutate({
-        request: {
-          content: draft,
-          expectedRevision: layer.metadataRevision,
-          ...(projectId ? { projectMode } : {}),
-        },
-      });
-    },
-    saveAndPublish: () => {
-      saveAndPublishMutation.mutate();
-    },
-    publish: (options?: Omit<PublishCommand, "request">) => {
-      if (!layer?.currentDraft?.id) throw new Error("KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED");
-      publishMutation.mutate({
-        ...options,
-        request: {
-          expectedRevision: layer.metadataRevision,
-          revisionId: layer.currentDraft.id,
-        },
-      });
-    },
-    previewRestore: (revision: KnowledgeGuidanceRevisionOut) => {
-      if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      restorePreviewMutation.mutate({
-        expectedRevision: layer.metadataRevision,
-        revision,
-      });
+    save: () => {
+      saveMutation.mutate();
     },
     previewRemoval: () => {
-      if (!layer) throw new Error("KNOWLEDGE_GUIDANCE_LAYER_REQUIRED");
-      removePreviewMutation.mutate({ expectedRevision: layer.metadataRevision });
+      removePreviewMutation.mutate();
     },
-    applyPendingPreview: () => {
-      if (!pendingPreview) throw new Error("KNOWLEDGE_GUIDANCE_PREVIEW_REQUIRED");
-      applyPreviewMutation.mutate(pendingPreview);
+    applyPendingRemoval: () => {
+      if (!pendingRemoval) throw new Error("KNOWLEDGE_GUIDANCE_PREVIEW_REQUIRED");
+      applyRemoveMutation.mutate(pendingRemoval);
     },
   };
 }
