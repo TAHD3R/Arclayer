@@ -92,3 +92,4 @@ audit-report*.json
 # Local agent tool state
 .claude/settings.local.json
 .codex/
+.zcode/
