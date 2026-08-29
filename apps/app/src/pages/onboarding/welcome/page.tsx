@@ -660,7 +660,7 @@ export function WelcomeOnboardingPage() {
     } catch {
       // sessionStorage is only a duplicate-creation guard; ignore unavailable storage.
     }
-    await navigate({ to: projectsHomePath() as never, replace: true });
+    await navigate({ to: projectsHomePath() as never, replace: true, viewTransition: true });
   }
 
   async function completeInvitationFlow() {
@@ -671,6 +671,7 @@ export function WelcomeOnboardingPage() {
     await navigate({
       to: (search.redirect || projectsHomePath()) as never,
       replace: true,
+      viewTransition: true,
     });
   }
 
@@ -708,7 +709,7 @@ export function WelcomeOnboardingPage() {
       throw new WelcomeStepError(t("onboarding:WORKSPACE_DEFAULTS_STATE_ERROR"));
     }
     setCurrentContext({ workspaceId, projectId: null });
-    await navigate({ to: "/", replace: true });
+    await navigate({ to: "/", replace: true, viewTransition: true });
   }
 
   function goNextStep() {

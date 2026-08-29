@@ -742,7 +742,11 @@ describe("WelcomeOnboardingPage", () => {
         workspaceId: "ws-created",
         projectId: null,
       });
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects", replace: true });
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects",
+        replace: true,
+        viewTransition: true,
+      });
     });
     expect(createWorkspaceMock).toHaveBeenCalledTimes(1);
     expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({ heardAboutUs: "referral" });
@@ -819,6 +823,7 @@ describe("WelcomeOnboardingPage", () => {
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/projects/project-invite",
         replace: true,
+        viewTransition: true,
       });
     });
     expect(createWorkspaceMock).not.toHaveBeenCalled();
