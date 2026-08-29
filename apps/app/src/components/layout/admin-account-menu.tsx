@@ -14,6 +14,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  ArrowLeftRight,
   BookOpen,
   Check,
   ChevronRight,
@@ -29,6 +30,7 @@ import {
   Monitor,
   MonitorCog,
   Moon,
+  Plus,
   Settings,
   Shield,
   SquareStack,
@@ -39,7 +41,11 @@ import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { getPlatformEntryEligibility } from "@/api/platform-entry";
-import { UserAvatar } from "@/components/common/entity-avatar";
+import {
+  UserAvatar,
+  WorkspaceAvatar,
+  workspaceAvatarPropsFromIdentity,
+} from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { LegalModalDialogs, type LegalModal } from "@/components/layout/legal-footer";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
@@ -50,9 +56,11 @@ import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "
 import { notifyError } from "@/lib/notifications";
 import { parsePlatformOrigin } from "@/lib/platform-entry";
 import { queryClient } from "@/lib/query/query-client-instance";
+import { projectsHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useWorkspaceScope, type MyWorkspaceItem } from "@/hooks/use-workspace-scope";
 import type { ThemePreference } from "@/types/stores";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -61,6 +69,7 @@ import {
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
+  useFloatingPanelBoundary,
 } from "@arclayer/ui/floating-panel";
 import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { useSidebar } from "@arclayer/ui/sidebar";
@@ -498,19 +507,7 @@ function AccountSubmenuContent(props: {
   );
 }
 
-function AccountSubmenuAction(props: {
-  panelOpen: boolean;
-  icon: ReactNode;
-  label: string;
-  submenu: AccountMenuSubmenu;
-  locale: AppLocale;
-  themePreference: ThemePreference;
-  onLocaleChange: (next: AppLocale) => Promise<void> | void;
-  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
-  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
-  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
-  onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
-}) {
+function useSubmenuTiming(panelOpen: boolean) {
   const closeTimeoutRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
   const [focusInitialItem, setFocusInitialItem] = useState(false);
@@ -523,11 +520,11 @@ function AccountSubmenuAction(props: {
   }, []);
 
   useEffect(() => {
-    if (props.panelOpen) return;
+    if (panelOpen) return;
     clearCloseTimeout();
     setOpen(false);
     setFocusInitialItem(false);
-  }, [props.panelOpen]);
+  }, [panelOpen]);
 
   const clearCloseTimeout = () => {
     if (closeTimeoutRef.current === null) return;
@@ -550,17 +547,51 @@ function AccountSubmenuAction(props: {
     }, SUBMENU_CLOSE_DELAY_MS);
   };
 
+  const handleOpenChange = (next: boolean) => {
+    clearCloseTimeout();
+    setOpen(next);
+    if (!next) {
+      setFocusInitialItem(false);
+    }
+  };
+
+  return {
+    open,
+    focusInitialItem,
+    openSubmenu,
+    scheduleClose,
+    clearCloseTimeout,
+    handleOpenChange,
+    clearFocusInitialItem: () => setFocusInitialItem(false),
+  };
+}
+
+function AccountSubmenuAction(props: {
+  panelOpen: boolean;
+  icon: ReactNode;
+  label: string;
+  submenu: AccountMenuSubmenu;
+  locale: AppLocale;
+  themePreference: ThemePreference;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
+  onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
+}) {
+  const {
+    open,
+    focusInitialItem,
+    openSubmenu,
+    scheduleClose,
+    clearCloseTimeout,
+    handleOpenChange,
+    clearFocusInitialItem,
+  } = useSubmenuTiming(props.panelOpen);
+  const collisionBoundary = useFloatingPanelBoundary();
+
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        clearCloseTimeout();
-        setOpen(next);
-        if (!next) {
-          setFocusInitialItem(false);
-        }
-      }}
-    >
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverAnchor className="block w-full">
         <MenuAction
           icon={props.icon}
@@ -577,7 +608,12 @@ function AccountSubmenuAction(props: {
         side="right"
         align="start"
         sideOffset={8}
-        className={cn(SUBMENU_PANEL_WIDTH_CLASSNAME, "p-0")}
+        collisionBoundary={collisionBoundary ?? undefined}
+        collisionPadding={16}
+        className={cn(
+          SUBMENU_PANEL_WIDTH_CLASSNAME,
+          "max-h-(--radix-popover-content-available-height) overflow-y-auto p-0",
+        )}
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onMouseDownCapture={(event) => event.stopPropagation()}
@@ -594,7 +630,214 @@ function AccountSubmenuAction(props: {
           onOpenResource={props.onOpenResource}
           onOpenLegal={props.onOpenLegal}
           onSelectAndClose={props.onSelectAndClose}
-          onInitialItemFocused={() => setFocusInitialItem(false)}
+          onInitialItemFocused={clearFocusInitialItem}
+          onMouseEnter={clearCloseTimeout}
+          onMouseLeave={scheduleClose}
+          onFocusCapture={clearCloseTimeout}
+          onBlurCapture={scheduleClose}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function WorkspaceSwitcherSkeleton(props: { rows: number }) {
+  return (
+    <div className="px-4 py-2.5">
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: props.rows }).map((_, index) => (
+          <div key={index} className="flex items-center gap-3" aria-hidden="true">
+            <div className="size-5 shrink-0 animate-pulse rounded-sm bg-accent/50" />
+            <div className="h-4 flex-1 animate-pulse rounded bg-accent/50" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceOptionButton(props: {
+  workspace: MyWorkspaceItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const title = props.workspace.name || props.workspace.workspaceId;
+  return (
+    <FloatingPanelButton className={MENU_ITEM_CLASSNAME} onClick={props.onClick}>
+      <span className="flex min-w-0 flex-1 items-center gap-3">
+        <WorkspaceAvatar
+          name={title}
+          size={20}
+          className="shrink-0 rounded-sm"
+          {...workspaceAvatarPropsFromIdentity(props.workspace)}
+        />
+        <span className="min-w-0 flex-1 truncate text-left text-callout font-semibold text-label-primary">
+          {title}
+        </span>
+      </span>
+      {props.selected ? (
+        <span className="shrink-0">
+          <Check className="size-4 text-primary" aria-hidden="true" />
+        </span>
+      ) : null}
+    </FloatingPanelButton>
+  );
+}
+
+function WorkspaceSwitcherContent(props: {
+  open: boolean;
+  shouldFocusInitialItem: boolean;
+  workspaces: readonly MyWorkspaceItem[];
+  selectedWorkspaceId: string | null;
+  loading: boolean;
+  loadError: boolean;
+  onSelectWorkspace: (workspace: MyWorkspaceItem) => void;
+  onCreateWorkspace: () => void;
+  onInitialItemFocused: () => void;
+  onMouseEnter: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave: MouseEventHandler<HTMLDivElement>;
+  onFocusCapture: FocusEventHandler<HTMLDivElement>;
+  onBlurCapture: FocusEventHandler<HTMLDivElement>;
+}) {
+  const { t } = useTranslation(["account", "common"]);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!props.open || !props.shouldFocusInitialItem) return;
+
+    queueMicrotask(() => {
+      const firstButton = contentRef.current?.querySelector<HTMLButtonElement>("button");
+      firstButton?.focus();
+      props.onInitialItemFocused();
+    });
+  }, [props.open, props.shouldFocusInitialItem, props.onInitialItemFocused]);
+
+  return (
+    <div
+      ref={contentRef}
+      className="flex min-h-0 flex-col py-1"
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+      onFocusCapture={props.onFocusCapture}
+      onBlurCapture={props.onBlurCapture}
+    >
+      {props.loadError ? (
+        <div className="flex items-center justify-center px-4 py-6 text-center text-callout text-label-secondary">
+          {t("common:REQUEST_FAILED")}
+        </div>
+      ) : props.loading ? (
+        <WorkspaceSwitcherSkeleton rows={3} />
+      ) : (
+        <>
+          {props.workspaces.length === 0 ? (
+            <div className="flex items-center justify-center px-4 py-6 text-center text-callout text-label-secondary">
+              {t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
+            </div>
+          ) : null}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {props.workspaces.map((workspace) => (
+              <WorkspaceOptionButton
+                key={workspace.workspaceId}
+                workspace={workspace}
+                selected={String(props.selectedWorkspaceId || "") === String(workspace.workspaceId)}
+                onClick={() => props.onSelectWorkspace(workspace)}
+              />
+            ))}
+          </div>
+          <MenuDivider />
+          <MenuAction
+            icon={<Plus />}
+            label={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
+            onClick={props.onCreateWorkspace}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function WorkspaceSwitcherSubmenu(props: {
+  panelOpen: boolean;
+  workspaces: readonly MyWorkspaceItem[];
+  selectedWorkspaceId: string | null;
+  selectedWorkspace: MyWorkspaceItem | null;
+  loading: boolean;
+  loadError: boolean;
+  onSelectWorkspace: (workspace: MyWorkspaceItem) => void;
+  onCreateWorkspace: () => void;
+}) {
+  const { t } = useTranslation(["account", "common"]);
+  const {
+    open,
+    focusInitialItem,
+    openSubmenu,
+    scheduleClose,
+    clearCloseTimeout,
+    handleOpenChange,
+    clearFocusInitialItem,
+  } = useSubmenuTiming(props.panelOpen);
+  const collisionBoundary = useFloatingPanelBoundary();
+
+  const anchorLabel = props.selectedWorkspace
+    ? props.selectedWorkspace.name || props.selectedWorkspace.workspaceId
+    : t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE");
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverAnchor className="block w-full">
+        <FloatingPanelButton
+          className={MENU_ITEM_CLASSNAME}
+          onClick={() => openSubmenu(true)}
+          onMouseEnter={() => openSubmenu(false)}
+          onMouseLeave={scheduleClose}
+          onBlur={scheduleClose}
+        >
+          {props.selectedWorkspace ? (
+            <WorkspaceAvatar
+              name={anchorLabel}
+              size={20}
+              className="shrink-0 rounded-sm"
+              {...workspaceAvatarPropsFromIdentity(props.selectedWorkspace)}
+            />
+          ) : (
+            <span className="shrink-0">
+              <SquareStack className="size-4" aria-hidden="true" />
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate text-callout font-semibold text-label-primary">
+            {anchorLabel}
+          </span>
+          <span className="sr-only">{t("account:ACCOUNT_MENU_SWITCH_WORKSPACE")}</span>
+          <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
+            <ArrowLeftRight className="size-4" aria-hidden="true" />
+          </span>
+        </FloatingPanelButton>
+      </PopoverAnchor>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionBoundary={collisionBoundary ?? undefined}
+        collisionPadding={16}
+        className={cn(
+          SUBMENU_PANEL_WIDTH_CLASSNAME,
+          "flex max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-0",
+        )}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onMouseDownCapture={(event) => event.stopPropagation()}
+        onPointerDownCapture={(event) => event.stopPropagation()}
+      >
+        <WorkspaceSwitcherContent
+          open={open}
+          shouldFocusInitialItem={focusInitialItem}
+          workspaces={props.workspaces}
+          selectedWorkspaceId={props.selectedWorkspaceId}
+          loading={props.loading}
+          loadError={props.loadError}
+          onSelectWorkspace={props.onSelectWorkspace}
+          onCreateWorkspace={props.onCreateWorkspace}
+          onInitialItemFocused={clearFocusInitialItem}
           onMouseEnter={clearCloseTimeout}
           onMouseLeave={scheduleClose}
           onFocusCapture={clearCloseTimeout}
@@ -607,6 +850,10 @@ function AccountSubmenuAction(props: {
 
 function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
+  const navigate = useNavigate();
+  const workspaceScope = useWorkspaceScope();
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
 
   const onClickAndClose = async (fn: () => Promise<void> | void) => {
     await fn();
@@ -620,6 +867,32 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         email={props.email}
         avatarUrl={props.avatarUrl}
       />
+      <MenuDivider />
+      <WorkspaceSwitcherSubmenu
+        panelOpen={isOpen}
+        workspaces={workspaceScope.workspaces}
+        selectedWorkspaceId={workspaceScope.selectedWorkspaceId}
+        selectedWorkspace={workspaceScope.selectedWorkspace}
+        loading={workspaceScope.isLoading}
+        loadError={workspaceScope.isError}
+        onSelectWorkspace={(workspace) =>
+          onClickAndClose(() => {
+            setCurrentWorkspaceId(workspace.workspaceId);
+            setCurrentProjectId(null);
+            void navigate({ to: projectsHomePath() as never });
+          })
+        }
+        onCreateWorkspace={() =>
+          onClickAndClose(() => {
+            void navigate({
+              to: "/welcome" as never,
+              search: { mode: "create-workspace" } as never,
+              viewTransition: true,
+            });
+          })
+        }
+      />
+      <MenuDivider />
       <RootMenu
         panelOpen={isOpen}
         locale={props.locale}

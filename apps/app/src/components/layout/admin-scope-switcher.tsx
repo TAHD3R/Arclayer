@@ -13,18 +13,15 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  CreditCard,
-  PanelLeftIcon,
   PanelsTopLeft,
   Plus,
   Search,
   Settings2,
-  Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getProjectDetail, listProjects } from "@/api/projects";
-import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import {
   WorkspaceAvatar,
   workspaceAvatarPropsFromIdentity,
@@ -36,8 +33,8 @@ import {
   type ProjectAvatarIdentity,
 } from "@/components/common/project-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import { projectHomePath, projectsHomePath } from "@/lib/routing/workspace-routing";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 import {
   mapProjectToListItem,
   type UserCenterProjectListItem,
@@ -52,13 +49,12 @@ import {
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
+  useFloatingPanelBoundary,
 } from "@arclayer/ui/floating-panel";
 import { Empty, EmptyDescription, EmptyHeader } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
-import { useSidebar } from "@arclayer/ui/sidebar";
 
-type MyWorkspace = NonNullable<Awaited<ReturnType<typeof listMyWorkspaces>>["items"]>[number];
 type Project = Awaited<ReturnType<typeof getProjectDetail>>["project"];
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
@@ -75,8 +71,6 @@ const GHOST_HOVER_CLASSNAME =
 const GHOST_OPEN_CLASSNAME =
   "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:data-[state=open]:bg-accent/50";
 const GHOST_SELECTED_CLASSNAME = "bg-accent text-accent-foreground dark:bg-accent/50";
-const GHOST_ACTIVE_PRESS_CLASSNAME =
-  "active:!bg-accent active:!text-accent-foreground dark:active:!bg-accent/50";
 const SUBPANEL_OPEN_DELAY_MS = 80;
 const SUBPANEL_CLOSE_DELAY_MS = 120;
 
@@ -105,10 +99,6 @@ type ScopeProjectItem = Pick<
   | "enterable"
 >;
 
-function sortWorkspacePickerItems(workspaces: readonly MyWorkspace[] | undefined): MyWorkspace[] {
-  return [...(workspaces ?? [])].sort((left, right) => left.name.localeCompare(right.name));
-}
-
 function sortProjectPickerItems(
   projects: readonly UserCenterProjectListItem[],
 ): UserCenterProjectListItem[] {
@@ -127,25 +117,6 @@ function mapProjectDetailToScopeItem(project: Project): ScopeProjectItem {
     iconUrl: project.iconUrl,
     enterable: project.isActive,
   };
-}
-
-function resolveWorkspaceSelection(params: {
-  workspaces: readonly MyWorkspace[];
-  currentWorkspaceId: string | null | undefined;
-  lastWorkspaceId: string | null | undefined;
-}): string | null {
-  const { workspaces, currentWorkspaceId, lastWorkspaceId } = params;
-  const currentMatch = currentWorkspaceId
-    ? workspaces.find((workspace) => String(workspace.workspaceId) === String(currentWorkspaceId))
-    : null;
-  if (currentMatch) return currentMatch.workspaceId;
-
-  const lastMatch = lastWorkspaceId
-    ? workspaces.find((workspace) => String(workspace.workspaceId) === String(lastWorkspaceId))
-    : null;
-  if (lastMatch) return lastMatch.workspaceId;
-
-  return workspaces[0]?.workspaceId ?? null;
 }
 
 function extractRouteProjectId(pathname: string): string | null {
@@ -286,70 +257,6 @@ export const headerTriggerButtonClassName = cn(
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
-const collapseButtonBaseClassName = cn(
-  SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
-  "!border-0 !bg-transparent !text-label-secondary",
-  "hover:!bg-accent hover:!text-accent-foreground dark:hover:!bg-accent/50",
-  GHOST_ACTIVE_PRESS_CLASSNAME,
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-);
-
-const collapseButtonClassName = cn(
-  "group",
-  collapseButtonBaseClassName,
-  "w-0 shrink-0 overflow-hidden rounded-lg !p-0",
-  "opacity-0 pointer-events-none",
-  "transition-[width,opacity,color,background-color] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-  "group-hover:w-10 group-hover:opacity-100 group-hover:pointer-events-auto",
-  "group-data-[panel-open=true]:w-0",
-  "group-data-[panel-open=true]:opacity-0",
-  "group-data-[panel-open=true]:pointer-events-none",
-  "group-data-[collapsible=icon]:w-0",
-  "group-data-[collapsible=icon]:opacity-0",
-  "group-data-[collapsible=icon]:pointer-events-none",
-);
-
-const collapsedCollapseButtonClassName = cn(
-  "group",
-  collapseButtonBaseClassName,
-  "w-10",
-  "rounded-lg !p-0",
-  "transition-[color,background-color,transform] duration-200 ease-out motion-reduce:transition-none",
-);
-
-function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={cn(collapseButtonClassName, props.className)}
-      aria-label={props.ariaLabel}
-      onClick={(event) => {
-        event.stopPropagation();
-        props.onClick();
-      }}
-    >
-      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
-    </Button>
-  );
-}
-
-function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={collapsedCollapseButtonClassName}
-      aria-label={props.ariaLabel}
-      onClick={props.onClick}
-    >
-      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
-    </Button>
-  );
-}
-
 function PanelErrorMessage(props: { message: string; className?: string }) {
   return (
     <div
@@ -440,6 +347,7 @@ function ScopeSubpanelAction(props: {
   const openTimeoutRef = useRef<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
+  const collisionBoundary = useFloatingPanelBoundary();
 
   useEffect(() => {
     return () => {
@@ -512,6 +420,7 @@ function ScopeSubpanelAction(props: {
           side="right"
           align="start"
           sideOffset={8}
+          collisionBoundary={collisionBoundary ?? undefined}
           collisionPadding={16}
           className="flex max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-md p-0"
           onOpenAutoFocus={(event) => event.preventDefault()}
@@ -527,33 +436,6 @@ function ScopeSubpanelAction(props: {
         </PopoverContent>
       ) : null}
     </Popover>
-  );
-}
-
-function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
-  const title = props.workspace.name || props.workspace.workspaceId;
-  return (
-    <>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <WorkspaceAvatar
-          name={title}
-          size={22}
-          className="shrink-0 rounded-sm"
-          {...workspaceAvatarPropsFromIdentity(props.workspace)}
-        />
-        <div className="min-w-0 flex-1 text-left">
-          <ClampedText
-            text={title}
-            className="truncate text-callout font-semibold text-label-primary"
-          />
-        </div>
-      </div>
-      {props.selected ? (
-        <span className="shrink-0 pt-0.5 opacity-90">
-          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-        </span>
-      ) : null}
-    </>
   );
 }
 
@@ -611,29 +493,18 @@ function TriggerIdentityAvatar(props: {
 }
 
 function PanelContentInner(props: {
-  workspaces: readonly MyWorkspace[];
   projects: readonly UserCenterProjectListItem[];
-  selectedWorkspaceId: string | null;
-  selectedWorkspace: MyWorkspace | null;
   selectedProjectId: string | null;
   selectedProject: ScopeProjectItem | null;
-  workspacesLoading: boolean;
   projectsLoading: boolean;
   hasLoadError: boolean;
-  showProjectSection: boolean;
   onSelectProject: (project: ScopeProjectItem) => void;
-  onSelectWorkspace: (workspace: MyWorkspace) => void;
   onOpenProjectCreateDialog: () => void;
-  onOpenWorkspaceCreateDialog: () => void;
   onOpenProjectSettings: () => void;
-  onOpenWorkspaceSettings: () => void;
-  onOpenWorkspacePlanUsage: () => void;
-  onOpenWorkspaceInvite: () => void;
 }) {
-  const { t } = useTranslation(["common", "team", "account", "nav"]);
+  const { t } = useTranslation("common");
   const { closeFloatingPanel } = useFloatingPanel();
   const [projectSearch, setProjectSearch] = useState("");
-  const [workspaceSearch, setWorkspaceSearch] = useState("");
 
   const filteredProjects = useMemo(() => {
     const normalized = projectSearch.trim().toLocaleLowerCase();
@@ -643,15 +514,6 @@ function PanelContentInner(props: {
     );
   }, [projectSearch, props.projects]);
 
-  const filteredWorkspaces = useMemo(() => {
-    const normalized = workspaceSearch.trim().toLocaleLowerCase();
-    if (!normalized) return props.workspaces;
-    return props.workspaces.filter((workspace) =>
-      (workspace.name || workspace.workspaceId).toLocaleLowerCase().includes(normalized),
-    );
-  }, [props.workspaces, workspaceSearch]);
-
-  const canOpenWorkspaceSettings = Boolean(props.selectedWorkspaceId);
   const canOpenProjectSettings = Boolean(props.selectedProject);
 
   if (props.hasLoadError) {
@@ -664,114 +526,45 @@ function PanelContentInner(props: {
 
   const renderRoot = () => (
     <div className="space-y-1 py-1.5">
-      {props.showProjectSection ? (
-        <div>
-          <ScopeSectionHeader
-            title={t("common:WORKSPACE_SWITCHER_PROJECT_SECTION")}
-            createLabel={t("common:WORKSPACE_SWITCHER_NEW_PROJECT")}
-            onCreate={() => {
-              closeFloatingPanel();
-              props.onOpenProjectCreateDialog();
-            }}
-          />
-          <ScopeSubpanelAction subpanel={renderProjectsPicker()}>
-            <PanelMenuItemContent
-              text={props.selectedProject?.name ?? t("common:WORKSPACE_SWITCHER_SELECT_PROJECT")}
-              icon={
-                props.selectedProject ? (
-                  <ProjectAvatar
-                    name={props.selectedProject.name}
-                    size={22}
-                    className="rounded-sm"
-                    {...projectAvatarPropsFromIdentity(props.selectedProject)}
-                  />
-                ) : (
-                  <PanelsTopLeft className="size-4" aria-hidden="true" />
-                )
-              }
-              right={<ChevronRight className="size-4" aria-hidden="true" />}
-            />
-          </ScopeSubpanelAction>
-          <PanelMenuButton
-            className="rounded-none px-3 py-2.5"
-            disabled={!canOpenProjectSettings}
-            onClick={() => {
-              closeFloatingPanel();
-              props.onOpenProjectSettings();
-            }}
-          >
-            <PanelMenuItemContent
-              icon={<Settings2 className="size-4" aria-hidden="true" />}
-              text={t("common:WORKSPACE_SWITCHER_PROJECT_SETTINGS")}
-            />
-          </PanelMenuButton>
-        </div>
-      ) : null}
-
-      <div>
-        <ScopeSectionHeader
-          title={t("common:WORKSPACE_SWITCHER_WORKSPACE_SECTION")}
-          createLabel={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
-          onCreate={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspaceCreateDialog();
-          }}
+      <ScopeSectionHeader
+        title={t("common:WORKSPACE_SWITCHER_PROJECT_SECTION")}
+        createLabel={t("common:WORKSPACE_SWITCHER_NEW_PROJECT")}
+        onCreate={() => {
+          closeFloatingPanel();
+          props.onOpenProjectCreateDialog();
+        }}
+      />
+      <ScopeSubpanelAction subpanel={renderProjectsPicker()}>
+        <PanelMenuItemContent
+          text={props.selectedProject?.name ?? t("common:WORKSPACE_SWITCHER_SELECT_PROJECT")}
+          icon={
+            props.selectedProject ? (
+              <ProjectAvatar
+                name={props.selectedProject.name}
+                size={22}
+                className="rounded-sm"
+                {...projectAvatarPropsFromIdentity(props.selectedProject)}
+              />
+            ) : (
+              <PanelsTopLeft className="size-4" aria-hidden="true" />
+            )
+          }
+          right={<ChevronRight className="size-4" aria-hidden="true" />}
         />
-        <ScopeSubpanelAction subpanel={renderWorkspacesPicker()}>
-          <PanelMenuItemContent
-            text={props.selectedWorkspace?.name ?? t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
-            icon={
-              props.selectedWorkspace ? (
-                <WorkspaceAvatar
-                  name={props.selectedWorkspace.name || props.selectedWorkspace.workspaceId}
-                  size={22}
-                  className="rounded-sm"
-                  {...workspaceAvatarPropsFromIdentity(props.selectedWorkspace)}
-                />
-              ) : undefined
-            }
-            right={<ChevronRight className="size-4" aria-hidden="true" />}
-          />
-        </ScopeSubpanelAction>
-        <PanelMenuButton
-          className="rounded-none px-3 py-2.5"
-          disabled={!canOpenWorkspaceSettings}
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspacePlanUsage();
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<CreditCard className="size-4" aria-hidden="true" />}
-            text={t("common:WORKSPACE_SWITCHER_BILLING_USAGE")}
-          />
-        </PanelMenuButton>
-        <PanelMenuButton
-          className="rounded-none px-3 py-2.5"
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspaceInvite();
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<Users className="size-4" aria-hidden="true" />}
-            text={t("team:TEAM_INVITE_MEMBER")}
-          />
-        </PanelMenuButton>
-        <PanelMenuButton
-          className="rounded-none px-3 py-2.5"
-          disabled={!canOpenWorkspaceSettings}
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspaceSettings();
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<Settings2 className="size-4" aria-hidden="true" />}
-            text={t("account:ACCOUNT_MENU_WORKSPACE_SETTINGS")}
-          />
-        </PanelMenuButton>
-      </div>
+      </ScopeSubpanelAction>
+      <PanelMenuButton
+        className="rounded-none px-3 py-2.5"
+        disabled={!canOpenProjectSettings}
+        onClick={() => {
+          closeFloatingPanel();
+          props.onOpenProjectSettings();
+        }}
+      >
+        <PanelMenuItemContent
+          icon={<Settings2 className="size-4" aria-hidden="true" />}
+          text={t("common:WORKSPACE_SWITCHER_PROJECT_SETTINGS")}
+        />
+      </PanelMenuButton>
     </div>
   );
 
@@ -827,61 +620,9 @@ function PanelContentInner(props: {
     );
   };
 
-  const renderWorkspacesPicker = () => {
-    if (props.workspacesLoading) {
-      return <PanelPickerSkeleton rows={4} />;
-    }
-    return (
-      <div className="flex min-h-0 flex-col py-1.5">
-        <label className="flex items-center gap-2 border-b border-border/45 px-3">
-          <Search className="size-4 shrink-0 text-label-tertiary" aria-hidden="true" />
-          <Input
-            value={workspaceSearch}
-            onChange={(event) => setWorkspaceSearch(event.target.value)}
-            placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
-            className="h-10 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
-          />
-        </label>
-        <div className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain scrollbar-none">
-          {filteredWorkspaces.length === 0 ? (
-            <PickerEmptyState text={t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")} />
-          ) : null}
-          {filteredWorkspaces.map((workspace) => {
-            const selected =
-              String(props.selectedWorkspaceId || "") === String(workspace.workspaceId);
-            return (
-              <PanelMenuButton
-                key={workspace.workspaceId}
-                onClick={() => {
-                  props.onSelectWorkspace(workspace);
-                  closeFloatingPanel();
-                }}
-                className={cn("rounded-none px-3 py-2.5", selected && GHOST_SELECTED_CLASSNAME)}
-              >
-                <WorkspacePickerItemContent workspace={workspace} selected={selected} />
-              </PanelMenuButton>
-            );
-          })}
-        </div>
-        <PanelMenuButton
-          className="rounded-none px-3 py-2.5"
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspaceCreateDialog();
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<Plus className="size-4" aria-hidden="true" />}
-            text={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
-          />
-        </PanelMenuButton>
-      </div>
-    );
-  };
-
   return (
     <div className="w-full min-w-0">
-      {props.workspacesLoading ? <PanelPickerSkeleton rows={4} /> : renderRoot()}
+      {props.projectsLoading ? <PanelPickerSkeleton rows={4} /> : renderRoot()}
     </div>
   );
 }
@@ -969,48 +710,22 @@ function SidebarScopeTriggerShell(props: {
   identity: ScopeIdentity;
   label: string;
   disabled: boolean;
-  showSidebarToggle: boolean;
-  toggleSidebar: () => void;
-  collapseAriaLabel: string;
 }) {
   const { isOpen } = useFloatingPanel();
   return (
-    <div className="min-w-0 w-full flex-1">
-      <div
-        data-panel-open={isOpen ? "true" : "false"}
-        className={cn(
-          sidebarTriggerShellClassName,
-          "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:justify-start [[data-collapsible=icon]:not([data-hover-preview=true])_&]:gap-0",
-        )}
-      >
-        <SidebarScopeTrigger
-          triggerText={props.triggerText}
-          identity={props.identity}
-          label={props.label}
-          disabled={props.disabled}
-        />
-        {props.showSidebarToggle ? (
-          <CollapseButton ariaLabel={props.collapseAriaLabel} onClick={props.toggleSidebar} />
-        ) : null}
-      </div>
-      {props.showSidebarToggle ? (
-        <div
-          className={cn(
-            "mt-0 flex justify-center overflow-hidden",
-            "h-0 opacity-0 pointer-events-none",
-            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-            "group-data-[collapsible=icon]:mt-2",
-            "group-data-[collapsible=icon]:h-10",
-            "group-data-[collapsible=icon]:opacity-100",
-            "group-data-[collapsible=icon]:pointer-events-auto",
-          )}
-        >
-          <CollapsedCollapseButton
-            ariaLabel={props.collapseAriaLabel}
-            onClick={props.toggleSidebar}
-          />
-        </div>
-      ) : null}
+    <div
+      data-panel-open={isOpen ? "true" : "false"}
+      className={cn(
+        sidebarTriggerShellClassName,
+        "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:justify-start [[data-collapsible=icon]:not([data-hover-preview=true])_&]:gap-0",
+      )}
+    >
+      <SidebarScopeTrigger
+        triggerText={props.triggerText}
+        identity={props.identity}
+        label={props.label}
+        disabled={props.disabled}
+      />
     </div>
   );
 }
@@ -1018,70 +733,22 @@ function SidebarScopeTriggerShell(props: {
 type AdminScopeSwitcherProps = {
   className?: string;
   variant?: "sidebar" | "header";
-  showSidebarToggle?: boolean;
-  forceVisible?: boolean;
 };
 
 export function AdminScopeSwitcher({
   className,
   variant = "sidebar",
-  showSidebarToggle = true,
-  forceVisible = false,
 }: AdminScopeSwitcherProps = {}) {
-  const { t } = useTranslation(["common", "account", "team", "ai"]);
+  const { t } = useTranslation(["common", "ai"]);
   const navigate = useNavigate();
-  const settingsScreen = useSettingsScreen();
-  const { toggleSidebar } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
-  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
-  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
-  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
 
-  const workspacesQuery = useQuery({
-    queryKey: ["me", "workspaces", "switcher", sessionVersion],
-    enabled: Boolean(accessToken),
-    queryFn: listMyWorkspaces,
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const pickerWorkspaces = useMemo(
-    () => sortWorkspacePickerItems(workspacesQuery.data?.items),
-    [workspacesQuery.data?.items],
-  );
-  const selectedWorkspaceId = resolveWorkspaceSelection({
-    workspaces: pickerWorkspaces,
-    currentWorkspaceId,
-    lastWorkspaceId,
-  });
-  const selectedWorkspace = useMemo(
-    () =>
-      selectedWorkspaceId
-        ? (pickerWorkspaces.find(
-            (workspace) => String(workspace.workspaceId) === String(selectedWorkspaceId),
-          ) ?? null)
-        : null,
-    [pickerWorkspaces, selectedWorkspaceId],
-  );
-
-  useEffect(() => {
-    if (!accessToken || !workspacesQuery.isSuccess || !selectedWorkspaceId) return;
-    if (String(currentWorkspaceId || "") === String(selectedWorkspaceId)) return;
-    setCurrentWorkspaceId(selectedWorkspaceId);
-  }, [
-    accessToken,
-    currentWorkspaceId,
-    selectedWorkspaceId,
-    setCurrentWorkspaceId,
-    workspacesQuery.isSuccess,
-  ]);
+  const { selectedWorkspaceId } = useWorkspaceScope();
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", selectedWorkspaceId, sessionVersion],
@@ -1130,8 +797,7 @@ export function AdminScopeSwitcher({
     );
   }, [projectsQuery.data, selectedProjectId]);
 
-  const workspaceIdentity = workspaceDetailQuery.data ?? selectedWorkspace;
-  const workspaceName = workspaceDetailQuery.data?.name ?? selectedWorkspace?.name ?? "";
+  const workspaceName = workspaceDetailQuery.data?.name ?? "";
   const routeProjectIdentity = routeProjectDetailQuery.data?.project ?? null;
   const isConcreteProjectRoute = Boolean(routeProjectId);
   const concreteRouteProjectIdentity =
@@ -1149,7 +815,7 @@ export function AdminScopeSwitcher({
       : {
           kind: "workspace",
           name: workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE"),
-          identity: workspaceIdentity,
+          identity: workspaceDetailQuery.data ?? null,
         };
   const triggerText = scopeIdentity.name || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE");
   const panelSelectedProject: ScopeProjectItem | null =
@@ -1158,11 +824,8 @@ export function AdminScopeSwitcher({
       ? mapProjectDetailToScopeItem(routeProjectIdentity)
       : null);
 
-  const isWorkspaceScopeRoute =
-    pathname.startsWith("/projects/") || pathname === "/projects" || pathname === "/projects/";
   const isHeaderVariant = variant === "header";
-
-  if (!forceVisible && !isWorkspaceScopeRoute && !isHeaderVariant) {
+  if (!isConcreteProjectRoute) {
     return null;
   }
 
@@ -1170,101 +833,64 @@ export function AdminScopeSwitcher({
   const label = t("common:WORKSPACE_SWITCHER_SELECT_SCOPE");
 
   return (
-    <>
-      <FloatingPanelRoot
-        className={cn(
-          isHeaderVariant ? "inline-flex min-w-0 max-w-full" : "w-full min-w-0",
-          className,
-        )}
-      >
-        {isHeaderVariant ? (
-          <HeaderScopeTrigger
-            triggerText={triggerText}
-            identity={scopeIdentity}
-            label={label}
-            disabled={!canOpenPanel}
-          />
-        ) : (
+    <FloatingPanelRoot
+      className={cn(
+        isHeaderVariant ? "inline-flex min-w-0 max-w-full" : "w-full min-w-0",
+        className,
+      )}
+    >
+      {isHeaderVariant ? (
+        <HeaderScopeTrigger
+          triggerText={triggerText}
+          identity={scopeIdentity}
+          label={label}
+          disabled={!canOpenPanel}
+        />
+      ) : (
+        <div className="w-full px-2 pt-2">
           <SidebarScopeTriggerShell
             triggerText={triggerText}
             identity={scopeIdentity}
             label={label}
             disabled={!canOpenPanel}
-            showSidebarToggle={showSidebarToggle}
-            toggleSidebar={toggleSidebar}
-            collapseAriaLabel={t("common:SIDEBAR_TOGGLE")}
           />
-        )}
+        </div>
+      )}
 
-        <FloatingPanelContent
-          placement="bottom"
-          offset={isHeaderVariant ? 10 : 8}
-          showTitle={false}
-          matchTriggerWidth
-          className="max-w-[calc(100vw-1rem)] p-0"
-        >
-          <PanelContentInner
-            workspaces={pickerWorkspaces}
-            projects={projectsQuery.data ?? []}
-            selectedWorkspaceId={selectedWorkspaceId}
-            selectedWorkspace={selectedWorkspace}
-            selectedProjectId={panelSelectedProject?.projectId ?? null}
-            selectedProject={panelSelectedProject}
-            workspacesLoading={workspacesQuery.isLoading}
-            projectsLoading={projectsQuery.isLoading}
-            hasLoadError={Boolean(workspacesQuery.isError || projectsQuery.isError)}
-            showProjectSection={isConcreteProjectRoute}
-            onSelectWorkspace={(workspace) => {
-              setCurrentWorkspaceId(workspace.workspaceId);
-              setCurrentProjectId(null);
-              void navigate({ to: projectsHomePath() as never });
-            }}
-            onSelectProject={(project) => {
-              setCurrentContext({
-                workspaceId: project.workspaceId,
-                projectId: project.projectId,
-              });
-              void navigate({ to: projectHomePath(project.projectId) as never });
-            }}
-            onOpenProjectCreateDialog={() => {
-              void navigate({
-                to: "/" as never,
-                search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
-              });
-            }}
-            onOpenWorkspaceCreateDialog={() => {
-              void navigate({
-                to: "/welcome" as never,
-                search: { mode: "create-workspace" } as never,
-              });
-            }}
-            onOpenProjectSettings={() => {
-              if (!panelSelectedProject) return;
-              void navigate({
-                to: `/projects/${panelSelectedProject.projectId}/settings/general/` as never,
-              });
-            }}
-            onOpenWorkspaceSettings={() => {
-              if (!selectedWorkspaceId) return;
-              setCurrentWorkspaceId(selectedWorkspaceId);
-              settingsScreen.openSettings({ screen: "workspace.general" });
-            }}
-            onOpenWorkspacePlanUsage={() => {
-              if (!selectedWorkspaceId) return;
-              setCurrentWorkspaceId(selectedWorkspaceId);
-              settingsScreen.openSettings({ screen: "workspace.plan-usage" });
-            }}
-            onOpenWorkspaceInvite={() => {
-              if (!selectedWorkspaceId) return;
-              setCurrentWorkspaceId(selectedWorkspaceId);
-              settingsScreen.openSettings({
-                screen: "workspace.people",
-                section: "invite-member",
-              });
-            }}
-          />
-        </FloatingPanelContent>
-      </FloatingPanelRoot>
-    </>
+      <FloatingPanelContent
+        placement="bottom"
+        offset={isHeaderVariant ? 10 : 8}
+        showTitle={false}
+        matchTriggerWidth
+        className="max-w-[calc(100vw-1rem)] p-0"
+      >
+        <PanelContentInner
+          projects={projectsQuery.data ?? []}
+          selectedProjectId={panelSelectedProject?.projectId ?? null}
+          selectedProject={panelSelectedProject}
+          projectsLoading={projectsQuery.isLoading}
+          hasLoadError={Boolean(projectsQuery.isError)}
+          onSelectProject={(project) => {
+            setCurrentContext({
+              workspaceId: project.workspaceId,
+              projectId: project.projectId,
+            });
+            void navigate({ to: projectHomePath(project.projectId) as never });
+          }}
+          onOpenProjectCreateDialog={() => {
+            void navigate({
+              to: "/" as never,
+              search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
+            });
+          }}
+          onOpenProjectSettings={() => {
+            if (!panelSelectedProject) return;
+            void navigate({
+              to: `/projects/${panelSelectedProject.projectId}/settings/general/` as never,
+            });
+          }}
+        />
+      </FloatingPanelContent>
+    </FloatingPanelRoot>
   );
 }

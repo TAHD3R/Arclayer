@@ -54,18 +54,18 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_WORKSPACE",
   },
   {
-    key: "settings.workspace.plan-usage",
-    screen: "workspace.plan-usage",
-    label: "Plan & Usage",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
-    icon: ChartPie,
-  },
-  {
     key: "settings.workspace.people",
     screen: "workspace.people",
     label: "People",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_PEOPLE",
     icon: UsersRound,
+  },
+  {
+    key: "settings.workspace.plan-usage",
+    screen: "workspace.plan-usage",
+    label: "Plan & Usage",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
+    icon: ChartPie,
   },
   {
     key: "settings.workspace.roles",

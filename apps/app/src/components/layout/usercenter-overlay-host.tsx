@@ -189,7 +189,7 @@ export function SettingsScreenHost() {
     >
       <ExpandableScreenContent
         showCloseButton={false}
-        className="border border-border/80 bg-background shadow-2xl lg:h-[calc(83.3333dvh-83.3333px)]! lg:w-[75vw]! lg:max-w-[1260px]!"
+        className="border border-border/80 bg-background shadow-2xl lg:h-[600px]! lg:w-[960px]!"
       >
         <SettingsFrame
           activeScreen={activeScreen}

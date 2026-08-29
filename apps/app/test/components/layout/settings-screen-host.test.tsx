@@ -223,11 +223,7 @@ describe("SettingsScreenHost", () => {
       "border-0",
       "shadow-none",
     );
-    expect(overlaySurface).toHaveClass(
-      "lg:h-[calc(83.3333dvh-83.3333px)]!",
-      "lg:w-[75vw]!",
-      "lg:max-w-[1260px]!",
-    );
+    expect(overlaySurface).toHaveClass("lg:h-[600px]!", "lg:w-[960px]!");
     expect(nav).toBeVisible();
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");

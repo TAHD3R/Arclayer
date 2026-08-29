@@ -84,8 +84,8 @@ function AdminSidebarBranding() {
   const showExpandedHeaderRows = useSidebarExpandedHeaderRows();
 
   return (
-    <SidebarHeader className="gap-0 px-0 py-2">
-      <div className="flex items-center gap-2 px-3 py-2">
+    <SidebarHeader className="gap-0 px-0 pt-2 pb-0">
+      <div className="flex items-center gap-2 px-3 py-1.5">
         <div className="relative flex h-8 w-27 shrink-0 items-center justify-start overflow-hidden">
           <div
             className={cn(
@@ -125,14 +125,7 @@ function AdminSidebarBranding() {
           <PanelLeftIcon className="size-4" aria-hidden="true" />
         </button>
       </div>
-      <div className="px-2 pt-2">
-        <AdminScopeSwitcher
-          variant="sidebar"
-          showSidebarToggle={false}
-          forceVisible
-          className="flex w-full min-w-0"
-        />
-      </div>
+      <AdminScopeSwitcher variant="sidebar" className="flex w-full min-w-0" />
     </SidebarHeader>
   );
 }

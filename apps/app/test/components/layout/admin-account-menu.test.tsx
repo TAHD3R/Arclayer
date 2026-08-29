@@ -3,8 +3,10 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { MyWorkspaceOut as MyWorkspace, MyWorkspaceListResult } from "@arclayer/openapi";
 import * as authApi from "@/api/auth";
 import * as platformEntryApi from "@/api/platform-entry";
+import * as workspacesApi from "@/api/workspaces";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import {
   SettingsScreenProvider,
@@ -13,6 +15,7 @@ import {
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
@@ -50,6 +53,12 @@ vi.mock("@/api/platform-entry", () => ({
   getPlatformEntryEligibility: vi.fn(),
 }));
 
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn(),
+  listMyWorkspaces: vi.fn(),
+  patchWorkspaceDetail: vi.fn(),
+}));
+
 vi.mock("@/components/ui/theme-transition", () => ({
   setThemePreferenceWithTransition: vi.fn().mockResolvedValue(undefined),
 }));
@@ -64,6 +73,51 @@ vi.mock("@/lib/i18n", async (importOriginal) => {
     },
   };
 });
+
+const workspaceFixtures: MyWorkspace[] = [
+  {
+    id: "workspace-alpha",
+    workspaceId: "ws-alpha",
+    projectId: "project-alpha",
+    name: "Workspace Alpha",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
+    iconUrl: null,
+    memberCount: 3,
+    membersPreview: [],
+    isOwner: true,
+  },
+  {
+    id: "workspace-beta",
+    workspaceId: "ws-beta",
+    projectId: "project-gamma",
+    name: "Workspace Beta",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
+    iconUrl: null,
+    memberCount: 1,
+    membersPreview: [],
+    isOwner: true,
+  },
+];
+
+function createWorkspaceListResult(): MyWorkspaceListResult {
+  return {
+    items: workspaceFixtures,
+    instanceSetup: {
+      status: "ready",
+      repairReason: null,
+    },
+    onboarding: {
+      status: "completed",
+      workspaceId: "ws-alpha",
+    },
+  };
+}
 
 function renderWithProviders(component: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -160,6 +214,13 @@ describe("AdminAccountMenu", () => {
       localePreference: null,
       localePreferenceMode: "workspace",
     });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "ws-alpha",
+      currentProjectId: "project-alpha",
+      lastWorkspaceId: "ws-alpha",
+      lastProjectId: "project-alpha",
+    });
+    vi.mocked(workspacesApi.listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
 
     vi.mocked(authApi.me).mockResolvedValue({
       id: "user-1",
@@ -178,12 +239,14 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
+    await screen.findByText("Workspace Alpha");
 
     expect(
       within(screen.getByRole("dialog"))
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual([
+      expect.stringContaining("Workspace Alpha"),
       "ACCOUNT_MENU_PERSONAL_SETTINGS",
       "ACCOUNT_MENU_WORKSPACE_SETTINGS",
       "ACCOUNT_MENU_PLAN_USAGE",
@@ -375,6 +438,74 @@ describe("AdminAccountMenu", () => {
     expect(openMock).not.toHaveBeenCalled();
   });
 
+  it("账号菜单顶部显示当前工作空间行并悬浮打开切换子面板", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await screen.findByText("Workspace Alpha");
+    await user.hover(screen.getByRole("button", { name: /Workspace Alpha/ }));
+
+    const submenuTrigger = await screen.findByRole("button", { name: /Workspace Beta/ });
+    expect(submenuTrigger).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "common:WORKSPACE_SWITCHER_ADD_WORKSPACE" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" })).toBeVisible();
+  });
+
+  it("从账号菜单切换工作空间会更新 store 并回到项目列表", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await screen.findByText("Workspace Alpha");
+    await user.hover(screen.getByRole("button", { name: /Workspace Alpha/ }));
+
+    await user.click(await screen.findByRole("button", { name: /Workspace Beta/ }));
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
+      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
+    });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PERSONAL_SETTINGS" })).toBeNull();
+    });
+  });
+
+  it("从账号菜单创建新工作空间会走 onboarding", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await screen.findByText("Workspace Alpha");
+    await user.hover(screen.getByRole("button", { name: /Workspace Alpha/ }));
+
+    await user.click(
+      screen.getByRole("button", { name: "common:WORKSPACE_SWITCHER_ADD_WORKSPACE" }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/welcome",
+      search: { mode: "create-workspace" },
+      viewTransition: true,
+    });
+  });
+
+  it("工作空间列表加载失败时子面板显式展示失败状态", async () => {
+    vi.mocked(workspacesApi.listMyWorkspaces).mockRejectedValue(new Error("workspaces failed"));
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.hover(screen.getByRole("button", { name: /WORKSPACE_SWITCHER_SELECT_WORKSPACE/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("common:REQUEST_FAILED")).toBeVisible();
+    });
+  });
+
   it("仅在后端判定 eligible 时显示并打开独立 Platform Console", async () => {
     vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockResolvedValue({
       eligible: true,
@@ -389,6 +520,7 @@ describe("AdminAccountMenu", () => {
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual([
+      expect.stringContaining("Workspace Alpha"),
       "ACCOUNT_MENU_PERSONAL_SETTINGS",
       "ACCOUNT_MENU_WORKSPACE_SETTINGS",
       "ACCOUNT_MENU_PLAN_USAGE",

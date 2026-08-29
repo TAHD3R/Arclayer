@@ -246,10 +246,11 @@ describe("AdminSidebarShell", () => {
     expect(
       within(brandingRow as HTMLElement).getByRole("button", { name: "Toggle sidebar" }),
     ).toBeInTheDocument();
-    expect(header?.className).toContain("py-2");
+    expect(header?.className).toContain("pt-2");
+    expect(header?.className).toContain("pb-0");
     expect(header?.className).toContain("px-0");
     expect(brandingRow?.className).toContain("px-3");
-    expect(brandingRow?.className).toContain("py-2");
+    expect(brandingRow?.className).toContain("py-1.5");
     expect(tablist.className).toContain("h-10");
     expect(tablist.className).toContain("w-full");
     expect(tablist.className).toContain("justify-start");

@@ -51,6 +51,17 @@ export function useFloatingPanel() {
   return context;
 }
 
+/**
+ * Resolves the `[data-floating-panel-boundary]` container that constrains this
+ * panel's trigger, so portal-rendered sub-popovers can apply the same bounds
+ * via Radix `collisionBoundary` instead of escaping into adjacent regions.
+ */
+export function useFloatingPanelBoundary(): HTMLElement | null {
+  const { triggerEl } = useFloatingPanel();
+  if (!triggerEl?.isConnected) return null;
+  return triggerEl.closest<HTMLElement>(FLOATING_PANEL_BOUNDARY_SELECTOR);
+}
+
 function useFloatingPanelLogic() {
   const uniqueId = useId();
   const [isOpen, setIsOpen] = useState(false);
@@ -275,7 +286,8 @@ export function computeFloatingPanelPosition(params: {
   offset: number;
   viewportPadding: number;
 }) {
-  const { anchorRect, bounds, panelHeight, panelWidth, offset, placement, viewportPadding } = params;
+  const { anchorRect, bounds, panelHeight, panelWidth, offset, placement, viewportPadding } =
+    params;
   const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
   const leftMin = bounds.left + viewportPadding;

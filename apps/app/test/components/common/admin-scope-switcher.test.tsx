@@ -23,10 +23,6 @@ const navigateMock = vi.fn();
 let mockPathname = "/projects/project-alpha/assets";
 
 const translations: Record<string, string> = {
-  "account:ACCOUNT_MENU_WORKSPACE_SETTINGS": "Workspace Settings",
-  "common:WORKSPACE_SWITCHER_ADD_WORKSPACE": "New workspace",
-  "common:WORKSPACE_SWITCHER_BACK": "Back",
-  "common:WORKSPACE_SWITCHER_BILLING_USAGE": "Billing & Usage",
   "common:WORKSPACE_SWITCHER_NEW_PROJECT": "New project",
   "common:WORKSPACE_SWITCHER_PROJECT_EMPTY": "No projects available",
   "common:WORKSPACE_SWITCHER_PROJECT_SEARCH_PLACEHOLDER": "Search projects",
@@ -35,10 +31,6 @@ const translations: Record<string, string> = {
   "common:WORKSPACE_SWITCHER_SELECT_PROJECT": "Select project",
   "common:WORKSPACE_SWITCHER_SELECT_SCOPE": "Select scope",
   "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE": "Select workspace",
-  "common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY": "No workspaces available",
-  "common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER": "Search workspaces",
-  "common:WORKSPACE_SWITCHER_WORKSPACE_SECTION": "Workspace",
-  "team:TEAM_INVITE_MEMBER": "Invite members",
 };
 
 vi.mock("@tanstack/react-router", () => ({
@@ -49,12 +41,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, params?: { count?: number }) => {
-      if (key === "common:ORG_WORKSPACES_MEMBERS_COUNT") {
-        return `${params?.count ?? 0} ${(params?.count ?? 0) === 1 ? "member" : "members"}`;
-      }
-      return translations[key] ?? key;
-    },
+    t: (key: string) => translations[key] ?? key,
   }),
 }));
 
@@ -284,38 +271,20 @@ beforeEach(() => {
 });
 
 describe("AdminScopeSwitcher", () => {
-  it("shows workspace identity on global routes", async () => {
-    mockPathname = "/projects";
+  it.each(["/", "/projects", "/projects/"])(
+    "renders nothing outside a concrete project route (%s)",
+    (pathname) => {
+      mockPathname = pathname;
 
-    renderWithQueryClient(<AdminScopeSwitcher variant="header" />);
+      const { container } = renderWithQueryClient(<AdminScopeSwitcher />);
+      const { container: headerContainer } = renderWithQueryClient(
+        <AdminScopeSwitcher variant="header" />,
+      );
 
-    const trigger = await screen.findByRole("button", { name: /Select scope/ });
-
-    await waitFor(() => {
-      expect(within(trigger).getByText("Workspace Alpha")).toBeInTheDocument();
-    });
-    expect(trigger).not.toHaveAttribute("aria-label");
-    expect(trigger).toHaveAccessibleName("Workspace Alpha Select scope");
-    expect(within(trigger).queryByText("Project Alpha")).toBeNull();
-  });
-
-  it("hides project actions outside a concrete project route", async () => {
-    mockPathname = "/projects";
-    const user = userEvent.setup();
-
-    renderWithQueryClient(<AdminScopeSwitcher />);
-
-    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
-
-    const panel = getLatestDialog();
-    expect(within(panel).queryByText("Project")).not.toBeInTheDocument();
-    expect(
-      within(panel).queryByRole("button", { name: "Project Settings" }),
-    ).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "New project" })).not.toBeInTheDocument();
-    expect(within(panel).getByText("Workspace")).toBeInTheDocument();
-    expect(listProjects).not.toHaveBeenCalled();
-  });
+      expect(container.querySelector("button")).toBeNull();
+      expect(headerContainer.querySelector("button")).toBeNull();
+    },
+  );
 
   it("shows project identity on concrete project routes", async () => {
     renderWithQueryClient(<AdminScopeSwitcher />);
@@ -328,10 +297,9 @@ describe("AdminScopeSwitcher", () => {
     expect(trigger).not.toHaveAttribute("aria-label");
     expect(trigger).toHaveAccessibleName("Project Alpha Select scope");
     expect(trigger).toHaveClass("!h-10");
-    expect(within(trigger).queryByText("Workspace Alpha")).toBeNull();
   });
 
-  it("opens the merged scope panel with project and workspace sections", async () => {
+  it("opens the project-only scope panel without workspace entries", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminScopeSwitcher />);
 
@@ -339,18 +307,21 @@ describe("AdminScopeSwitcher", () => {
 
     const panel = getLatestDialog();
     expect(within(panel).getByText("Project")).toBeInTheDocument();
-    expect(within(panel).getByText("Workspace")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: /Project Alpha/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Project Settings" })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Workspace Settings" })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Billing & Usage" })).not.toHaveClass(
-      "pointer-events-none",
-    );
-    expect(within(panel).getByRole("button", { name: /Invite members/ })).not.toHaveClass(
-      "pointer-events-none",
-    );
-    expect(within(panel).getAllByRole("button", { name: /Invite members/ })).toHaveLength(1);
+
+    expect(within(panel).queryByText("Workspace")).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: /Workspace Alpha/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: "Workspace Settings" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: "Billing & Usage" }),
+    ).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /Invite members/ })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /New workspace/ })).not.toBeInTheDocument();
   });
 
   it("matches the root panel width to its trigger", async () => {
@@ -373,26 +344,6 @@ describe("AdminScopeSwitcher", () => {
     const panel = getLatestDialog();
     expect(panel).toHaveStyle({ width: "320px" });
     rectSpy.mockRestore();
-  });
-
-  it("opens the workspace Plan & Usage screen from the scope panel", async () => {
-    const user = userEvent.setup();
-    renderWithQueryClient(
-      <>
-        <AdminScopeSwitcher />
-        <SettingsScreenProbe />
-      </>,
-    );
-
-    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
-    const panel = getLatestDialog();
-    await user.click(within(panel).getByRole("button", { name: "Billing & Usage" }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).toBeNull();
-      expect(screen.getByTestId("settings-screen-state")).toHaveTextContent("workspace.plan-usage");
-    });
-    expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-alpha");
   });
 
   it("uses route project detail for the panel project when the active project is not listed yet", async () => {
@@ -420,9 +371,8 @@ describe("AdminScopeSwitcher", () => {
     });
   });
 
-  it("opens the existing workspace invite flow from the project section", async () => {
+  it("filters project choices locally and selects a project inside the active workspace", async () => {
     const user = userEvent.setup();
-
     renderWithQueryClient(
       <>
         <AdminScopeSwitcher />
@@ -432,25 +382,6 @@ describe("AdminScopeSwitcher", () => {
 
     await user.click(await screen.findByRole("button", { name: /Select scope/ }));
     const panel = getLatestDialog();
-    await user.click(within(panel).getByRole("button", { name: /Invite members/ }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).toBeNull();
-      expect(screen.getByTestId("settings-screen-state")).toHaveTextContent("workspace.people");
-    });
-    expect(screen.getByTestId("settings-screen-state")).toHaveAttribute(
-      "data-section",
-      "invite-member",
-    );
-    expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-alpha");
-  });
-
-  it("filters project choices locally and selects a project inside the active workspace", async () => {
-    const user = userEvent.setup();
-    renderWithQueryClient(<AdminScopeSwitcher />);
-
-    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
-    let panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Project Alpha/ }));
 
     const searchInput = screen.getByPlaceholderText("Search projects");
@@ -475,45 +406,5 @@ describe("AdminScopeSwitcher", () => {
       page: 1,
       size: 100,
     });
-  });
-
-  it("selecting a workspace clears project state and lands on the projects page", async () => {
-    const user = userEvent.setup();
-    renderWithQueryClient(<AdminScopeSwitcher />);
-
-    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
-    let panel = getLatestDialog();
-    await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
-
-    const betaButton = screen.getByRole("button", { name: /Workspace Beta/ });
-    const workspaceSearch = screen.getByPlaceholderText("Search workspaces");
-    expect(workspaceSearch.closest("label")?.querySelector("svg")).not.toBeNull();
-    expect(betaButton).not.toHaveClass("min-h-[4.5rem]");
-    expect(within(betaButton).queryByText(/member/)).not.toBeInTheDocument();
-    await user.click(betaButton);
-
-    await waitFor(() => {
-      expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
-      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
-    });
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
-  });
-
-  it("routes new workspace creation through onboarding", async () => {
-    const user = userEvent.setup();
-    renderWithQueryClient(<AdminScopeSwitcher />);
-
-    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
-    const panel = getLatestDialog();
-    await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
-
-    const workspacePickerPanel = getLatestDialog();
-    await user.click(within(workspacePickerPanel).getByRole("button", { name: "New workspace" }));
-
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/welcome",
-      search: { mode: "create-workspace" },
-    });
-    expect(screen.queryByRole("dialog", { name: /New workspace/ })).not.toBeInTheDocument();
   });
 });
