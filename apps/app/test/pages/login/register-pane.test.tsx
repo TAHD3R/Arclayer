@@ -72,7 +72,7 @@ describe("RegisterPane oauth section", () => {
     const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
     expect(contentGroup).toHaveClass("grid", "gap-4");
-    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-6");
+    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-8");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
     expect(screen.getByText("auth:OAUTH_REGISTER_DIVIDER")).toBeInTheDocument();
     expect(screen.getByTestId("login-brand-slogan")).toBeInTheDocument();
@@ -81,22 +81,22 @@ describe("RegisterPane oauth section", () => {
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("auth:FIELD_EMAIL_LABEL").closest("[data-slot='input-group']"),
-    ).toHaveClass("h-14!", "rounded-full!");
+    ).toHaveClass("h-10", "rounded-md");
     expect(
       screen.getByLabelText("auth:FIELD_PASSWORD_LABEL").closest("[data-slot='input-group']"),
-    ).toHaveClass("h-14!", "rounded-full!");
+    ).toHaveClass("h-10", "rounded-md");
     expect(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" })).toHaveClass(
-      "h-14!",
+      "h-10!",
       "w-full",
-      "rounded-full!",
+      "rounded-md!",
     );
     expect(
       screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }).querySelector("svg"),
     ).toBeNull();
     expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toHaveClass(
-      "h-14!",
+      "h-10!",
       "w-full",
-      "rounded-full!",
+      "rounded-md!",
     );
     expect(
       screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" }).querySelector("svg"),
@@ -145,7 +145,7 @@ describe("RegisterPane oauth section", () => {
     });
 
     expect(noticeContainer).toHaveTextContent("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
-    expect(noticeContainer).toHaveClass("rounded-[1.75rem]");
+    expect(noticeContainer).toHaveClass("rounded-md");
     expect(noticeContainer).toContainElement(
       screen.getByRole("button", { name: "auth:REGISTER_EMAIL_EXISTS_ACTION" }),
     );

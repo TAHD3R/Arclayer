@@ -221,7 +221,7 @@ describe("LoginView auth pane hierarchy", () => {
     const emailEntry = screen.getByRole("button", { name: "auth:LOGIN_CONTINUE_EMAIL" });
     expect(oauthSection).toHaveAttribute("data-provider-layout", "primary-plus-grid");
     expect(screen.getByText("auth:OAUTH_METHOD_DIVIDER")).toBeInTheDocument();
-    expect(emailEntry).toHaveClass("h-14!", "w-full", "rounded-full!");
+    expect(emailEntry).toHaveClass("h-10!", "w-full", "rounded-md!");
     expect(emailEntry).toHaveAttribute("data-variant", "outline");
     expect(emailEntry).toHaveAttribute("data-size", "lg");
     expect(emailEntry.querySelector("svg")).toBeNull();
@@ -313,8 +313,8 @@ describe("LoginView auth pane hierarchy", () => {
     ).toBeTruthy();
     const termsButton = screen.getByRole("button", { name: "Terms of Service" });
     const privacyButton = screen.getByRole("button", { name: "Privacy Policy" });
-    expect(termsButton).toHaveClass("px-1", "text-label-secondary");
-    expect(privacyButton).toHaveClass("px-1", "text-label-secondary");
+    expect(termsButton).toHaveClass("text-label-secondary");
+    expect(privacyButton).toHaveClass("text-label-secondary");
     expect(termsButton).not.toHaveClass("text-primary");
     expect(privacyButton).not.toHaveClass("text-primary");
     expect(screen.queryByText("auth:FIELD_EMAIL_LABEL")).not.toBeInTheDocument();

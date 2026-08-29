@@ -434,8 +434,12 @@ export function useLoginPage(): LoginPageState {
         if (decision.onboardingRequired) {
           await navigate({
             to: "/welcome",
-            search: targetRedirect ? { redirect: targetRedirect } : undefined,
+            search: {
+              ...(decision.welcomeMode ? { mode: decision.welcomeMode } : {}),
+              ...(targetRedirect ? { redirect: targetRedirect } : {}),
+            },
             replace: true,
+            viewTransition: true,
           });
           return;
         }

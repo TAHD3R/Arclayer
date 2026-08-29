@@ -6,7 +6,7 @@ import { Button } from "@arclayer/ui/button";
 
 import {
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
   AuthPaneLegal,
 } from "./auth-pane-primitives";
 import { AuthEntryHeader } from "./login-brand-slogan";
@@ -47,7 +47,7 @@ export function LoginMethodPane(props: LoginMethodPaneProps) {
         </motion.div>
         <motion.div variants={variants} className="grid">
           <Button
-            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            className={AUTH_OUTLINE_BUTTON_CLASS}
             type="button"
             size="lg"
             variant="outline"

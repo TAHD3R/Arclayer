@@ -16,9 +16,9 @@ import type { LoginTwoFactorFormValues } from "../types";
 import {
   AUTH_FIELD_CLASS,
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_BUTTON_CLASS,
-  AUTH_PILL_OUTLINE_BUTTON_CLASS,
-  AUTH_PILL_PLAIN_INPUT_CLASS,
+  AUTH_BUTTON_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
+  AUTH_PLAIN_INPUT_CLASS,
   AuthFormFeedback,
   AuthOtpInput,
   AuthPaneLegal,
@@ -130,7 +130,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
                   }}
                   aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
                   aria-invalid={error ? true : undefined}
-                  className={AUTH_PILL_PLAIN_INPUT_CLASS}
+                  className={AUTH_PLAIN_INPUT_CLASS}
                   placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
                   autoComplete="one-time-code"
                   disabled={props.loading}
@@ -168,12 +168,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
         </motion.div>
 
         <motion.div variants={variants} className="grid gap-4">
-          <Button
-            className={AUTH_PILL_BUTTON_CLASS}
-            type="submit"
-            size="lg"
-            loading={props.loading}
-          >
+          <Button className={AUTH_BUTTON_CLASS} type="submit" size="lg" loading={props.loading}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
           {allowWebAuthn ? (
@@ -181,7 +176,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
               type="button"
               size="lg"
               variant="outline"
-              className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+              className={AUTH_OUTLINE_BUTTON_CLASS}
               disabled={props.loading}
               onClick={() => props.onPasskeySubmit?.()}
             >
@@ -194,7 +189,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
             variant="outline"
             size="lg"
             disabled={props.loading}
-            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            className={AUTH_OUTLINE_BUTTON_CLASS}
             onClick={props.onBackToLogin}
           >
             {backToLoginLabel}

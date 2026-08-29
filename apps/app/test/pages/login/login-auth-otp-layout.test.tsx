@@ -130,7 +130,7 @@ describe("Login auth otp layouts", () => {
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
     const otpSlots = otpGrid?.querySelectorAll(".flex-1");
-    expect(otpSlots?.[0]).toHaveClass("h-14!", "rounded-2xl!", "bg-card");
+    expect(otpSlots?.[0]).toHaveClass("h-10!", "rounded-md!", "bg-card");
   });
 
   it("starts resend cooldown and shows a success toast after requesting a code", async () => {
@@ -254,7 +254,7 @@ describe("Login auth otp layouts", () => {
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
     const otpSlots = otpGrid?.querySelectorAll(".flex-1");
-    expect(otpSlots?.[0]).toHaveClass("h-14!", "rounded-2xl!", "bg-card");
+    expect(otpSlots?.[0]).toHaveClass("h-10!", "rounded-md!", "bg-card");
     expect(
       screen
         .getByRole("button", { name: "auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON" })

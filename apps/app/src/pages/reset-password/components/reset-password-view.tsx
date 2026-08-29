@@ -22,10 +22,10 @@ import type { ResetPasswordFormValues, ResetPasswordViewProps } from "../types";
 import {
   AUTH_FIELD_CLASS,
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_BUTTON_CLASS,
-  AUTH_PILL_INPUT_CLASS,
-  AUTH_PILL_INPUT_GROUP_CLASS,
-  AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AUTH_BUTTON_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
   AuthFormFeedback,
   AuthPaneLegal,
 } from "@/pages/login/components/auth-pane-primitives";
@@ -138,8 +138,8 @@ export function ResetPasswordView({
                 autoComplete="one-time-code"
                 aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
                 aria-invalid={form.formState.errors.resetToken ? true : undefined}
-                className={AUTH_PILL_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_PILL_INPUT_CLASS}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
                 placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
                 startIcon={<KeyRound size={16} />}
                 disabled={loading}
@@ -166,8 +166,8 @@ export function ResetPasswordView({
                 autoComplete="new-password"
                 aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
                 aria-invalid={form.formState.errors.newPassword ? true : undefined}
-                className={AUTH_PILL_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_PILL_INPUT_CLASS}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
                 placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
                 startIcon={<Lock size={16} />}
                 disabled={loading}
@@ -188,8 +188,8 @@ export function ResetPasswordView({
               autoComplete="new-password"
               aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
               aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
-              className={AUTH_PILL_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_PILL_INPUT_CLASS}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
               placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
               startIcon={<Lock size={16} />}
               disabled={loading}
@@ -198,12 +198,12 @@ export function ResetPasswordView({
           </ResetPasswordField>
 
           <motion.div variants={variants} className="grid gap-4 pt-1">
-            <Button className={AUTH_PILL_BUTTON_CLASS} type="submit" size="lg" loading={loading}>
+            <Button className={AUTH_BUTTON_CLASS} type="submit" size="lg" loading={loading}>
               {t("auth:RESET_PASSWORD_BUTTON")}
             </Button>
 
             <Button
-              className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+              className={AUTH_OUTLINE_BUTTON_CLASS}
               onClick={onBackToLogin}
               type="button"
               size="lg"

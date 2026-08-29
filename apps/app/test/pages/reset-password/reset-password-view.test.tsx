@@ -32,10 +32,10 @@ describe("ResetPasswordView", () => {
     expect(screen.getByText("auth:RESET_PASSWORD_PAGE_TITLE")).toHaveClass("sr-only");
     expect(
       screen.getByLabelText("auth:FIELD_NEW_PASSWORD_LABEL").closest("[data-slot='input-group']"),
-    ).toHaveClass("h-14!", "rounded-full!");
+    ).toHaveClass("h-10", "rounded-md");
     expect(screen.getByRole("button", { name: "auth:RESET_PASSWORD_BUTTON" })).toHaveClass(
-      "h-14!",
-      "rounded-full!",
+      "h-10!",
+      "rounded-md!",
     );
     expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toHaveAttribute(
       "data-variant",

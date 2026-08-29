@@ -22,9 +22,9 @@ import type {
 import {
   AUTH_FIELD_CLASS,
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_BUTTON_CLASS,
-  AUTH_PILL_INPUT_CLASS,
-  AUTH_PILL_INPUT_GROUP_CLASS,
+  AUTH_BUTTON_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
   AuthButtonLabel,
   AuthFormFeedback,
   AuthOtpInput,
@@ -303,8 +303,8 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
                   aria-invalid={form.formState.errors.email ? true : undefined}
-                  className={AUTH_PILL_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_PILL_INPUT_CLASS}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
                   disabled={props.requestLoading}
@@ -355,7 +355,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
 
         <motion.div variants={variants} className="grid gap-4 pt-1">
           <Button
-            className={AUTH_PILL_BUTTON_CLASS}
+            className={AUTH_BUTTON_CLASS}
             type="submit"
             size="lg"
             loading={step === "request" ? props.requestLoading : props.verifyLoading}

@@ -63,19 +63,15 @@ describe("LoginPane email form", () => {
     expect(promise.style.getPropertyValue("--auth-shiny-highlight")).toBe(
       "color-mix(in oklab, var(--color-label-secondary) 55%, var(--color-label-primary))",
     );
-    expect(slogan.parentElement?.parentElement).toHaveClass("max-w-[25.875rem]", "gap-6");
+    expect(slogan.parentElement?.parentElement).toHaveClass("max-w-[25.875rem]", "gap-8");
     expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:FIELD_EMAIL_LABEL")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:OAUTH_ACCOUNT_DIVIDER")).not.toBeInTheDocument();
     const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
     const password = screen.getByLabelText("auth:FIELD_PASSWORD_LABEL");
-    expect(email.closest("[data-slot='input-group']")).toHaveClass("h-14!", "rounded-full!");
-    expect(password.closest("[data-slot='input-group']")).toHaveClass("h-14!", "rounded-full!");
-    expect(password.closest("[data-slot='input-group']")).toHaveClass(
-      "[&>[data-align=inline-end]]:mr-0!",
-      "[&>[data-align=inline-end]]:pr-4!",
-    );
+    expect(email.closest("[data-slot='input-group']")).toHaveClass("h-10", "rounded-md");
+    expect(password.closest("[data-slot='input-group']")).toHaveClass("h-10", "rounded-md");
     expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "auth:KEEP_SESSION" })).not.toBeInTheDocument();
     expect(
@@ -107,9 +103,9 @@ describe("LoginPane email form", () => {
       "justify-end",
     );
     expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toHaveClass(
-      "h-14!",
+      "h-10!",
       "w-full",
-      "rounded-full!",
+      "rounded-md!",
       "hover:bg-primary!",
     );
     expect(
@@ -147,9 +143,9 @@ describe("LoginPane email form", () => {
     );
 
     expect(screen.getByRole("button", { name: "auth:LOGIN_BACK_TO_METHODS" })).toHaveClass(
-      "h-14!",
+      "h-10!",
       "w-full",
-      "rounded-full!",
+      "rounded-md!",
     );
     expect(
       screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }).querySelector("svg"),
@@ -313,7 +309,7 @@ describe("LoginPane email form", () => {
     const email = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("errors:INVALID_CREDENTIALS");
-    expect(alert).toHaveClass("rounded-[1.75rem]");
+    expect(alert).toHaveClass("rounded-md");
     expect(alert).toHaveClass("[&>svg]:text-destructive!");
     expect(alert.querySelector("svg")).toHaveClass("lucide-circle-x");
     expect(email).not.toHaveAttribute("aria-invalid");

@@ -24,10 +24,10 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_PANE_CONTENT_CLASS,
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_BUTTON_CLASS,
-  AUTH_PILL_INPUT_CLASS,
-  AUTH_PILL_INPUT_GROUP_CLASS,
-  AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AUTH_BUTTON_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
   AuthFormFeedback,
   AuthPaneLegal,
@@ -299,8 +299,8 @@ export function RegisterPane(props: RegisterPaneProps) {
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
                   aria-invalid={form.formState.errors.email ? true : undefined}
-                  className={AUTH_PILL_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_PILL_INPUT_CLASS}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
                   disabled={busy || isVerificationPending || props.emailLocked}
@@ -332,8 +332,8 @@ export function RegisterPane(props: RegisterPaneProps) {
                     autoComplete="username"
                     aria-label={t("auth:FIELD_USERNAME_LABEL")}
                     aria-invalid={form.formState.errors.username ? true : undefined}
-                    className={AUTH_PILL_INPUT_GROUP_CLASS}
-                    inputClassName={AUTH_PILL_INPUT_CLASS}
+                    className={AUTH_INPUT_GROUP_CLASS}
+                    inputClassName={AUTH_INPUT_CLASS}
                     placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
                     startIcon={<UserRound size={16} />}
                     disabled={busy}
@@ -355,8 +355,8 @@ export function RegisterPane(props: RegisterPaneProps) {
                     autoComplete="new-password"
                     aria-label={t("auth:FIELD_PASSWORD_LABEL")}
                     aria-invalid={form.formState.errors.password ? true : undefined}
-                    className={AUTH_PILL_INPUT_GROUP_CLASS}
-                    inputClassName={AUTH_PILL_INPUT_CLASS}
+                    className={AUTH_INPUT_GROUP_CLASS}
+                    inputClassName={AUTH_INPUT_CLASS}
                     placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
                     startIcon={<Lock size={16} />}
                     disabled={busy}
@@ -369,7 +369,7 @@ export function RegisterPane(props: RegisterPaneProps) {
 
           <motion.div variants={variants} className="grid gap-4 pt-1">
             <Button
-              className={AUTH_PILL_BUTTON_CLASS}
+              className={AUTH_BUTTON_CLASS}
               type="submit"
               size="lg"
               loading={busy && (!isVerificationPending || props.resendLoading)}
@@ -385,7 +385,7 @@ export function RegisterPane(props: RegisterPaneProps) {
             </Button>
             {isVerificationPending ? null : (
               <Button
-                className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+                className={AUTH_OUTLINE_BUTTON_CLASS}
                 type="button"
                 size="lg"
                 variant="outline"

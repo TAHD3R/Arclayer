@@ -9,8 +9,7 @@ import { FieldTitle } from "@arclayer/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
-export const AUTH_PANE_ROOT_CLASS =
-  "grid w-full max-w-[25.875rem] gap-6 [&>:not(:first-child)]:mx-auto [&>:not(:first-child)]:w-full md:[&>:not(:first-child)]:px-8";
+export const AUTH_PANE_ROOT_CLASS = "grid w-full max-w-[25.875rem] gap-8";
 export const AUTH_PANE_CONTENT_CLASS = "grid gap-4";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "select-none text-headline text-label-primary";
@@ -21,26 +20,12 @@ export const AUTH_INPUT_GROUP_CLASS = cn(
 );
 export const AUTH_INPUT_CLASS =
   "h-10 min-w-0 px-0 text-callout placeholder:text-label-tertiary md:text-callout";
-export const AUTH_PILL_INPUT_GROUP_CLASS = cn(
-  AUTH_INPUT_GROUP_CLASS,
-  "h-14! rounded-full!",
-  "[&>[data-align=inline-end]]:mr-0! [&>[data-align=inline-end]]:pr-4!",
+export const AUTH_BUTTON_CLASS = cn(
+  "h-10! w-full rounded-md! bg-primary text-primary-foreground hover:bg-primary!",
 );
-export const AUTH_PILL_INPUT_CLASS = cn(AUTH_INPUT_CLASS, "h-14! text-body md:text-body");
-export const AUTH_PILL_BUTTON_CLASS = cn(
-  "h-14! w-full rounded-full! bg-primary text-primary-foreground hover:bg-primary!",
-);
-export const AUTH_PILL_OUTLINE_BUTTON_CLASS = cn(
-  AUTH_PILL_BUTTON_CLASS,
+export const AUTH_OUTLINE_BUTTON_CLASS = cn(
+  AUTH_BUTTON_CLASS,
   "border-border bg-card dark:bg-card! text-label-primary! hover:bg-accent! hover:text-accent-foreground!",
-);
-export const AUTH_PILL_GHOST_BUTTON_CLASS = cn(
-  "h-10! w-full rounded-full!",
-  "bg-transparent! text-label-secondary hover:bg-accent! hover:text-label-primary",
-);
-export const AUTH_PILL_PLAIN_INPUT_CLASS = cn(
-  "h-14! min-w-0 rounded-full! border-border bg-card dark:bg-card! px-5 text-body",
-  "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-body",
 );
 export const AUTH_PLAIN_INPUT_CLASS = cn(
   "h-10 min-w-0 rounded-md border-border bg-card dark:bg-card! px-4 text-callout ",
@@ -49,7 +34,7 @@ export const AUTH_PLAIN_INPUT_CLASS = cn(
 export const AUTH_OTP_CONTAINER_CLASS = "w-full min-w-0";
 export const AUTH_OTP_GROUP_CLASS = "grid w-full min-w-0 grid-cols-6 gap-2.5";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-14! min-w-0 w-full flex-1 rounded-2xl! border border-border bg-card dark:bg-card!",
+  "h-10! min-w-0 w-full flex-1 rounded-md! border border-border bg-card dark:bg-card!",
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
@@ -112,7 +97,7 @@ export function AuthFormFeedback(props: {
       role={danger ? "alert" : "status"}
       variant={danger ? "destructive" : "default"}
       className={cn(
-        "rounded-[1.75rem] bg-card px-4 py-3 text-callout",
+        "rounded-md bg-card px-4 py-3 text-callout",
         danger
           ? "border-destructive/30 [&>svg]:text-destructive!"
           : "border-border [&>svg]:text-label-secondary!",
@@ -185,10 +170,7 @@ export function AuthPaneLegal(props: {
   return (
     <motion.div
       variants={props.variants}
-      className={cn(
-        "mx-auto grid w-[70%]! select-none gap-1 text-center md:w-3/4!",
-        props.className,
-      )}
+      className={cn("mx-auto grid w-full select-none gap-1 text-center", props.className)}
     >
       <LegalFooter i18nKey={props.i18nKey} className="text-footnote leading-5" />
     </motion.div>

@@ -15,10 +15,10 @@ import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 import {
   AUTH_FIELD_CLASS,
   AUTH_PANE_ROOT_CLASS,
-  AUTH_PILL_BUTTON_CLASS,
-  AUTH_PILL_INPUT_CLASS,
-  AUTH_PILL_INPUT_GROUP_CLASS,
-  AUTH_PILL_OUTLINE_BUTTON_CLASS,
+  AUTH_BUTTON_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
   AuthButtonLabel,
   AuthFormFeedback,
   AuthPaneLegal,
@@ -94,7 +94,7 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
         <AuthEntryHeader subtitleKey="auth:FORGOT_PASSWORD_SUCCESS_DESC" variants={variants} />
         <motion.div variants={variants} className="grid gap-4 pt-1.5">
           <Button
-            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            className={AUTH_OUTLINE_BUTTON_CLASS}
             type="button"
             size="lg"
             variant="outline"
@@ -125,8 +125,8 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
                 autoComplete="email"
                 aria-label={t("auth:FIELD_EMAIL_LABEL")}
                 aria-invalid={form.formState.errors.email ? true : undefined}
-                className={AUTH_PILL_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_PILL_INPUT_CLASS}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
                 placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
                 startIcon={<Mail size={16} />}
                 disabled={props.loading}
@@ -143,16 +143,11 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
         </motion.div>
 
         <motion.div variants={variants} className="grid gap-4 pt-1">
-          <Button
-            className={AUTH_PILL_BUTTON_CLASS}
-            type="submit"
-            size="lg"
-            loading={props.loading}
-          >
+          <Button className={AUTH_BUTTON_CLASS} type="submit" size="lg" loading={props.loading}>
             <AuthButtonLabel>{t("auth:FORGOT_PASSWORD_SUBMIT_BUTTON")}</AuthButtonLabel>
           </Button>
           <Button
-            className={AUTH_PILL_OUTLINE_BUTTON_CLASS}
+            className={AUTH_OUTLINE_BUTTON_CLASS}
             type="button"
             size="lg"
             variant="outline"

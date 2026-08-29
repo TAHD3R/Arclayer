@@ -123,6 +123,11 @@ export function AuthOauthButtons({
 
   const isBusy = disabled || (showProviders && providersQuery.isLoading);
   const isSingleInlineLeadingAction = inlineLeadingActions.length === 1;
+  // The primary-plus-grid layout needs at least 3 providers; with fewer, full-width
+  // labeled rows read better than a lone or unbalanced icon grid.
+  const usePrimaryPlusGrid = providerLayout === "primary-plus-grid" && providerActions.length >= 3;
+  const gridProviderActions = providerActions.slice(1);
+  const gridColumnsClassName = gridProviderActions.length === 2 ? "grid-cols-2" : "grid-cols-3";
   const dividerSpacingClassName = dividerPlacement === "after" ? "pt-3" : "py-2";
   const divider = (
     <div
@@ -212,12 +217,12 @@ export function AuthOauthButtons({
           ))}
         </div>
       ) : null}
-      {providerActions.length > 0 && providerLayout === "primary-plus-grid" ? (
-        <div className="grid gap-3" data-testid="oauth-primary-plus-grid">
+      {providerActions.length > 0 && usePrimaryPlusGrid ? (
+        <div className="grid gap-2.5" data-testid="oauth-primary-plus-grid">
           {providerActions.slice(0, 1).map((action) => (
             <Button
               key={action.key}
-              className="h-14! w-full justify-center rounded-full! border-transparent! bg-foreground! px-4 text-background! hover:bg-foreground! hover:text-background!"
+              className="h-10! w-full justify-center rounded-md! border-transparent! bg-foreground! px-4 text-background! hover:bg-foreground! hover:text-background!"
               variant="outline"
               size="lg"
               disabled={isBusy || action.isLoading}
@@ -228,25 +233,23 @@ export function AuthOauthButtons({
               {renderProviderContent(action, action.fullLabel)}
             </Button>
           ))}
-          {providerActions.length > 1 ? (
-            <div className="grid grid-cols-3 gap-2">
-              {providerActions.slice(1).map((action) => (
-                <Button
-                  key={action.key}
-                  className="h-14! w-full justify-center rounded-full! border-border! bg-card! px-3 hover:bg-accent! hover:text-accent-foreground!"
-                  variant="outline"
-                  size="lg"
-                  disabled={isBusy || action.isLoading}
-                  loading={action.isLoading}
-                  aria-label={action.fullLabel}
-                  onClick={action.onClick}
-                >
-                  {action.isLoading ? null : action.icon}
-                  <span className="sr-only">{action.fullLabel}</span>
-                </Button>
-              ))}
-            </div>
-          ) : null}
+          <div className={cn("grid gap-2", gridColumnsClassName)}>
+            {gridProviderActions.map((action) => (
+              <Button
+                key={action.key}
+                className="h-10! w-full justify-center rounded-md! border-border! bg-card! px-3 hover:bg-accent! hover:text-accent-foreground!"
+                variant="outline"
+                size="lg"
+                disabled={isBusy || action.isLoading}
+                loading={action.isLoading}
+                aria-label={action.fullLabel}
+                onClick={action.onClick}
+              >
+                {action.isLoading ? null : action.icon}
+                <span className="sr-only">{action.fullLabel}</span>
+              </Button>
+            ))}
+          </div>
         </div>
       ) : providerActions.length > 0 ? (
         <div className="grid gap-2.5">
